@@ -784,7 +784,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
           void faceEnroll
             .enroll(_n)
             .then(() => {
-              dispatchRm({ type: "ENROLLED" });
+              dispatchRm({ type: "ENROLLED", personId: faceEnroll.getEnrolledPersonId() ?? undefined, displayName: _n });
 
               const pid = faceEnroll.getEnrolledPersonId();
               if (pid != null) {
@@ -1048,7 +1048,11 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
             console.warn("[Call][rm] relation 저장 실패(등록은 유지):", err);
           }
         }
-        dispatchRm({ type: "ENROLLED" });
+        dispatchRm({
+          type: "ENROLLED",
+          personId: nameless ?? faceEnroll.getEnrolledPersonId() ?? undefined,
+          displayName: name.trim(),
+        });
       } catch (err) {
         console.warn("[Call][rm] enroll 실패:", err);
         setRmError(t("call.rmEnrollFail", { defaultValue: "등록에 실패했어요. 다시 시도해 주세요." }));
@@ -2343,7 +2347,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
     const enrolled = takeMidCallEnrollResult(cloneId);
     if (enrolled) {
-      dispatchRm({ type: "ENROLLED" });
+      dispatchRm({ type: "ENROLLED", personId: enrolled.personId, displayName: enrolled.displayName });
       console.log(`[Call][face] 통화 중 등록 완료 → silent speaker_confirmed(${enrolled.personId})`);
       sendFaceEvent?.({
         event: "speaker_confirmed",
