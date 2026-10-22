@@ -812,7 +812,9 @@
       "threeDPersonaDev": "Persona 3D (dev)",
       "threeDPersonaDevDesc": "Render kepala GLB + demo lip-sync · Phase 1",
       "faceEnrollDev": "Daftar wajah 5 sudut (dev)",
-      "faceEnrollDevDesc": "Depan·kiri·kanan·atas·bawah → siap panggilan pertama"
+      "faceEnrollDevDesc": "Depan·kiri·kanan·atas·bawah → siap panggilan pertama",
+      "voiceLangTest": "Tes suara",
+      "voiceLangTestDesc": "Dengarkan suara klon per bahasa"
     },
     "logout": {
       "title": "Keluar?",
