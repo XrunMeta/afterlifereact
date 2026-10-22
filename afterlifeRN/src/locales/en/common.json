@@ -384,7 +384,8 @@
     "imageLoginRequired": "Sign in to send photos.",
     "imageSendFailTitle": "Couldn't send the photo",
     "imageSendFailBody": "Check your connection and try again.",
-    "imageApiUnavailable": "Photo send isn't ready yet. Please try again shortly."
+    "imageApiUnavailable": "Photo send isn't ready yet. Please try again shortly.",
+    "typingA11y": "Other person is typing"
   },
   "call": {
     "calling": "Connecting...",
@@ -447,6 +448,7 @@
     "newFaceBody": "Would you like to register this face?",
     "newFaceLater": "Later",
     "newFaceSelf": "It's me",
+    "newFaceSelfNamed": "I'm {{name}}",
     "newFaceEnroll": "Register",
     "afl971PreMessage": "{userName}, I'll go pick some flowers for you! Watch the video, I'll be right back",
     "afl971PostMessage": "Thanks for waiting! Here's your flower gift",
@@ -810,7 +812,9 @@
       "threeDPersonaDev": "3D persona (dev)",
       "threeDPersonaDevDesc": "GLB head render + lip-sync demo · Phase 1",
       "faceEnrollDev": "Face 5-angle enroll (dev)",
-      "faceEnrollDevDesc": "Front · left · right · up · down shots → first clone call prep"
+      "faceEnrollDevDesc": "Front · left · right · up · down shots → first clone call prep",
+      "voiceLangTest": "Voice test",
+      "voiceLangTestDesc": "Hear the clone voice in each language"
     },
     "logout": {
       "title": "Log out?",
@@ -2149,6 +2153,7 @@
     "other": "Other"
   },
   "faceEnroll": {
+    "rescanNotice": "Let's check your face again.",
     "permissionRequired": "Camera permission is required.",
     "permissionSkip": "Skip enroll and start call",
     "cameraLoading": "Preparing camera...",
@@ -2160,6 +2165,9 @@
       "title": "Who is this?",
       "desc": "Tell us a name and relationship so we can recognize them next call.",
       "existingLabel": "Already registered (pick one to just add more learning)",
+      "markSelf": "This face is me",
+      "alreadyRegistered": "{{name}} is already registered",
+      "updateName": "Update name",
       "existingHint": "If this is someone new, type their name below",
       "nameLabel": "Name",
       "namePlaceholder": "e.g. Jiho",

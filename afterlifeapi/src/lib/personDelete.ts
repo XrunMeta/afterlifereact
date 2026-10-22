@@ -26,6 +26,30 @@ export async function v_430d2b(
 
   const v_bee926 = Date.now();
 
+  const v_a3c903 = await v_c9c489.DB.prepare("SELECT 1 AS ok FROM users WHERE id = ? AND self_face_person_id = ?")
+    .bind(v_43e90c, v_ca1ec5)
+    .first<{ ok: number }>();
+  const v_efaf46 = v_a3c903
+    ? await v_c9c489.DB.prepare(
+        `SELECT c.id FROM persons c
+          WHERE c.source_person_id = ? AND c.user_id = ? AND c.consent_state = 'granted'
+            AND EXISTS (SELECT 1 FROM clone_person_faces f WHERE f.person_id = c.id AND f.clone_id = c.clone_id)
+          ORDER BY c.created_at, c.id LIMIT 1`,
+      )
+        .bind(v_ca1ec5, v_43e90c)
+        .first<{ id: number }>()
+    : null;
+  const v_decda0 = v_efaf46
+    ? [
+        v_c9c489.DB.prepare("UPDATE users SET self_face_person_id = ? WHERE id = ? AND self_face_person_id = ?").bind(v_efaf46.id, v_43e90c, v_ca1ec5),
+        v_c9c489.DB.prepare("UPDATE persons SET source_person_id = NULL WHERE id = ?").bind(v_efaf46.id),
+        v_c9c489.DB.prepare("UPDATE persons SET source_person_id = ? WHERE source_person_id = ? AND user_id = ?").bind(v_efaf46.id, v_ca1ec5, v_43e90c),
+      ]
+    : [
+        v_c9c489.DB.prepare("UPDATE users SET self_face_person_id = NULL WHERE self_face_person_id = ?").bind(v_ca1ec5),
+        v_c9c489.DB.prepare("UPDATE persons SET source_person_id = NULL WHERE source_person_id = ? AND user_id = ?").bind(v_ca1ec5, v_43e90c),
+      ];
+
   await v_c9c489.DB.batch([
     v_c9c489.DB.prepare("DELETE FROM face_embeddings WHERE person_id = ?").bind(v_ca1ec5),
     v_c9c489.DB.prepare("DELETE FROM clone_person_faces WHERE person_id = ?").bind(v_ca1ec5),
@@ -38,6 +62,8 @@ export async function v_430d2b(
     v_c9c489.DB.prepare("DELETE FROM clone_ont_person WHERE person_id = ?").bind(v_ca1ec5),
 
     v_c9c489.DB.prepare("UPDATE clones SET self_person_id = NULL WHERE self_person_id = ?").bind(v_ca1ec5),
+
+    ...v_decda0,
     v_c9c489.DB.prepare("DELETE FROM persons WHERE id = ? AND user_id = ?").bind(v_ca1ec5, v_43e90c),
   ]);
 

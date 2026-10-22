@@ -68,10 +68,12 @@ export async function v_f644ce(
 
   cycle: v_6aebaf | null;
 
+  selfMatch: boolean;
+
   threshold: number | null;
 }> {
   if (v_67e77e < v_b6e533.backoffUntilMs) {
-    return { state: v_b6e533, event: null, cycle: null, threshold: null };
+    return { state: v_b6e533, event: null, cycle: null, selfMatch: false, threshold: null };
   }
 
   let result: v_ac8014;
@@ -83,7 +85,7 @@ export async function v_f644ce(
       v_3b90a4 >= v_65c90d
         ? v_67e77e + v_dd916a
         : v_b6e533.backoffUntilMs;
-    return { state: { ...v_b6e533, consecutiveFailures: v_3b90a4, backoffUntilMs: v_b93b45 }, event: null, cycle: null, threshold: null };
+    return { state: { ...v_b6e533, consecutiveFailures: v_3b90a4, backoffUntilMs: v_b93b45 }, event: null, cycle: null, selfMatch: false, threshold: null };
   }
 
   let v_d2fcdb = v_43c42e.best?.personId ?? null;
@@ -163,6 +165,7 @@ export async function v_f644ce(
     state: { speaker: v_60d563, consecutiveFailures: 0, backoffUntilMs: 0 },
     event: v_d48baf,
     cycle: v_bdad26,
+    selfMatch: v_43c42e.selfMatch === true && v_d2fcdb == null,
     threshold: v_43c42e.threshold,
   };
 }
@@ -183,6 +186,8 @@ export interface UseFaceIdentifyOptions {
 
   onCollected?: (personId: number, vector: number[]) => void;
 
+  onSelfMatch?: (selfMatch: boolean) => void;
+
   deps?: IdentifyCycleDeps;
 
   now?: () => number;
@@ -198,7 +203,7 @@ export interface UseFaceIdentifyResult {
 }
 
 export function v_e9685b(v_328259): UseFaceIdentifyResult {
-  const { enabled: v_d20c84, accessToken: v_2ca7e0, cloneId: v_6e0fd3, onEvent: v_68885c, onDiag: v_32837c, calibrate: v_faccce, onCollected: v_d23335, getCurrentLandmark: v_bed13d } = v_328259;
+  const { enabled: v_d20c84, accessToken: v_2ca7e0, cloneId: v_6e0fd3, onEvent: v_68885c, onDiag: v_32837c, calibrate: v_faccce, onCollected: v_d23335, onSelfMatch: v_548612, getCurrentLandmark: v_bed13d } = v_328259;
   const v_84b93d = v_df9f57<IdentifyCycleDeps>(
     () => v_328259.deps ?? { matchFaceFn: v_afc2e6, getCurrentLandmark: v_bed13d },
     [v_328259.deps, v_bed13d],
@@ -227,8 +232,9 @@ export function v_e9685b(v_328259): UseFaceIdentifyResult {
       v_5228f1.current.push(v_46ff7a);
       v_9468fd.current = true;
       void v_f644ce(v_8d3dea.current, v_46ff7a, v_2ca7e0, v_6e0fd3, v_5de650(), v_84b93d)
-        .then(({ state: v_b6e533, event: v_d48baf, cycle: v_bdad26, threshold: v_d361d7 }) => {
+        .then(({ state: v_b6e533, event: v_d48baf, cycle: v_bdad26, selfMatch: v_a74d7a, threshold: v_d361d7 }) => {
           v_8d3dea.current = v_b6e533;
+          if (v_bdad26) v_548612?.(v_a74d7a);
           if (v_d48baf) v_68885c(v_d48baf);
 
           if (v_bdad26) {

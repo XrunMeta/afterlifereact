@@ -1,5 +1,7 @@
 
 
+import v_9c213b from '../i18n';
+import { v_a96e49 } from '../i18n/sttLocale';
 import { v_de06a3, v_c4deb2, v_e662ae, v_5ab095 } from 'bapkr';
 import { v_fee12d, type v_be7277 } from './useSpeechInput';
 import { v_724dd4 } from './useCloneSilenceDetector';
@@ -63,6 +65,8 @@ export function v_7df8a4(opts: {
   signalGating?: boolean;
 
   contextualStrings?: string[];
+
+  idleWatchdogPaused?: boolean;
 }) {
   const [v_b6e533, v_1fa668] = v_5ab095(v_3075fa());
   const v_8d3dea = v_e662ae(v_b6e533);
@@ -106,6 +110,8 @@ export function v_7df8a4(opts: {
 
     silenceMs: v_328259.silenceMs ?? 1500,
     contextualStrings: v_328259.contextualStrings,
+
+    lang: v_a96e49(v_9c213b.language),
     onUnrecoverable: (v_58ca36) => v_328259.onSttUnrecoverable?.(v_58ca36),
     onFinalResult: (v_9b6134) => {
 
@@ -372,7 +378,9 @@ export function v_7df8a4(opts: {
 
   }, [v_328259.lastSignal]);
 
+  const v_8cbf22 = v_328259.idleWatchdogPaused === true;
   v_c4deb2(() => {
+    if (v_8cbf22) return;
     if (v_b6e533.phase !== 'listening') return;
     if (v_b6e533.userSpeaking) return;
     if (v_b6e533.idleGreetCount >= v_6fc7ac.length) return;
@@ -385,7 +393,7 @@ export function v_7df8a4(opts: {
       v_700737.current({ type: 'IDLE_TIMEOUT' });
     }, v_4b24d2);
     return () => { clearTimeout(v_389afb); v_d7f7b1('timer', { name: 'watchdog', action: 'clear' }); };
-  }, [v_b6e533.phase, v_b6e533.userSpeaking, v_b6e533.idleGreetCount]);
+  }, [v_b6e533.phase, v_b6e533.userSpeaking, v_b6e533.idleGreetCount, v_8cbf22]);
 
   v_c4deb2(() => {
     if (!v_b6e533.pendingInterrupt) return;

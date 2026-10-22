@@ -38,14 +38,23 @@ class CosyEngine:
         os.makedirs(config.PROMPT_CACHE_DIR, exist_ok=True)
 
     def load(self):
-        from cosyvoice.cli.cosyvoice import CosyVoice2
-        self.model = CosyVoice2(config.MODEL_DIR, load_jit=False, load_trt=False, fp16=config.FP16)
+        if config.IS_V3:
+            # AFL-1034: Fun-CosyVoice3 — 가비아 v3_test.py 와 같은 로딩(AutoModel).
+            from cosyvoice.cli.cosyvoice import AutoModel
+            self.model = AutoModel(model_dir=config.MODEL_DIR)
+        else:
+            from cosyvoice.cli.cosyvoice import CosyVoice2
+            self.model = CosyVoice2(config.MODEL_DIR, load_jit=False, load_trt=False, fp16=config.FP16)
         self.sr = self.model.sample_rate
         if config.SAMPLING_TOP_K > 0:
-            self._set_sampling(config.SAMPLING_TOP_K)
-            log.info("sampling override: top_p=%s top_k=%s (fallback top_k=%s)",
-                     config.SAMPLING_TOP_P, config.SAMPLING_TOP_K, config.RAMBLE_FALLBACK_TOP_K)
-        log.info("cosyvoice2 loaded: dir=%s sr=%s fp16=%s", config.MODEL_DIR, self.sr, config.FP16)
+            try:
+                self._set_sampling(config.SAMPLING_TOP_K)
+                log.info("sampling override: top_p=%s top_k=%s (fallback top_k=%s)",
+                         config.SAMPLING_TOP_P, config.SAMPLING_TOP_K, config.RAMBLE_FALLBACK_TOP_K)
+            except AttributeError as e:
+                # v3 모델 구조가 다르면 기본 샘플링 그대로 — 폭주 가드(길이 검사·재합성)는 그대로 동작.
+                log.warning("sampling override skip (%s): %s", config.ENGINE_NAME, e)
+        log.info("%s loaded: dir=%s sr=%s fp16=%s", config.ENGINE_NAME, config.MODEL_DIR, self.sr, config.FP16)
 
     def _set_sampling(self, top_k: int, top_p: float | None = None):
         """LLM 샘플링 top_k/top_p 교체(폭주 저감). _synth_lock 내에서만 호출(레이스 방지).
@@ -69,7 +78,8 @@ class CosyEngine:
             log.info("warmup skip: clone %s voice.wav 없음", wc)
             return
         try:
-            self.synth("안녕하세요, 오늘도 좋은 하루 보내세요.", wc, vw, rt, config.DEFAULT_SPEED)
+            warm = "Hola, que tengas un buen día." if config.IS_V3 else "안녕하세요, 오늘도 좋은 하루 보내세요."
+            self.synth(warm, wc, vw, rt, config.DEFAULT_SPEED)
             log.info("warmup done: clone=%s", wc)
         except Exception as e:
             log.warning("warmup fail: %s", e)
@@ -112,7 +122,8 @@ class CosyEngine:
             ppath = os.path.join(config.PROMPT_CACHE_DIR, f"{clone_id}_prompt.wav")
             sf.write(ppath, data, sr, format="WAV")
             # ref_text 없으면 빈문자(cross-lingual 유사) — 있으면 ICL 프롬프트 텍스트로 사용.
-            self.model.add_zero_shot_spk(ref_text or "", ppath, clone_id)
+            # AFL-1034: v3 는 프롬프트 텍스트 앞에 접두어(PROMPT_TEXT_PREFIX). v2 는 빈 문자열이라 그대로.
+            self.model.add_zero_shot_spk(config.PROMPT_TEXT_PREFIX + (ref_text or ""), ppath, clone_id)
             self._registered[clone_id] = sig
             log.info("prompt cached: clone=%s (%.1fs, icl=%s)", clone_id, len(data) / sr, ref_text is not None)
 

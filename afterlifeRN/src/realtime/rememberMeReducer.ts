@@ -83,7 +83,7 @@ export type RememberMeEvent =
 
   | { type: "OPEN_SHEET" }
 
-  | { type: "ENROLLED" }
+  | { type: "ENROLLED"; personId?: number; displayName?: string | null }
 
   | { type: "CONFIRM_PROMPT" }
 
@@ -277,7 +277,7 @@ function v_a448ad(
         state: { ...v_9638ca(v_b6e533, v_d48baf.personId, v_d48baf.displayName), recentlySeen: v_3d04cc },
         actions: [
 
-          ...(v_d48baf.cloneSpeaking ? [{ type: "INTERRUPT_TTS" } as RememberMeAction] : []),
+          ...(v_d48baf.cloneSpeaking && v_b6e533.personId !== null ? [{ type: "INTERRUPT_TTS" } as RememberMeAction] : []),
           {
             type: "NOTIFY_CONFIRMED",
             personId: v_d48baf.personId,
@@ -508,14 +508,21 @@ function v_a448ad(
       return { state: v_fd5f43, actions: [{ type: "MIC_ON" }] };
     }
 
-    case "ENROLLED":
+    case "ENROLLED": {
+      const v_694b25 = { ...v_178dfb(), enrollGraceUntilMs: v_67e77e + v_a5c955 };
+
+      const v_570847 =
+        v_d48baf.personId != null
+          ? {
+              ...v_9638ca(v_694b25, v_d48baf.personId, v_d48baf.displayName ?? null),
+              recentlySeen: { [v_d48baf.personId]: v_67e77e },
+            }
+          : v_694b25;
       return {
-        state: {
-          ...v_178dfb(),
-          enrollGraceUntilMs: v_67e77e + v_a5c955,
-        },
+        state: v_570847,
         actions: v_b6e533.mode === "pending" || v_b6e533.sheetOpen ? [{ type: "MIC_ON" }] : [],
       };
+    }
 
     case "CONFIRM_PROMPT":
 

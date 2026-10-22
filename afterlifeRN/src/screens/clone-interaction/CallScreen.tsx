@@ -170,7 +170,7 @@ import ExpertBadge from "../../components/ui/ExpertBadge";
 import { logAppsFlyerCallVideoStart } from "../../lib/appsFlyer";
 import { setCallActive, takePressedClone } from "../../lib/callActivity";
 import { reportError } from "../../lib/errorReporting/report";
-import { takeMidCallEnrollResult } from "../../face/midCallEnrollHandoff";
+import { takeMidCallEnrollResult, setMidCallSelfVector } from "../../face/midCallEnrollHandoff";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Call">;
 
@@ -235,6 +235,11 @@ function afl971WaitForForeground(timeoutMs: number): Promise<boolean> {
 function emoteVideoUri(cloneId: number, key: EmoteKey): string | null {
   if (!EMOTE_SERVER_ACTIONS.has(key) || !Number.isFinite(cloneId) || cloneId <= 0) return null;
   return `${EMOTE_BASE_URL}/${cloneId}/${key}.mp4`;
+}
+
+function koCopula(name: string): string {
+  const code = name.charCodeAt(name.length - 1) - 0xac00;
+  return code >= 0 && code <= 11171 && code % 28 !== 0 ? "이에요" : "예요";
 }
 
 export default function CallScreen(props: Props) {
@@ -701,6 +706,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
   const unknownFaceSnapshotRef = useRef<number[][] | null>(null);
 
+  const accountSelfMatchRef = useRef(false);
+
   const calibrateOpt = useMemo(
     () => (FACE_DIAG_ENABLED ? { accessToken: accessToken ?? "", groundTruthPersonId: gtPersonId } : null),
     [accessToken, gtPersonId],
@@ -725,6 +732,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     onDiag: setFaceDiag,
     calibrate: calibrateOpt,
     onCollected: angleCollector.observe,
+
+    onSelfMatch: (v: boolean) => { if (v) accountSelfMatchRef.current = true; },
 
     getCurrentLandmark: useCallback(() => currentLandmarkRef.current, []),
   });
@@ -775,7 +784,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
           void faceEnroll
             .enroll(_n)
             .then(() => {
-              dispatchRm({ type: "ENROLLED" });
+              dispatchRm({ type: "ENROLLED", personId: faceEnroll.getEnrolledPersonId() ?? undefined, displayName: _n });
 
               const pid = faceEnroll.getEnrolledPersonId();
               if (pid != null) {
@@ -1039,7 +1048,11 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
             console.warn("[Call][rm] relation 저장 실패(등록은 유지):", err);
           }
         }
-        dispatchRm({ type: "ENROLLED" });
+        dispatchRm({
+          type: "ENROLLED",
+          personId: nameless ?? faceEnroll.getEnrolledPersonId() ?? undefined,
+          displayName: name.trim(),
+        });
       } catch (err) {
         console.warn("[Call][rm] enroll 실패:", err);
         setRmError(t("call.rmEnrollFail", { defaultValue: "등록에 실패했어요. 다시 시도해 주세요." }));
@@ -1221,6 +1234,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
     enabled: liveState === "live",
 
+    idleWatchdogPaused: !isFocused,
+
     say: sayForHandsFree,
     getStatsReport,
     notifySpeechEnd,
@@ -1384,6 +1399,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     }
     afl971PromptAlertShownRef.current = true;
 
+    const lastPerson = rmState.lastConfirmedPerson;
+    const lastPersonName = lastPerson?.displayName?.trim() || null;
     showAlert(
       t("call.newFaceTitle", { defaultValue: "새 얼굴이 보여요" }),
       t("call.newFaceBody", { defaultValue: "얼굴을 등록할까요?" }),
@@ -1391,10 +1408,19 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         {
           text: t("call.newFaceLater", { defaultValue: "나중에" }),
           style: "cancel",
-          onPress: () => dispatchRm({ type: "DISMISS_LATER" }),
+          onPress: () => {
+            accountSelfMatchRef.current = false;
+            dispatchRm({ type: "DISMISS_LATER" });
+          },
         },
-        {
-          text: t("call.newFaceSelf", { defaultValue: "본인" }),
+        ...(lastPerson != null ? [{
+          text: lastPersonName
+            ? t("call.newFaceSelfNamed", {
+                name: lastPersonName,
+                copula: koCopula(lastPersonName),
+                defaultValue: `${lastPersonName}${koCopula(lastPersonName)}`,
+              })
+            : t("call.newFaceSelf", { defaultValue: "본인" }),
           onPress: () => {
 
             const snapshot = unknownFaceSnapshotRef.current;
@@ -1409,17 +1435,28 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
                 });
               unknownFaceSnapshotRef.current = null;
             }
+            accountSelfMatchRef.current = false;
             dispatchRm({ type: "CONFIRM_SAME_PERSON" });
           },
-        },
+        }] : []),
         {
           text: t("call.newFaceEnroll", { defaultValue: "등록" }),
           onPress: () => {
             dispatchRm({ type: "CONFIRM_PROMPT" });
 
+            const snap = unknownFaceSnapshotRef.current;
+            const selfVecs = (snap && snap.length > 0 ? snap : getFaceEmbeddingBuffer().latest(5))
+              .slice(-5)
+              .filter((v) => v.length === 512);
+            const useAccountSelf = accountSelfMatchRef.current && selfVecs.length > 0;
+            console.log(
+              `[Call][face] 등록 → accountSelfMatch=${accountSelfMatchRef.current} vectors=${selfVecs.length} → ${useAccountSelf ? "스캔 생략" : "스캔"}`,
+            );
+            accountSelfMatchRef.current = false;
+            if (useAccountSelf) setMidCallSelfVector(cloneId, selfVecs);
             (navigation as unknown as { navigate: (name: string, params: object) => void }).navigate(
               "PreCallFaceEnroll",
-              { cloneId, name: paramName, image: paramImage, midCall: true },
+              { cloneId, name: paramName, image: paramImage, midCall: true, accountSelfMatch: useAccountSelf },
             );
           },
         },
@@ -2314,7 +2351,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
     const enrolled = takeMidCallEnrollResult(cloneId);
     if (enrolled) {
-      dispatchRm({ type: "ENROLLED" });
+      dispatchRm({ type: "ENROLLED", personId: enrolled.personId, displayName: enrolled.displayName });
       console.log(`[Call][face] 통화 중 등록 완료 → silent speaker_confirmed(${enrolled.personId})`);
       sendFaceEvent?.({
         event: "speaker_confirmed",
@@ -2342,22 +2379,33 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const cancelInFlightRef = useRef(false);
 
   const retryLockUntilRef = useRef(0);
+  const exitStartedAtRef = useRef(0);
+  const isFocusedRef = useRef(isFocused);
+  isFocusedRef.current = isFocused;
   const exitToMain = useCallback(() => {
+    const toMain = () =>
+      navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: "Main" }] }));
     if (exitInFlightRef.current) {
+
+      if (Date.now() - exitStartedAtRef.current > 3000) {
+        console.log("[Call][exit] 종료가 3초 넘게 안 끝남 — 메인으로 강제 이동");
+        toMain();
+        return;
+      }
       console.log("[Call][exit] 이미 진행 중 — 재요청 무시");
       return;
     }
     exitInFlightRef.current = true;
+    exitStartedAtRef.current = Date.now();
     console.log("[Call][exit] setIsTerminating=true (200ms 후 navigation)");
     setIsTerminating(true);
     setTimeout(() => {
       console.log("[Call][exit] navigation 실행");
-      if (navigation.canGoBack()) {
+
+      if (navigation.canGoBack() && isFocusedRef.current) {
         navigation.goBack();
       } else {
-        navigation.dispatch(
-          CommonActions.reset({ index: 0, routes: [{ name: "Main" }] }),
-        );
+        toMain();
       }
     }, 200);
   }, [navigation]);

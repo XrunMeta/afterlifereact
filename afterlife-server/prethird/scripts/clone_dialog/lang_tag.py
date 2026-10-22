@@ -87,13 +87,30 @@ class LangTagStream:
         return ""
 
 
-def lang_instruction(user_lang: str | None) -> str:
-    """답 언어 규칙(AFL-1033 2절) + 태그 출력 지시 + 한국어 전용 규칙 해제(4절)."""
+# AFL-1034: 통화에서 목소리로 말할 수 있는 언어(TTS 지원). ko·en·ja·zh = CosyVoice2 · es = CosyVoice3.
+CALL_LANGS = ("ko", "en", "ja", "zh", "es")
+# 통화에서 지원 밖 언어로 말을 걸면 이 언어로 답한다.
+CALL_FALLBACK_LANG = "en"
+
+
+def lang_instruction(user_lang: str | None, allowed: tuple[str, ...] | None = None) -> str:
+    """답 언어 규칙(AFL-1033 2절) + 태그 출력 지시 + 한국어 전용 규칙 해제(4절).
+
+    allowed: 통화처럼 답할 수 있는 언어가 정해진 경우(AFL-1034). 그 밖의 언어면 영어로 답하게 한다.
+    """
     ul = normalize_lang(user_lang) or DEFAULT_LANG
+    if allowed and ul not in allowed:
+        ul = CALL_FALLBACK_LANG if CALL_FALLBACK_LANG in allowed else allowed[0]
+    limit = (
+        f"- 답할 수 있는 언어는 {'·'.join(allowed)} 뿐이야. 상대가 다른 언어로 말하면 "
+        f"`{CALL_FALLBACK_LANG}` 언어로 답해.\n"
+        if allowed else ""
+    )
     return (
         "[답 언어 규칙 — 가장 중요]\n"
         "- 상대가 **마지막에 보낸 메시지의 언어**로 답해. 앞의 대화·기억·설정이 한국어여도 따라가지 마.\n"
         f"- 마지막 메시지의 언어가 분명하지 않으면(예: 'ok', 'ㅋㅋ', 이모지, '?') `{ul}` 언어로 답해.\n"
+        + limit +
         "- 한국어로 답할 때만 반말/존댓말·사투리 규칙을 지켜. 다른 언어면 그 규칙 대신 "
         "반말이면 친근한 말투, 존댓말이면 정중한 말투로 답하고 사투리는 쓰지 마.\n"
         "- 답의 **맨 앞**에 답한 언어를 `<lang=코드>` 로 붙여(코드: ko·en·ja·zh·es·fr·id 등 두 글자). "
