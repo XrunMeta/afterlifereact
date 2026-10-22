@@ -448,7 +448,7 @@
     "newFaceBody": "얼굴을 등록할까요?",
     "newFaceLater": "나중에",
     "newFaceSelf": "본인",
-    "newFaceSelfNamed": "{{name}}이에요",
+    "newFaceSelfNamed": "{{name}}{{copula}}",
     "newFaceEnroll": "등록",
     "afl971PreMessage": "{userName}줄 꽃 좀 따올게! 영상 보고 있으면 금방 다녀올게",
     "afl971PostMessage": "기다려줘서 고마워! 꽃 선물 짠",

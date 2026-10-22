@@ -258,13 +258,14 @@ export async function v_1bffe3(env: v_273a0c, v_43e90c): Promise<AccountSelfFace
 export async function v_e7a6ec(
   env: v_273a0c,
   v_328259,
-): Promise<boolean> {
+): Promise<{ match: boolean; score: number | null }> {
   const { userId: v_43e90c, cloneId: v_6e0fd3, vector: v_f9a45c, threshold: v_d361d7 } = v_328259;
   const v_b1d852 = await v_1bffe3(v_c9c489, v_43e90c);
-  if (!v_b1d852 || v_b1d852.cloneId === v_6e0fd3) return false;
+  if (!v_b1d852 || v_b1d852.cloneId === v_6e0fd3) return { match: false, score: null };
   const v_688abd = await v_97be02(v_c9c489, { userId: v_43e90c, cloneId: v_b1d852.cloneId, vector: v_f9a45c });
   const v_715950 = v_688abd.find((v_65a2cd) => v_65a2cd.personId === v_b1d852.personId);
-  return !!v_715950 && v_715950.score >= v_d361d7;
+  const v_740dd8 = v_715950?.score ?? 0;
+  return { match: v_740dd8 >= v_d361d7, score: v_740dd8 };
 }
 
 export async function v_a4a855(
