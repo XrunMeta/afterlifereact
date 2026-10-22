@@ -75,17 +75,29 @@ export type RememberMeEvent =
 
   | { type: "ACTIVITY" }
 
-  | { type: "TURN_VERDICT"; verdict: v_516d40; displayName: string | null; nowMs: number }
+  | {
+      type: "TURN_VERDICT";
+      verdict: v_516d40;
+      displayName: string | null;
+
+      nowMs: number;
+    }
 
   | {
       type: "WHO_RETRY_RESULT";
       personId: number | null;
       displayName: string | null;
       selfMatch: boolean;
+
       nowMs: number;
     }
 
-  | { type: "FACE_PRESENCE"; present: boolean; nowMs: number }
+  | {
+      type: "FACE_PRESENCE";
+      present: boolean;
+
+      nowMs: number;
+    }
 
   | { type: "MULTI_FACE_SENT" }
 
@@ -105,7 +117,9 @@ export type RememberMeEvent =
 
   | { type: "CONFIRM_SAME_PERSON" }
 
-  | { type: "DISMISS_LATER" };
+  | { type: "DISMISS_LATER" }
+
+  | { type: "ENROLL_ABORTED" };
 
 export type RememberMeAction =
 
@@ -271,6 +285,21 @@ function v_d44fba(
       pendingSwitch: null,
     },
     actions: [{ type: "NOTIFY_UNKNOWN" }],
+  };
+}
+
+function v_dad1cc(
+  v_b6e533,
+): { state: RememberMeState; actions: RememberMeAction[] } {
+  return {
+    state: {
+      ...v_b6e533,
+      promptRegister: false,
+      dismissedPromptInCall: true,
+      mode: "identified",
+      personId: null,
+    },
+    actions: [{ type: "MIC_ON" }],
   };
 }
 
@@ -504,16 +533,14 @@ function v_a448ad(
           actions: [{ type: "MIC_ON" }],
         };
       }
-      return {
-        state: {
-          ...v_b6e533,
-          promptRegister: false,
-          dismissedPromptInCall: true,
-          mode: "identified",
-          personId: null,
-        },
-        actions: [{ type: "MIC_ON" }],
-      };
+      return v_dad1cc(v_b6e533);
+
+    case "ENROLL_ABORTED":
+
+      if (v_b6e533.mode !== "pending" || v_b6e533.promptRegister || v_b6e533.sheetOpen) {
+        return { state: v_b6e533, actions: [] };
+      }
+      return v_dad1cc(v_b6e533);
 
     default:
       return { state: v_b6e533, actions: [] };

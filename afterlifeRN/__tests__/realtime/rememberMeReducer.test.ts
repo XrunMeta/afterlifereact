@@ -192,15 +192,51 @@ describe("rememberMeReducer — 턴 판정 (TURN_VERDICT)", () => {
   });
 
   it("TURN_VERDICT unknown — 이미 대기 중이면 NOTIFY_UNKNOWN 을 다시 내지 않는다(진입 1회당 1번)", () => {
+
     const v_a274a9 = v_729796(v_30b0d4(), v_1b0e1d("unknown", null, 3000), 3000).state;
     const v_826279 = v_729796(v_a274a9, v_1b0e1d("unknown", null, 5000), 5000);
     expect(v_826279.state).toBe(v_a274a9);
     expect(v_826279.actions).toEqual([]);
+    const v_476dbe = v_729796(v_a274a9, v_192ddf(null, 5000), 5000);
+    expect(v_476dbe.state).toBe(v_a274a9);
+    expect(v_476dbe.actions).toEqual([]);
+  });
 
-    const v_313dc7 = v_729796(v_a274a9, { type: "CONFIRM_PROMPT" }, 6000).state;
-    const v_cb35cb = v_729796(v_313dc7, v_1b0e1d("unknown", null, 7000), 7000);
-    expect(v_cb35cb.state.promptRegister).toBe(true);
+  it("ENROLL_ABORTED — 등록 화면에서 그냥 돌아오면 '나중에' 와 같은 결과로 마이크를 푼다", () => {
+
+    const v_a274a9 = v_729796(v_30b0d4(), v_1b0e1d("unknown", null, 3000), 3000).state;
+    const v_cc9e0e = v_729796(v_a274a9, { type: "CONFIRM_PROMPT" }, 4000).state;
+    expect(v_cc9e0e.mode).toBe("pending");
+    expect(v_cc9e0e.promptRegister).toBe(false);
+    expect(v_b94941(v_cc9e0e)).toBe(true);
+
+    const v_6c558f = v_729796(v_cc9e0e, { type: "ENROLL_ABORTED" }, 30_000);
+    expect(v_b94941(v_6c558f.state)).toBe(false);
+
+    const v_b3355e = v_729796(v_a274a9, { type: "DISMISS_LATER" }, 30_000);
+    expect(v_6c558f.state).toEqual(v_b3355e.state);
+    expect(v_6c558f.actions).toEqual(v_b3355e.actions);
+    expect(v_6c558f.actions).toEqual([{ type: "MIC_ON" }]);
+    expect(v_6c558f.state.dismissedPromptInCall).toBe(true);
+  });
+
+  it("ENROLL_ABORTED — 대기가 아니면 아무것도 하지 않는다", () => {
+    const v_fd5f43 = v_30b0d4();
+    const v_cb35cb = v_729796(v_fd5f43, { type: "ENROLL_ABORTED" }, 30_000);
+    expect(v_cb35cb.state).toBe(v_fd5f43);
     expect(v_cb35cb.actions).toEqual([]);
+  });
+
+  it("ENROLL_ABORTED — 시트가 떠 있으면(또는 팝업이 떠 있으면) 아무것도 하지 않는다", () => {
+    const v_fd08c6 = { ...v_4ce118(), sheetOpen: true };
+    const v_cb35cb = v_729796(v_fd08c6, { type: "ENROLL_ABORTED" }, 30_000);
+    expect(v_cb35cb.state).toBe(v_fd08c6);
+    expect(v_cb35cb.actions).toEqual([]);
+
+    const v_d5c3bc = { ...v_4ce118(), promptRegister: true };
+    const v_e2a85c = v_729796(v_d5c3bc, { type: "ENROLL_ABORTED" }, 30_000);
+    expect(v_e2a85c.state).toBe(v_d5c3bc);
+    expect(v_e2a85c.actions).toEqual([]);
   });
 
   it("TURN_VERDICT unknown — 시트가 떠 있으면 팝업은 열지 않되 대기 진입·알림은 한다", () => {
