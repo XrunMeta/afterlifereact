@@ -20,7 +20,7 @@ import { v_772971 } from "jmpfvteuuztnp";
 import type { v_2d88fc } from "../../navigation/types";
 import v_556baf from "../../components/ui/SafeView";
 import v_258c1c from "../../components/common/PageHeader";
-import { v_1bfbd0, v_8b0c90, v_9b1a04, v_8f28b1, v_0da505, v_d43669, v_c10a43, v_119e65, v_94abbe } from "../../components/constants";
+import { v_1bfbd0, v_8b0c90, v_9b1a04, v_8f28b1, v_d43669, v_c10a43, v_119e65 } from "../../components/constants";
 import { v_889fad } from "../../stores/dialogStore";
 import { v_1ed7d9 } from "../../stores/authStore";
 import {
@@ -613,7 +613,7 @@ export default function v_78da96({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
                   </TouchableOpacity>
                 </View>
 
-                <View style={v_d81136.inputRow}>
+                <View style={v_d81136.inputPill}>
                   <TextInput
                     value={v_343c90}
                     onChangeText={(v_81e2ef) => v_2f6757(v_81e2ef.slice(0, 3000))}
@@ -643,8 +643,8 @@ export default function v_78da96({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
                   >
                     <Feather
                       name="send"
-                      size={18}
-                      color={v_35bf26 || !v_343c90.trim() ? v_1bfbd0.zinc400 : v_1bfbd0.white}
+                      size={16}
+                      color={v_35bf26 || !v_343c90.trim() ? v_1bfbd0.zinc500 : v_1bfbd0.white}
                     />
                   </TouchableOpacity>
                 </View>
@@ -754,12 +754,12 @@ const v_d81136 = v_472849.create({
     paddingHorizontal: v_9b1a04.large,
   },
   footer: {
-    borderTopWidth: 1,
+    borderTopWidth: v_472849.hairlineWidth,
     borderTopColor: v_1bfbd0.zinc200,
-    paddingHorizontal: v_9b1a04.large,
+    paddingHorizontal: 12,
     paddingTop: 8,
-    paddingBottom: 12,
-    backgroundColor: v_1bfbd0.white,
+    paddingBottom: 10,
+    backgroundColor: v_1bfbd0.zinc100,
   },
   suggestionRow: {
     flexDirection: "row",
@@ -823,23 +823,39 @@ const v_d81136 = v_472849.create({
     ...v_119e65.md,
     color: v_1bfbd0.zinc700,
   },
-  inputRow: {
+
+  inputPill: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
+    alignItems: "flex-end",
+    gap: 4,
+    minHeight: 48,
+    paddingLeft: 14,
+    paddingRight: 6,
+    paddingVertical: 4,
+    backgroundColor: v_1bfbd0.white,
+    borderRadius: 999,
+    borderWidth: v_472849.hairlineWidth,
+    borderColor: v_1bfbd0.zinc200,
   },
   input: {
     flex: 1,
     maxHeight: 120,
-    borderWidth: 1,
-    borderColor: v_1bfbd0.zinc200,
+    minHeight: 40,
+    paddingHorizontal: 6,
+    paddingTop: v_326be8.OS === "ios" ? 10 : 8,
+    paddingBottom: v_326be8.OS === "ios" ? 10 : 8,
+    margin: 0,
+    borderWidth: 0,
     color: v_1bfbd0.zinc900,
-    ...v_0da505,
-
-    backgroundColor: v_1bfbd0.zinc100,
+    backgroundColor: "transparent",
+    fontSize: 15,
+    lineHeight: 20,
   },
   sendBtn: {
-    ...v_94abbe,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    marginBottom: 2,
     backgroundColor: v_1bfbd0.primary,
     justifyContent: "center",
     alignItems: "center",

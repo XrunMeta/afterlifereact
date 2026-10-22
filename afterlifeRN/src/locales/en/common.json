@@ -374,7 +374,17 @@
     "leaveTitle": "Leave chat",
     "leaveConfirm": "Your conversation with this clone will be removed. Continue?",
     "leaveConfirmSubscribed": "Your conversation with this clone will be removed and you'll be unsubscribed. Continue?",
-    "leaveFailTitle": "Couldn't leave"
+    "leaveFailTitle": "Couldn't leave",
+    "imageButtonA11y": "Send photo",
+    "imagePickTitle": "Send a photo",
+    "imagePickCamera": "Camera",
+    "imagePickAlbum": "Album",
+    "imagePlaceholder": "[Photo]",
+    "imageUnavailableTitle": "Send photo",
+    "imageLoginRequired": "Sign in to send photos.",
+    "imageSendFailTitle": "Couldn't send the photo",
+    "imageSendFailBody": "Check your connection and try again.",
+    "imageApiUnavailable": "Photo send isn't ready yet. Please try again shortly."
   },
   "call": {
     "calling": "Connecting...",
