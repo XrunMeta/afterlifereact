@@ -1010,6 +1010,7 @@
       "emailDuplicateHint": "すでに登録済みのメールアドレスです",
       "validationFailed": "入力内容が正しくありません",
       "googleTitle": "Googleで新規登録",
+      "appleTitle": "Appleで新規登録",
       "ageRange": "年代",
       "countrySearch": "国を検索",
       "regionSearch": "地域を検索"

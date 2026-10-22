@@ -1010,6 +1010,7 @@
       "emailDuplicateHint": "Email ini sudah terdaftar",
       "validationFailed": "Isian tidak valid",
       "googleTitle": "Daftar dengan Google",
+      "appleTitle": "Daftar dengan Apple",
       "ageRange": "Kelompok usia",
       "countrySearch": "Cari negara",
       "regionSearch": "Cari wilayah"

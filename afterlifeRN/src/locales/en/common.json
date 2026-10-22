@@ -1010,6 +1010,7 @@
       "emailDuplicateHint": "This email is already registered",
       "validationFailed": "Some entries are invalid",
       "googleTitle": "Sign up with Google",
+      "appleTitle": "Sign up with Apple",
       "ageRange": "Age group",
       "countrySearch": "Search country",
       "regionSearch": "Search region"
