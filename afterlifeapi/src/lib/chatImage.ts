@@ -9,14 +9,15 @@ export const v_a52bdd = "[사진]";
 export const v_e68875 = 8 * 1024 * 1024;
 export const v_3f052d = ["image/jpeg", "image/png", "image/webp", "image/gif"] as const;
 
-const v_97d6a9 = 300;
+const v_97d6a9 = 400;
 
 const v_1d8c5e = [
   "You describe a photo that a user just shared in a chat with an AI character.",
   'Reply with JSON only: {"description": "..."}',
-  "- description: 1-2 sentences in Korean, what the photo shows (place, objects, mood, notable details, visible text).",
-  "- Do NOT identify or guess who any person is. Refer to people only generically (e.g. '웃고 있는 여성').",
-  "- No speculation beyond what is visible. Max 200 Korean characters.",
+  "- description: 1-3 sentences in Korean, what the photo shows (place, objects, mood, notable details, visible text).",
+  "- For each visible person, add distinguishing visible features so the same person can be recognized in a later photo: hair (length, color, style), glasses, approximate age group, gender presentation, clothing, accessories, notable marks.",
+  "- Do NOT name or guess who any person is (no celebrity or identity guesses). Describe people only by appearance (e.g. '안경 쓴 단발머리 20대 여성').",
+  "- No speculation beyond what is visible. Max 280 Korean characters.",
 ].join("\n");
 
 export function v_56bce4(v_6856a9): string {
@@ -29,7 +30,12 @@ export function v_d4d906(v_9b6134): string | null {
 }
 
 export function v_741d36(v_6856a9): string {
-  return `(사진을 보여줌) ${v_6856a9}\n(사진 속 사람은 얼굴로 알아보지 말고 사진 내용에만 자연스럽게 반응하기)`;
+  return (
+    `(사진을 보여줌) ${v_6856a9}\n` +
+    "(사진 속 인물이 전에 대화에서 상대가 이름을 알려준 사람과 같은 사람으로 보이면 그 이름으로 자연스럽게 반응해. " +
+    "확실하지 않으면 '혹시 OO야?' 처럼 물어봐. 처음 보는 사람이면 누군지 물어봐도 돼. " +
+    "사진 속 인물이 지금 대화하는 상대라고 단정하지는 마.)"
+  );
 }
 
 function v_4745bb(v_fbb6da): string {
