@@ -28,6 +28,7 @@ import numpy as np
 from recorder import NULL_TURN
 from clone_dialog.conversation_history import ConversationHistory
 from clone_dialog.lang_tag import CALL_LANGS, LangTagStream, lang_instruction, normalize_lang, split_lang_tag
+from clone_dialog.whoami import turn_face_instruction
 
 # AFL-1034: 고정 인사(LLM 인사 off 일 때)의 언어별 문구. 없는 언어는 한국어 기본 문구.
 _GREETING_BY_LANG = {
@@ -765,8 +766,12 @@ class DialoguePipeline:
     async def say(
         self, user_text: str, turn=None, on_first_audio=None, on_response_ready=None,
         on_sentence=None, on_reply_done=None, ad_event: str | None = None,
+        turn_face: dict | None = None, on_ask=None,
     ) -> None:
         """user_text 1턴을 처리해 video/audio 트랙에 적재하고 signal_end 호출.
+        turn_face: [AFL-1039] 이번 턴 얼굴 대조 결과(앱 turn_face + 수신 시각 "at") — 지시 1줄로
+          이번 턴 프롬프트에만 반영. None 이면 기존과 동일.
+        on_ask: [AFL-1039] 답 머리에 <ask=who> 가 붙었으면 답 끝에서 on_ask("who") 1회 호출.
         turn: recorder Turn 핸들(없으면 NULL_TURN) — LLM 토큰·TTS wav 누적.
         on_response_ready: 첫 infer 완료 후·첫 push 직전 1회 호출 (F7 filler 즉시컷).
         on_sentence: [T-151, 라운드2] 문장 1개의 첫 프레임 push 직전(재생 시작
@@ -839,6 +844,12 @@ class DialoguePipeline:
                 ),
             }]
 
+        # [AFL-1039] 말하는 순간 얼굴 대조 결과 → 이번 턴 지시 1줄(위 화자 힌트 뒤). 이름은
+        #   서버가 확정한 current_speaker_name 에서만 — 미확인이면 이름 없이 카메라 안내 + <ask=who>.
+        _tf_rule = turn_face_instruction(turn_face, _speaker_now, time.monotonic())
+        if _tf_rule:
+            messages = messages + [{"role": "system", "content": _tf_rule}]
+
         _hint = getattr(self, "name_mention_hint", None)
         if _hint:
             self.name_mention_hint = None
@@ -882,6 +893,12 @@ class DialoguePipeline:
                 answer_tokens.append(rest)
                 for s in sb.push(rest):
                     await q.put(s)
+            # [AFL-1039] 답 머리의 <ask=who> → 앱에 재대조 요청(who_asked). 답당 1회.
+            if lts.ask and on_ask is not None:
+                try:
+                    on_ask(lts.ask)
+                except Exception as e:  # noqa: BLE001 — 통지 실패가 발화를 막으면 안 된다
+                    log.warning("on_ask callback failed: %s", e)
             # AFL-926: 응답 텍스트 확정 시점 통지(턴 기록용). 재생(Bridge·렌더·push)은 아직
             #   한참 남았지만 기록은 지금 해야 끊고 바로 다시 건 통화가 이 턴을 받아 온다.
             if on_reply_done is not None:
