@@ -384,7 +384,8 @@
     "imageLoginRequired": "登录后才能发送照片。",
     "imageSendFailTitle": "照片发送失败",
     "imageSendFailBody": "请检查网络后重试。",
-    "imageApiUnavailable": "照片发送功能准备中，请稍后再试。"
+    "imageApiUnavailable": "照片发送功能准备中，请稍后再试。",
+    "typingA11y": "对方正在输入"
   },
   "call": {
     "calling": "连接中...",

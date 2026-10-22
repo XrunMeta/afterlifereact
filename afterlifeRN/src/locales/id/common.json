@@ -384,7 +384,8 @@
     "imageLoginRequired": "Masuk untuk mengirim foto.",
     "imageSendFailTitle": "Gagal mengirim foto",
     "imageSendFailBody": "Periksa koneksi lalu coba lagi.",
-    "imageApiUnavailable": "Fitur kirim foto belum siap. Coba lagi sebentar."
+    "imageApiUnavailable": "Fitur kirim foto belum siap. Coba lagi sebentar.",
+    "typingA11y": "Sedang mengetik"
   },
   "call": {
     "calling": "Menghubungkan...",

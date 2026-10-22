@@ -384,7 +384,8 @@
     "imageLoginRequired": "ログイン後に写真を送れます。",
     "imageSendFailTitle": "写真を送れませんでした",
     "imageSendFailBody": "ネットワークを確認して、もう一度お試しください。",
-    "imageApiUnavailable": "写真送信の準備中です。しばらくしてからお試しください。"
+    "imageApiUnavailable": "写真送信の準備中です。しばらくしてからお試しください。",
+    "typingA11y": "入力中"
   },
   "call": {
     "calling": "接続中...",
