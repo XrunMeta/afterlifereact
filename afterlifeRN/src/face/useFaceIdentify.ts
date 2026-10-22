@@ -193,6 +193,8 @@ export interface UseFaceIdentifyOptions {
 
   onCycle?: (c: { personId: number | null; score: number; displayName: string | null }) => void;
 
+  onCycleEnd?: () => void;
+
   deps?: IdentifyCycleDeps;
 
   now?: () => number;
@@ -221,6 +223,8 @@ export function v_e9685b(v_328259): UseFaceIdentifyResult {
 
   const v_fa87f6 = v_e662ae(v_e028d7);
   v_fa87f6.current = v_e028d7;
+  const v_2e2909 = v_e662ae(v_328259.onCycleEnd);
+  v_2e2909.current = v_328259.onCycleEnd;
 
   const v_4921f9 = v_de06a3(() => {
 
@@ -310,6 +314,11 @@ export function v_e9685b(v_328259): UseFaceIdentifyResult {
         })
         .finally(() => {
           v_9468fd.current = false;
+          try {
+            v_2e2909.current?.();
+          } catch (v_49263d) {
+            console.warn("[useFaceIdentify] onCycleEnd threw:", v_49263d);
+          }
         });
       return true;
     },

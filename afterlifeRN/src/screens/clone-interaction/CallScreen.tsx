@@ -73,8 +73,8 @@ import { largestFace, significantFaces } from "../../face/largestFace";
 import { computeAlignedCrop } from "../../face/faceAlignCrop";
 import { computeLandmarkRatios, type LandmarkRatios } from "../../face/faceLandmarkRatios";
 import { meanLuma, classifyFaceQualityGuarded, faceYawRatio, type FaceQuality } from "../../face/faceQuality";
-import { judgeTurn, type TurnSample } from "../../face/faceTurnJudge";
-import { createTurnFaceGate, retryVerdict } from "../../face/turnFaceGate";
+import { type TurnSample } from "../../face/faceTurnJudge";
+import { createTurnFaceGate, createWhoRetryArm, retryVerdict } from "../../face/turnFaceGate";
 import {
   useFaceCheckScheduler,
   type FaceCheckScheduler,
@@ -663,7 +663,12 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const faceCheckRef = useRef<FaceCheckScheduler | null>(null);
 
   const turnFaceGate = useMemo(
-    () => createTurnFaceGate({ burst: (n) => faceCheckRef.current?.burst(n), now: Date.now }),
+    () =>
+      createTurnFaceGate({
+        burst: (n) => faceCheckRef.current?.burst(n),
+        stopBurst: () => faceCheckRef.current?.stopBurst(),
+        now: Date.now,
+      }),
     [],
   );
 
@@ -671,9 +676,27 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
   const whoRetryPendingRef = useRef(false);
 
-  const whoRetryArmedRef = useRef(false);
+  const whoRetryArm = useMemo(
+    () =>
+      createWhoRetryArm({
+        onExpire: () => {
+          faceCheckTriggersRef.current.delete("who_retry");
+          console.log("[Call][face] who retry 결과 없음(3초) — 재대조 대기 해제");
+        },
+      }),
+    [],
+  );
+  useEffect(() => () => whoRetryArm.clear(), [whoRetryArm]);
+
+  const personNameOfRef = useRef<(personId: number | null) => string | null>(() => null);
 
   const personNamesRef = useRef<Map<number, string | null>>(new Map());
+  personNameOfRef.current = (personId) => {
+    if (personId == null) return null;
+    const n =
+      personNamesRef.current.get(personId) ?? persons.find((p) => p.id === personId)?.displayName ?? null;
+    return n && n.trim() ? n : null;
+  };
 
   const handleSpeakerEventRef = useRef<(evt: SpeakerEvent) => void>(() => {});
 
@@ -752,14 +775,16 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
   const resolveWhoRetry = useCallback(
     (sample: TurnSample, displayName: string | null) => {
-      whoRetryArmedRef.current = false;
       const v = retryVerdict(sample, rmStateRef.current.personId);
+      const name = displayName?.trim() ? displayName : personNameOfRef.current(sample.personId);
       console.log(`[Call][face] who retry verdict=${v.kind} person=${v.personId ?? "none"} q=${v.quality}`);
       sendTurnFace?.({ ...v, retry: true });
       dispatchRm({
         type: "WHO_RETRY_RESULT",
         personId: sample.personId,
-        displayName,
+        displayName: name,
+
+        named: !!name,
 
         selfMatch: sample.personId == null && sample.quality !== "none" && accountSelfMatchRef.current,
         nowMs: Date.now(),
@@ -784,9 +809,9 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         `[Call][face] cycle trigger=${meta?.trigger ?? "?"} person=${c.personId ?? "none"} ` +
           `score=${c.score.toFixed(3)} q=${sample.quality} infer=${meta?.inferMs ?? "?"}ms`,
       );
-      if (whoRetryArmedRef.current) resolveWhoRetry(sample, c.displayName);
+      if (whoRetryArm.take()) resolveWhoRetry(sample, c.displayName);
     },
-    [turnFaceGate, resolveWhoRetry],
+    [turnFaceGate, resolveWhoRetry, whoRetryArm],
   );
 
   const {
@@ -806,6 +831,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     onSelfMatch: (v: boolean) => { if (v) accountSelfMatchRef.current = true; },
 
     onCycle: handleFaceCycle,
+
+    onCycleEnd: useCallback(() => faceCheckRef.current?.onCycleDone(), []),
 
     getCurrentLandmark: useCallback(() => currentLandmarkRef.current, []),
   });
@@ -1139,9 +1166,9 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     const parts: string[] = Array.from(faceCheckTriggersRef.current);
     faceCheckTriggersRef.current.clear();
     if (byFaceCount) parts.push("face_count");
-    if (parts.includes("who_retry")) whoRetryArmedRef.current = true;
+    if (parts.includes("who_retry")) whoRetryArm.consumed();
     return parts.length > 0 ? parts.join("+") : "?";
-  }, []);
+  }, [whoRetryArm]);
 
   const handleNoFaceOnJS = React.useMemo(
     () =>
@@ -1150,9 +1177,11 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         const sample: TurnSample = { personId: null, score: 0, quality: "none", atMs: Date.now() };
         turnFaceGate.addSample(sample);
         console.log(`[Call][face] cycle trigger=${trigger} person=none score=0.000 q=none infer=0ms`);
-        if (whoRetryArmedRef.current) resolveWhoRetry(sample, null);
+        if (whoRetryArm.take()) resolveWhoRetry(sample, null);
+
+        faceCheckRef.current?.onCycleDone();
       }),
-    [takeFaceCheckTrigger, turnFaceGate, resolveWhoRetry],
+    [takeFaceCheckTrigger, turnFaceGate, resolveWhoRetry, whoRetryArm],
   );
 
   const handleEmbeddingOnJS = React.useMemo(
@@ -1319,19 +1348,17 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const reportTurnFace = useCallback(async () => {
     try {
       const heldStart = Date.now();
-      const samples = await turnFaceGate.awaitReady();
-      const v = judgeTurn(samples, rmStateRef.current.personId);
+
+      const { verdict: v, samples } = await turnFaceGate.awaitVerdict(rmStateRef.current.personId);
       console.log(`[Call][face] turn verdict=${v.kind} n=${samples.length} held=${Date.now() - heldStart}ms`);
       sendTurnFace?.({ ...v, retry: false });
-      const displayName =
-        v.personId != null
-          ? personNamesRef.current.get(v.personId) ?? persons.find((p) => p.id === v.personId)?.displayName ?? null
-          : null;
-      dispatchRm({ type: "TURN_VERDICT", verdict: v, displayName, nowMs: Date.now() });
+      const displayName = personNameOfRef.current(v.personId);
+
+      dispatchRm({ type: "TURN_VERDICT", verdict: v, displayName, named: !!displayName, nowMs: Date.now() });
     } catch (err) {
       console.warn("[Call][face] turn verdict 실패(말은 그대로 보낸다):", err);
     }
-  }, [turnFaceGate, sendTurnFace, dispatchRm, persons]);
+  }, [turnFaceGate, sendTurnFace, dispatchRm]);
   const sayForHandsFree = useCallback(
     async (text: string) => {
       if (turnFaceGateOnRef.current) await reportTurnFace();
@@ -1369,9 +1396,9 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const handleUserSpeechStart = useCallback(() => {
     turnFaceGate.startTurn();
     whoRetryPendingRef.current = false;
-    whoRetryArmedRef.current = false;
+    whoRetryArm.clear();
     faceCheckRef.current?.onUserSpeechStart();
-  }, [turnFaceGate]);
+  }, [turnFaceGate, whoRetryArm]);
 
   const sttEndpointMs = useTimingConfigStore((s) => s.sttEndpointMs);
 
@@ -1432,11 +1459,13 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
         if (!whoRetryPendingRef.current) return;
         whoRetryPendingRef.current = false;
+
+        whoRetryArm.requested();
       }
       faceCheckTriggersRef.current.add(trigger);
       embedRequested.value = true;
     },
-    [embedRequested],
+    [embedRequested, whoRetryArm],
   );
   const faceCheck = useFaceCheckScheduler({ request: requestFaceCheck, userTurnActive: userSpeaking });
   faceCheckRef.current = faceCheck;
@@ -1447,7 +1476,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       console.log("[Call][face] who_asked 무시 — 얼굴 대조를 돌릴 수 없는 상태");
       return;
     }
-    console.log("[Call][face] who_asked → 2초 뒤 재대조");
+    console.log("[Call][face] who_asked → 클론 말 끝 2초 뒤 재대조");
     whoRetryPendingRef.current = true;
     faceCheck.onWhoAsked();
   };
