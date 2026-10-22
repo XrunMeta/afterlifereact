@@ -33,11 +33,13 @@ const v_1b0e1d = (
   v_ca1ec5 = null,
   v_67e77e = 0,
   v_8a1355 = null,
+  v_63db2f = true,
 ) =>
   ({
     type: "TURN_VERDICT",
     verdict: { kind: v_94302c, personId: v_ca1ec5, score: v_ca1ec5 == null ? null : 0.8, quality: "ok" },
     displayName: v_8a1355,
+    named: v_63db2f,
     nowMs: v_67e77e,
   }) as const;
 
@@ -50,6 +52,7 @@ const v_192ddf = (
     type: "WHO_RETRY_RESULT",
     personId: v_ca1ec5,
     displayName: v_328259.name ?? null,
+    named: v_328259.named ?? true,
     selfMatch: v_328259.selfMatch ?? false,
     nowMs: v_67e77e,
   }) as const;
@@ -292,6 +295,20 @@ describe("rememberMeReducer — 턴 판정 (TURN_VERDICT)", () => {
     expect(v_cb35cb.state.serverSpeakerCleared).toBe(false);
   });
 
+  it("TURN_VERDICT switch — 이름 없는 person 은 MATCH_KNOWN named=false 와 같이 확정하지 않는다", () => {
+    const v_e98932 = v_30b0d4();
+    const v_cb35cb = v_729796(v_e98932, v_1b0e1d("switch", 45, 3000, null, false), 3000);
+    const v_706b37 = v_729796(v_e98932, v_d81543(45, { name: undefined, named: false }), 3000);
+    expect(v_cb35cb).toEqual(v_706b37);
+    expect(v_cb35cb.state.personId).toBe(58);
+    expect(v_cb35cb.actions.some((v_779914) => v_779914.type === "NOTIFY_CONFIRMED")).toBe(false);
+
+    const v_e2a85c = v_4ce118();
+    expect(v_729796(v_e2a85c, v_1b0e1d("switch", 45, 3000, null, false), 3000)).toEqual(
+      v_729796(v_e2a85c, v_d81543(45, { named: false }), 3000),
+    );
+  });
+
   it("TURN_VERDICT known keeps state", () => {
     const v_e98932 = v_30b0d4();
     for (const v_94302c of ["known", "insufficient"] as const) {
@@ -311,6 +328,14 @@ describe("rememberMeReducer — '나 누구야?' 재대조 (WHO_RETRY_RESULT)", 
     expect(v_dd943a).toEqual([
       { type: "NOTIFY_CONFIRMED", personId: 58, displayName: "도기", rejoin: false, mentionName: false },
     ]);
+  });
+
+  it("WHO_RETRY_RESULT — 이름 없는 person 은 MATCH_KNOWN named=false 와 같이 확정하지 않는다", () => {
+    for (const v_e98932 of [v_178dfb(), v_30b0d4(), v_4ce118()]) {
+      const v_cb35cb = v_729796(v_e98932, v_192ddf(45, 3000, { named: false }), 3000);
+      expect(v_cb35cb).toEqual(v_729796(v_e98932, v_d81543(45, { named: false }), 3000));
+      expect(v_cb35cb.actions.some((v_779914) => v_779914.type === "NOTIFY_CONFIRMED")).toBe(false);
+    }
   });
 
   it("WHO_RETRY_RESULT null opens prompt even after DISMISS_LATER", () => {

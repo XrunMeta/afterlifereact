@@ -78,40 +78,100 @@ describe("useFaceCheckScheduler", () => {
     expect(v_576f5a).toHaveBeenCalledTimes(1);
   });
 
-  test("who asked requests once after 2000ms; newer call replaces", () => {
+  test("who asked waits for clone speech end, then requests 2000ms after it", () => {
     const { request: v_576f5a, hook: v_ae701f } = v_9a4ebd();
     v_be73a0(() => v_ae701f.result.current.onWhoAsked());
-    v_660ac0(1000);
-    v_be73a0(() => v_ae701f.result.current.onWhoAsked());
+    v_660ac0(5000); 
+    expect(v_576f5a).not.toHaveBeenCalledWith("who_retry");
+    v_be73a0(() => v_ae701f.result.current.onCloneSpeechEnd(0));
+    v_660ac0(0); 
+    expect(v_576f5a).toHaveBeenCalledTimes(1);
+    expect(v_576f5a).toHaveBeenLastCalledWith("clone_tail");
     v_660ac0(1999);
-    expect(v_576f5a).not.toHaveBeenCalled();
+    expect(v_576f5a).not.toHaveBeenCalledWith("who_retry");
     v_660ac0(1);
-    expect(v_576f5a).toHaveBeenCalledTimes(1);
-    v_660ac0(5000);
-    expect(v_576f5a).toHaveBeenCalledTimes(1);
+    expect(v_576f5a).toHaveBeenLastCalledWith("who_retry");
+    v_660ac0(20000);
+    expect(v_576f5a.mock.calls.filter((v_3f4e2e) => v_3f4e2e[0] === "who_retry")).toHaveLength(1);
   });
 
-  test("burst(2) requests at 0 and 300ms", () => {
+  test("speech end before who asked does not start the retry", () => {
     const { request: v_576f5a, hook: v_ae701f } = v_9a4ebd();
-    v_be73a0(() => v_ae701f.result.current.burst(2));
-    v_660ac0(0);
-    expect(v_576f5a).toHaveBeenCalledTimes(1);
-    v_660ac0(299);
-    expect(v_576f5a).toHaveBeenCalledTimes(1);
-    v_660ac0(1);
-    expect(v_576f5a).toHaveBeenCalledTimes(2);
+    v_be73a0(() => v_ae701f.result.current.onCloneSpeechEnd(0));
+    v_be73a0(() => v_ae701f.result.current.onWhoAsked());
+    v_660ac0(2000);
+    expect(v_576f5a).not.toHaveBeenCalledWith("who_retry");
   });
 
-  test("burst(0) does nothing; new burst cancels previous", () => {
+  test("no speech end within 15000ms → retry right then (who_asked + 2000 already passed)", () => {
+    const { request: v_576f5a, hook: v_ae701f } = v_9a4ebd();
+    v_be73a0(() => v_ae701f.result.current.onWhoAsked());
+    v_660ac0(14999);
+    expect(v_576f5a).not.toHaveBeenCalledWith("who_retry");
+    v_660ac0(1);
+    expect(v_576f5a).toHaveBeenLastCalledWith("who_retry");
+
+    v_be73a0(() => v_ae701f.result.current.onCloneSpeechEnd(0));
+    v_660ac0(5000);
+    expect(v_576f5a.mock.calls.filter((v_3f4e2e) => v_3f4e2e[0] === "who_retry")).toHaveLength(1);
+  });
+
+  test("newer who asked replaces the previous wait", () => {
+    const { request: v_576f5a, hook: v_ae701f } = v_9a4ebd();
+    v_be73a0(() => v_ae701f.result.current.onWhoAsked());
+    v_be73a0(() => v_ae701f.result.current.onCloneSpeechEnd(0));
+    v_660ac0(1000);
+    v_be73a0(() => v_ae701f.result.current.onWhoAsked()); 
+    v_660ac0(5000);
+    expect(v_576f5a).not.toHaveBeenCalledWith("who_retry");
+    v_be73a0(() => v_ae701f.result.current.onCloneSpeechEnd(0));
+    v_660ac0(2000);
+    expect(v_576f5a.mock.calls.filter((v_3f4e2e) => v_3f4e2e[0] === "who_retry")).toHaveLength(1);
+  });
+
+  test("burst(3) requests now, then one more per finished cycle", () => {
+    const { request: v_576f5a, hook: v_ae701f } = v_9a4ebd();
+    v_be73a0(() => v_ae701f.result.current.burst(3));
+    expect(v_576f5a).toHaveBeenCalledTimes(1);
+    v_660ac0(900); 
+    expect(v_576f5a).toHaveBeenCalledTimes(1);
+    v_be73a0(() => v_ae701f.result.current.onCycleDone());
+    expect(v_576f5a).toHaveBeenCalledTimes(2);
+    v_be73a0(() => v_ae701f.result.current.onCycleDone());
+    expect(v_576f5a).toHaveBeenCalledTimes(3);
+    v_be73a0(() => v_ae701f.result.current.onCycleDone()); 
+    expect(v_576f5a).toHaveBeenCalledTimes(3);
+    expect(v_576f5a.mock.calls.every((v_3f4e2e) => v_3f4e2e[0] === "burst")).toBe(true);
+  });
+
+  test("burst stops after the 1000ms hold even if cycles keep finishing", () => {
+    const { request: v_576f5a, hook: v_ae701f } = v_9a4ebd();
+    v_be73a0(() => v_ae701f.result.current.burst(3));
+    v_660ac0(1000);
+    v_be73a0(() => v_ae701f.result.current.onCycleDone());
+    expect(v_576f5a).toHaveBeenCalledTimes(1);
+  });
+
+  test("onCycleDone without a burst requests nothing; stopBurst drops the rest", () => {
+    const { request: v_576f5a, hook: v_ae701f } = v_9a4ebd();
+    v_be73a0(() => v_ae701f.result.current.onCycleDone());
+    expect(v_576f5a).not.toHaveBeenCalled();
+    v_be73a0(() => v_ae701f.result.current.burst(3));
+    v_be73a0(() => v_ae701f.result.current.stopBurst());
+    v_be73a0(() => v_ae701f.result.current.onCycleDone());
+    expect(v_576f5a).toHaveBeenCalledTimes(1);
+  });
+
+  test("burst(0) does nothing; new burst replaces previous", () => {
     const { request: v_576f5a, hook: v_ae701f } = v_9a4ebd();
     v_be73a0(() => v_ae701f.result.current.burst(0));
     v_be73a0(() => v_ae701f.result.current.burst(-1));
     v_660ac0(1000);
     expect(v_576f5a).not.toHaveBeenCalled();
     v_be73a0(() => v_ae701f.result.current.burst(3));
-    v_660ac0(0);
     v_be73a0(() => v_ae701f.result.current.burst(1));
-    v_660ac0(2000);
+    v_be73a0(() => v_ae701f.result.current.onCycleDone());
+    v_be73a0(() => v_ae701f.result.current.onCycleDone());
 
     expect(v_576f5a).toHaveBeenCalledTimes(2);
   });
@@ -173,6 +233,7 @@ describe("useFaceCheckScheduler", () => {
     v_660ac0(0);
     expect(v_576f5a).toHaveBeenLastCalledWith("burst");
     v_be73a0(() => v_ae701f.result.current.onWhoAsked());
+    v_be73a0(() => v_ae701f.result.current.onCloneSpeechEnd(0));
     v_660ac0(2000);
     expect(v_576f5a).toHaveBeenLastCalledWith("who_retry");
   });

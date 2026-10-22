@@ -80,6 +80,8 @@ export type RememberMeEvent =
       verdict: v_516d40;
       displayName: string | null;
 
+      named: boolean;
+
       nowMs: number;
     }
 
@@ -87,6 +89,8 @@ export type RememberMeEvent =
       type: "WHO_RETRY_RESULT";
       personId: number | null;
       displayName: string | null;
+
+      named: boolean;
       selfMatch: boolean;
 
       nowMs: number;
@@ -396,6 +400,8 @@ function v_a448ad(
       if (v_81e2ef.kind === "switch") {
 
         if (v_81e2ef.personId == null || v_81e2ef.personId === v_b6e533.personId) return { state: v_b6e533, actions: [] };
+
+        if (!v_d48baf.named) return v_a448ad(v_b6e533, { type: "MATCH_UNKNOWN" }, v_67e77e);
         return v_333cc2(v_b6e533, v_81e2ef.personId, v_d48baf.displayName, v_67e77e);
       }
 
@@ -405,6 +411,8 @@ function v_a448ad(
     case "WHO_RETRY_RESULT": {
 
       if (v_d48baf.personId != null && !v_d48baf.selfMatch) {
+
+        if (!v_d48baf.named) return v_a448ad(v_b6e533, { type: "MATCH_UNKNOWN" }, v_67e77e);
         return v_333cc2(v_b6e533, v_d48baf.personId, v_d48baf.displayName, v_67e77e);
       }
 
