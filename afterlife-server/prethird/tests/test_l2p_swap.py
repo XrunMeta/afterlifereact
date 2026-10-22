@@ -640,3 +640,50 @@ def test_returning_speaker_reswaps_but_react_cooldown_holds(monkeypatch):
     assert '지금 너와 통화 중인 상대는 "A" 이다.' in final_content
     assert "B" not in final_content
     assert sess.current_speaker == (3, "A")
+
+
+# ---------------------------------------------------------------------------
+# AFL-1039: 앱이 이번 턴에 화자 전환(turn_face switch)을 이미 알렸으면
+#   T-840 자동 인사(react)는 생략한다 — 답에서 이름을 부르므로 두 번 말하지 않는다.
+# ---------------------------------------------------------------------------
+
+def test_swap_react_suppressed_when_turn_switch_recent(monkeypatch):
+    import time as _time
+    monkeypatch.setenv("LEARN_SECRET", "s")
+    monkeypatch.setenv("PRETHIRD_API_BASE", "http://x")
+
+    import l2p_client
+    async def _fake_fetch(clone_id, person_id, user_id=None):
+        return None
+    monkeypatch.setattr(l2p_client, "fetch_l2p", _fake_fetch)
+
+    sess, ch = _Sess(), _Channel()
+    sess.current_speaker = (3, "A")
+    sess.turn_face = {"verdict": "switch", "at": _time.monotonic()}
+    sess.turn_switch_at = _time.monotonic()
+    _run_handler(sess, ch, {
+        "type": "face_event", "event": "speaker_confirmed",
+        "personId": 5, "displayName": "B", "seq": 1,
+    })
+    assert sess.current_speaker == (5, "B")       # 화자 전환은 그대로
+    assert sess.pipeline.react_calls == []        # 자동 인사만 생략
+
+
+def test_swap_react_still_fires_when_turn_switch_old(monkeypatch):
+    import time as _time
+    monkeypatch.setenv("LEARN_SECRET", "s")
+    monkeypatch.setenv("PRETHIRD_API_BASE", "http://x")
+
+    import l2p_client
+    async def _fake_fetch(clone_id, person_id, user_id=None):
+        return None
+    monkeypatch.setattr(l2p_client, "fetch_l2p", _fake_fetch)
+
+    sess, ch = _Sess(), _Channel()
+    sess.current_speaker = (3, "A")
+    sess.turn_switch_at = _time.monotonic() - 10.0
+    _run_handler(sess, ch, {
+        "type": "face_event", "event": "speaker_confirmed",
+        "personId": 5, "displayName": "B", "seq": 1,
+    })
+    assert sess.pipeline.react_calls == [("known", "B")]
