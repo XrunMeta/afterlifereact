@@ -545,3 +545,27 @@ describe("새 얼굴 팝업이 떠 있는 동안 마이크 대기", () => {
     expect(v_b94941(v_cb35cb.state)).toBe(false);
   });
 });
+
+describe("통화 중 등록 직후 같은 사람이 잡히면 발화를 끊지 않는다", () => {
+
+  it("ENROLLED 에 personId 를 주면 그 사람으로 확정되고, 이후 같은 사람 매칭은 조용하다", () => {
+    const v_fd5f43 = v_729796(v_178dfb(), { type: "ENROLLED", personId: 167, displayName: "하루" }, 1000).state;
+    expect(v_fd5f43.mode).toBe("identified");
+    expect(v_fd5f43.personId).toBe(167);
+    const { state: v_b6e533, actions: v_dd943a } = v_729796(v_fd5f43, v_d81543(167, { name: "하루", cloneSpeaking: true }), 1000 + 70_000);
+    expect(v_b6e533.personId).toBe(167);
+    expect(v_dd943a.some((v_779914) => v_779914.type === "INTERRUPT_TTS")).toBe(false);
+  });
+
+  it("아무도 확정 안 된 상태의 첫 확정은 클론이 말하는 중이어도 끊지 않는다", () => {
+    const v_fd5f43 = v_729796(v_178dfb(), { type: "ENROLLED" }, 1000).state;
+    const { actions: v_dd943a } = v_729796(v_fd5f43, v_d81543(70, { name: "미미", cloneSpeaking: true }), 2000);
+    expect(v_dd943a.some((v_779914) => v_779914.type === "INTERRUPT_TTS")).toBe(false);
+  });
+
+  it("다른 사람으로 바뀔 때는 기존대로 끊는다", () => {
+    const v_fd5f43 = v_729796(v_178dfb(), { type: "ENROLLED", personId: 167, displayName: "하루" }, 1000).state;
+    const { actions: v_dd943a } = v_729796(v_fd5f43, v_d81543(70, { name: "미미", cloneSpeaking: true }), 2000);
+    expect(v_dd943a[0]).toEqual({ type: "INTERRUPT_TTS" });
+  });
+});
