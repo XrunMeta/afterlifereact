@@ -374,7 +374,17 @@
     "leaveTitle": "대화방 나가기",
     "leaveConfirm": "해당 클론과의 대화가 사라집니다. 계속하시겠습니까?",
     "leaveConfirmSubscribed": "해당 클론과의 대화가 사라지고 구독취소됩니다. 계속하시겠습니까?",
-    "leaveFailTitle": "나가지 못했어요"
+    "leaveFailTitle": "나가지 못했어요",
+    "imageButtonA11y": "사진 보내기",
+    "imagePickTitle": "사진 보내기",
+    "imagePickCamera": "카메라",
+    "imagePickAlbum": "앨범",
+    "imagePlaceholder": "[사진]",
+    "imageUnavailableTitle": "사진 보내기",
+    "imageLoginRequired": "로그인 후 사진을 보낼 수 있어요.",
+    "imageSendFailTitle": "사진을 보내지 못했어요",
+    "imageSendFailBody": "네트워크 상태를 확인한 뒤 다시 시도해 주세요.",
+    "imageApiUnavailable": "사진 보내기 준비 중이에요. 잠시 후 다시 시도해 주세요."
   },
   "call": {
     "calling": "연결 중...",

@@ -27,7 +27,7 @@ import { v_772971 } from 'jmpfvteuuztnp';
 import type { v_390fcc } from 'xpfgrcdafpntkgxfmgxpxnedjkvmtc';
 import type { v_2b51a5 } from '../../navigation/types';
 
-import { v_1bfbd0, v_9b1a04, v_e3d001, v_8f28b1, v_7c5e29, v_0da505 } from '../../components/constants';
+import { v_1bfbd0, v_9b1a04, v_e3d001, v_8f28b1 } from '../../components/constants';
 import { v_194498 } from '../../stores/cloneStore';
 import { v_1ed7d9 } from '../../stores/authStore';
 import {
@@ -700,7 +700,7 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
         {}
         {v_bc9d5f && (
           <View style={v_fd5f43.inputWrap}>
-            <View style={v_fd5f43.inputBar}>
+            <View style={v_fd5f43.inputPill}>
               <TextInput
                 style={[v_fd5f43.input, v_f05841 ? v_fd5f43.inputMultiline : v_fd5f43.inputSingle]}
                 value={v_bbda62}
@@ -736,7 +736,7 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
                 {v_dff7ca ? (
                   <ActivityIndicator size="small" color={v_1bfbd0.white} />
                 ) : (
-                  <Feather name="send" size={18} color={v_9399bb ? v_1bfbd0.white : v_1bfbd0.zinc400} />
+                  <Feather name="send" size={16} color={v_9399bb ? v_1bfbd0.white : v_1bfbd0.zinc500} />
                 )}
               </TouchableOpacity>
             </View>
@@ -837,38 +837,51 @@ const v_fd5f43 = v_472849.create({
   quickReplyText: { fontSize: 13, fontWeight: '600', ...v_e3d001.accentText },
 
   inputWrap: {
-    backgroundColor: v_1bfbd0.white,
-    borderTopWidth: 1,
-    borderTopColor: v_1bfbd0.zinc100,
-  },
-  inputBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+    backgroundColor: v_1bfbd0.zinc100,
+    borderTopWidth: v_472849.hairlineWidth,
+    borderTopColor: v_1bfbd0.zinc200,
     paddingHorizontal: 12,
     paddingTop: 8,
-    paddingBottom: 8,
+    paddingBottom: 10,
+  },
+  inputPill: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 4,
+    minHeight: 48,
+    paddingLeft: 14,
+    paddingRight: 6,
+    paddingVertical: 4,
     backgroundColor: v_1bfbd0.white,
+    borderRadius: 999,
+    borderWidth: v_472849.hairlineWidth,
+    borderColor: v_1bfbd0.zinc200,
   },
   input: {
     flex: 1,
-    borderWidth: 1,
-    borderColor: v_1bfbd0.zinc200,
+    minHeight: 40,
+    paddingHorizontal: 6,
+    margin: 0,
+    borderWidth: 0,
     color: v_1bfbd0.zinc900,
+    backgroundColor: 'transparent',
+    fontSize: 15,
+    lineHeight: 20,
   },
   inputSingle: {
-    ...v_7c5e29,
-    backgroundColor: v_1bfbd0.zinc100,
+    paddingTop: v_326be8.OS === 'ios' ? 10 : 8,
+    paddingBottom: v_326be8.OS === 'ios' ? 10 : 8,
   },
   inputMultiline: {
     maxHeight: 120,
-    ...v_0da505,
-    backgroundColor: v_1bfbd0.zinc100,
+    paddingTop: v_326be8.OS === 'ios' ? 10 : 8,
+    paddingBottom: v_326be8.OS === 'ios' ? 10 : 8,
   },
   sendBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    marginBottom: 2,
     backgroundColor: v_1bfbd0.primary,
     alignItems: 'center',
     justifyContent: 'center',

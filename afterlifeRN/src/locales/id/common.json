@@ -374,7 +374,17 @@
     "leaveTitle": "Keluar dari obrolan",
     "leaveConfirm": "Percakapan dengan klon ini akan dihapus. Lanjutkan?",
     "leaveConfirmSubscribed": "Percakapan dengan klon ini akan dihapus dan langganan dibatalkan. Lanjutkan?",
-    "leaveFailTitle": "Gagal keluar"
+    "leaveFailTitle": "Gagal keluar",
+    "imageButtonA11y": "Kirim foto",
+    "imagePickTitle": "Kirim foto",
+    "imagePickCamera": "Kamera",
+    "imagePickAlbum": "Album",
+    "imagePlaceholder": "[Foto]",
+    "imageUnavailableTitle": "Kirim foto",
+    "imageLoginRequired": "Masuk untuk mengirim foto.",
+    "imageSendFailTitle": "Gagal mengirim foto",
+    "imageSendFailBody": "Periksa koneksi lalu coba lagi.",
+    "imageApiUnavailable": "Fitur kirim foto belum siap. Coba lagi sebentar."
   },
   "call": {
     "calling": "Menghubungkan...",
