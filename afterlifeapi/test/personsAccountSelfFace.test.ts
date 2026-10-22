@@ -383,3 +383,43 @@ v_469bf2("계정 본인 얼굴 — 보안 감사 반영", () => {
     v_4d37e3(await v_0cb51a(v_0c8987)).toBeNull();
   });
 });
+
+function v_64368f(v_bdb39e, v_a9cbf1, v_fa7d4c): number[] {
+  const v_81e2ef = new Array(512).fill(0);
+  v_81e2ef[v_bdb39e % 512] = v_fa7d4c;
+  v_81e2ef[v_a9cbf1 % 512] = Math.sqrt(1 - v_fa7d4c * v_fa7d4c);
+  return v_81e2ef;
+}
+
+v_469bf2("계정 본인 얼굴 — 판정 하한 0.5", () => {
+  v_ff107d(() => v_dbed3e());
+
+  async function v_9a4ebd(v_cd931c) {
+    const v_0c8987 = await v_bfb240(`${v_cd931c}@t.com`);
+    const v_779914 = await v_4d24a9(v_0c8987, `${v_cd931c}_a`);
+    const v_148ff6 = await v_4d24a9(v_0c8987, `${v_cd931c}_b`);
+    const v_9edd60 = await v_21cc31(v_0c8987);
+    const v_d4923e = await v_9ef1c2(v_0c8987, v_779914, v_9edd60, "나", 31);
+    v_4d37e3((await v_51c3d2(`/oth-path${v_d4923e}/account-self`, v_9edd60, {})).status).toBe(200);
+    return { tk: v_9edd60, b: v_148ff6 };
+  }
+
+  v_23805a("점수 0.55(운영 임계 0.6 미만)도 selfMatch=true, best 는 null 유지", async () => {
+    const { tk: v_9edd60, b: v_148ff6 } = await v_9a4ebd("th1");
+    const v_8f00b9 = (await (await v_51c3d2("/oth-path", v_9edd60, { vector: v_64368f(31, 32, 0.55), cloneId: v_148ff6 })).json()) as MatchRes;
+    v_4d37e3(v_8f00b9.best).toBeNull();
+    v_4d37e3(v_8f00b9.selfMatch).toBe(true);
+  });
+
+  v_23805a("점수 0.45 는 selfMatch=false", async () => {
+    const { tk: v_9edd60, b: v_148ff6 } = await v_9a4ebd("th2");
+    const v_8f00b9 = (await (await v_51c3d2("/oth-path", v_9edd60, { vector: v_64368f(31, 32, 0.45), cloneId: v_148ff6 })).json()) as MatchRes;
+    v_4d37e3(v_8f00b9.selfMatch).toBe(false);
+  });
+
+  v_23805a("from-account-self 도 0.55 를 본인으로 받아 201", async () => {
+    const { tk: v_9edd60, b: v_148ff6 } = await v_9a4ebd("th3");
+    const v_cb35cb = await v_51c3d2("/oth-path", v_9edd60, { cloneId: v_148ff6, displayName: "나", vector: v_64368f(31, 32, 0.55) });
+    v_4d37e3(v_cb35cb.status).toBe(201);
+  });
+});

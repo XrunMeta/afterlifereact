@@ -124,6 +124,8 @@ function v_91e67b(v_81e2ef): number[] {
   return v_81e2ef as number[];
 }
 
+const v_8294e8 = 0.5;
+
 async function v_4e929c(v_a1651b): Promise<number> {
   const v_01dcf5 = await v_a1651b.prepare("SELECT value FROM app_config WHERE key = 'face.match_threshold'").first<{
     value: string;
@@ -178,10 +180,14 @@ v_fded81.post("/match", v_6690d9, async (v_3f4e2e) => {
 
   let v_a74d7a = false;
   if (!v_643757) {
-    v_a74d7a = await v_e7a6ec(v_3f4e2e.env, { userId: v_43e90c, cloneId: v_6e0fd3, vector: v_81e2ef, threshold: v_d361d7 }).catch((v_9e86fd) => {
+    const v_1e6df3 = Math.min(v_d361d7, v_8294e8);
+    const v_b1d852 = await v_e7a6ec(v_3f4e2e.env, { userId: v_43e90c, cloneId: v_6e0fd3, vector: v_81e2ef, threshold: v_1e6df3 }).catch((v_9e86fd) => {
       console.error(`[match] self-match check failed: ${(v_9e86fd as Error).message}`);
-      return false;
+      return null;
     });
+    v_a74d7a = v_b1d852?.match ?? false;
+
+    if (v_b1d852?.score != null) console.log(`[match] self-check user=${v_43e90c} clone=${v_6e0fd3} score=${v_b1d852.score?.toFixed(3) ?? "null"} min=${v_1e6df3} → ${v_a74d7a}`);
   }
 
   return v_3f4e2e.json({ matches: v_a49907, best: v_643757, threshold: v_d361d7, selfMatch: v_a74d7a });
@@ -215,7 +221,7 @@ v_fded81.post("/from-account-self", v_6690d9, async (v_3f4e2e) => {
   if (v_b1d852.cloneId === v_6e0fd3)
     throw new v_3ebe58("VALIDATION_FAILED", "본인 얼굴이 이미 이 클론에 등록되어 있습니다.");
 
-  const v_d361d7 = await v_4e929c(v_3f4e2e.env.DB);
+  const v_d361d7 = Math.min(await v_4e929c(v_3f4e2e.env.DB), v_8294e8);
   const v_688abd = await v_97be02(v_3f4e2e.env, { userId: v_43e90c, cloneId: v_b1d852.cloneId, vector: v_f9a45c });
   const v_715950 = v_688abd.find((v_65a2cd) => v_65a2cd.personId === v_b1d852.personId);
   if (!v_715950 || v_715950.score < v_d361d7)
