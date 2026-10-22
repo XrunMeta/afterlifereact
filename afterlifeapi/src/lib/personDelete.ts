@@ -38,8 +38,6 @@ export async function v_430d2b(
     v_c9c489.DB.prepare("DELETE FROM clone_ont_person WHERE person_id = ?").bind(v_ca1ec5),
 
     v_c9c489.DB.prepare("UPDATE clones SET self_person_id = NULL WHERE self_person_id = ?").bind(v_ca1ec5),
-
-    v_c9c489.DB.prepare("UPDATE users SET self_face_person_id = NULL WHERE self_face_person_id = ?").bind(v_ca1ec5),
     v_c9c489.DB.prepare("DELETE FROM persons WHERE id = ? AND user_id = ?").bind(v_ca1ec5, v_43e90c),
   ]);
 
