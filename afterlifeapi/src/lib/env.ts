@@ -60,6 +60,9 @@ export interface Bindings {
   CHAT_REPLY_SECRET?: string;   
   CHAT_DAILY_LIMIT?: string;    
 
+  OPENAI_API_KEY?: string;
+  OPENAI_BASE_URL?: string;
+
   LEARN_SECRET?: string;     
   LEARN_FROM_CHAT?: string;  
 
