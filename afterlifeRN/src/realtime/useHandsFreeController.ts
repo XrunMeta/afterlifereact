@@ -67,6 +67,8 @@ export function v_7df8a4(opts: {
   contextualStrings?: string[];
 
   idleWatchdogPaused?: boolean;
+
+  onUserSpeechStart?: () => void;
 }) {
   const [v_b6e533, v_1fa668] = v_5ab095(v_3075fa());
   const v_8d3dea = v_e662ae(v_b6e533);
@@ -76,6 +78,8 @@ export function v_7df8a4(opts: {
   v_c4deb2(() => { v_bcde6b.current = v_328259.say; });
   const v_80114b = v_e662ae(v_328259.notifySpeechEnd);
   v_c4deb2(() => { v_80114b.current = v_328259.notifySpeechEnd; });
+  const v_dade09 = v_e662ae(v_328259.onUserSpeechStart);
+  v_c4deb2(() => { v_dade09.current = v_328259.onUserSpeechStart; });
 
   const v_3a7b2e = v_e662ae(v_328259.greet);
   v_c4deb2(() => { v_3a7b2e.current = v_328259.greet; });
@@ -284,6 +288,12 @@ export function v_7df8a4(opts: {
       v_6a1ed9(v_ba2215, v_a448ad, v_1d299c, v_27ef63);
       v_8d3dea.current = v_a448ad;
       v_1fa668(v_a448ad);
+
+      if (v_1d299c.type === 'USER_SPEECH_START' && !v_ba2215.userSpeaking && v_a448ad.userSpeaking) {
+        try { v_dade09.current?.(); } catch (v_49263d) {
+          console.warn('[handsfree] onUserSpeechStart threw:', v_49263d);
+        }
+      }
       v_2bfd1e(v_27ef63, v_b03676, v_b6611b);
     },
     [v_2bfd1e, v_1ab00a],
@@ -571,5 +581,7 @@ export function v_7df8a4(opts: {
     cloneAudioLevel: v_09b641,
 
     idleGreetCount: v_b6e533.idleGreetCount,
+
+    userSpeaking: v_b6e533.userSpeaking,
   };
 }
