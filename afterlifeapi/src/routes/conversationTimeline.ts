@@ -23,6 +23,8 @@ export const v_1172ea = new v_b7c41b<v_de0a25>();
 type ChatItem = {
   type: "chat"; id: number; role: string; content: string; at: number; sessionId: string;
   kind?: "image"; caption?: string;
+
+  lang?: string;
 };
 
 type CallItem = { type: "call"; callId: string; startedAt: number; durationSec: number | null; turnCount: number };
@@ -123,7 +125,7 @@ v_1172ea.get("/:id/timeline", v_6690d9, async (v_3f4e2e) => {
 
   const [v_7e4351, v_20e160, v_bf9904] = await Promise.all([
     v_3f4e2e.env.DB.prepare(
-      `SELECT id, session_id, role, content, created_at FROM messages
+      `SELECT id, session_id, role, content, created_at, lang FROM messages
         WHERE user_id = ? AND clone_id = ?
           AND status = 'active' AND deletion_state = 'active' AND content IS NOT NULL
           AND datetime(created_at) <= datetime(?, 'unixepoch')
@@ -131,7 +133,7 @@ v_1172ea.get("/:id/timeline", v_6690d9, async (v_3f4e2e) => {
         ORDER BY datetime(created_at) DESC, id DESC
         LIMIT ?`,
     ).bind(v_43e90c, v_6e0fd3, v_5b31c3, v_17e322, v_02be30 + v_de3072)
-      .all<{ id: number; session_id: string; role: string; content: string; created_at: string }>(),
+      .all<{ id: number; session_id: string; role: string; content: string; created_at: string; lang: string | null }>(),
     v_3f4e2e.env.DB.prepare(
       `SELECT s.call_id, s.started_at, s.duration_sec,
               (SELECT COUNT(*) FROM call_turns t WHERE t.call_id = s.call_id) AS turn_count
@@ -151,7 +153,7 @@ v_1172ea.get("/:id/timeline", v_6690d9, async (v_3f4e2e) => {
   ]);
 
   type Pending =
-    | { k: SortKey; chat: { id: number; session_id: string; role: string; content: string; at: number } }
+    | { k: SortKey; chat: { id: number; session_id: string; role: string; content: string; at: number; lang: string | null } }
     | { k: SortKey; call: CallItem }
     | { k: SortKey; system: SystemItem };
   const v_483de2 = [];
@@ -194,6 +196,7 @@ v_1172ea.get("/:id/timeline", v_6690d9, async (v_3f4e2e) => {
     const v_a9330b = v_e2a85c.chat.role === "user" ? v_d4d906(v_9b6134) : null;
     v_4622b9.push({
       type: "chat", id: v_e2a85c.chat.id, role: v_e2a85c.chat.role, at: v_e2a85c.chat.at, sessionId: v_e2a85c.chat.session_id,
+      ...(v_e2a85c.chat.lang ? { lang: v_e2a85c.chat.lang } : {}),
       ...(v_a9330b !== null
         ? { content: v_a52bdd, kind: "image" as const, caption: v_a9330b }
         : { content: v_9b6134 }),
