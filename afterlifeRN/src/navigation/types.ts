@@ -12,6 +12,8 @@ export type RootStackParamList = {
     image?: string | number;
 
     midCall?: boolean;
+
+    accountSelfMatch?: boolean;
   };
   EmergencyContacts: undefined;
   InheritanceAccept: { token?: string };

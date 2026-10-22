@@ -35,7 +35,16 @@ import { v_6efd56, type v_90e668 } from "../../face/faceLandmarkRatios";
 import { v_a40fe8 } from "../../face/frameTimestamp";
 import { v_a64bce } from "../../face/l2normalize";
 import { v_1ed7d9 } from "../../stores/authStore";
-import { v_4e7b87, v_4585d1, v_a94a1b, v_6ffcc5, v_865d38 } from "../../api/persons";
+import {
+  v_4e7b87,
+  v_4585d1,
+  v_a94a1b,
+  v_6ffcc5,
+  v_865d38,
+  v_6eed80,
+  v_458ffb,
+  v_ce5a56,
+} from "../../api/persons";
 import { v_889fad } from "../../stores/dialogStore";
 import { v_1bfbd0, v_8b0c90, v_8f28b1 } from "../../components/constants";
 import v_258c1c from "../../components/common/PageHeader";
@@ -146,6 +155,8 @@ export default function v_8640b9() {
   const v_79a64b = (v_c7daf6.params as { cloneId: unknown }).cloneId;
   const v_6e0fd3 = Number(v_79a64b);
   const { name: v_dfb220, image: v_0e38ad, midCall: v_c414dc } = v_c7daf6.params;
+
+  const v_c4db22 = !!v_c414dc && v_c7daf6.params.accountSelfMatch === true;
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
   const v_625c74 = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser);
 
@@ -194,6 +205,9 @@ export default function v_8640b9() {
 
   const [v_e59ef2, v_81766e] = v_5ab095<{ id: number; displayName: string | null }[]>([]);
 
+  const [v_a23354, v_5c3a09] = v_5ab095<boolean | null>(null);
+  const [v_4ac921, v_768f0f] = v_5ab095(false);
+
   const v_d0be9c = v_e662ae<number[] | null>(null);
   const v_5428c9 = v_e662ae(0);
 
@@ -235,14 +249,27 @@ export default function v_8640b9() {
   }, [v_ac8592, v_c327d7]);
 
   v_c4deb2(() => {
+    if (v_c4db22) return; 
     void (async () => {
       const v_d308b5 = await v_628d75.requestCameraPermission();
       v_7c7b9c(v_d308b5 === "granted");
     })();
-  }, []);
+  }, [v_c4db22]);
 
   v_c4deb2(() => {
-    if (!v_c414dc || !v_2ca7e0) return;
+    if (v_c4db22 || !v_2ca7e0) return;
+    void (async () => {
+      try {
+        const v_cb35cb = await v_6eed80(v_2ca7e0);
+        v_5c3a09(v_cb35cb.hasSelfFace);
+      } catch (v_9e86fd) {
+        console.warn("[PreCallFaceEnroll] getSelfFaceStatus 실패 (체크박스 숨김):", v_9e86fd);
+      }
+    })();
+  }, [v_c4db22, v_2ca7e0]);
+
+  v_c4deb2(() => {
+    if (!v_c414dc || !v_2ca7e0 || v_c4db22) return; 
     void (async () => {
       try {
         const v_cb35cb = await v_865d38(v_2ca7e0, v_6e0fd3);
@@ -255,7 +282,7 @@ export default function v_8640b9() {
         console.warn("[PreCallFaceEnroll] listPersons 실패 (chip 렌더 skip):", v_9e86fd);
       }
     })();
-  }, [v_c414dc, v_2ca7e0, v_6e0fd3]);
+  }, [v_c414dc, v_2ca7e0, v_6e0fd3, v_c4db22]);
 
   const v_ac8c13 = v_db5a6b("front");
   const { detectFaces: v_de4d76 } = v_ac8611(v_10f62f);
@@ -519,6 +546,14 @@ export default function v_8640b9() {
 
             await v_4585d1(v_2ca7e0, v_ca1ec5, v_36e01f, v_6e0fd3, v_36b25b as (Record<string, number> | null)[]);
           }
+
+          if (v_4ac921 && v_a23354 === false) {
+            try {
+              await v_458ffb(v_2ca7e0, v_ca1ec5);
+            } catch (v_6e70c6) {
+              console.warn("[PreCallFaceEnroll] markAccountSelf 실패 (무시):", v_6e70c6);
+            }
+          }
           const v_d04cc5 = v_dd8af0.trim();
           if (v_d04cc5) {
             try {
@@ -566,12 +601,69 @@ export default function v_8640b9() {
         }
       })();
     },
-    [v_2ca7e0, v_625c74, v_74e259, v_f9508a, v_6e0fd3, v_c414dc, v_e9b971, v_8d41d7],
+    [v_2ca7e0, v_625c74, v_74e259, v_f9508a, v_6e0fd3, v_c414dc, v_e9b971, v_8d41d7, v_4ac921, v_a23354],
+  );
+
+  const v_9f903d = v_de06a3(
+    (v_8a1355, v_dd8af0) => {
+      if (!v_2ca7e0) {
+        v_342bf2(
+          v_8d41d7("faceEnroll.form.needLogin", { defaultValue: "로그인 정보가 없어요. 다시 시도해 주세요." }),
+        );
+        return;
+      }
+      const v_affc3e = v_8a1355.trim();
+      if (!v_affc3e) {
+        v_342bf2(v_8d41d7("faceEnroll.form.needName", { defaultValue: "이름을 입력해 주세요." }));
+        return;
+      }
+      v_0e1f26.dismiss();
+      v_342bf2(null);
+      v_ee9ec1(true);
+      void (async () => {
+        try {
+          const v_306a28 = await v_ce5a56(v_2ca7e0, v_6e0fd3, v_affc3e);
+          const v_d04cc5 = v_dd8af0.trim();
+          if (v_d04cc5) {
+            try {
+              await v_6ffcc5(v_2ca7e0, v_306a28.id, v_d04cc5);
+            } catch (v_2530bf) {
+              console.warn("[PreCallFaceEnroll] updatePersonRelation 실패 (무시):", v_2530bf);
+            }
+          }
+          v_ff0340({ cloneId: v_6e0fd3, personId: v_306a28.id, displayName: v_affc3e });
+          v_889fad(
+            v_8d41d7("faceEnroll.complete.title", { defaultValue: "등록 완료" }),
+            v_8d41d7("faceEnroll.complete.midCallResume", {
+              defaultValue: "얼굴 등록 완료! 통화로 돌아갑니다.",
+            }),
+            [
+              {
+                text: v_8d41d7("faceEnroll.complete.backToCall", { defaultValue: "통화로 돌아가기" }),
+                onPress: v_e9b971,
+              },
+            ],
+          );
+        } catch (v_49263d) {
+          console.warn("[PreCallFaceEnroll] from-account-self 실패:", v_49263d);
+          v_342bf2(
+            (v_49263d as Error).message ??
+              v_8d41d7("faceEnroll.form.networkError", { defaultValue: "네트워크 오류" }),
+          );
+          v_ee9ec1(false);
+        }
+      })();
+    },
+    [v_2ca7e0, v_6e0fd3, v_e9b971, v_8d41d7],
   );
 
   const v_3bfe4c = v_de06a3(() => {
+    if (v_c4db22) {
+      v_9f903d(v_595acb, v_d7d38d);
+      return;
+    }
     v_cd685a(v_595acb, v_d7d38d);
-  }, [v_cd685a, v_595acb, v_d7d38d]);
+  }, [v_c4db22, v_9f903d, v_cd685a, v_595acb, v_d7d38d]);
 
   const v_4e7e60 = v_e662ae(false);
   const v_1e2ad6 = v_729796 >= v_77ce37.length;
@@ -584,7 +676,7 @@ export default function v_8640b9() {
     v_cd685a(v_d48d1e, "");
   }, [v_1e2ad6, v_c414dc, v_cb66b4, v_625c74, v_cd685a, v_8d41d7]);
 
-  if (v_f9f059 === false) {
+  if (!v_c4db22 && v_f9f059 === false) {
     return (
       <View style={[v_fd5f43.container, v_fd5f43.center]}>
         <Text style={v_fd5f43.hint}>
@@ -598,7 +690,7 @@ export default function v_8640b9() {
       </View>
     );
   }
-  if (v_f9f059 === null || !v_ac8c13) {
+  if (!v_c4db22 && (v_f9f059 === null || !v_ac8c13)) {
     return (
       <View style={[v_fd5f43.container, v_fd5f43.center]}>
         <ActivityIndicator color={v_1bfbd0.white} />
@@ -610,7 +702,7 @@ export default function v_8640b9() {
   }
 
   const v_91943c = v_77ce37[Math.min(v_729796, v_77ce37.length - 1)];
-  const v_2fb8cc = v_729796 >= v_77ce37.length;
+  const v_2fb8cc = v_c4db22 || v_729796 >= v_77ce37.length;
 
   const v_24af10 = v_2fb8cc && !!v_c414dc;
 
@@ -696,7 +788,7 @@ export default function v_8640b9() {
                 defaultValue: "이름과 관계를 알려주시면 다음 통화부터 알아볼 수 있어요.",
               })}
             </Text>
-            {v_e59ef2.length > 0 && (
+            {!v_c4db22 && v_e59ef2.length > 0 && (
               <View style={v_fd5f43.chipSection}>
                 <Text style={v_fd5f43.chipSectionLabel}>
                   {v_8d41d7("faceEnroll.form.existingLabel", {
@@ -755,6 +847,22 @@ export default function v_8640b9() {
               editable={!v_cb66b4}
               onSubmitEditing={v_3bfe4c}
             />
+            {!v_c4db22 && v_a23354 === false ? (
+              <TouchableOpacity
+                style={v_fd5f43.selfCheckRow}
+                onPress={() => v_768f0f((v_81e2ef) => !v_81e2ef)}
+                disabled={v_cb66b4}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: v_4ac921 }}
+              >
+                <View style={[v_fd5f43.selfCheckBox, v_4ac921 && v_fd5f43.selfCheckBoxOn]}>
+                  {v_4ac921 ? <View style={v_fd5f43.selfCheckDot} /> : null}
+                </View>
+                <Text style={v_fd5f43.selfCheckText}>
+                  {v_8d41d7("faceEnroll.form.markSelf", { defaultValue: "이 얼굴은 나예요" })}
+                </Text>
+              </TouchableOpacity>
+            ) : null}
             {v_056b4f ? <Text style={v_fd5f43.formError}>{v_056b4f}</Text> : null}
             {v_04a97f}
         </ScrollView>
@@ -771,13 +879,15 @@ export default function v_8640b9() {
           ) : (
             <View style={v_fd5f43.centerBlock}>
               <View style={v_fd5f43.cameraBox}>
-                <VisionCamera
-                  style={v_472849.absoluteFill}
-                  device={v_ac8c13}
-                  isActive={!v_cb66b4}
-                  frameProcessor={v_23f1a4 ? v_a61ebf : undefined}
-                  pixelFormat="yuv"
-                />
+                {v_ac8c13 ? (
+                  <VisionCamera
+                    style={v_472849.absoluteFill}
+                    device={v_ac8c13}
+                    isActive={!v_cb66b4}
+                    frameProcessor={v_23f1a4 ? v_a61ebf : undefined}
+                    pixelFormat="yuv"
+                  />
+                ) : null}
                 {
 }
                 <Svg
@@ -850,6 +960,19 @@ const v_20d9ab = (v_fdd448 - v_9edd6c) / 2;
 const v_981f64 = 2 * Math.PI * v_20d9ab;
 
 const v_fd5f43 = v_472849.create({
+  selfCheckRow: { flexDirection: "row", alignItems: "center", gap: 10, alignSelf: "flex-start", marginTop: 12 },
+  selfCheckBox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: v_1bfbd0.zinc500,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  selfCheckBoxOn: { borderColor: "#22c55e" },
+  selfCheckDot: { width: 12, height: 12, borderRadius: 3, backgroundColor: "#22c55e" },
+  selfCheckText: { color: v_1bfbd0.white, fontSize: 15 },
   container: { flex: 1, backgroundColor: v_1bfbd0.zinc950, padding: 20 },
   center: { alignItems: "center", justifyContent: "center", gap: 12 },
   header: { alignItems: "center", gap: 6, marginBottom: 8 },

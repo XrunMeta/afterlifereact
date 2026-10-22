@@ -233,3 +233,77 @@ export async function v_840775(
 
   return v_ca1ec5;
 }
+
+export interface AccountSelfFace {
+  personId: number;
+  cloneId: number;
+  displayName: string | null;
+}
+
+export async function v_1bffe3(env: v_273a0c, v_43e90c): Promise<AccountSelfFace | null> {
+  const v_3ac7e7 = await v_c9c489.DB.prepare(
+    `SELECT p.id AS personId, p.clone_id AS cloneId, p.display_name AS displayName
+       FROM users u
+       JOIN persons p ON p.id = u.self_face_person_id AND p.user_id = u.id
+      WHERE u.id = ?
+        AND p.consent_state = 'granted'
+        AND EXISTS (SELECT 1 FROM clone_person_faces f WHERE f.person_id = p.id AND f.clone_id = p.clone_id)`,
+  )
+    .bind(v_43e90c)
+    .first<{ personId: number; cloneId: number | null; displayName: string | null }>();
+  if (!v_3ac7e7 || v_3ac7e7.cloneId == null) return null;
+  return { personId: v_3ac7e7.personId, cloneId: v_3ac7e7.cloneId, displayName: v_3ac7e7.displayName };
+}
+
+export async function v_e7a6ec(
+  env: v_273a0c,
+  v_328259,
+): Promise<boolean> {
+  const { userId: v_43e90c, cloneId: v_6e0fd3, vector: v_f9a45c, threshold: v_d361d7 } = v_328259;
+  const v_b1d852 = await v_1bffe3(v_c9c489, v_43e90c);
+  if (!v_b1d852 || v_b1d852.cloneId === v_6e0fd3) return false;
+  const v_688abd = await v_97be02(v_c9c489, { userId: v_43e90c, cloneId: v_b1d852.cloneId, vector: v_f9a45c });
+  const v_715950 = v_688abd.find((v_65a2cd) => v_65a2cd.personId === v_b1d852.personId);
+  return !!v_715950 && v_715950.score >= v_d361d7;
+}
+
+export async function v_a4a855(
+  env: v_273a0c,
+  v_328259,
+): Promise<number> {
+  const { userId: v_43e90c, cloneId: v_6e0fd3, copyPersonId: v_847abc, self: v_b1d852 } = v_328259;
+
+  const v_759436 = await v_c9c489.DB.prepare(
+    `SELECT 1 AS ok FROM persons WHERE id = ? AND user_id = ? AND clone_id = ?
+     UNION ALL SELECT 1 FROM persons WHERE id = ? AND user_id = ? AND consent_state = 'granted'`,
+  )
+    .bind(v_847abc, v_43e90c, v_6e0fd3, v_b1d852.personId, v_43e90c)
+    .all();
+  if (v_759436.results.length < 2) return 0;
+  const v_315151 = await v_c9c489.DB.prepare(
+    `SELECT vectorize_id, landmark_ratios FROM clone_person_faces
+      WHERE person_id = ? AND clone_id = ? ORDER BY created_at DESC LIMIT 30`,
+  )
+    .bind(v_b1d852.personId, v_b1d852.cloneId)
+    .all<{ vectorize_id: string; landmark_ratios: string | null }>();
+  const v_1b099b = new Map(v_315151.results.map((v_cb35cb) => [v_cb35cb.vectorize_id, v_cb35cb.landmark_ratios]));
+  const v_52e08b = v_315151.results.map((v_cb35cb) => v_cb35cb.vectorize_id).filter(Boolean);
+  const v_e86ad8 = v_a8d2cc(v_c9c489);
+  const v_f94e64 = [];
+  const v_bef6f8 = [];
+  for (let v_ebec57 = 0; v_ebec57 < v_52e08b.length; v_ebec57 += 20) {
+    for (const v_3ac7e7 of await v_e86ad8.getByIds(v_52e08b.slice(v_ebec57, v_ebec57 + 20))) {
+      if (v_3ac7e7.values?.length !== 512) continue;
+      v_f94e64.push(v_3ac7e7.values);
+      const v_8c6427 = v_1b099b.get(v_3ac7e7.id);
+      let v_8decf8 = null;
+      if (v_8c6427) {
+        try { v_8decf8 = JSON.parse(v_8c6427); } catch { v_8decf8 = null; }
+      }
+      v_bef6f8.push(v_8decf8);
+    }
+  }
+  if (v_f94e64.length === 0) return 0;
+  await v_003ee1(v_c9c489, { userId: v_43e90c, cloneId: v_6e0fd3, personId: v_847abc, vectors: v_f94e64, landmarkRatios: v_bef6f8, source: "self" });
+  return v_f94e64.length;
+}
