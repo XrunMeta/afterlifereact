@@ -385,7 +385,9 @@
     "imageSendFailTitle": "사진을 보내지 못했어요",
     "imageSendFailBody": "네트워크 상태를 확인한 뒤 다시 시도해 주세요.",
     "imageApiUnavailable": "사진 보내기 준비 중이에요. 잠시 후 다시 시도해 주세요.",
-    "typingA11y": "상대가 입력 중"
+    "typingA11y": "상대가 입력 중",
+    "listTitle": "대화목록",
+    "listCount": "대화목록 {{count}}"
   },
   "call": {
     "calling": "연결 중...",

@@ -385,7 +385,9 @@
     "imageSendFailTitle": "Couldn't send the photo",
     "imageSendFailBody": "Check your connection and try again.",
     "imageApiUnavailable": "Photo send isn't ready yet. Please try again shortly.",
-    "typingA11y": "Other person is typing"
+    "typingA11y": "Other person is typing",
+    "listTitle": "Chats",
+    "listCount": "Chats {{count}}"
   },
   "call": {
     "calling": "Connecting...",
