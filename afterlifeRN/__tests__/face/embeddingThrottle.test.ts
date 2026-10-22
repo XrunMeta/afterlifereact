@@ -38,20 +38,6 @@ describe("resolveThrottleMs — dev/릴리즈 분기", () => {
 
     expect(v_00f5bb).toBeLessThanOrEqual(v_413278);
   });
-
-  it("env 오버라이드가 dev/릴리즈 기본값보다 우선한다", () => {
-    expect(v_34e478(true, "5000")).toBe(5000);
-    expect(v_34e478(false, "5000")).toBe(5000);
-  });
-
-  it("잘못된 env 값(빈문자·비숫자·0·음수)은 무시하고 기본값 폴백 — 0 스로틀은 매 프레임 tflite 추론", () => {
-    for (const v_0af197 of ["", "abc", "0", "-1", "NaN"]) {
-      expect(v_34e478(true, v_0af197)).toBe(v_00f5bb);
-      expect(v_34e478(false, v_0af197)).toBe(v_413278);
-    }
-    expect(v_34e478(false, null)).toBe(v_413278);
-    expect(v_34e478(false, undefined)).toBe(v_413278);
-  });
 });
 
 it("shouldRunEmbedding 본문은 __DEV__/process 를 직접 참조하지 않는다(워클릿 안전)", () => {
@@ -60,11 +46,9 @@ it("shouldRunEmbedding 본문은 __DEV__/process 를 직접 참조하지 않는�
   expect(v_38d084).not.toContain("process.env");
 });
 
-it("모듈 상수 EMBEDDING_THROTTLE_MS 는 dev/릴리즈 둘 중 하나(또는 env 오버라이드)로 확정된다", () => {
+it("모듈 상수 EMBEDDING_THROTTLE_MS 는 dev/릴리즈 둘 중 하나로 확정된다", () => {
   expect(Number.isFinite(v_fe37f7)).toBe(true);
   expect(v_fe37f7).toBeGreaterThan(0);
 
-  if (!process.env.EXPO_PUBLIC_FACE_THROTTLE_MS) {
-    expect(v_fe37f7).toBe(v_00f5bb);
-  }
+  expect(v_fe37f7).toBe(v_00f5bb);
 });
