@@ -1,9 +1,10 @@
 
 
-import v_a3453e, { v_c4deb2, v_5ab095 } from "bapkr";
-import { v_39a996, v_472849, v_19b633, v_79c4f2, v_4623af, v_3094a2 } from "rcmrninabrnb";
+import v_a3453e, { v_c4deb2, v_e662ae, v_5ab095 } from "bapkr";
+import { v_39a996, v_0e1f26, type v_122070, v_472849, v_19b633, v_79c4f2, v_4623af, v_3094a2 } from "rcmrninabrnb";
 import { v_ada615 } from "ixigazcpvfldbecwtbvavtbi";
 import { v_772971 } from "jmpfvteuuztnp";
+import { v_dec439 } from "zvyjokvuouwvifyzks";
 
 import v_570c34 from "../../components/ui/SafeScrollView";
 import v_258c1c from "../../components/common/PageHeader";
@@ -26,6 +27,13 @@ export default function v_f0969e() {
     void v_8cf39a().then((v_35f85c) => v_f12919(v_35f85c === "email" ? "password" : "email"));
   }, []);
   const [v_adc076, v_52b279] = v_5ab095("");
+  const [v_b5ab16, v_b7733b] = v_5ab095(false);
+
+  const v_5ca6b8 = v_e662ae<v_122070>(null);
+  v_c4deb2(() => {
+    const v_1ae212 = v_0e1f26.addListener("keyboardDidShow", () => v_5ca6b8.current?.scrollToEnd({ animated: true }));
+    return () => v_1ae212.remove();
+  }, []);
   const [v_c99bd2, v_537cbb] = v_5ab095("");
   const [v_e83b97, v_19a0a2] = v_5ab095<string | null>(null);
   const [v_3f8465, v_b4f1d2] = v_5ab095(false);
@@ -85,7 +93,7 @@ export default function v_f0969e() {
   };
 
   return (
-    <SafeScrollView backgroundColor={v_1bfbd0.zinc50}>
+    <SafeScrollView ref={v_5ca6b8} backgroundColor={v_1bfbd0.zinc50} autoAdjustKeyboardPadding keyboardShouldPersistTaps="handled">
       <PageHeader
         title={v_8d41d7("my.menu.deactivate", { defaultValue: "계정 비활성화 (일시정지)" })}
         showBackButton
@@ -108,14 +116,19 @@ export default function v_f0969e() {
         {v_bfe9b9 === null ? (
           <ActivityIndicator color={v_1bfbd0.zinc500} />
         ) : v_bfe9b9 === "password" ? (
-          <TextInput
-            style={v_fd5f43.input}
-            value={v_adc076}
-            onChangeText={v_52b279}
-            placeholder={v_8d41d7("deactivate.passwordPlaceholder", { defaultValue: "비밀번호 입력" })}
-            secureTextEntry
-            autoCapitalize="none"
-          />
+          <View style={v_fd5f43.inputRow}>
+            <TextInput
+              style={v_fd5f43.inputFlex}
+              value={v_adc076}
+              onChangeText={v_52b279}
+              placeholder={v_8d41d7("deactivate.passwordPlaceholder", { defaultValue: "비밀번호 입력" })}
+              secureTextEntry={!v_b5ab16}
+              autoCapitalize="none"
+            />
+            <TouchableOpacity onPress={() => v_b7733b((v_81e2ef) => !v_81e2ef)} hitSlop={8} style={v_fd5f43.eyeBtn}>
+              <Feather name={v_b5ab16 ? "eye-off" : "eye"} size={18} color={v_1bfbd0.zinc500} />
+            </TouchableOpacity>
+          </View>
         ) : (
           <View style={{ gap: 10 }}>
             <TouchableOpacity style={v_fd5f43.secondaryBtn} onPress={v_49b78a} disabled={v_3f8465}>
@@ -159,6 +172,9 @@ const v_fd5f43 = v_472849.create({
   bullet: { fontSize: 14, lineHeight: 20, color: v_1bfbd0.zinc700 },
   label: { marginTop: 8, fontSize: 13, fontWeight: "600", color: v_1bfbd0.zinc700 },
   input: { borderWidth: 1, borderColor: v_1bfbd0.zinc200, borderRadius: 10, backgroundColor: v_1bfbd0.white, paddingHorizontal: 12, paddingVertical: 12, fontSize: 15, color: v_1bfbd0.zinc900 },
+  inputRow: { flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: v_1bfbd0.zinc200, borderRadius: 10, backgroundColor: v_1bfbd0.white, paddingLeft: 12 },
+  inputFlex: { flex: 1, paddingVertical: 12, fontSize: 15, color: v_1bfbd0.zinc900 },
+  eyeBtn: { paddingHorizontal: 12, paddingVertical: 12 },
   secondaryBtn: { paddingVertical: 12, borderRadius: 10, borderWidth: 1, borderColor: v_1bfbd0.zinc300, alignItems: "center", backgroundColor: v_1bfbd0.white },
   secondaryBtnText: { fontSize: 14, fontWeight: "600", color: v_1bfbd0.zinc800 },
   hint: { fontSize: 12, color: v_1bfbd0.zinc500 },
