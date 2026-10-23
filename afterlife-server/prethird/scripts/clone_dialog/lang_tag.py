@@ -14,7 +14,13 @@ DEFAULT_LANG = "ko"
 # 맨 앞 태그(앞 공백 허용). 코드는 영문 2~3자 + 선택 지역(zh-CN → zh 로 줄임).
 _HEAD_RE = re.compile(r"^\s*<\s*lang\s*=\s*([A-Za-z]{2,3})(?:[-_][A-Za-z]{2,4})?\s*>\s*", re.I)
 # 본문 어디든 남은 태그(깨진 것 포함 `<lang=>`·`<lang=xx`) — 사용자에게 보이지 않게 지운다.
-_ANY_RE = re.compile(r"<\s*lang\s*=\s*[A-Za-z_-]{0,10}\s*>?|<\s*ask\s*=\s*[^>\s<]{0,24}\s*>?", re.I)
+# 닫는 꼴(`</ask=who>`·`</lang=ko>`)도 지운다 — LLM 이 태그를 답 끝에 닫는 태그로 붙인 실측(2026-10-23).
+_ANY_RE = re.compile(r"<\s*/?\s*lang\s*=\s*[A-Za-z_-]{0,10}\s*>?|<\s*/?\s*ask\s*=\s*[^>\s<]{0,24}\s*>?", re.I)
+# 스트림 조각 끝에 걸린 태그 앞부분(`<`·`</as`·`<lang=k` …) — 다음 조각과 붙여 판정하려고 붙잡는다.
+_TAG_PREFIX_RE = re.compile(
+    r"<\s*/?\s*(?:l(?:a(?:n(?:g(?:\s*=\s*[A-Za-z_-]{0,10}\s*)?)?)?)?|a(?:s(?:k(?:\s*=\s*[^>\s<]{0,24}\s*)?)?)?)?",
+    re.I,
+)
 # AFL-1039: `<lang=xx>` 바로 뒤의 `<ask=who>` 만 플래그로 인정. 그 밖의 값(이름 등)은 플래그 없이 지운다.
 _ASK_RE = re.compile(r"^\s*<\s*ask\s*=\s*(who)\s*>\s*", re.I)
 ASK_VALUES = frozenset({"who"})
@@ -77,6 +83,18 @@ class LangTagStream:
         self.ask: str | None = None
         # lang 확정 직후 `<ask=…>` 가 올 수 있는 구간 — 판정 전까지 본문을 붙잡는다.
         self._ask_pending = False
+        # 본문 중 조각 경계에 걸린 태그 앞부분(_body 참고).
+        self._hold = ""
+
+    def _body(self, text: str) -> str:
+        """본문 조각에서 태그를 지운다. 조각 끝이 태그 앞부분이면 다음 조각까지 붙잡는다
+        (토큰 단위로 `</`·`ask`·`=who>` 가 나눠 와도 지워지게)."""
+        s = self._hold + (text or "")
+        self._hold = ""
+        i = s.rfind("<")
+        if i != -1 and _TAG_PREFIX_RE.fullmatch(s[i:]):
+            self._hold, s = s[i:], s[:i]
+        return _ANY_RE.sub("", s)
 
     def _feed_ask(self, chunk: str) -> str:
         self._buf += chunk or ""
@@ -84,20 +102,20 @@ class LangTagStream:
         if am:
             self.ask = am.group(1).lower()
             rest, self._buf, self._ask_pending = self._buf[am.end():], "", False
-            return _ANY_RE.sub("", rest)
+            return self._body(rest)
         head = self._buf.lstrip()
         if not head:
             return ""
         if head.startswith("<") and ">" not in head and len(head) < self._MAX_HEAD:
             return ""
         rest, self._buf, self._ask_pending = self._buf, "", False
-        return _ANY_RE.sub("", rest)
+        return self._body(rest)
 
     def feed(self, chunk: str) -> str:
         if self.lang is not None:
             if self._ask_pending:
                 return self._feed_ask(chunk)
-            return _ANY_RE.sub("", chunk or "")
+            return self._body(chunk)
         self._buf += chunk or ""
         head = self._buf.lstrip()
         if not head:
@@ -113,7 +131,7 @@ class LangTagStream:
             return ""
         self.lang = self._fb
         rest, self._buf = self._buf, ""
-        return _ANY_RE.sub("", rest)
+        return self._body(rest)
 
     def finish(self) -> str:
         """스트림 끝 — 남은 버퍼를 내보내고 언어를 확정한다."""
@@ -128,7 +146,9 @@ class LangTagStream:
             self._buf, self._ask_pending = "", False
             # 끊긴 `<as` 같은 태그 앞부분은 사용자에게 내보내지 않는다.
             return "" if tail and "<ask=who>".startswith(tail) else rest
-        return ""
+        # 끝까지 붙잡힌 태그 앞부분 — `<` 하나면 본문 글자로 돌려주고, 그보다 길면 끊긴 태그라 버린다.
+        held, self._hold = self._hold, ""
+        return held if held == "<" else ""
 
 
 # AFL-1034: 통화에서 목소리로 말할 수 있는 언어(TTS 지원). ko·en·ja·zh = CosyVoice2 · es = CosyVoice3.

@@ -434,3 +434,11 @@ async def test_known_turn_matching_server_speaker_does_not_wait(monkeypatch):
     await _wait_seen(seen)
     assert time.monotonic() - t0 < 1.0
     assert any("'민지' 님" in c for c in _sys_texts(seen[0]))
+
+
+# AFL-1039 실통화(2026-10-23): "응" 에도 "카메라 봐줘" — 직접 물을 때만 쓰라고 좁혔다.
+def test_unconfirmed_instruction_only_on_direct_question():
+    s = turn_face_instruction(tf(verdict="insufficient", quality="ok"), None, NOW)
+    assert "직접 묻는 말일 때만" in s
+    assert "얼굴·카메라 얘기를 꺼내지 말고" in s
+    assert "</ask=who>" in s  # 닫는 태그 금지 문구

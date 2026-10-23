@@ -106,3 +106,28 @@ def test_stream_without_ask_unchanged():
 def test_stream_ask_pending_flushed_on_finish():
     s = LangTagStream("ko"); out = s.feed("<lang=ko><as") + s.finish()
     assert (s.ask, out) == (None, "")
+
+
+# AFL-1039 실통화(2026-10-23): LLM 이 `</ask=who>` 를 답 끝 닫는 태그로 붙여 화면에 그대로 나왔다.
+def test_closing_tags_stripped():
+    lang, ask, body = split_head_tags("<lang=ko>카메라 잠깐 봐줘.</ask=who></lang=ko>", "ko")
+    assert body == "카메라 잠깐 봐줘." and ask is None
+
+
+def test_stream_closing_tag_split_across_tokens():
+    s = LangTagStream("ko")
+    parts = ["<lang=ko>", "카메라", " 봐줘.", "</", "ask", "=who", ">"]
+    out = "".join(s.feed(p) for p in parts) + s.finish()
+    assert out == "카메라 봐줘." and s.ask is None
+
+
+def test_stream_partial_tag_at_end_dropped():
+    s = LangTagStream("ko")
+    out = s.feed("<lang=ko>안녕") + s.feed("</as") + s.finish()
+    assert out == "안녕"
+
+
+def test_stream_lone_lt_kept():
+    s = LangTagStream("ko")
+    out = s.feed("<lang=ko>a <") + s.feed("3 b") + s.feed(" <") + s.finish()
+    assert out == "a <3 b <"
