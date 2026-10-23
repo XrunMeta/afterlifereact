@@ -750,11 +750,11 @@
       "charge": "Recharge"
     },
     "delete": {
-      "title": "Leaving so soon?",
-      "desc": "We'll remember the precious time we spent with you, {{name}}.\nYour account and clones will be gone permanently.",
+      "title": "Delete account",
+      "desc": "Are you sure you want to delete your account?\nAll your data will be deleted and cannot be recovered.",
       "userFallback": "member",
-      "stay": "I'll stay a little longer",
-      "leave": "Delete account",
+      "stay": "Cancel",
+      "leave": "Delete",
       "failed": "Failed to delete your account.",
       "subMessage": "If you're an xrun member, your xrun account will remain."
     },
@@ -869,7 +869,7 @@
     },
     "sectionDesc": {
       "account": "Profile · deactivate · delete account",
-      "notifications": "Notification settings · list",
+      "notifications": "Push notifications",
       "face": "Face detection · recognition consent",
       "service": "Blocking · reports · terms & consents",
       "app": "Language"

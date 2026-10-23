@@ -750,11 +750,11 @@
       "charge": "充值"
     },
     "delete": {
-      "title": "这就要走了吗？",
-      "desc": "{{name}} 与您共度的珍贵时光我们会一直记得。\n账户和克隆将被永久删除。",
+      "title": "注销账号",
+      "desc": "确定要注销吗？\n所有数据将被删除且无法恢复。",
       "userFallback": "会员",
-      "stay": "再用用看",
-      "leave": "注销账户",
+      "stay": "取消",
+      "leave": "注销",
       "failed": "注销失败。",
       "subMessage": "如果您是 xrun 用户，xrun 账户将保留"
     },
@@ -869,7 +869,7 @@
     },
     "sectionDesc": {
       "account": "个人资料 · 停用账号 · 注销",
-      "notifications": "通知设置 · 通知列表",
+      "notifications": "推送通知",
       "face": "人脸检测 · 人脸识别同意",
       "service": "屏蔽 · 举报 · 条款与同意",
       "app": "语言设置"

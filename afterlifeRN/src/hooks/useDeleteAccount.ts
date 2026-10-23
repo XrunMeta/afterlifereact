@@ -19,13 +19,13 @@ export function v_1256e7(): { deleting: boolean; confirmDelete: () => void } {
       v_b113dd?.email?.split("@")[0] ||
       v_8d41d7("my.delete.userFallback", { defaultValue: "회원" });
     v_889fad(
-      v_8d41d7("my.delete.title", { defaultValue: "벌써 떠나시나요?" }),
+      v_8d41d7("my.delete.title", { defaultValue: "회원탈퇴" }),
       v_8d41d7("my.delete.desc", {
         name: v_8a1355,
-        defaultValue: `${v_8a1355} 님과 함께한 소중한 시간들을 기억할게요.\n계정과 클론은 영구적으로 사라져요.`,
+        defaultValue: "정말 탈퇴하시겠어요?\n모든 데이터가 삭제되며 복구할 수 없어요.",
       }),
       [
-        { text: v_8d41d7("my.delete.stay", { defaultValue: "조금 더 써볼래요" }), style: "cancel" },
+        { text: v_8d41d7("my.delete.stay", { defaultValue: "취소" }), style: "cancel" },
         {
           text: v_8d41d7("my.delete.leave", { defaultValue: "탈퇴하기" }),
           style: "destructive",
