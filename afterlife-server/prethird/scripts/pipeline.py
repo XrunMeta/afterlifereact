@@ -419,6 +419,8 @@ class DialoguePipeline:
         #   후 record() 로 assistant 응답을 누적. 이전엔 클래스만 있고 wiring 이 없어 매 턴이
         #   첫 턴처럼 취급되어 페르소나 규칙 A (초반 인사)가 반복 발동했다.
         self._history = ConversationHistory.from_env()
+        # 직전 클론 답 원문 — 같은 사람 이름을 매 턴 부르지 않게(이번 턴 이름 억제 판단용, 2026-10-23).
+        self._last_reply_text = ""
         # AFL-926: 이전 대화 로딩·인사 prerender 태스크. signaling 이 offer 직후 띄운다.
         #   발화 경로(say/greet/react)는 메시지 조립 전에 이전 대화 로딩을 잠깐 기다린다.
         # AFL-926: 앱이 Bridge 클립을 트는 통화인지(offer "bridge"). None = 모름(구 앱) → 기존처럼 대기.
@@ -861,6 +863,20 @@ class DialoguePipeline:
         if _tf_rule:
             messages = messages + [{"role": "system", "content": _tf_rule}]
 
+        # [2026-10-23 sungjius] "나 누구야?" 에 이름으로 답한 다음 턴에도 또 이름을 불렀다 — 매 턴 붙는 화자 힌트
+        #   때문에 LLM 이 이름을 반복한다. 직전 답에 이미 그 이름이 있고 이번 턴이 "누구냐" 질문이 아니면
+        #   이번엔 부르지 않게 한다(이름 부르기 힌트 name_mention_hint 가 있는 턴은 그 힌트가 우선).
+        _who_turn = isinstance(turn_face, dict) and turn_face.get("who") in ("self", "other")
+        if (_speaker_now and not _who_turn and not getattr(self, "name_mention_hint", None)
+                and _speaker_now in (getattr(self, "_last_reply_text", "") or "")):
+            messages = messages + [{
+                "role": "system",
+                "content": (
+                    f"[이번 턴] 직전 답에서 이미 '{_speaker_now}' 이라고 이름을 불렀다. 이번 답에서는 이름을 "
+                    "부르지 말고 하던 대화를 그대로 이어가라. 상대가 다시 자기가 누구냐고 물을 때만 예외다."
+                ),
+            }]
+
         _hint = getattr(self, "name_mention_hint", None)
         if _hint and not turn_face_names_allowed(turn_face, _tf_now, _has_speaker):
             # 미확인 턴 — 이름 부르기 힌트는 쓰지 않고 버린다(다음 턴에 다른 사람에게 새지 않게).
@@ -930,6 +946,7 @@ class DialoguePipeline:
         # [AFL-1003] 광고 복귀는 클론 주도 턴 — greet 관례대로 user_text=None 으로 기록.
         self._history.record(None if ad_event == "returned" else user_text,
                              "".join(answer_tokens))
+        self._last_reply_text = "".join(answer_tokens)
 
     async def speak(
         self, text: str, turn=None, on_first_audio=None, on_response_ready=None,
@@ -1065,6 +1082,7 @@ class DialoguePipeline:
         )
         # T-821: greet/react 응답도 히스토리에 남긴다 (다음 턴에 재-인사 방지).
         self._history.record(None, "".join(answer_tokens))
+        self._last_reply_text = "".join(answer_tokens)
 
     # ------------------------------------------------------------------
     # AFL-1034: 답 언어
