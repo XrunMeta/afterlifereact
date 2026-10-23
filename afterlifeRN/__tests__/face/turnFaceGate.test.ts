@@ -184,6 +184,28 @@ describe("createTurnFaceGate — say 전송 보류(최대 1초)", () => {
     expect(v_1794cd!.verdict).toMatchObject({ kind: "switch", personId: 163 });
   });
 
+  test("no current speaker: a no-face sample does not block the first-turn switch", async () => {
+    const { gate: v_98ce98 } = v_9a4ebd();
+    v_98ce98.startTurn();
+    v_98ce98.addSample(v_f1a0c2(null, 1, "none"));
+    v_98ce98.addSample(v_f1a0c2(163, 2));
+    const v_cb35cb = await v_98ce98.awaitVerdict(null);
+    expect(v_cb35cb.verdict).toMatchObject({ kind: "switch", personId: 163 });
+  });
+
+  test("no current speaker: only no-face samples → not early", async () => {
+    const { gate: v_98ce98 } = v_9a4ebd();
+    v_98ce98.startTurn();
+    v_98ce98.addSample(v_f1a0c2(null, 1, "none"));
+    let v_1794cd = null;
+    void v_98ce98.awaitVerdict(null).then((v_fd5f43) => { v_1794cd = v_fd5f43; });
+    await Promise.resolve();
+    expect(v_1794cd).toBeNull();
+    jest.advanceTimersByTime(1000);
+    await Promise.resolve();
+    expect(v_1794cd!.verdict.kind).toBe("insufficient");
+  });
+
   test("no current speaker: named + unknown-face mixed → not early (waits, then insufficient)", async () => {
     const { gate: v_98ce98 } = v_9a4ebd();
     v_98ce98.startTurn();
