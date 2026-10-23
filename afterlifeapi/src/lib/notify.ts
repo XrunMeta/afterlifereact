@@ -4,6 +4,7 @@ import type { v_273a0c } from "./env";
 import { v_a71d8b } from "./gmail";
 import { v_51b1f7 } from "./expoPush";
 import { v_74c502 } from "./cloneAccess";
+import { v_3f8b7c } from "./deactivation";
 
 export type NotificationType =
   | "invite_received"
@@ -100,6 +101,10 @@ export async function v_c226a5(env: v_273a0c, v_328259): Promise<NotifyResult> {
   let v_871c5a = 0;
   let v_49ca22 = 0;
   let v_c5c953 = false;
+
+  if (v_328259.userId && (await v_3f8b7c(v_c9c489, v_328259.userId).catch(() => false))) {
+    return { inserted: v_81161e, pushAttempted: v_871c5a, pushSent: v_49ca22, emailSent: v_c5c953 };
+  }
 
   const v_762d02 = v_328259.userId ? await v_5f5ee2(v_c9c489, v_328259.userId, v_328259.type) : true;
 

@@ -147,6 +147,7 @@ export type MyStackParamList = {
 
   VoiceLangTest: undefined;
 
+  DeactivateAccount: undefined;
   SettingsGroup: { group: "account" | "notifications" | "face" | "service" | "app" };
 };
 

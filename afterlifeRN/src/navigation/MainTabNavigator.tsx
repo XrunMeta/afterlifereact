@@ -55,6 +55,7 @@ import v_30f4d7 from "../screens/face-test/FaceThresholdTestScreen";
 import v_cca0cf from "../screens/dev/TtsVitsScreen";
 import v_89c9e9 from "../screens/dev/VoiceLangTestScreen";
 import v_1619c2 from "../screens/my/SettingsGroupScreen";
+import v_f0969e from "../screens/my/DeactivateAccountScreen";
 
 const v_3ea452 = v_709be7<v_2d88fc>();
 const v_be1c7b = v_709be7<v_2b51a5>();
@@ -123,6 +124,7 @@ function v_d9c5dd() {
       <MyStack.Screen name="TtsVits" component={v_cca0cf} />
       <MyStack.Screen name="VoiceLangTest" component={v_89c9e9} />
       <MyStack.Screen name="SettingsGroup" component={v_1619c2} />
+      <MyStack.Screen name="DeactivateAccount" component={v_f0969e} />
     </MyStack.Navigator>
   );
 }
