@@ -827,7 +827,12 @@
       "blockedUsers": "屏蔽用户管理",
       "reportsMenu": "举报 / 举报记录",
       "termsConsent": "条款与同意管理",
-      "termsConsentDesc": "查看条款 · 营销信息接收同意"
+      "termsConsentDesc": "查看条款 · 营销信息接收同意",
+      "notificationsListShort": "通知列表",
+      "faceDetect": "人脸检测",
+      "faceDetectDesc": "记得我的克隆",
+      "faceRecognition": "人脸识别同意",
+      "faceRecognitionDesc": "静默自动注册 · 人脸识别条款 · 通话学习"
     },
     "logout": {
       "title": "要退出登录吗?",
@@ -864,8 +869,8 @@
     },
     "sectionDesc": {
       "account": "个人资料 · 停用账号 · 注销",
-      "notifications": "推送通知 · 收到的通知 · 邀请状态",
-      "face": "人脸检测与识别同意",
+      "notifications": "通知设置 · 通知列表",
+      "face": "人脸检测 · 人脸识别同意",
       "service": "屏蔽 · 举报 · 条款与同意",
       "app": "语言设置"
     }
