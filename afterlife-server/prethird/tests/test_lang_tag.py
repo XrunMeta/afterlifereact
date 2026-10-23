@@ -131,3 +131,21 @@ def test_stream_lone_lt_kept():
     s = LangTagStream("ko")
     out = s.feed("<lang=ko>a <") + s.feed("3 b") + s.feed(" <") + s.finish()
     assert out == "a <3 b <"
+
+
+# AFL-1039 실통화(2026-10-23): 답 끝 `</final` 이 화면에 나왔다.
+def test_stray_closing_tag_stripped():
+    assert split_head_tags("<lang=ko>뭐 하고 있어?</final", "ko") == ("ko", None, "뭐 하고 있어?")
+    assert split_head_tags("<lang=ko>좋아.</final>", "ko")[2] == "좋아."
+
+
+def test_stream_stray_closing_tag_split():
+    s = LangTagStream("ko")
+    out = "".join(s.feed(p) for p in ["<lang=ko>", "뭐 하고 있어?", "</fin", "al"]) + s.finish()
+    assert out == "뭐 하고 있어?"
+
+
+def test_opening_word_tag_kept_and_lt_text_kept():
+    s = LangTagStream("ko")
+    out = "".join(s.feed(p) for p in ["<lang=ko>", "a < b 이고 ", "<3"]) + s.finish()
+    assert out == "a < b 이고 <3"
