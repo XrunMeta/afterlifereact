@@ -6,6 +6,7 @@ import { v_3ebe58 } from "../lib/errors";
 import { v_6690d9 } from "../middleware/auth";
 import { v_4c95c2, v_1f4ea7 } from "../lib/validate";
 import { v_96aa7f } from "../lib/password";
+import { v_937e23 } from "../lib/xrun";
 import { v_b78f7e, v_656e8b } from "../lib/otp";
 import { v_1186b8 } from "../lib/deactivation";
 import { v_74defc } from "../lib/logger";
@@ -14,9 +15,9 @@ export const v_344cd4 = new v_b7c41b<v_de0a25>();
 
 async function v_3fb498(c: { env: v_de0a25["Bindings"] }, v_43e90c) {
   const v_b32680 = await v_3f4e2e.env.DB
-    .prepare(`SELECT id, email, password_hash, deactivated_at FROM users WHERE id = ? AND deleted_at IS NULL`)
+    .prepare(`SELECT id, email, password_hash, deactivated_at, xrun_member_id FROM users WHERE id = ? AND deleted_at IS NULL`)
     .bind(v_43e90c)
-    .first<{ id: number; email: string; password_hash: string; deactivated_at: string | null }>();
+    .first<{ id: number; email: string; password_hash: string; deactivated_at: string | null; xrun_member_id: number | null }>();
   if (!v_b32680) throw new v_3ebe58("NOT_FOUND", "User not found.");
   return v_b32680;
 }
@@ -40,9 +41,12 @@ v_344cd4.post("/me/deactivate", v_6690d9, async (v_3f4e2e) => {
   const v_b32680 = await v_3fb498(v_3f4e2e, v_43e90c);
 
   if (v_4d33b2.password) {
-    if (!(await v_96aa7f(v_4d33b2.password, v_b32680.password_hash))) {
-      throw new v_3ebe58("UNAUTHENTICATED", "비밀번호가 맞지 않아요.");
-    }
+
+    const v_3ed4c3 =
+      (await v_96aa7f(v_4d33b2.password, v_b32680.password_hash)) ||
+      (!!v_b32680.xrun_member_id && (await v_937e23(v_3f4e2e.env, v_b32680.email, v_4d33b2.password)).found);
+
+    if (!v_3ed4c3) throw new v_3ebe58("VALIDATION_FAILED", "비밀번호가 맞지 않아요.");
   } else {
     await v_656e8b(v_3f4e2e.env, v_b32680.email, v_4d33b2.verificationCode!);
   }

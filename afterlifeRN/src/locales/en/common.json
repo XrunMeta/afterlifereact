@@ -2432,6 +2432,8 @@
       "interaction": "Others can't send you gifts or shares.",
       "notify": "All notifications stop.",
       "restore": "Log back in anytime to restore everything. Your data is kept."
-    }
+    },
+    "verifyPassword": "Verify · Password",
+    "verifyEmail": "Verify · Email code"
   }
 }
