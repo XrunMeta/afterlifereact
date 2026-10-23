@@ -165,6 +165,39 @@ describe("createTurnFaceGate — say 전송 보류(최대 1초)", () => {
     expect(jest.getTimerCount()).toBe(0);
   });
 
+  test("no current speaker: one named sample → immediate switch to that person (first turn)", async () => {
+    const { burst: v_b1b543, gate: v_98ce98 } = v_9a4ebd();
+    v_98ce98.startTurn();
+    v_98ce98.addSample(v_f1a0c2(163, 1));
+    const v_cb35cb = await v_98ce98.awaitVerdict(null);
+    expect(v_cb35cb.verdict).toMatchObject({ kind: "switch", personId: 163, score: 0.8 });
+    expect(v_b1b543).not.toHaveBeenCalled();
+  });
+
+  test("no current speaker: a named sample arriving while held resolves at once", async () => {
+    const { gate: v_98ce98 } = v_9a4ebd();
+    v_98ce98.startTurn();
+    let v_1794cd = null;
+    void v_98ce98.awaitVerdict(null).then((v_fd5f43) => { v_1794cd = v_fd5f43; });
+    v_98ce98.addSample(v_f1a0c2(163, 1));
+    await Promise.resolve();
+    expect(v_1794cd!.verdict).toMatchObject({ kind: "switch", personId: 163 });
+  });
+
+  test("no current speaker: named + unknown-face mixed → not early (waits, then insufficient)", async () => {
+    const { gate: v_98ce98 } = v_9a4ebd();
+    v_98ce98.startTurn();
+    v_98ce98.addSample(v_f1a0c2(null, 1));
+    v_98ce98.addSample(v_f1a0c2(163, 2));
+    let v_1794cd = null;
+    void v_98ce98.awaitVerdict(null).then((v_fd5f43) => { v_1794cd = v_fd5f43; });
+    await Promise.resolve();
+    expect(v_1794cd).toBeNull();
+    jest.advanceTimersByTime(1000);
+    await Promise.resolve();
+    expect(v_1794cd!.verdict.kind).toBe("insufficient");
+  });
+
   test("no current speaker: unknown samples (personId null) never count as current", async () => {
     const { burst: v_b1b543, gate: v_98ce98 } = v_9a4ebd();
     v_98ce98.startTurn();

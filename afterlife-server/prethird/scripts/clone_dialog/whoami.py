@@ -72,9 +72,12 @@ def turn_face_instruction(turn_face: dict | None, speaker_name: str | None, now:
         hint = _QUALITY_HINTS.get(turn_face.get("quality"), _DEFAULT_HINT)
         return (
             f"[이번 턴] 지금 말하는 사람의 얼굴은 확인되지 않았다(화면: {hint}). "
-            "상대가 자기가 누구냐고 물으면 이름을 말하지 말고 화면 상태에 맞게 카메라를 봐 달라고 "
-            "짧게 말한 뒤, 답 맨 앞 언어 태그 바로 뒤에 <ask=who> 를 붙여라. "
-            "묻지 않았으면 평소처럼 답해라."
+            "상대의 **이번 말**이 '나 누구야?'·'내가 누군지 알아?'처럼 자기가 누구인지 직접 묻는 말일 때만: "
+            "이름을 말하지 말고 화면 상태에 맞게 카메라를 봐 달라고 짧게 말하고, "
+            "답 맨 앞 언어 태그 바로 뒤에 <ask=who> 를 붙여라(예: <lang=ko><ask=who>카메라 잠깐 봐줄래?). "
+            "<ask=who> 는 그 자리에 한 번만 쓰고 닫는 태그(</ask=who>)는 쓰지 마라. "
+            "그 밖의 말(대답·맞장구·인사·다른 이야기)이면 앞 대화가 얼굴 얘기였더라도 "
+            "얼굴·카메라 얘기를 꺼내지 말고 <ask=who> 도 붙이지 말고 평소처럼 답해라."
         )
 
     if verdict in ("known", "switch"):
