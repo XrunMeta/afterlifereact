@@ -468,13 +468,49 @@ export default function v_8640b9() {
     return () => v_1ae212.remove();
   }, [v_6ca26b]);
 
+  const v_5e24d8 = v_df9f57(
+    () => [
+      v_e82960(require("../../../assets/sfx/face_1_front.mp3")),
+      v_e82960(require("../../../assets/sfx/face_2_left.mp3")),
+      v_e82960(require("../../../assets/sfx/face_3_right.wav")),
+      v_e82960(require("../../../assets/sfx/face_4_down.mp3")),
+    ],
+    [],
+  );
+  const v_343670 = v_df9f57(
+    () => v_e82960(require("../../../assets/sfx/face_complete.wav")),
+    [],
+  );
+  v_c4deb2(
+    () => () => {
+      for (const v_e2a85c of [...v_5e24d8, v_343670]) {
+        try { v_e2a85c.remove(); } catch {  }
+      }
+    },
+    [v_5e24d8, v_343670],
+  );
+  const v_eead09 = v_de06a3(
+    (v_73db7e) => {
+      const v_e2a85c = v_73db7e >= v_77ce37.length - 1 ? v_343670 : v_5e24d8[v_73db7e];
+      if (!v_e2a85c) return;
+      try {
+        void v_e2a85c.seekTo(0);
+        v_e2a85c.play();
+      } catch (v_49263d) {
+        console.warn("[PreCallFaceEnroll] step sound play failed:", v_49263d);
+      }
+    },
+    [v_5e24d8, v_343670],
+  );
+
   v_c4deb2(() => {
     if (v_729796 >= v_77ce37.length) return;
     const v_5f5d6d = (v_729796 + 1) * v_df1250;
     if (v_74e259.length >= v_5f5d6d) {
+      v_eead09(v_729796);
       v_fd7d1f((v_fd5f43) => v_fd5f43 + 1);
     }
-  }, [v_74e259.length, v_729796]);
+  }, [v_74e259.length, v_729796, v_eead09]);
 
   const v_bcff1c = v_de06a3(() => {
     v_889fad(
