@@ -75,6 +75,8 @@ export function v_fee12d(v_328259) {
   const v_23245d = v_e662ae(0);
 
   const [v_23db84, v_17e228] = v_5ab095(false);
+
+  const [v_a39069, v_1a3c56] = v_5ab095(false);
   const [v_5e9bfe, v_3a7d09] = v_5ab095<Error | null>(null);
   const v_ab371b = v_e662ae<Array<{ remove: () => void }>>([]);
 
@@ -216,6 +218,7 @@ export function v_fee12d(v_328259) {
     }
     v_17e228(true);
     v_b680bc(true);
+    v_1a3c56(false);
   }, []);
 
   v_c4deb2(() => {
@@ -273,6 +276,7 @@ export function v_fee12d(v_328259) {
         }, v_4c6a50);
         v_3a7d09(new Error(v_badeaf));
         if (v_c99bd2 === 'no-speech') v_130126.current = 0; 
+        if (v_fe2b35.current) v_1a3c56(true);
         if (v_fe2b35.current && v_c99bd2 === 'network') {
           const v_f4e98d = v_130126.current;
           v_13d028.current = true;
@@ -448,6 +452,7 @@ export function v_fee12d(v_328259) {
     v_1e3df0.stop();
     v_b680bc(false);
     v_17e228(false);
+    v_1a3c56(false);
     v_23245d.current = 0;
     v_d404a7(0); 
 
@@ -462,6 +467,8 @@ export function v_fee12d(v_328259) {
     interimTranscript: v_a2d9d1,
     listening: v_177ff2,
     listeningDebounced: v_23db84,
+
+    recovering: v_a39069,
     error: v_5e9bfe,
     startListening: v_770cae,
     stopListening: v_ad03b1,

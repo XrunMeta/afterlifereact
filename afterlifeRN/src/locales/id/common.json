@@ -385,7 +385,9 @@
     "imageSendFailTitle": "Gagal mengirim foto",
     "imageSendFailBody": "Periksa koneksi lalu coba lagi.",
     "imageApiUnavailable": "Fitur kirim foto belum siap. Coba lagi sebentar.",
-    "typingA11y": "Sedang mengetik"
+    "typingA11y": "Sedang mengetik",
+    "listTitle": "Daftar chat",
+    "listCount": "Daftar chat {{count}}"
   },
   "call": {
     "calling": "Menghubungkan...",
@@ -748,11 +750,11 @@
       "charge": "Isi Ulang"
     },
     "delete": {
-      "title": "Sudah mau pergi?",
-      "desc": "Kami akan mengingat waktu berharga yang telah dilewati bersama {{name}}.\nAkun dan klon akan hilang secara permanen.",
+      "title": "Hapus akun",
+      "desc": "Yakin ingin menghapus akun?\nSemua data (poin, riwayat penggunaan, konten tersimpan) akan dihapus dan tidak dapat dipulihkan.",
       "userFallback": "Anggota",
-      "stay": "Coba tetap sedikit lagi",
-      "leave": "Keluar",
+      "stay": "Batal",
+      "leave": "Hapus",
       "failed": "Gagal keluar.",
       "subMessage": "Jika Anda anggota xrun, akun xrun akan tetap dipertahankan"
     },
@@ -814,7 +816,23 @@
       "faceEnrollDev": "Daftar wajah 5 sudut (dev)",
       "faceEnrollDevDesc": "Depan·kiri·kanan·atas·bawah → siap panggilan pertama",
       "voiceLangTest": "Tes suara",
-      "voiceLangTestDesc": "Dengarkan suara klon per bahasa"
+      "voiceLangTestDesc": "Dengarkan suara klon per bahasa",
+      "profileEdit": "Profil / info pribadi",
+      "deactivate": "Nonaktifkan akun (jeda)",
+      "deactivateDesc": "Jeda akun Anda untuk sementara",
+      "pushNotifications": "Notifikasi push aplikasi",
+      "pushNotificationsDesc": "Notifikasi · kotak masuk · undangan",
+      "faceSettings": "Persetujuan deteksi & pengenalan wajah",
+      "faceSettingsDesc": "Pengenalan wajah · klon yang mengingat saya · pembelajaran panggilan",
+      "blockedUsers": "Pengguna diblokir",
+      "reportsMenu": "Laporkan / riwayat laporan",
+      "termsConsent": "Ketentuan & persetujuan",
+      "termsConsentDesc": "Lihat ketentuan · persetujuan pemasaran",
+      "notificationsListShort": "Daftar notifikasi",
+      "faceDetect": "Deteksi wajah",
+      "faceDetectDesc": "Klon yang mengingat saya",
+      "faceRecognition": "Persetujuan pengenalan wajah",
+      "faceRecognitionDesc": "Daftar otomatis · ketentuan pengenalan wajah · pembelajaran panggilan"
     },
     "logout": {
       "title": "Keluar?",
@@ -838,6 +856,23 @@
       "otaEmergency": "OTA peluncuran darurat (embedded fallback)",
       "otaEmbedded": "OTA tertanam (embedded)",
       "otaUpdate": "OTA {{id}}"
+    },
+    "section": {
+      "account": "Akun & privasi",
+      "notifications": "Notifikasi",
+      "face": "Wajah & biometrik",
+      "service": "Layanan & pemblokiran",
+      "app": "Pengaturan aplikasi"
+    },
+    "deactivate": {
+      "soon": "Segera hadir."
+    },
+    "sectionDesc": {
+      "account": "Profil · nonaktifkan · hapus akun",
+      "notifications": "Notifikasi push",
+      "face": "Deteksi · persetujuan pengenalan wajah",
+      "service": "Blokir · laporan · ketentuan & persetujuan",
+      "app": "Bahasa"
     }
   },
   "auth": {
@@ -864,8 +899,8 @@
       "accountLocked": "Akun terkunci. Silakan coba lagi sekitar 10 menit lagi, atau setel ulang melalui Lupa Kata Sandi.",
       "accountDeletedTitle": "Akun telah dihapus",
       "accountDeletedMessage": "Akun ini sudah diproses untuk dihapus dan tidak dapat login kembali.",
-      "accountSuspendedTitle": "Akun Ditangguhkan",
-      "accountSuspendedMessage": "Akun ini ditangguhkan karena akumulasi laporan.",
+      "accountSuspendedTitle": "Akun Anda ditangguhkan.",
+      "accountSuspendedMessage": "Akun Anda ditangguhkan karena melanggar kebijakan layanan.\nKontak: oth-staff@example.invalid",
       "googleUnavailableTitle": "Login Google tidak tersedia",
       "googleUnavailableMessage": "Silakan coba lagi nanti.",
       "googleNoToken": "Token login Google tidak diterima.",
@@ -1060,6 +1095,12 @@
       "submit": "Mulai afterlife",
       "googleOnboardingDesc": "Ini pertama kali Anda memulai dengan akun Google. Silakan masukkan informasi dasar sekali saja.",
       "submitting": "Memproses..."
+    },
+    "deactivated": {
+      "title": "Akun ini dinonaktifkan.",
+      "message": "Masuk kembali dan pulihkan akun serta klon AI Anda?",
+      "activate": "Aktifkan",
+      "failed": "Gagal mengaktifkan. Silakan masuk lagi."
     }
   },
   "create": {
@@ -1233,7 +1274,6 @@
       "recordStartFailedMsg": "Gagal memulai rekaman. Silakan coba lagi nanti.",
       "chooseScriptHint": "Silakan pilih skrip dan baca.",
       "uploading": "Mengunggah...",
-      "cloneJobRegistered": "Tugas kloning terdaftar",
       "recordDoneUploadFailed": "Rekaman selesai (unggah gagal — mencoba ulang)",
       "uploadPromptHint": "Silakan unggah file suara",
       "pickAnother": "Pilih file lain",
@@ -1255,7 +1295,9 @@
       "toastNoise": "Sekitar Anda bising. Mohon rekam di tempat yang tenang.",
       "recordQualityTitle": "Periksa kualitas rekaman",
       "recordQualitySilenceMsg": "Rekaman memiliki banyak bagian hening. Mohon rekam ulang seluruh kalimat dengan jelas di tempat yang tenang.",
-      "recordQualityNoiseMsg": "Rekaman tercampur suara bising. Merekam ulang di tempat yang tenang akan membuat suara jauh lebih alami."
+      "recordQualityNoiseMsg": "Rekaman tercampur suara bising. Merekam ulang di tempat yang tenang akan membuat suara jauh lebih alami.",
+      "registeredFile": "File suara berhasil didaftarkan.",
+      "registeredRecording": "Rekaman suara berhasil didaftarkan."
     },
     "visibility": {
       "memlowLocked": "Klon Kenangan diatur sebagai pribadi. Hanya ko-admin yang dapat melihat.",
@@ -1626,6 +1668,16 @@
       "deleteConfirmMessage": "{{name}} akan melupakan Anda dan menghapus data wajah Anda. Tidak dapat dibatalkan.",
       "deleteError": "Gagal menghapus.",
       "deleteErrorTitle": "Gagal menghapus"
+    },
+    "faceSettings": {
+      "title": "Wajah & biometrik",
+      "callLearning": "Pembelajaran percakapan panggilan",
+      "callLearningDesc": "Pembelajaran panggilan termasuk dalam persetujuan penggunaan & pembuatan data AI"
+    },
+    "termsConsent": {
+      "title": "Ketentuan & persetujuan",
+      "service": "Ketentuan Layanan",
+      "privacy": "Kebijakan Privasi"
     }
   },
   "permissionGate": {
@@ -1833,7 +1885,7 @@
   },
   "errors": {
     "accountDeleted": "Akun ini sudah dihapus.",
-    "accountSuspended": "Akun Anda diblokir karena laporan yang menumpuk.",
+    "accountSuspended": "Akun Anda ditangguhkan karena melanggar kebijakan layanan.\nKontak: oth-staff@example.invalid",
     "accountSuspendedForPersona": "Akun Anda dinonaktifkan sementara karena laporan yang menumpuk, sehingga tidak bisa membuat clone.",
     "accountLocked": "Akun Anda dikunci sementara. Silakan coba lagi nanti.",
     "tooManyFailures": "Terlalu banyak percobaan gagal. Silakan coba lagi nanti.",
@@ -2358,5 +2410,28 @@
       "saving": "Memproses...",
       "continue": "Setuju dan lanjutkan"
     }
+  },
+  "deactivate": {
+    "whatHappens": "Jika dinonaktifkan",
+    "verify": "Verifikasi",
+    "byPassword": "Kata sandi",
+    "byEmail": "Kode email (akun sosial)",
+    "passwordPlaceholder": "Masukkan kata sandi",
+    "sendCode": "Kirim kode ke email saya",
+    "resendCode": "Kirim ulang kode",
+    "codeSent": "Dikirim ke {{email}}.",
+    "codePlaceholder": "Kode 6 digit",
+    "submit": "Nonaktifkan",
+    "confirmTitle": "Nonaktifkan akun?",
+    "confirmBody": "Anda akan langsung keluar dari semua perangkat.",
+    "effect": {
+      "hide": "Profil dan klon AI Anda disembunyikan dari beranda, jelajah, dan pencarian, dan orang lain tidak bisa mengobrol atau menelepon.",
+      "posts": "Postingan dan komentar Anda disembunyikan.",
+      "interaction": "Orang lain tidak bisa mengirim hadiah atau berbagi.",
+      "notify": "Semua notifikasi berhenti.",
+      "restore": "Masuk kembali kapan saja untuk memulihkan. Data Anda tetap tersimpan."
+    },
+    "verifyPassword": "Verifikasi · Kata sandi",
+    "verifyEmail": "Verifikasi · Kode email"
   }
 }

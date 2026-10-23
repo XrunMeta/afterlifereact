@@ -122,7 +122,8 @@ export type MyStackParamList = {
   EditProfile: undefined;
   NotificationSettings: undefined;
   PrivacySettings: undefined;
-  Agreements: undefined;
+
+  Agreements: { section?: "face" | "terms" } | undefined;
   SavedItems: undefined;
   RememberingClones: undefined;
   RememberingCloneDetail: { cloneId: number; cloneName: string };
@@ -145,6 +146,9 @@ export type MyStackParamList = {
   TtsVits: undefined;
 
   VoiceLangTest: undefined;
+
+  DeactivateAccount: undefined;
+  SettingsGroup: { group: "account" | "notifications" | "face" | "service" | "app" };
 };
 
 declare global {

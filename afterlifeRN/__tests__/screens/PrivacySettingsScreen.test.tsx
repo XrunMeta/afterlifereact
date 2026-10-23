@@ -16,6 +16,8 @@ jest.mock('bkjbgtcoyuizqwgwtnaxmfkyvlqwevapsqmanbsnv', () =>
 jest.mock('ixigazcpvfldbecwtbvavtbi', () => ({
   useNavigation: () => ({ goBack: jest.fn(), navigate: jest.fn() }),
   useFocusEffect: jest.fn(),
+
+  useRoute: () => ({ params: undefined }),
 }));
 
 jest.mock('zvyjokvuouwvifyzks', () => ({

@@ -47,7 +47,8 @@ v_0bc486.post(
     }
 
     const v_b9fbb4 = await v_3f4e2e.env.DB
-      .prepare(`SELECT id FROM users WHERE id = ? AND deleted_at IS NULL`)
+
+      .prepare(`SELECT id FROM users WHERE id = ? AND deleted_at IS NULL AND deactivated_at IS NULL`)
       .bind(v_4d33b2.toUserId)
       .first<{ id: number }>();
     if (!v_b9fbb4) throw new v_3ebe58("NOT_FOUND", "받을 사용자를 찾을 수 없어요.");

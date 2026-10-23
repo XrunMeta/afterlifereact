@@ -11,7 +11,7 @@ import {
   v_79139e,
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
-import { v_cf763b, v_ada615 } from "ixigazcpvfldbecwtbvavtbi";
+import { v_cf763b, v_ada615, v_2d8264, type v_ee3714 } from "ixigazcpvfldbecwtbvavtbi";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import { v_772971 } from "jmpfvteuuztnp";
 import v_570c34 from "../../components/ui/SafeScrollView";
@@ -33,6 +33,7 @@ import { v_704bef, v_9bedf5 } from "../../lib/pushNotifications";
 
 export default function v_c78d4f() {
   const v_c65f5d = v_ada615<v_390fcc<v_e57140>>();
+  const v_c7daf6 = v_2d8264<v_ee3714<v_e57140, "Agreements">>();
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
   const { t: v_8d41d7 } = v_772971();
 
@@ -162,43 +163,87 @@ export default function v_c78d4f() {
     void v_0e6e60(true);
   };
 
+  const v_b4fa6c = v_c7daf6.params?.section;
+  const v_89c2aa = v_b4fa6c !== "terms";
+  const v_bcbe33 = v_b4fa6c !== "face";
+  const v_9f1622 =
+    v_b4fa6c === "face"
+      ? v_8d41d7("settings.faceSettings.title", { defaultValue: "얼굴 및 생체 인식 설정" })
+      : v_b4fa6c === "terms"
+        ? v_8d41d7("settings.termsConsent.title", { defaultValue: "약관 및 동의 관리" })
+        : v_8d41d7("settings.agreements.title", { defaultValue: "동의" });
+
   return (
     <SafeScrollView backgroundColor={v_1bfbd0.white} showBottomBackground={false}>
-      <PageHeader
-        title={v_8d41d7("settings.agreements.title", { defaultValue: "동의" })}
-        showBackButton
-        onBackPress={() => v_c65f5d.goBack()}
-      />
+      <PageHeader title={v_9f1622} showBackButton onBackPress={() => v_c65f5d.goBack()} />
+      {}
+      <View style={{ height: 16 }} />
 
       {}
-      <FaceConsentSection t={v_8d41d7} />
+      {}
+      {v_b4fa6c === undefined && <FaceConsentSection t={v_8d41d7} />}
 
       {}
-      <RequiredConsentSection onViewTerms={v_41be10} t={v_8d41d7} />
+      {}
+      {v_bcbe33 && (
+        <RequiredConsentSection
+          onViewTerms={v_41be10}
+          t={v_8d41d7}
+          items={[
+            { type: 1, label: v_8d41d7("settings.termsConsent.service", { defaultValue: "서비스 이용약관" }) },
+            { type: 3, label: v_8d41d7("settings.termsConsent.privacy", { defaultValue: "개인정보 처리방침" }) },
+            { type: 2, label: v_8d41d7("auth.signup.termsLocationTitle", { defaultValue: "위치기반서비스 이용약관" }) },
+            { type: 5, label: v_8d41d7("auth.signup.termsCallLearningTitle", { defaultValue: "AI 데이터 활용 및 생성 동의" }) },
+          ]}
+        />
+      )}
+      {}
+      {v_b4fa6c === "face" && (
+        <RequiredConsentSection
+          onViewTerms={v_41be10}
+          t={v_8d41d7}
+          title={v_8d41d7("settings.faceSettings.callLearning", { defaultValue: "통화 대화 학습" })}
+          items={[
+            {
+              type: 5,
+              label: v_8d41d7("settings.faceSettings.callLearningDesc", {
+                defaultValue: "통화 대화 학습은 AI 데이터 활용 및 생성 동의에 포함돼요",
+              }),
+            },
+          ]}
+        />
+      )}
 
       {}
-      <FaceBiometricConsentSection
-        state={v_ef3473}
-        loading={v_2fe581}
-        saving={v_09250c}
-        onToggle={v_e334fb}
-        t={v_8d41d7}
-      />
+      {v_89c2aa && (
+        <FaceBiometricConsentSection
+          state={v_ef3473}
+          loading={v_2fe581}
+          saving={v_09250c}
+          onToggle={v_e334fb}
+          onViewTerms={() => v_41be10(4)}
+          t={v_8d41d7}
+        />
+      )}
 
       {}
-      <MarketingConsentSection
-        state={v_18d480}
-        loading={v_b47b36}
-        saving={v_dbf473}
-        onToggle={(v_81e2ef) => void v_6ad98c(v_81e2ef)}
-        t={v_8d41d7}
-      />
+      {v_bcbe33 && (
+        <MarketingConsentSection
+          state={v_18d480}
+          loading={v_b47b36}
+          saving={v_dbf473}
+          onToggle={(v_81e2ef) => void v_6ad98c(v_81e2ef)}
+          onViewTerms={() => v_41be10(7)}
+          t={v_8d41d7}
+        />
+      )}
 
+      {}
       <TermsModal
         visible={v_adcd4f !== null}
         type={v_adcd4f}
         onClose={() => v_41be10(null)}
-        onAgree={() => v_41be10(null)}
+        viewOnly
       />
     </SafeScrollView>
   );
@@ -215,7 +260,7 @@ function v_afe1c9({ t: v_8d41d7 }: FaceConsentSectionProps) {
   return (
     <View
       testID="face-consent-section"
-      style={[v_fd5f43.content, { paddingTop: 16, paddingBottom: 32 }]}
+      style={[v_fd5f43.content, { paddingTop: 0, paddingBottom: 32 }]}
     >
       <Text style={v_fd5f43.sectionTitle}>{v_8d41d7("settings.privacy.faceConsent.sectionTitle")}</Text>
       <View style={v_fd5f43.card}>
@@ -238,18 +283,18 @@ function v_afe1c9({ t: v_8d41d7 }: FaceConsentSectionProps) {
 function v_9f0cf3({
   onViewTerms: v_6c57c3,
   t: v_8d41d7,
+  items: v_4622b9,
+  title: v_9f1622,
 }: {
   onViewTerms: (type: v_3ac6ea) => void;
   t: (key: string, opts?: Record<string, unknown>) => string;
+  items: Array<{ type: v_3ac6ea; label: string }>;
+  title?: string;
 }) {
-  const items: Array<{ type: v_3ac6ea; label: string }> = [
-    { type: 5, label: v_8d41d7("auth.signup.termsCallLearningTitle", { defaultValue: "AI 데이터 활용 및 생성 동의" }) },
-    { type: 2, label: v_8d41d7("auth.signup.termsLocationTitle", { defaultValue: "위치기반서비스 이용약관" }) },
-  ];
   return (
     <View testID="required-consent-section" style={[v_fd5f43.content, { paddingTop: 0, paddingBottom: 32 }]}>
       <Text style={v_fd5f43.sectionTitle}>
-        {v_8d41d7("settings.privacy.required.sectionTitle", { defaultValue: "필수 동의" })}
+        {v_9f1622 ?? v_8d41d7("settings.privacy.required.sectionTitle", { defaultValue: "필수 동의" })}
       </Text>
       <View style={v_fd5f43.card}>
         {v_4622b9.map((v_23805a, v_ebec57) => (
@@ -277,6 +322,8 @@ interface FaceBiometricConsentSectionProps {
   loading: boolean;
   saving: boolean;
   onToggle: (value: boolean) => void;
+
+  onViewTerms?: () => void;
   t: (key: string, opts?: Record<string, unknown>) => string;
 }
 
@@ -285,6 +332,7 @@ function v_b8358a({
   loading: v_683210,
   saving: v_35bf26,
   onToggle: v_0a2cea,
+  onViewTerms: v_6c57c3,
   t: v_8d41d7,
 }: FaceBiometricConsentSectionProps) {
   return (
@@ -298,6 +346,13 @@ function v_b8358a({
           <View style={{ flex: 1 }}>
             <Text style={v_fd5f43.rowName}>{v_8d41d7("settings.privacy.faceBiometric.toggleLabel")}</Text>
             <Text style={v_fd5f43.rowSub}>{v_8d41d7("settings.privacy.faceBiometric.description")}</Text>
+            {v_6c57c3 && (
+              <TouchableOpacity onPress={v_6c57c3} hitSlop={8}>
+                <Text style={[v_fd5f43.rowSub, v_fd5f43.callLearningTermsLink]}>
+                  {v_8d41d7("settings.privacy.callLearning.viewTerms", { defaultValue: "약관 보기" })}
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
           {v_683210 ? (
             <ActivityIndicator color={v_1bfbd0.zinc500} />
@@ -323,12 +378,14 @@ function v_479d1e({
   loading: v_683210,
   saving: v_35bf26,
   onToggle: v_0a2cea,
+  onViewTerms: v_6c57c3,
   t: v_8d41d7,
 }: {
   state: v_550b56;
   loading: boolean;
   saving: boolean;
   onToggle: (value: boolean) => void;
+  onViewTerms?: () => void;
   t: (key: string, opts?: Record<string, unknown>) => string;
 }) {
   return (
@@ -352,6 +409,13 @@ function v_479d1e({
                 defaultValue: "이벤트·혜택 등 마케팅 알림을 받습니다. (선택)",
               })}
             </Text>
+            {v_6c57c3 && (
+              <TouchableOpacity onPress={v_6c57c3} hitSlop={8}>
+                <Text style={[v_fd5f43.rowSub, v_fd5f43.callLearningTermsLink]}>
+                  {v_8d41d7("settings.privacy.callLearning.viewTerms", { defaultValue: "약관 보기" })}
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
           {v_683210 ? (
             <ActivityIndicator color={v_1bfbd0.zinc500} />

@@ -26,7 +26,6 @@ import type { v_432191 } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import type { v_8ad91b } from "../../navigation/types";
 import { v_194498 } from "../../stores/cloneStore";
 import { v_1ed7d9 } from "../../stores/authStore";
-import { v_b4902e } from "../../stores/followStore";
 import { v_84d546 } from "../../lib/callGuard";
 import { v_38f9da } from "../../lib/callActivity";
 import v_8e7ad4 from "../../components/ui/SwipeDownSheet";
@@ -46,8 +45,6 @@ import {
   v_9adabd,
   v_1c758d,
   v_9cb700,
-  v_8be472,
-  v_9d1db1,
   type v_29686e,
   type v_f19942,
   type v_18a302,
@@ -556,60 +553,6 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     }
   };
 
-  const v_8888af = async () => {
-    if (!v_2ca7e0) return;
-    try {
-      const v_cb35cb = await v_8be472(v_6e0fd3, v_2ca7e0);
-      if (v_cb35cb.unsubscribed) await v_b4902e.getState().unfollowLocalForBlock(v_6e0fd3);
-      v_c65f5d.goBack();
-    } catch (v_49263d) {
-      console.warn("[Chat] leave failed:", (v_49263d as Error)?.message ?? v_49263d);
-      v_889fad(
-        v_8d41d7("chat.leaveFailTitle", { defaultValue: "나가지 못했어요" }),
-        v_8d41d7("common.retryLater", { defaultValue: "잠시 후 다시 시도해 주세요." }),
-      );
-    }
-  };
-
-  const v_98409d = () => {
-    const v_f1620a = v_1ed7d9.getState().apiUser?.id ?? null;
-    const v_e009da = v_eb25ce?.ownerId != null && v_f1620a != null && v_eb25ce.ownerId === v_f1620a;
-    const v_dd943a = [
-      {
-        label: v_8d41d7("chat.callAction", { defaultValue: "통화" }),
-        onPress: () => void v_21be1f(),
-      },
-      {
-        label: v_842b8b
-          ? v_8d41d7("chat.notifyOff", { defaultValue: "알림 끄기" })
-          : v_8d41d7("chat.notifyOn", { defaultValue: "알림 켜기" }),
-        disabled: v_f61bef,
-        onPress: () => void v_4f52b6(),
-      },
-    ];
-
-    v_dd943a.push({
-      label: v_8d41d7("chat.leaveAction", { defaultValue: "나가기" }),
-      destructive: true,
-      onPress: () => {
-        const v_893b61 = !v_e009da && v_b4902e.getState().isFollowing(v_6e0fd3);
-        v_889fad(
-          v_8d41d7("chat.leaveTitle", { defaultValue: "대화방 나가기" }),
-          v_9d1db1(v_8d41d7, v_893b61),
-          [
-            { text: v_8d41d7("common.cancel", { defaultValue: "취소" }), style: "cancel" },
-            {
-              text: v_8d41d7("chat.leaveAction", { defaultValue: "나가기" }),
-              style: "destructive",
-              onPress: () => void v_8888af(),
-            },
-          ],
-        );
-      },
-    });
-    v_cafc04(v_dfb220, v_dd943a);
-  };
-
   const v_c2e43c = () => {
     v_c65f5d.navigate("CloneFeed", { cloneId: v_6e0fd3 });
   };
@@ -670,16 +613,25 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           )}
         </TouchableOpacity>
         <View style={v_d81136.headerRight}>
-          {
-
-}
+          {}
           <TouchableOpacity
             style={v_d81136.headerActionBtn}
             hitSlop={8}
-            onPress={v_98409d}
-            accessibilityLabel="settings"
+            onPress={() => void v_4f52b6()}
+            disabled={v_f61bef}
+            accessibilityLabel={v_842b8b
+              ? v_8d41d7("chat.notifyOff", { defaultValue: "알림 끄기" })
+              : v_8d41d7("chat.notifyOn", { defaultValue: "알림 켜기" })}
           >
-            <Feather name="settings" size={18} color={v_1bfbd0.zinc700} />
+            <Feather name={v_842b8b ? "bell" : "bell-off"} size={18} color={v_1bfbd0.zinc700} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={v_d81136.headerActionBtn}
+            hitSlop={8}
+            onPress={() => void v_21be1f()}
+            accessibilityLabel={v_8d41d7("chat.callAction", { defaultValue: "통화" })}
+          >
+            <Feather name="phone" size={18} color={v_1bfbd0.zinc700} />
           </TouchableOpacity>
         </View>
       </View>

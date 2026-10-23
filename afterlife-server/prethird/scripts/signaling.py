@@ -1009,13 +1009,17 @@ def _handle_face_event(sess, data: dict) -> None:
                     "face_diag speaker session=%s person=%s swap_scheduled=1",
                     getattr(sess, "session_id", "?"), pid_int,
                 )
-            asyncio.ensure_future(_maybe_swap_l2p(sess, pid_int, name, epoch))
+            # [AFL-1039] future 를 보관 — 다음 say 가 스왑(이름·L2' 반영)을 잠깐 기다릴 수 있게.
+            sess.l2p_swap_task = asyncio.ensure_future(_maybe_swap_l2p(sess, pid_int, name, epoch))
             # T-840 (2026-09-30): known → known 스왑 자동 인사 (독립 게이트).
             #   지호 → 민경 처럼 등록된 사람이 다른 등록된 사람으로 바뀔 때만 · face react 발화.
             #   FACE_REACT_ENABLED off 여도 · 이 케이스만 별도 게이트로 활성.
             #   첫 confirmed (prev=None) · unknown → known 은 대상 아님 (사용자 요구).
+            # [AFL-1039] 앱이 3초 안에 turn_face(switch)로 화자 전환을 알렸으면 이번 say 답이
+            #   이름을 부르므로 자동 인사는 생략한다(같은 사람에게 두 번 말하지 않게).
             if (prev is not None and prev[0] is not None and prev[0] != pid_int and name
-                    and os.environ.get("PRETHIRD_SPEAKER_SWAP_REACT_ENABLED", "1") == "1"):
+                    and os.environ.get("PRETHIRD_SPEAKER_SWAP_REACT_ENABLED", "1") == "1"
+                    and not _turn_switch_recent(sess)):
                 async def _swap_react():
                     try:
                         if sess.pipeline is not None:
@@ -1179,6 +1183,113 @@ async def _send_enroll_suggest(sess, channel, text: str, person_id: Optional[int
                         getattr(sess, "session_id", "?"), exc)
 
 
+def _store_turn_face(sess, data: dict) -> None:
+    """[AFL-1039] 앱의 turn_face 를 세션에 보관한다(수신 시각 time.monotonic 동봉).
+
+    필요한 필드만 골라 담는다 — 혹시 이름 같은 필드가 실려 와도 프롬프트로 새지 않게.
+    verdict=="switch" 면 turn_switch_at 도 찍는다(T-840 자동 인사 중복 방지용)."""
+    now = time.monotonic()
+    sess.turn_face = {
+        "verdict": data.get("verdict"),
+        "quality": data.get("quality"),
+        "personId": data.get("personId"),
+        "score": data.get("score"),
+        "retry": bool(data.get("retry")),
+        # 2026-10-23: 앱이 음성 인식 결과로 "누구냐" 질문을 확실히 알아챘을 때만 "self"(나 누구야)·"other"(이 사람 누구야).
+        #   이때 앱이 판정·재대조·등록 팝업을 직접 한다 — 서버는 그에 맞는 답 지시만 붙이고 who_asked 는 안 보낸다.
+        "who": data.get("who") if data.get("who") in ("self", "other") else None,
+        "at": now,
+    }
+    if data.get("verdict") == "switch":
+        sess.turn_switch_at = now
+
+
+# [AFL-1039] say 가 화자 확정·L2' 스왑을 기다리는 최대 시간(초). 스왑 대기와 합쳐서 이 한 번만 쓴다.
+_TURN_SPEAKER_WAIT_S = 1.5
+
+
+def _turn_face_person_id(turn_face) -> int | None:
+    """turn_face 가 특정 사람(known·switch)을 가리키면 그 personId, 아니면 None."""
+    if not isinstance(turn_face, dict) or turn_face.get("verdict") not in ("known", "switch"):
+        return None
+    pid = turn_face.get("personId")
+    if isinstance(pid, bool):
+        return None
+    try:
+        return int(pid)
+    except (TypeError, ValueError):
+        return None
+
+
+def _speaker_swap_settled(sess, pid: int) -> bool:
+    """서버 화자가 pid 이고 그 사람의 스왑(이름·L2' 반영)이 끝났는지.
+
+    스왑이 실패·생략돼 pipeline 의 이름이 아직 이전 사람 것으로 남은 경우도 잡으려고
+    pipeline.current_speaker_name 이 지금 화자 이름과 같은지도 본다."""
+    cur = getattr(sess, "current_speaker", None)
+    if cur is None or cur[0] != pid:
+        return False
+    swap = getattr(sess, "l2p_swap_task", None)
+    if swap is not None and not swap.done():
+        return False
+    pl_name = getattr(getattr(sess, "pipeline", None), "current_speaker_name", None)
+    return (pl_name or None) == (cur[1] or None)
+
+
+async def _await_turn_speaker(sess, turn_face, budget_s: float = _TURN_SPEAKER_WAIT_S) -> bool | None:
+    """[AFL-1039] say 직전 대기 — 화자 확정·L2' 스왑을 합쳐 최대 budget_s 초만 기다린다.
+
+    1. turn_face 가 특정 사람(known·switch + personId)을 가리키고 whoami 스위치가 켜져 있으면:
+       서버 화자가 그 personId 가 되고(소속 검증 비동기 확정 포함) 스왑이 끝날 때까지 기다린다.
+       끝나면 True, 시간 안에 안 되면 False — 호출부는 False 면 이번 턴 프롬프트에서 이름을 뺀다.
+    2. 그 밖(구버전 앱·unknown·insufficient·스위치 off): 진행 중인 스왑만 기다리고 None(기존 동작).
+    스왑은 shield 로 감싸 타임아웃이 스왑 자체를 취소하지 않게 한다."""
+    deadline = time.monotonic() + budget_s
+    want = _turn_face_person_id(turn_face)
+    if want is None or os.environ.get("PRETHIRD_WHOAMI_ENABLED", "1") != "1":
+        swap = getattr(sess, "l2p_swap_task", None)
+        if swap is not None and not swap.done():
+            try:
+                await asyncio.wait_for(asyncio.shield(swap), budget_s)
+            except asyncio.CancelledError:
+                raise
+            except Exception as exc:  # TimeoutError 포함 — 못 기다리면 그대로 진행
+                log.warning("session %s l2p swap wait skipped: %r",
+                            getattr(sess, "session_id", "?"), exc)
+        return None
+    while True:
+        if _speaker_swap_settled(sess, want):
+            return True
+        remaining = deadline - time.monotonic()
+        cur = getattr(sess, "current_speaker", None)
+        swap = getattr(sess, "l2p_swap_task", None)
+        swapping = (cur is not None and cur[0] == want
+                    and swap is not None and not swap.done())
+        verifying = want in getattr(sess, "scope_pending_ids", ())
+        # 기다려도 바뀔 게 없으면(검증·스왑 진행 중이 아님) 바로 끝낸다 — 매 턴 1.5초를 날리지 않게.
+        #   (dc 는 순서 보장이라 turn_face → face_event → say 의 face_event 는 이미 처리된 뒤다.)
+        if remaining <= 0 or not (swapping or verifying):
+            log.info("session %s turn speaker wait: person=%s 미확정 — 이번 턴 이름 생략",
+                     getattr(sess, "session_id", "?"), want)
+            return False
+        if swapping:
+            try:
+                await asyncio.wait_for(asyncio.shield(swap), remaining)
+            except asyncio.CancelledError:
+                raise
+            except Exception:  # TimeoutError 포함 — 다음 루프에서 시간 초과로 끝난다
+                pass
+        else:
+            # 소속 검증(비동기) 결과로 화자가 바뀌기를 짧게 폴링한다.
+            await asyncio.sleep(min(0.05, remaining))
+
+
+def _turn_switch_recent(sess, window_s: float = 3.0) -> bool:
+    """[AFL-1039] 최근 window_s 초 안에 앱이 turn_face(switch)를 보냈는지."""
+    at = getattr(sess, "turn_switch_at", None)
+    return isinstance(at, (int, float)) and time.monotonic() - at <= window_s
+
+
 def _make_dc_handler(sess, channel):
     """DataChannel 'message' 핸들러 클로저를 반환한다.
 
@@ -1194,6 +1305,12 @@ def _make_dc_handler(sess, channel):
         except (ValueError, TypeError):
             return
         mtype = data.get("type")
+        # [AFL-1039] 말하는 순간 얼굴 대조 결과 — 바로 뒤 say 한 턴의 프롬프트에만 쓴다.
+        #   저장만 하고 끝(발화·상태 변경 없음). 이름 문자열은 받지 않는다(personId·점수·상태만).
+        #   구버전 서버는 타입 필터에서 이 타입을 버린다(반쪽 배포 안전).
+        if mtype == "turn_face":
+            _store_turn_face(sess, data)
+            return
         if mtype not in ("say", "speak", "greet", "face_event", "ad_returned", "ad_prepare_return") or sess.pipeline is None:
             return
         if mtype == "face_event":
@@ -1287,6 +1404,29 @@ def _make_dc_handler(sess, channel):
                     log.warning("session %s speech_text send failed: %s",
                                 sess.session_id, exc)
 
+        # [AFL-1039] 이번 say 턴의 얼굴 대조 결과 — 수신 시점에 꺼내고 바로 비운다(한 턴만 사용,
+        #   낡았어도 소비). 신선도 판정은 pipeline 쪽 turn_face_instruction 이 "at" 으로 한다.
+        _turn_face = None
+        if mtype == "say":
+            _turn_face = getattr(sess, "turn_face", None)
+            sess.turn_face = None
+
+        def _emit_who_asked(ask):
+            # LLM 이 <ask=who> 를 달았다 → 앱에 재대조 요청. 이름 등 다른 필드는 싣지 않는다.
+            # sess.datachannel 재참조 금지 — 이 메시지를 받은 클로저 인자 channel 로만 전송.
+            if ask != "who":
+                return
+            # 앱이 이미 "누구냐" 질문으로 알아채 판정·재대조를 맡은 턴이면 보내지 않는다(중복 재대조 방지).
+            if isinstance(_turn_face, dict) and _turn_face.get("who"):
+                return
+            if channel is not None and getattr(channel, "readyState", None) == "open":
+                try:
+                    channel.send(_json.dumps({"type": "who_asked"}))
+                    log.info("session %s who_asked sent seq=%s", sess.session_id, seq)
+                except Exception as exc:
+                    log.warning("session %s who_asked send failed: %s",
+                                sess.session_id, exc)
+
         # 대화 원문 기록 + Phase B 자동학습. 둘 다 say 턴에서만, 둘 다
         # fire-and-forget(통화 무영향)이지만 서로 독립이다 — 아래 순서·조건이
         # 얽히면 안 된다. AFL-926: 턴당 1회 — GPT 응답 직후(on_reply_done) 또는 끝(finally).
@@ -1371,6 +1511,16 @@ def _make_dc_handler(sess, channel):
             # 무경합(단독 호출) 시엔 즉시 통과라 기존 동작과 바이트 단위 동일(회귀 0).
             _lock = _get_busy_lock(sess)
 
+            # [AFL-1039] 화자 전환 직후의 say — 화자 확정(소속 검증 포함)·L2' 스왑(이름·관계 반영)을
+            #   합쳐 최대 1.5초만 기다린다. 락 밖에서 기다린다(react 등 다른 발화를 막지 않게).
+            #   그래도 서버 화자가 이번 턴 얼굴과 다르면 speaker_ok=False 를 실어 이번 턴 프롬프트에서
+            #   이름을 뺀다(이전 사람 이름으로 답하지 않게). turn_face 원본은 건드리지 않고 복사한다.
+            _tf_for_say = _turn_face
+            if mode == "say":
+                _speaker_ok = await _await_turn_speaker(sess, _turn_face)
+                if _speaker_ok is not None and isinstance(_turn_face, dict):
+                    _tf_for_say = {**_turn_face, "speaker_ok": _speaker_ok}
+
             try:
                 async with _lock:
                     if mode == "speak":
@@ -1405,6 +1555,11 @@ def _make_dc_handler(sess, channel):
                             # AFL-926: GPT 응답이 끝나는 즉시 기록 — 재생(Bridge·렌더) 뒤까지 미루면
                             # 끊고 바로 다시 건 통화가 직전 턴을 이전 대화로 못 받아 온다.
                             _say_kw["on_reply_done"] = _record_say_turn
+                        # [AFL-1039] 이번 턴 얼굴 대조 결과·<ask=who> 통지 — 모르는 pipeline 이면 생략.
+                        if _accepts_kw(sess.pipeline.say, "turn_face"):
+                            _say_kw["turn_face"] = _tf_for_say
+                        if _accepts_kw(sess.pipeline.say, "on_ask"):
+                            _say_kw["on_ask"] = _emit_who_asked
                         await sess.pipeline.say(
                             text, turn=turn,
                             on_first_audio=_emit_speech_start,

@@ -385,7 +385,9 @@
     "imageSendFailTitle": "Couldn't send the photo",
     "imageSendFailBody": "Check your connection and try again.",
     "imageApiUnavailable": "Photo send isn't ready yet. Please try again shortly.",
-    "typingA11y": "Other person is typing"
+    "typingA11y": "Other person is typing",
+    "listTitle": "Chats",
+    "listCount": "Chats {{count}}"
   },
   "call": {
     "calling": "Connecting...",
@@ -748,11 +750,11 @@
       "charge": "Recharge"
     },
     "delete": {
-      "title": "Leaving so soon?",
-      "desc": "We'll remember the precious time we spent with you, {{name}}.\nYour account and clones will be gone permanently.",
+      "title": "Delete account",
+      "desc": "Are you sure you want to delete your account?\nAll your data (points, usage history, saved content) will be deleted and cannot be recovered.",
       "userFallback": "member",
-      "stay": "I'll stay a little longer",
-      "leave": "Delete account",
+      "stay": "Cancel",
+      "leave": "Delete",
       "failed": "Failed to delete your account.",
       "subMessage": "If you're an xrun member, your xrun account will remain."
     },
@@ -814,7 +816,23 @@
       "faceEnrollDev": "Face 5-angle enroll (dev)",
       "faceEnrollDevDesc": "Front · left · right · up · down shots → first clone call prep",
       "voiceLangTest": "Voice test",
-      "voiceLangTestDesc": "Hear the clone voice in each language"
+      "voiceLangTestDesc": "Hear the clone voice in each language",
+      "profileEdit": "Profile / personal info",
+      "deactivate": "Deactivate account (pause)",
+      "deactivateDesc": "Pause your account for a while",
+      "pushNotifications": "App push notifications",
+      "pushNotificationsDesc": "Notifications · inbox · invitations",
+      "faceSettings": "Face detection & recognition consent",
+      "faceSettingsDesc": "Face recognition · clones that remember me · call learning",
+      "blockedUsers": "Blocked users",
+      "reportsMenu": "Report / report history",
+      "termsConsent": "Terms & consents",
+      "termsConsentDesc": "View terms · marketing consent",
+      "notificationsListShort": "Notification list",
+      "faceDetect": "Face detection",
+      "faceDetectDesc": "Clones that remember me",
+      "faceRecognition": "Face recognition consent",
+      "faceRecognitionDesc": "Quiet auto-enroll · face recognition terms · call learning"
     },
     "logout": {
       "title": "Log out?",
@@ -838,6 +856,23 @@
       "otaEmergency": "OTA emergency run (embedded fallback)",
       "otaEmbedded": "OTA embedded",
       "otaUpdate": "OTA {{id}}"
+    },
+    "section": {
+      "account": "Account & privacy",
+      "notifications": "Notifications",
+      "face": "Face & biometrics",
+      "service": "Service & blocking",
+      "app": "App settings"
+    },
+    "deactivate": {
+      "soon": "Coming soon."
+    },
+    "sectionDesc": {
+      "account": "Profile · deactivate · delete account",
+      "notifications": "Push notifications",
+      "face": "Face detection · recognition consent",
+      "service": "Blocking · reports · terms & consents",
+      "app": "Language"
     }
   },
   "auth": {
@@ -864,8 +899,8 @@
       "accountLocked": "Account is locked. Try again in ~10 minutes, or reset your password.",
       "accountDeletedTitle": "This account was deleted",
       "accountDeletedMessage": "This account has been deleted and can no longer sign in.",
-      "accountSuspendedTitle": "Account suspended",
-      "accountSuspendedMessage": "This account has been suspended due to accumulated reports.",
+      "accountSuspendedTitle": "Your account has been suspended.",
+      "accountSuspendedMessage": "Your account has been suspended for violating our service policy.\nContact: oth-staff@example.invalid",
       "googleUnavailableTitle": "Google sign-in unavailable",
       "googleUnavailableMessage": "Please try again in a moment.",
       "googleNoToken": "Couldn't get a Google sign-in token.",
@@ -1060,6 +1095,12 @@
       "submit": "Start afterlife",
       "googleOnboardingDesc": "First time with Google. Just a quick basic info.",
       "submitting": "Processing..."
+    },
+    "deactivated": {
+      "title": "This account is deactivated.",
+      "message": "Log back in and restore your account and AI clones?",
+      "activate": "Activate",
+      "failed": "Couldn't activate. Please log in again."
     }
   },
   "create": {
@@ -1233,7 +1274,6 @@
       "recordStartFailedMsg": "Couldn't start recording. Please try again in a moment.",
       "chooseScriptHint": "Please choose a script and read it aloud.",
       "uploading": "Uploading...",
-      "cloneJobRegistered": "Cloning job registered",
       "recordDoneUploadFailed": "Recording complete (upload failed — retrying)",
       "uploadPromptHint": "Please upload a voice file",
       "pickAnother": "Choose another file",
@@ -1255,7 +1295,9 @@
       "toastNoise": "It's noisy around you. Please record in a quiet place.",
       "recordQualityTitle": "Recording quality",
       "recordQualitySilenceMsg": "The recording has a lot of silence. Please re-record the whole sentence clearly in a quiet place.",
-      "recordQualityNoiseMsg": "Background noise got into the recording. Re-recording in a quiet place will make the voice sound much more natural."
+      "recordQualityNoiseMsg": "Background noise got into the recording. Re-recording in a quiet place will make the voice sound much more natural.",
+      "registeredFile": "Your voice file has been registered.",
+      "registeredRecording": "Your recording has been registered."
     },
     "visibility": {
       "memlowLocked": "Memorial clones are private only. Visible only to co-admins.",
@@ -1629,6 +1671,16 @@
       "deleteConfirmMessage": "{{name}} will forget you and delete your face data. This cannot be undone.",
       "deleteError": "Could not delete.",
       "deleteErrorTitle": "Delete failed"
+    },
+    "faceSettings": {
+      "title": "Face & biometrics",
+      "callLearning": "Call conversation learning",
+      "callLearningDesc": "Call learning is part of the AI data use & generation consent"
+    },
+    "termsConsent": {
+      "title": "Terms & consents",
+      "service": "Terms of Service",
+      "privacy": "Privacy Policy"
     }
   },
   "permissionGate": {
@@ -1836,7 +1888,7 @@
   },
   "errors": {
     "accountDeleted": "This account has been deleted.",
-    "accountSuspended": "Your account is suspended due to repeated reports.",
+    "accountSuspended": "Your account has been suspended for violating our service policy.\nContact: oth-staff@example.invalid",
     "accountSuspendedForPersona": "Your account is temporarily disabled due to repeated reports, so you can't create a clone right now.",
     "accountLocked": "Your account is temporarily locked. Please try again later.",
     "tooManyFailures": "Too many failed attempts. Please try again later.",
@@ -2361,5 +2413,28 @@
       "saving": "Processing...",
       "continue": "Agree and continue"
     }
+  },
+  "deactivate": {
+    "whatHappens": "When you deactivate",
+    "verify": "Verify it's you",
+    "byPassword": "Password",
+    "byEmail": "Email code (social account)",
+    "passwordPlaceholder": "Enter password",
+    "sendCode": "Send a code to my email",
+    "resendCode": "Resend code",
+    "codeSent": "Sent to {{email}}.",
+    "codePlaceholder": "6-digit code",
+    "submit": "Deactivate",
+    "confirmTitle": "Deactivate your account?",
+    "confirmBody": "You'll be logged out on all devices right away.",
+    "effect": {
+      "hide": "Your profile and AI clones are hidden from home, explore and search, and others can't chat or call them.",
+      "posts": "Your posts and comments are hidden.",
+      "interaction": "Others can't send you gifts or shares.",
+      "notify": "All notifications stop.",
+      "restore": "Log back in anytime to restore everything. Your data is kept."
+    },
+    "verifyPassword": "Verify · Password",
+    "verifyEmail": "Verify · Email code"
   }
 }
