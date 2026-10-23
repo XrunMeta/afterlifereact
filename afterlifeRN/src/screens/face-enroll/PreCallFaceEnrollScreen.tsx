@@ -17,7 +17,7 @@ import {
 } from "rcmrninabrnb";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import v_f595b9, { v_bf60de } from "vpztcxjmsfanunln";
-import { v_e82960 } from "qmmwyqbwrg";
+import { v_e82960, v_0e491a } from "qmmwyqbwrg";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import { v_650cfa, v_ada615, v_2d8264, type v_ee3714 } from "ixigazcpvfldbecwtbvavtbi";
 import {
@@ -474,36 +474,52 @@ export default function v_8640b9() {
       v_e82960(require("../../../assets/sfx/face_2_left.mp3")),
       v_e82960(require("../../../assets/sfx/face_3_right.wav")),
       v_e82960(require("../../../assets/sfx/face_4_down.mp3")),
+      v_e82960(require("../../../assets/sfx/face_5_up.mp3")),
     ],
     [],
   );
+  const v_e29bdd = v_e662ae<ReturnType<typeof setTimeout> | null>(null);
+
+  v_c4deb2(() => {
+    if (v_c414dc) return;
+    v_0e491a({ playsInSilentMode: true, interruptionMode: "mixWithOthers" }).catch((v_49263d) => {
+      console.warn("[PreCallFaceEnroll] setAudioModeAsync failed:", v_49263d);
+    });
+  }, [v_c414dc]);
   const v_343670 = v_df9f57(
     () => v_e82960(require("../../../assets/sfx/face_complete.wav")),
     [],
   );
   v_c4deb2(
     () => () => {
+      if (v_e29bdd.current) clearTimeout(v_e29bdd.current);
       for (const v_e2a85c of [...v_5e24d8, v_343670]) {
         try { v_e2a85c.remove(); } catch {  }
       }
     },
     [v_5e24d8, v_343670],
   );
+  const v_8bd968 = v_de06a3((p: ReturnType<typeof v_e82960> | undefined) => {
+    if (!v_e2a85c) return;
+    try {
+      void v_e2a85c.seekTo(0);
+      v_e2a85c.play();
+    } catch (v_49263d) {
+      console.warn("[PreCallFaceEnroll] step sound play failed:", v_49263d);
+    }
+  }, []);
   const v_eead09 = v_de06a3(
     (v_73db7e) => {
       const v_0d0d82 = v_73db7e >= v_77ce37.length - 1;
 
       v_d49152.vibrate(v_0d0d82 ? [0, 120, 90, 260] : 120);
-      const v_e2a85c = v_0d0d82 ? v_343670 : v_5e24d8[v_73db7e];
-      if (!v_e2a85c) return;
-      try {
-        void v_e2a85c.seekTo(0);
-        v_e2a85c.play();
-      } catch (v_49263d) {
-        console.warn("[PreCallFaceEnroll] step sound play failed:", v_49263d);
+      v_8bd968(v_5e24d8[v_73db7e]);
+
+      if (v_0d0d82) {
+        v_e29bdd.current = setTimeout(() => v_8bd968(v_343670), 550);
       }
     },
-    [v_5e24d8, v_343670],
+    [v_5e24d8, v_343670, v_8bd968],
   );
 
   v_c4deb2(() => {
