@@ -22,7 +22,9 @@ type Props = {
   visible: boolean;
   type: AgreementType | null;
   onClose: () => void;
-  onAgree: () => void;
+  onAgree?: () => void;
+
+  viewOnly?: boolean;
 };
 
 const v_b7b41f = {
@@ -80,7 +82,7 @@ const v_9fab8c = {
   7: "마케팅 정보 수집 및 활용 동의",
 };
 
-export default function v_c0caa9({ visible: v_cf55be, type: v_3b27d9, onClose: v_0890f8, onAgree: v_5cccfe }: Props) {
+export default function v_c0caa9({ visible: v_cf55be, type: v_3b27d9, onClose: v_0890f8, onAgree: v_5cccfe, viewOnly: v_9a3a33 }: Props) {
   const { t: v_8d41d7, i18n: v_9c213b } = v_772971();
 
   const { height: v_ce40bc } = v_e45a99();
@@ -218,15 +220,17 @@ export default function v_c0caa9({ visible: v_cf55be, type: v_3b27d9, onClose: v
                 {v_8d41d7("common.close", { defaultValue: "닫기" })}
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={[v_fd5f43.btnPrimary, v_683210 && v_fd5f43.btnDisabled]}
-              onPress={v_5cccfe}
-              disabled={v_683210}
-            >
-              <Text style={v_fd5f43.btnPrimaryText}>
-                {v_8d41d7("common.agree", { defaultValue: "동의" })}
-              </Text>
-            </TouchableOpacity>
+            {!v_9a3a33 && (
+              <TouchableOpacity
+                style={[v_fd5f43.btnPrimary, v_683210 && v_fd5f43.btnDisabled]}
+                onPress={v_5cccfe ?? v_0890f8}
+                disabled={v_683210}
+              >
+                <Text style={v_fd5f43.btnPrimaryText}>
+                  {v_8d41d7("common.agree", { defaultValue: "동의" })}
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </View>

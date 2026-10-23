@@ -816,7 +816,18 @@
       "faceEnrollDev": "顔5角度登録 (dev)",
       "faceEnrollDevDesc": "正面·左·右·上·下撮影 → clones初回通話準備",
       "voiceLangTest": "音声テスト",
-      "voiceLangTestDesc": "言語ごとのクローン音声を試す"
+      "voiceLangTestDesc": "言語ごとのクローン音声を試す",
+      "profileEdit": "プロフィール / 個人情報の編集",
+      "deactivate": "アカウントの無効化（一時停止）",
+      "deactivateDesc": "しばらくアカウントを停止します",
+      "pushNotifications": "アプリのプッシュ通知",
+      "pushNotificationsDesc": "通知設定・受信した通知・招待状況",
+      "faceSettings": "顔の検出・認識の同意",
+      "faceSettingsDesc": "顔認識・私を覚えているクローン・通話の学習",
+      "blockedUsers": "ブロックしたユーザー",
+      "reportsMenu": "通報 / 通報履歴",
+      "termsConsent": "規約と同意の管理",
+      "termsConsentDesc": "規約の確認・マーケティング受信の同意"
     },
     "logout": {
       "title": "ログアウトしますか?",
@@ -840,6 +851,16 @@
       "otaEmergency": "OTA 緊急実行(embedded fallback)",
       "otaEmbedded": "OTA 内蔵(embedded)",
       "otaUpdate": "OTA {{id}}"
+    },
+    "section": {
+      "account": "アカウントと個人情報",
+      "notifications": "通知設定",
+      "face": "顔・生体認識の設定",
+      "service": "サービス利用とブロック",
+      "app": "アプリ設定"
+    },
+    "deactivate": {
+      "soon": "準備中です。"
     }
   },
   "auth": {
@@ -1631,6 +1652,16 @@
       "deleteConfirmMessage": "{{name}} があなたを覚えている内容と顔情報がすべて削除されます。元に戻せません。",
       "deleteError": "削除に失敗しました。",
       "deleteErrorTitle": "削除失敗"
+    },
+    "faceSettings": {
+      "title": "顔・生体認識の設定",
+      "callLearning": "通話の会話学習",
+      "callLearningDesc": "通話の会話学習は「AIデータの活用と生成」への同意に含まれます"
+    },
+    "termsConsent": {
+      "title": "規約と同意の管理",
+      "service": "利用規約",
+      "privacy": "プライバシーポリシー"
     }
   },
   "permissionGate": {
