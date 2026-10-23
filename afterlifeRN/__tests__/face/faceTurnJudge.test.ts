@@ -104,3 +104,13 @@ describe("judgeTurn — 점수 0.1 이하 불일치는 판정 불가(2026-10-23)
   test("모두 0.1 초과 불일치 → unknown", () =>
     expect(v_6fea6b([v_fd5f43(null, 0.11), v_fd5f43(null, 0.2), v_fd5f43(null, 0.3)], 175).kind).toBe("unknown"));
 });
+
+describe("judgeTurn — 등록 얼굴이 하나도 없는 클론(2026-10-23)", () => {
+  const v_d6db99 = (quality: v_13de12 = "ok"): v_537043 => ({ personId: null, score: 0, quality: v_c6feb4, atMs: 0, noCandidates: true });
+  test("비교 대상이 없으면 점수 0 이어도 화면 좋은 얼굴 3개 → unknown(등록 안내)", () =>
+    expect(v_6fea6b([v_d6db99(), v_d6db99(), v_d6db99()], null).kind).toBe("unknown"));
+  test("비교 대상이 없어도 어두운 화면은 근거가 아니다", () =>
+    expect(v_6fea6b([v_d6db99("dark"), v_d6db99("dark"), v_d6db99("dark")], null).kind).toBe("insufficient"));
+  test("비교 대상이 있는데 점수 0 이면(0.1 이하) 그대로 근거 아님", () =>
+    expect(v_6fea6b([v_fd5f43(null, 0), v_fd5f43(null, 0), v_fd5f43(null, 0)], null).kind).toBe("insufficient"));
+});

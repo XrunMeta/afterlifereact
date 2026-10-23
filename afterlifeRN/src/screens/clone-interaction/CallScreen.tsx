@@ -808,7 +808,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   );
 
   const handleFaceCycle = useCallback(
-    (c: { personId: number | null; score: number; displayName: string | null }) => {
+    (c: { personId: number | null; score: number; displayName: string | null; noCandidates?: boolean }) => {
       const meta = cycleMetaRef.current;
       cycleMetaRef.current = null;
       if (c.personId != null) personNamesRef.current.set(c.personId, c.displayName);
@@ -819,6 +819,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         score: c.score,
         quality: meta?.quality ?? "ok",
         atMs: Date.now(),
+        noCandidates: c.noCandidates === true,
       };
       turnFaceGate.addSample(sample);
       console.log(

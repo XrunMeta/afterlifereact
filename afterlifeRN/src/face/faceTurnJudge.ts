@@ -13,6 +13,8 @@ export type TurnSample = {
   quality: v_13de12;
 
   atMs: number;
+
+  noCandidates?: boolean;
 };
 
 export type TurnVerdict = {
@@ -27,6 +29,8 @@ export const v_b4eadd = 0.1;
 export function v_e0418a(v_fd5f43): boolean {
   if (v_fd5f43.quality === "none") return false;
   if (v_fd5f43.personId != null) return true;
+
+  if (v_fd5f43.noCandidates) return v_fd5f43.quality === "ok";
   return v_fd5f43.quality === "ok" && v_fd5f43.score > v_b4eadd;
 }
 
