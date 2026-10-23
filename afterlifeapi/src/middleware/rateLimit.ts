@@ -34,8 +34,10 @@ export function v_353f26(v_328259 = {}): v_ea2b42<v_de0a25> {
         v_e3ba12 = `user:${v_97d2e9.id}`;
         v_02be30 = v_625c74;
       } else if (v_97d2e9?.kind === "internal") {
-        v_e3ba12 = "internal";
-        v_02be30 = v_dcd415;
+
+        void v_dcd415;
+        await v_a448ad();
+        return;
       } else {
         v_e3ba12 = `anon:${v_70cac0}`;
         v_02be30 = v_0ddab0;
@@ -52,7 +54,11 @@ export function v_353f26(v_328259 = {}): v_ea2b42<v_de0a25> {
       throw new v_3ebe58("RATE_LIMITED", `Rate limit exceeded (${v_02be30}/min).`);
     }
 
-    await v_3f4e2e.env.KV_RATE.put(v_b24339, String(v_9e8c70 + 1), { expirationTtl: 90 });
+    try {
+      await v_3f4e2e.env.KV_RATE.put(v_b24339, String(v_9e8c70 + 1), { expirationTtl: 90 });
+    } catch (v_9e86fd) {
+      console.warn(`[rateLimit] KV put failed subject=${v_e3ba12}: ${(v_9e86fd as Error).message}`);
+    }
     await v_a448ad();
   };
 }

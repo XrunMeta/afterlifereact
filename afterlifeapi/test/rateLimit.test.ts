@@ -60,9 +60,11 @@ v_469bf2("rateLimit 주체 판정", () => {
     v_4d37e3(await v_715950(v_466992("t-refresh"), 3, { Authorization: `Bearer ${v_1a1b9b}` })).toEqual([200, 200, 429]);
   });
 
-  v_23805a("ORCH_SECRET 은 internal 한도", async () => {
+  v_23805a("ORCH_SECRET(서버 내부 호출)은 세지 않는다 — 같은 IP 의 anon 몫도 쓰지 않는다", async () => {
     const v_43fd42 = (v_9542f7 as { ORCH_SECRET?: string }).ORCH_SECRET;
     if (!v_43fd42) return; 
-    v_4d37e3(await v_715950(v_466992("t-internal"), 4, { Authorization: `Bearer ${v_43fd42}` })).toEqual([200, 200, 200, 429]);
+    const v_779914 = v_466992("t-internal");
+    v_4d37e3(await v_715950(v_779914, 6, { Authorization: `Bearer ${v_43fd42}` })).toEqual([200, 200, 200, 200, 200, 200]);
+    v_4d37e3(await v_715950(v_779914, 3)).toEqual([200, 200, 429]);
   });
 });
