@@ -1,6 +1,14 @@
 
 
 import { v_04b58a } from '../lib/authFetch';
+import {
+  v_9d3644,
+  v_686e50,
+  v_b1f868,
+  v_d65e3c,
+  v_414d1f,
+} from '../face/recentEnrollCache';
+import { v_0a1524, type v_198407 } from '../face/faceGallery';
 
 export type ConsentState = 'none' | 'granted' | 'revoked';
 
@@ -48,10 +56,16 @@ export async function v_4e7b87(
   const v_4d33b2 = { cloneId: v_931bf0.cloneId };
   if (v_931bf0.displayName !== undefined) v_4d33b2.displayName = v_931bf0.displayName;
   if (v_931bf0.enrolledVia !== undefined) v_4d33b2.enrolledVia = v_931bf0.enrolledVia;
-  return v_04b58a<CreatePersonResponse>('/oth-path', v_2ca7e0, {
+  const v_8f00b9 = await v_04b58a<CreatePersonResponse>('/oth-path', v_2ca7e0, {
     method: 'POST',
     body: JSON.stringify(v_4d33b2),
   });
+
+  if (v_931bf0.displayName) {
+    v_b1f868(v_931bf0.cloneId, v_8f00b9.id, v_931bf0.displayName);
+    v_909b7d.rename(v_8f00b9.id, v_931bf0.displayName);
+  }
+  return v_8f00b9;
 }
 
 export async function v_31967f(
@@ -106,11 +120,28 @@ export async function v_afc2e6(
   v_f9a45c,
   v_6e0fd3,
 ): Promise<MatchResult> {
+
+  const v_8f00b9 = await v_909b7d.match(v_2ca7e0, v_f9a45c, v_6e0fd3);
+  return v_686e50(v_8f00b9, v_f9a45c, v_6e0fd3);
+}
+
+async function v_60ac61(v_2ca7e0, v_f9a45c, v_6e0fd3): Promise<MatchResult> {
   return v_04b58a<MatchResult>('/oth-path', v_2ca7e0, {
     method: 'POST',
     body: JSON.stringify({ vector: v_f9a45c, cloneId: v_6e0fd3 }),
   });
 }
+
+export async function v_c4c34a(v_2ca7e0, v_6e0fd3): Promise<v_198407> {
+  return v_04b58a<v_198407>(`/oth-path?cloneId=${v_6e0fd3}`, v_2ca7e0, {
+    method: 'GET',
+  });
+}
+
+export const v_909b7d = v_0a1524({
+  fetchGallery: v_c4c34a,
+  serverMatch: v_60ac61,
+});
 
 export async function v_4585d1(
   v_2ca7e0,
@@ -121,21 +152,27 @@ export async function v_4585d1(
 ): Promise<{ enrolled: number }> {
   const v_4d33b2 = { vectors: v_f94e64, cloneId: v_6e0fd3 };
   if (v_bef6f8 !== undefined) v_4d33b2.landmarkRatios = v_bef6f8;
-  return v_04b58a<{ enrolled: number }>(`/oth-path${v_ca1ec5}/faces`, v_2ca7e0, {
+  const v_8f00b9 = await v_04b58a<{ enrolled: number }>(`/oth-path${v_ca1ec5}/faces`, v_2ca7e0, {
     method: 'POST',
     body: JSON.stringify(v_4d33b2),
   });
+  v_d65e3c(v_6e0fd3, v_ca1ec5, v_f94e64);
+  v_909b7d.addVectors(v_6e0fd3, v_ca1ec5, v_f94e64);
+  return v_8f00b9;
 }
 
 export async function v_a94a1b(
   v_2ca7e0,
   v_ca1ec5,
 ): Promise<{ deleted: boolean }> {
-  return v_04b58a<{ deleted: boolean }>(
+  const v_8f00b9 = await v_04b58a<{ deleted: boolean }>(
     `/oth-path${v_ca1ec5}`,
     v_2ca7e0,
     { method: 'DELETE' },
   );
+  v_9d3644(v_ca1ec5);
+  v_909b7d.forget(v_ca1ec5);
+  return v_8f00b9;
 }
 
 export async function v_137542(
@@ -143,11 +180,14 @@ export async function v_137542(
   v_ca1ec5,
   v_8a1355,
 ): Promise<{ id: number; displayName: string }> {
-  return v_04b58a<{ id: number; displayName: string }>(
+  const v_8f00b9 = await v_04b58a<{ id: number; displayName: string }>(
     `/oth-path${v_ca1ec5}`,
     v_2ca7e0,
     { method: 'PATCH', body: JSON.stringify({ displayName: v_8a1355 }) },
   );
+  v_414d1f(v_ca1ec5, v_8a1355);
+  v_909b7d.rename(v_ca1ec5, v_8a1355);
+  return v_8f00b9;
 }
 
 export interface CalibrationSample {
@@ -288,9 +328,12 @@ export async function v_ce5a56(
   v_8a1355,
   v_f94e64,
 ): Promise<{ id: number; displayName: string }> {
-  return v_04b58a<{ id: number; displayName: string }>(
+  const v_8f00b9 = await v_04b58a<{ id: number; displayName: string }>(
     '/oth-path',
     v_2ca7e0,
     { method: 'POST', body: JSON.stringify({ cloneId: v_6e0fd3, displayName: v_8a1355, vectors: v_f94e64 }) },
   );
+  v_d65e3c(v_6e0fd3, v_8f00b9.id, v_f94e64, v_8f00b9.displayName ?? v_8a1355);
+  v_909b7d.addVectors(v_6e0fd3, v_8f00b9.id, v_f94e64, v_8f00b9.displayName ?? v_8a1355);
+  return v_8f00b9;
 }

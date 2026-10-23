@@ -1432,3 +1432,37 @@ describe('AFL-1008: 게이팅 중 감지기 RESPONSE_END 가 꼬리 대기를 �
     }
   });
 });
+
+describe('AFL-1039 onUserSpeechStart · userSpeaking', () => {
+  it('사용자 발화 시작(첫 STT 결과)에 onUserSpeechStart 1회 — 같은 턴의 이어지는 결과로는 다시 안 부른다', async () => {
+    const v_1e3df0 = v_c2295a();
+    const v_26db44 = jest.fn();
+    const { result: v_43c42e } = v_d84520({
+      enabled: true,
+      say: jest.fn().mockResolvedValue(undefined),
+      getStatsReport: () => null,
+      notifySpeechEnd: jest.fn(),
+      speechEngine: v_1e3df0,
+      onUserSpeechStart: v_26db44,
+    });
+    await v_81e49f(() => expect(v_1e3df0.start).toHaveBeenCalled());
+    expect(v_43c42e.current.userSpeaking).toBe(false);
+    v_be73a0(() => { v_1e3df0.emit('result', { results: [{ transcript: '안' }], isFinal: false }); });
+    v_be73a0(() => { v_1e3df0.emit('result', { results: [{ transcript: '안녕' }], isFinal: false }); });
+    expect(v_26db44).toHaveBeenCalledTimes(1);
+    await v_81e49f(() => expect(v_43c42e.current.userSpeaking).toBe(true));
+  });
+
+  it('onUserSpeechStart 미제공이어도 동작(기존 호출부 호환)', async () => {
+    const v_1e3df0 = v_c2295a();
+    v_d84520({
+      enabled: true,
+      say: jest.fn().mockResolvedValue(undefined),
+      getStatsReport: () => null,
+      notifySpeechEnd: jest.fn(),
+      speechEngine: v_1e3df0,
+    });
+    await v_81e49f(() => expect(v_1e3df0.start).toHaveBeenCalled());
+    expect(() => v_be73a0(() => { v_1e3df0.emit('result', { results: [{ transcript: '안' }], isFinal: false }); })).not.toThrow();
+  });
+});

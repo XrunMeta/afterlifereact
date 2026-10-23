@@ -7,7 +7,7 @@ import { v_e0051d } from '../config/apiBase';
 import { v_5b540b } from '../stores/callConfigStore';
 import { v_335e37 } from '../lib/authFetch';
 import { type v_30869c, v_2f41d8 } from './useAudioSession';
-import { type v_b01667, type v_d20273, type v_b190e4, type v_9d43cd, type v_14f245, v_d8a22b } from './avatarCall';
+import { type v_b01667, type v_d20273, type v_b190e4, type v_9d43cd, type v_14f245, type v_c285b1, v_d8a22b } from './avatarCall';
 import { v_d7f7b1 } from './timingEvents';
 import { v_1fcb40 } from '../services/userLocation';
 
@@ -79,7 +79,7 @@ function v_9d05cd(v_32dc97, v_11bcf9): Promise<boolean> {
 }
 
 export function v_3d8d48(v_328259): v_b01667 {
-  const { cloneId: v_6e0fd3, accessToken: v_2ca7e0, onEnrollSuggest: v_46947d, onRememberMe: v_b94db0, pipeline: v_883ce9, usesBridge: v_b7b2b2 } = v_328259;
+  const { cloneId: v_6e0fd3, accessToken: v_2ca7e0, onEnrollSuggest: v_46947d, onRememberMe: v_b94db0, onWhoAsked: v_5c23f9, pipeline: v_883ce9, usesBridge: v_b7b2b2 } = v_328259;
 
   const v_84b93d = v_328259.deps ?? v_17f880;
   const [v_b6e533, v_1fa668] = v_5ab095<v_d20273>('idle');
@@ -121,6 +121,8 @@ export function v_3d8d48(v_328259): v_b01667 {
   v_c4deb2(() => { v_de567c.current = v_46947d; }, [v_46947d]);
   const v_d5b6bb = v_e662ae(v_b94db0);
   v_c4deb2(() => { v_d5b6bb.current = v_b94db0; }, [v_b94db0]);
+  const v_45a73c = v_e662ae(v_5c23f9);
+  v_c4deb2(() => { v_45a73c.current = v_5c23f9; }, [v_5c23f9]);
 
   const v_1402c0 = v_e662ae(v_883ce9);
   v_c4deb2(() => { v_1402c0.current = v_883ce9; }, [v_883ce9]);
@@ -197,6 +199,24 @@ export function v_3d8d48(v_328259): v_b01667 {
     try {
       const v_1923e2 = (v_2d5539.current += 1);
       v_32dc97.send(JSON.stringify({ type: 'face_event', ...v_9e6ec9, seq: v_1923e2 }));
+    } catch {
+
+    }
+  }, []);
+
+  const v_c18fe3 = v_de06a3((v: v_c285b1) => {
+    const v_32dc97 = v_fa9144.current;
+    if (!v_f98743.current || !v_32dc97 || v_32dc97.readyState !== 'open') return;
+    try {
+      v_32dc97.send(JSON.stringify({
+        type: 'turn_face',
+        verdict: v_81e2ef.kind,
+        quality: v_81e2ef.quality,
+        personId: v_81e2ef.personId,
+        score: v_81e2ef.score,
+        retry: v_81e2ef.retry,
+        who: v_81e2ef.who ?? null,
+      }));
     } catch {
 
     }
@@ -326,6 +346,9 @@ export function v_3d8d48(v_328259): v_b01667 {
         } else if (v_35f85c.type === 'remember_me') {
 
           v_d5b6bb.current?.();
+        } else if (v_35f85c.type === 'who_asked') {
+
+          v_45a73c.current?.();
         }
       } catch {  }
     };
@@ -409,5 +432,5 @@ export function v_3d8d48(v_328259): v_b01667 {
   v_c4deb2(() => () => { void v_3e54f8();  }, []);
 
   const v_800a73 = () => v_6e83c5.current;
-  return { state: v_b6e533, remoteStream: v_b4d824, error: v_5e9bfe, start: v_965edf, stop: v_3e54f8, phase: v_ab4803, say: v_3e2c87, notifySpeechEnd: v_811f30, getStatsReport: v_791152, greet: v_009e58, speak: v_a1d9db, lastSignal: v_88c591, sendFaceEvent: v_11f4a1, sendAudioReady: v_2a35c1, sendAdPrepareReturn: v_16dd9f, sendAdReturned: v_86d961, getCallId: v_800a73 };
+  return { state: v_b6e533, remoteStream: v_b4d824, error: v_5e9bfe, start: v_965edf, stop: v_3e54f8, phase: v_ab4803, say: v_3e2c87, notifySpeechEnd: v_811f30, getStatsReport: v_791152, greet: v_009e58, speak: v_a1d9db, lastSignal: v_88c591, sendFaceEvent: v_11f4a1, sendTurnFace: v_c18fe3, sendAudioReady: v_2a35c1, sendAdPrepareReturn: v_16dd9f, sendAdReturned: v_86d961, getCallId: v_800a73 };
 }

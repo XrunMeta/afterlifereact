@@ -28,6 +28,7 @@ import numpy as np
 from recorder import NULL_TURN
 from clone_dialog.conversation_history import ConversationHistory
 from clone_dialog.lang_tag import CALL_LANGS, LangTagStream, lang_instruction, normalize_lang, split_lang_tag
+from clone_dialog.whoami import turn_face_instruction, turn_face_names_allowed
 
 # AFL-1034: 고정 인사(LLM 인사 off 일 때)의 언어별 문구. 없는 언어는 한국어 기본 문구.
 _GREETING_BY_LANG = {
@@ -765,8 +766,12 @@ class DialoguePipeline:
     async def say(
         self, user_text: str, turn=None, on_first_audio=None, on_response_ready=None,
         on_sentence=None, on_reply_done=None, ad_event: str | None = None,
+        turn_face: dict | None = None, on_ask=None,
     ) -> None:
         """user_text 1턴을 처리해 video/audio 트랙에 적재하고 signal_end 호출.
+        turn_face: [AFL-1039] 이번 턴 얼굴 대조 결과(앱 turn_face + 수신 시각 "at") — 지시 1줄로
+          이번 턴 프롬프트에만 반영. None 이면 기존과 동일.
+        on_ask: [AFL-1039] 답 머리에 <ask=who> 가 붙었으면 답 끝에서 on_ask("who") 1회 호출.
         turn: recorder Turn 핸들(없으면 NULL_TURN) — LLM 토큰·TTS wav 누적.
         on_response_ready: 첫 infer 완료 후·첫 push 직전 1회 호출 (F7 filler 즉시컷).
         on_sentence: [T-151, 라운드2] 문장 1개의 첫 프레임 push 직전(재생 시작
@@ -822,6 +827,14 @@ class DialoguePipeline:
         # signaling.py 의 _maybe_swap_l2p 성공 시(speaker_confirmed) 세팅, _clear_current_speaker
         # 시 None. 얼굴 인식 결과가 프롬프트 재조립 이외의 실시간 사실로 매 응답 반영된다.
         _speaker_now = getattr(self, "current_speaker_name", None)
+        # [AFL-1039] 이번 턴 얼굴이 미확인(unknown·insufficient)이거나 서버가 그 사람으로 아직
+        #   확정·스왑을 못 마쳤으면 이번 턴에는 이름을 어디에도 넣지 않는다(T-566 힌트·이름 부르기
+        #   힌트·확인 말투 전부). current_speaker·persona(L2') 는 그대로 둔다 — 이번 턴 프롬프트만.
+        _tf_now = time.monotonic()
+        # 확정된 화자가 있으면 얼굴이 안 잡힌 턴(insufficient)도 그 화자로 유지한다(whoami._unconfirmed).
+        _has_speaker = bool(_speaker_now)
+        if not turn_face_names_allowed(turn_face, _tf_now, _has_speaker):
+            _speaker_now = None
         if _speaker_now:
             messages = messages + [{
                 "role": "system",
@@ -830,6 +843,9 @@ class DialoguePipeline:
                     f"사용자가 '너 나 알아?' '내 얼굴 봤을 때 누군지 맞춰봐' 같이 신원을 묻거나 "
                     f"확인을 요청하면 '{_speaker_now}'라는 이름을 자연스럽게 말하며 알아본다고 답해줘. "
                     f"'기억이 잘 안 나' '누군지 모르겠다' 같은 회피성 답변 금지. "
+                    # AFL-1039 실통화(2026-10-23): "君は誰?"(너는 누구야?)에 "グァオでしょ" — 상대 이름을 자기 이름처럼 답했다.
+                    f"단, '너는 누구야?' '君は誰?' 'who are you?'처럼 **너 자신**이 누구냐고 물으면 "
+                    f"'{_speaker_now}'이 아니라 네 이름·너에 대해 답해. "
                     # T-838 (2026-09-30): 얼굴 환각 방지 · 실제 볼 수 있는 건 이름 매칭 결과뿐 ·
                     #   외모·표정·기분·복장·날씨는 판단 못 함. "오늘따라 멋있어" "피곤해 보이네"
                     #   "얼굴이 좋아 보여" 같은 환각 표현 절대 금지.
@@ -839,7 +855,17 @@ class DialoguePipeline:
                 ),
             }]
 
+        # [AFL-1039] 말하는 순간 얼굴 대조 결과 → 이번 턴 지시 1줄(위 화자 힌트 뒤). 이름은
+        #   서버가 확정한 current_speaker_name 에서만 — 미확인이면 이름 없이 카메라 안내 + <ask=who>.
+        _tf_rule = turn_face_instruction(turn_face, _speaker_now, _tf_now)
+        if _tf_rule:
+            messages = messages + [{"role": "system", "content": _tf_rule}]
+
         _hint = getattr(self, "name_mention_hint", None)
+        if _hint and not turn_face_names_allowed(turn_face, _tf_now, _has_speaker):
+            # 미확인 턴 — 이름 부르기 힌트는 쓰지 않고 버린다(다음 턴에 다른 사람에게 새지 않게).
+            self.name_mention_hint = None
+            _hint = None
         if _hint:
             self.name_mention_hint = None
             messages = messages + [{
@@ -882,6 +908,12 @@ class DialoguePipeline:
                 answer_tokens.append(rest)
                 for s in sb.push(rest):
                     await q.put(s)
+            # [AFL-1039] 답 머리의 <ask=who> → 앱에 재대조 요청(who_asked). 답당 1회.
+            if lts.ask and on_ask is not None:
+                try:
+                    on_ask(lts.ask)
+                except Exception as e:  # noqa: BLE001 — 통지 실패가 발화를 막으면 안 된다
+                    log.warning("on_ask callback failed: %s", e)
             # AFL-926: 응답 텍스트 확정 시점 통지(턴 기록용). 재생(Bridge·렌더·push)은 아직
             #   한참 남았지만 기록은 지금 해야 끊고 바로 다시 건 통화가 이 턴을 받아 온다.
             if on_reply_done is not None:
