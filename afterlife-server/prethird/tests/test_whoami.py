@@ -32,9 +32,14 @@ def test_quality_none_mentions_face_not_visible():
     assert "안 보" in turn_face_instruction(tf(quality="none", verdict="insufficient"), None, NOW)
 
 
-def test_insufficient_quality_ok_still_unconfirmed_without_name():
-    s = turn_face_instruction(tf(quality="ok", verdict="insufficient"), "지호", NOW)
-    assert "확인되지 않았다" in s and "<ask=who>" in s and "지호" not in s
+def test_insufficient_without_speaker_is_unconfirmed():
+    s = turn_face_instruction(tf(quality="ok", verdict="insufficient"), None, NOW)
+    assert "확인되지 않았다" in s and "<ask=who>" in s
+
+
+def test_insufficient_with_speaker_keeps_speaker():
+    # 2026-10-23 sungjius: 얼굴이 안 잡힌 것만으로는 사람이 바뀐 게 아니다 — 확정된 화자 유지, 지시 없음.
+    assert turn_face_instruction(tf(quality="none", verdict="insufficient"), "지호", NOW) is None
 
 
 def test_known_high_score_no_instruction():
@@ -323,6 +328,11 @@ from clone_dialog.whoami import turn_face_names_allowed  # noqa: E402
 def test_names_not_allowed_on_unconfirmed_turns():
     assert turn_face_names_allowed(tf(verdict="unknown"), NOW) is False
     assert turn_face_names_allowed(tf(verdict="insufficient", quality="ok"), NOW) is False
+    assert turn_face_names_allowed(tf(verdict="unknown"), NOW, has_speaker=True) is False
+
+
+def test_names_allowed_on_insufficient_when_speaker_confirmed():
+    assert turn_face_names_allowed(tf(verdict="insufficient", quality="none"), NOW, has_speaker=True) is True
     assert turn_face_names_allowed(tf(verdict="switch", personId=7, score=0.8, speaker_ok=False), NOW) is False
 
 
@@ -345,13 +355,13 @@ def _sys_texts(messages):
     return [m["content"] for m in messages if m["role"] == "system"]
 
 
-async def test_pipeline_insufficient_turn_drops_name_hints(monkeypatch):
+async def test_pipeline_unknown_turn_drops_name_hints(monkeypatch):
     _fast_bridge(monkeypatch)
     seen = []
     pipe = _make_pipe(["<lang=ko>", "안녕"], seen)
     pipe.current_speaker_name = "민지"
     pipe.name_mention_hint = "민지"
-    tfd = {"verdict": "insufficient", "quality": "ok", "personId": None, "score": None,
+    tfd = {"verdict": "unknown", "quality": "ok", "personId": None, "score": 0.2,
            "at": time.monotonic()}
     await pipe.say("나 누구야?", turn_face=tfd)
     systems = _sys_texts(seen[0])
@@ -359,6 +369,31 @@ async def test_pipeline_insufficient_turn_drops_name_hints(monkeypatch):
     assert any("확인되지 않았다" in c for c in systems)   # 미확인 지시만
     assert pipe.name_mention_hint is None                 # 다음 턴으로 새지 않게 버린다
     assert pipe.current_speaker_name == "민지"            # 화자 상태는 그대로(이번 턴만)
+
+
+async def test_pipeline_insufficient_turn_keeps_confirmed_speaker(monkeypatch):
+    # 2026-10-23 실통화: 얼굴이 잠깐 안 잡힌 턴에 "얼굴 보여 달라" 가 나왔다 — 확정 화자를 유지해야 한다.
+    _fast_bridge(monkeypatch)
+    seen = []
+    pipe = _make_pipe(["<lang=ko>", "안녕"], seen)
+    pipe.current_speaker_name = "민지"
+    tfd = {"verdict": "insufficient", "quality": "none", "personId": None, "score": None,
+           "at": time.monotonic()}
+    await pipe.say("오늘 날씨 좋다", turn_face=tfd)
+    systems = _sys_texts(seen[0])
+    assert any("'민지' 님" in c for c in systems)
+    assert not any("확인되지 않았다" in c for c in systems)
+
+
+async def test_pipeline_insufficient_without_speaker_is_unconfirmed(monkeypatch):
+    _fast_bridge(monkeypatch)
+    seen = []
+    pipe = _make_pipe(["<lang=ko>", "안녕"], seen)
+    pipe.current_speaker_name = None
+    tfd = {"verdict": "insufficient", "quality": "none", "personId": None, "score": None,
+           "at": time.monotonic()}
+    await pipe.say("나 누구야?", turn_face=tfd)
+    assert any("확인되지 않았다" in c for c in _sys_texts(seen[0]))
 
 
 async def test_pipeline_known_turn_keeps_name_hint(monkeypatch):
