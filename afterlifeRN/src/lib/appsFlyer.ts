@@ -1,6 +1,7 @@
 
 
 import { v_326be8 } from "rcmrninabrnb";
+import { v_680cc9 } from "./loginMethod";
 
 type AppsFlyerSdk = typeof import("react-native-appsflyer").default;
 
@@ -86,10 +87,13 @@ export function v_9ff0b2(v_43e90c): void {
 export type AuthMethod = "email" | "email_otp" | "google" | "apple";
 
 export function v_e41029(v_bfe9b9): void {
+
+  v_680cc9(v_bfe9b9);
   v_ae251a("af_login", { af_param_1: v_bfe9b9 });
 }
 
 export function v_8de199(v_bfe9b9): void {
+  v_680cc9(v_bfe9b9);
   v_ae251a("af_complete_registration", { af_registration_method: v_bfe9b9 });
 }
 

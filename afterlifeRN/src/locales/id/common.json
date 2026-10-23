@@ -2429,6 +2429,8 @@
       "interaction": "Orang lain tidak bisa mengirim hadiah atau berbagi.",
       "notify": "Semua notifikasi berhenti.",
       "restore": "Masuk kembali kapan saja untuk memulihkan. Data Anda tetap tersimpan."
-    }
+    },
+    "verifyPassword": "Verifikasi · Kata sandi",
+    "verifyEmail": "Verifikasi · Kode email"
   }
 }
