@@ -235,6 +235,13 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
     }
   };
 
+  const v_d211a6 = (): string => {
+    const v_1833e7 = v_04e790.upload?.fileName;
+    if (v_1833e7) return v_1833e7;
+    const v_25c4f7 = (v_f04727.voiceFile ?? "").split(/[\/]/).pop() ?? "";
+    try { return decodeURIComponent(v_25c4f7); } catch { return v_25c4f7; }
+  };
+
   const v_402288 = (v_35f85c) => {
     const v_38d084 = v_04e790[v_35f85c];
     if (v_38d084) void v_a9e8f0(v_35f85c, v_38d084);
@@ -672,7 +679,7 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
             <View style={v_d81136.recordedRow}>
               <Feather name="check-circle" size={16} color={v_a9d3e9} />
               <Text style={v_d81136.recordedText}>
-                {v_8d41d7("create.voice.cloneJobRegistered", { defaultValue: "클로닝 잡 등록됨" })}
+                {v_8d41d7("create.voice.registeredRecording", { defaultValue: "녹음한 음성이 정상적으로 등록되었습니다." })}
               </Text>
             </View>
           )}
@@ -727,9 +734,16 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
           {!v_11c383 && v_f04727.voiceFile && v_f04727.voiceCloneJobId && (
             <View style={v_d81136.recordedRow}>
               <Feather name="check-circle" size={16} color={v_a9d3e9} />
-              <Text style={v_d81136.recordedText}>
-                {v_8d41d7("create.voice.cloneJobRegistered", { defaultValue: "클로닝 잡 등록됨" })}
-              </Text>
+              <View style={{ flex: 1 }}>
+                <Text style={v_d81136.recordedText}>
+                  {v_8d41d7("create.voice.registeredFile", { defaultValue: "음성 파일이 정상적으로 등록되었습니다." })}
+                </Text>
+                {!!v_d211a6() && (
+                  <Text style={[v_d81136.recordedText, { color: v_1bfbd0.zinc500 }]} numberOfLines={1} ellipsizeMode="middle">
+                    {v_d211a6()}
+                  </Text>
+                )}
+              </View>
             </View>
           )}
           {}

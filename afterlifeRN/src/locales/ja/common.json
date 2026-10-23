@@ -1274,7 +1274,6 @@
       "recordStartFailedMsg": "録音を開始できませんでした。しばらくしてから再度お試しください。",
       "chooseScriptHint": "スクリプトを選んで読んでください。",
       "uploading": "アップロード中...",
-      "cloneJobRegistered": "クローニングジョブを登録しました",
       "recordDoneUploadFailed": "録音完了(アップロード失敗 — 再試行中)",
       "uploadPromptHint": "音声ファイルをアップロードしてください",
       "pickAnother": "別のファイルを選択",
@@ -1296,7 +1295,9 @@
       "toastNoise": "周りがうるさいです。静かな場所で録音してください。",
       "recordQualityTitle": "録音品質の確認",
       "recordQualitySilenceMsg": "録音に無音部分が多くあります。静かな場所で文全体をはっきりと録り直してください。",
-      "recordQualityNoiseMsg": "録音に周囲の雑音が入っています。静かな場所で録り直すと、声がずっと自然になります。"
+      "recordQualityNoiseMsg": "録音に周囲の雑音が入っています。静かな場所で録り直すと、声がずっと自然になります。",
+      "registeredFile": "音声ファイルが正常に登録されました。",
+      "registeredRecording": "録音した音声が正常に登録されました。"
     },
     "visibility": {
       "memlowLocked": "追悼クローンは非公開に固定されます。共同管理者のみ閲覧できます。",
