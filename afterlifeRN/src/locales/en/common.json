@@ -827,7 +827,12 @@
       "blockedUsers": "Blocked users",
       "reportsMenu": "Report / report history",
       "termsConsent": "Terms & consents",
-      "termsConsentDesc": "View terms · marketing consent"
+      "termsConsentDesc": "View terms · marketing consent",
+      "notificationsListShort": "Notification list",
+      "faceDetect": "Face detection",
+      "faceDetectDesc": "Clones that remember me",
+      "faceRecognition": "Face recognition consent",
+      "faceRecognitionDesc": "Quiet auto-enroll · face recognition terms · call learning"
     },
     "logout": {
       "title": "Log out?",
@@ -864,8 +869,8 @@
     },
     "sectionDesc": {
       "account": "Profile · deactivate · delete account",
-      "notifications": "Push notifications · inbox · invitations",
-      "face": "Face detection & recognition consent",
+      "notifications": "Notification settings · list",
+      "face": "Face detection · recognition consent",
       "service": "Blocking · reports · terms & consents",
       "app": "Language"
     }

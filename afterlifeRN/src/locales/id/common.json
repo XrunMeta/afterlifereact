@@ -827,7 +827,12 @@
       "blockedUsers": "Pengguna diblokir",
       "reportsMenu": "Laporkan / riwayat laporan",
       "termsConsent": "Ketentuan & persetujuan",
-      "termsConsentDesc": "Lihat ketentuan · persetujuan pemasaran"
+      "termsConsentDesc": "Lihat ketentuan · persetujuan pemasaran",
+      "notificationsListShort": "Daftar notifikasi",
+      "faceDetect": "Deteksi wajah",
+      "faceDetectDesc": "Klon yang mengingat saya",
+      "faceRecognition": "Persetujuan pengenalan wajah",
+      "faceRecognitionDesc": "Daftar otomatis · ketentuan pengenalan wajah · pembelajaran panggilan"
     },
     "logout": {
       "title": "Keluar?",
@@ -864,8 +869,8 @@
     },
     "sectionDesc": {
       "account": "Profil · nonaktifkan · hapus akun",
-      "notifications": "Notifikasi push · kotak masuk · undangan",
-      "face": "Persetujuan deteksi & pengenalan wajah",
+      "notifications": "Pengaturan & daftar notifikasi",
+      "face": "Deteksi · persetujuan pengenalan wajah",
       "service": "Blokir · laporan · ketentuan & persetujuan",
       "app": "Bahasa"
     }

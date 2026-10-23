@@ -10,11 +10,9 @@ import {
   v_f2c756,
   v_03e392,
   v_39a996,
-  v_4623af,
 } from "rcmrninabrnb";
-import { v_dec439 } from "zvyjokvuouwvifyzks";
 import v_e84827 from "bkjbgtcoyuizqwgwtnaxmfkyvlqwevapsqmanbsnv";
-import { v_ada615, v_cf763b, v_650cfa } from "ixigazcpvfldbecwtbvavtbi";
+import { v_ada615, v_cf763b } from "ixigazcpvfldbecwtbvavtbi";
 import { v_772971 } from "jmpfvteuuztnp";
 import v_570c34 from "../../components/ui/SafeScrollView";
 import v_258c1c from "../../components/common/PageHeader";
@@ -292,30 +290,6 @@ export default function v_4036d1() {
               />
             </View>
           ))}
-        </View>
-
-        {}
-        <View style={v_fd5f43.subCard}>
-          <TouchableOpacity
-            style={[v_fd5f43.subRow, v_fd5f43.subRowBorder]}
-            onPress={() => v_c65f5d.getParent()?.dispatch(v_650cfa.navigate({ name: "Notifications" }))}
-          >
-            <View style={{ flex: 1 }}>
-              <Text style={v_fd5f43.subLabel}>{v_8d41d7("my.menu.notificationsList", { defaultValue: "알림" })}</Text>
-              <Text style={v_fd5f43.subDesc}>{v_8d41d7("my.menu.notificationsListDesc", { defaultValue: "받은 알림 보기" })}</Text>
-            </View>
-            <Feather name="chevron-right" size={20} color={v_1bfbd0.zinc400} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={v_fd5f43.subRow}
-            onPress={() => (v_c65f5d.navigate as (name: string) => void)("InviteStatus")}
-          >
-            <View style={{ flex: 1 }}>
-              <Text style={v_fd5f43.subLabel}>{v_8d41d7("my.menu.inviteStatus", { defaultValue: "초대 현황" })}</Text>
-              <Text style={v_fd5f43.subDesc}>{v_8d41d7("my.menu.inviteStatusDesc", { defaultValue: "보낸 초대 확인" })}</Text>
-            </View>
-            <Feather name="chevron-right" size={20} color={v_1bfbd0.zinc400} />
-          </TouchableOpacity>
         </View>
 
         {
