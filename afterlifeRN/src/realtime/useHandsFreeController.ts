@@ -572,6 +572,8 @@ export function v_7df8a4(opts: {
 
     sttActive: v_b3ae82,
 
+    sttRecovering: v_60bef6.recovering && !v_ea4519,
+
     cloneSuppressed: v_ea4519,
 
     devForceListen: v_a8e03f,

@@ -1418,6 +1418,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     micLevel,
     cloneAudioLevel,
     sttActive,
+    sttRecovering,
     notifyFaceInterrupt,
     idleGreetCount,
     userSpeaking,
@@ -1756,7 +1757,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     }
   }, [lastSignal, dispatchRm, triggerEmote]);
 
-  const canSpeak = (phase === 'listening' || phase === 'confirming') && sttActive;
+  const canSpeak = (phase === 'listening' || phase === 'confirming') && sttActive && !sttRecovering;
 
   useEffect(() => {
     const audio = (remoteStream as unknown as { getAudioTracks?: () => Array<{ enabled: boolean }> })

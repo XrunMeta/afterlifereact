@@ -714,6 +714,24 @@ describe('STT network 백오프', () => {
     v_1e3df0.emit('end');
   });
 
+  it('오류 즉시 recovering=true(녹색 끔) → 엔진이 다시 start 하면 false', async () => {
+    const { engine: v_1e3df0, hook: v_ae701f } = await v_4c6dd7();
+    expect(v_ae701f.result.current.recovering).toBe(false);
+    v_d1e7e0(v_1e3df0);
+    expect(v_ae701f.result.current.recovering).toBe(true);
+    expect(v_ae701f.result.current.listeningDebounced).toBe(true); 
+    v_be73a0(() => { jest.advanceTimersByTime(v_7f5942[0]); });
+    v_be73a0(() => { v_1e3df0.emit('start'); });
+    expect(v_ae701f.result.current.recovering).toBe(false);
+  });
+
+  it('stopListening 은 recovering 을 끈다', async () => {
+    const { engine: v_1e3df0, hook: v_ae701f } = await v_4c6dd7();
+    v_d1e7e0(v_1e3df0);
+    v_be73a0(() => { v_ae701f.result.current.stopListening(); });
+    expect(v_ae701f.result.current.recovering).toBe(false);
+  });
+
   it('간격을 1·2·4·8초로 벌린다 — end 의 0.4초 재시작이 끼어들지 않는다', async () => {
     const { engine: v_1e3df0 } = await v_4c6dd7();
     let v_20e160 = 1;
