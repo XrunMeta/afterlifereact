@@ -1274,7 +1274,6 @@
       "recordStartFailedMsg": "Couldn't start recording. Please try again in a moment.",
       "chooseScriptHint": "Please choose a script and read it aloud.",
       "uploading": "Uploading...",
-      "cloneJobRegistered": "Cloning job registered",
       "recordDoneUploadFailed": "Recording complete (upload failed — retrying)",
       "uploadPromptHint": "Please upload a voice file",
       "pickAnother": "Choose another file",
@@ -1296,7 +1295,9 @@
       "toastNoise": "It's noisy around you. Please record in a quiet place.",
       "recordQualityTitle": "Recording quality",
       "recordQualitySilenceMsg": "The recording has a lot of silence. Please re-record the whole sentence clearly in a quiet place.",
-      "recordQualityNoiseMsg": "Background noise got into the recording. Re-recording in a quiet place will make the voice sound much more natural."
+      "recordQualityNoiseMsg": "Background noise got into the recording. Re-recording in a quiet place will make the voice sound much more natural.",
+      "registeredFile": "Your voice file has been registered.",
+      "registeredRecording": "Your recording has been registered."
     },
     "visibility": {
       "memlowLocked": "Memorial clones are private only. Visible only to co-admins.",

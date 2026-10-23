@@ -1274,7 +1274,6 @@
       "recordStartFailedMsg": "녹음을 시작하지 못했습니다. 잠시 후 다시 시도해 주십시오.",
       "chooseScriptHint": "스크립트를 선택하고 읽어주십시오.",
       "uploading": "업로드 중...",
-      "cloneJobRegistered": "클로닝 잡 등록됨",
       "recordDoneUploadFailed": "녹음 완료 (업로드 실패 — 재시도됨)",
       "uploadPromptHint": "음성파일을 올려주십시오",
       "pickAnother": "다른 파일 선택",
@@ -1296,7 +1295,9 @@
       "toastNoise": "주변이 시끄러워요. 조용한 곳에서 녹음해 주세요.",
       "recordQualityTitle": "녹음 품질 확인",
       "recordQualitySilenceMsg": "녹음에 무음 구간이 많아요. 조용한 곳에서 문장 전체를 또렷하게 다시 녹음해 주세요.",
-      "recordQualityNoiseMsg": "녹음에 주변 소음이 섞였어요. 조용한 곳에서 다시 녹음해 주시면 클론 목소리가 훨씬 자연스러워집니다."
+      "recordQualityNoiseMsg": "녹음에 주변 소음이 섞였어요. 조용한 곳에서 다시 녹음해 주시면 클론 목소리가 훨씬 자연스러워집니다.",
+      "registeredFile": "음성 파일이 정상적으로 등록되었습니다.",
+      "registeredRecording": "녹음한 음성이 정상적으로 등록되었습니다."
     },
     "visibility": {
       "memlowLocked": "추모 클론은 비공개로 고정됩니다. 공동관리자만 볼 수 있습니다.",
