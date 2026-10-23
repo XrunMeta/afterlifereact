@@ -751,7 +751,7 @@
     },
     "delete": {
       "title": "Delete account",
-      "desc": "Are you sure you want to delete your account?\nAll your data will be deleted and cannot be recovered.",
+      "desc": "Are you sure you want to delete your account?\nAll your data (points, usage history, saved content) will be deleted and cannot be recovered.",
       "userFallback": "member",
       "stay": "Cancel",
       "leave": "Delete",

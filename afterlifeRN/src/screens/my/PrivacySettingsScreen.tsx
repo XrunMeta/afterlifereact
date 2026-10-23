@@ -271,7 +271,7 @@ const v_fd5f43 = v_472849.create({
     flexDirection: "row",
     gap: 8,
     paddingHorizontal: 24,
-    paddingTop: 12,
+    paddingTop: 16,
     maxWidth: 780,
     alignSelf: "center",
     width: "100%",
