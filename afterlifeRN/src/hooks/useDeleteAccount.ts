@@ -22,7 +22,7 @@ export function v_1256e7(): { deleting: boolean; confirmDelete: () => void } {
       v_8d41d7("my.delete.title", { defaultValue: "회원탈퇴" }),
       v_8d41d7("my.delete.desc", {
         name: v_8a1355,
-        defaultValue: "정말 탈퇴하시겠어요?\n모든 데이터가 삭제되며 복구할 수 없어요.",
+        defaultValue: "정말 탈퇴하시겠어요?\n탈퇴 시 모든 데이터(포인트, 이용 내역, 저장한 콘텐츠)가 삭제되며 복구할 수 없습니다.",
       }),
       [
         { text: v_8d41d7("my.delete.stay", { defaultValue: "취소" }), style: "cancel" },

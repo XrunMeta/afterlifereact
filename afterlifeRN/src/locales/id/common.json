@@ -751,7 +751,7 @@
     },
     "delete": {
       "title": "Hapus akun",
-      "desc": "Yakin ingin menghapus akun?\nSemua data akan dihapus dan tidak dapat dipulihkan.",
+      "desc": "Yakin ingin menghapus akun?\nSemua data (poin, riwayat penggunaan, konten tersimpan) akan dihapus dan tidak dapat dipulihkan.",
       "userFallback": "Anggota",
       "stay": "Batal",
       "leave": "Hapus",
