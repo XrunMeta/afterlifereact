@@ -861,6 +861,13 @@
     },
     "deactivate": {
       "soon": "Segera hadir."
+    },
+    "sectionDesc": {
+      "account": "Profil · nonaktifkan · hapus akun",
+      "notifications": "Notifikasi push · kotak masuk · undangan",
+      "face": "Persetujuan deteksi & pengenalan wajah",
+      "service": "Blokir · laporan · ketentuan & persetujuan",
+      "app": "Bahasa"
     }
   },
   "auth": {
