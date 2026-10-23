@@ -553,19 +553,6 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     }
   };
 
-  const v_98409d = () => {
-    const v_dd943a = [
-      {
-        label: v_842b8b
-          ? v_8d41d7("chat.notifyOff", { defaultValue: "알림 끄기" })
-          : v_8d41d7("chat.notifyOn", { defaultValue: "알림 켜기" }),
-        disabled: v_f61bef,
-        onPress: () => void v_4f52b6(),
-      },
-    ];
-    v_cafc04(undefined, v_dd943a);
-  };
-
   const v_c2e43c = () => {
     v_c65f5d.navigate("CloneFeed", { cloneId: v_6e0fd3 });
   };
@@ -626,16 +613,25 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           )}
         </TouchableOpacity>
         <View style={v_d81136.headerRight}>
-          {
-
-}
+          {}
           <TouchableOpacity
             style={v_d81136.headerActionBtn}
             hitSlop={8}
-            onPress={v_98409d}
-            accessibilityLabel="settings"
+            onPress={() => void v_4f52b6()}
+            disabled={v_f61bef}
+            accessibilityLabel={v_842b8b
+              ? v_8d41d7("chat.notifyOff", { defaultValue: "알림 끄기" })
+              : v_8d41d7("chat.notifyOn", { defaultValue: "알림 켜기" })}
           >
-            <Feather name="settings" size={18} color={v_1bfbd0.zinc700} />
+            <Feather name={v_842b8b ? "bell" : "bell-off"} size={18} color={v_1bfbd0.zinc700} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={v_d81136.headerActionBtn}
+            hitSlop={8}
+            onPress={() => void v_21be1f()}
+            accessibilityLabel={v_8d41d7("chat.callAction", { defaultValue: "통화" })}
+          >
+            <Feather name="phone" size={18} color={v_1bfbd0.zinc700} />
           </TouchableOpacity>
         </View>
       </View>
