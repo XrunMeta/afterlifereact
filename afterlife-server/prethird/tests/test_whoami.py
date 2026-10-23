@@ -451,3 +451,9 @@ def test_screen_state_has_no_unconditional_request():
         head = s.split(")", 1)[0]
         assert "부탁" not in head and "달라고" not in head
         assert "직접 묻는 말일 때만" in s
+
+
+def test_hedge_only_when_user_asks_about_self_not_clone():
+    # 실통화: "너 이름이 뭐냐고" 에 "혹시 Guao야? 나는 쿄카야."
+    s = turn_face_instruction(tf(verdict="known", quality="ok", score=0.55, personId=1), "지호", NOW)
+    assert "혹시 지호야?" in s and "상대 자신" in s and "너(클론)를 물으면" in s
