@@ -79,3 +79,12 @@ describe("judgeTurn", () => {
     expect(v_bbda62).toEqual(v_5392c4);
   });
 });
+
+describe("judgeTurn — 점수 0.1 이하 불일치는 판정 불가(2026-10-23)", () => {
+  test("3개 모두 0.1 이하 불일치 → insufficient", () =>
+    expect(v_6fea6b([v_fd5f43(null, 0.1), v_fd5f43(null, 0.05), v_fd5f43(null, 0.09)], 175).kind).toBe("insufficient"));
+  test("하나라도 0.1 이하가 섞이면 unknown 이 아니다", () =>
+    expect(v_6fea6b([v_fd5f43(null, 0.2), v_fd5f43(null, 0.05), v_fd5f43(null, 0.3)], 175).kind).toBe("insufficient"));
+  test("모두 0.1 초과 불일치 → unknown", () =>
+    expect(v_6fea6b([v_fd5f43(null, 0.11), v_fd5f43(null, 0.2), v_fd5f43(null, 0.3)], 175).kind).toBe("unknown"));
+});
