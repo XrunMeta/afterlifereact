@@ -16,6 +16,33 @@ export interface TurnFaceGate {
   startTurn(): void;
 
   awaitVerdict(currentPersonId: number | null): Promise<TurnFaceResult>;
+
+  awaitWhoVerdict(currentPersonId: number | null, holdMs?: number): Promise<TurnFaceResult>;
+}
+
+export const v_c68f2a = 2500;
+
+export function v_c63cdb(samples: v_537043[], v_275ccd): v_516d40 {
+  const v_110a8b = v_5b2623.filter((v_62c214) => v_62c214.quality !== "none");
+  const v_3a9e05 = v_5b2623.length > 0 ? v_5b2623[v_5b2623.length - 1].quality : "none";
+  const v_5d6c0f = (xs: v_537043[]) => v_6bdf03.reduce((v_35f85c, v_62c214) => (v_62c214.score > v_35f85c ? v_62c214.score : v_35f85c), v_6bdf03[0].score);
+  if (v_110a8b.length === 0) return { kind: "insufficient", personId: null, score: null, quality: v_3a9e05 };
+  const v_1c1268 = v_275ccd == null ? [] : v_110a8b.filter((v_62c214) => v_62c214.personId === v_275ccd);
+  if (v_1c1268.length > 0) return { kind: "known", personId: v_275ccd, score: v_5d6c0f(v_1c1268), quality: v_3a9e05 };
+  const v_63db2f = v_110a8b.filter((v_62c214) => v_62c214.personId != null);
+  if (v_63db2f.length > 0) {
+    const v_e2a85c = v_63db2f[v_63db2f.length - 1].personId;
+    return { kind: "switch", personId: v_e2a85c, score: v_5d6c0f(v_63db2f.filter((v_62c214) => v_62c214.personId === v_e2a85c)), quality: v_3a9e05 };
+  }
+  return { kind: "unknown", personId: null, score: v_5d6c0f(v_110a8b), quality: v_3a9e05 };
+}
+
+function v_7c6ce2(samples: v_537043[], v_275ccd): TurnFaceResult | null {
+  const v_110a8b = v_5b2623.filter((v_62c214) => v_62c214.quality !== "none");
+  if (v_110a8b.some((v_62c214) => v_62c214.personId != null) || v_110a8b.length >= 2) {
+    return { verdict: v_c63cdb(v_5b2623, v_275ccd), samples: v_5b2623.slice() };
+  }
+  return null;
 }
 
 function v_e3b24b(samples: v_537043[], v_275ccd): v_516d40 | null {
@@ -52,13 +79,20 @@ function v_06a669(samples: v_537043[], v_275ccd): TurnFaceResult | null {
   return v_2857fe ? { verdict: v_2857fe, samples: v_5b2623.slice() } : null;
 }
 
-export function v_a3f569(v_84b93d): TurnFaceGate {
+export function v_a3f569(deps: {
+  burst(n: number, v_354244): void;
+
+  stopBurst?(): void;
+  now(): number;
+  holdMs?: number;
+}): TurnFaceGate {
   const v_354244 = v_84b93d.holdMs ?? v_692765;
   let samples: v_537043[] = [];
   type Waiter = {
     current: number | null;
     resolve: (r: TurnFaceResult) => void;
     timer: ReturnType<typeof setTimeout>;
+    ready: (samples: v_537043[], current: number | null) => TurnFaceResult | null;
   };
   let v_d326aa = [];
 
@@ -74,7 +108,7 @@ export function v_a3f569(v_84b93d): TurnFaceGate {
       v_5b2623.push(v_fd5f43);
       if (v_5b2623.length > v_3f2d5d) v_5b2623 = v_5b2623.slice(-v_3f2d5d);
       for (const v_32f7b8 of v_d326aa.slice()) {
-        const v_cb35cb = v_06a669(v_5b2623, v_32f7b8.current);
+        const v_cb35cb = v_32f7b8.ready(v_5b2623, v_32f7b8.current);
         if (v_cb35cb) v_35a3f6(v_32f7b8, v_cb35cb);
       }
     },
@@ -88,12 +122,30 @@ export function v_a3f569(v_84b93d): TurnFaceGate {
         const v_32f7b8 = {
           current: v_34a66a,
           resolve: v_6f7712,
+          ready: v_06a669,
           timer: setTimeout(() => {
             v_35a3f6(v_32f7b8, { verdict: v_6fea6b(v_5b2623, v_34a66a), samples: v_5b2623.slice() });
           }, v_354244),
         };
         v_d326aa.push(v_32f7b8);
         v_84b93d.burst(v_3f2d5d - v_5b2623.length);
+      });
+    },
+    awaitWhoVerdict(v_34a66a, v_20c8a0 = v_c68f2a) {
+      const v_b1717e = v_7c6ce2(v_5b2623, v_34a66a);
+      if (v_b1717e) return Promise.resolve(v_b1717e);
+      return new Promise<TurnFaceResult>((v_6f7712) => {
+        const v_32f7b8 = {
+          current: v_34a66a,
+          resolve: v_6f7712,
+          ready: v_7c6ce2,
+          timer: setTimeout(() => {
+            v_35a3f6(v_32f7b8, { verdict: v_c63cdb(v_5b2623, v_34a66a), samples: v_5b2623.slice() });
+          }, v_20c8a0),
+        };
+        v_d326aa.push(v_32f7b8);
+
+        v_84b93d.burst(v_3f2d5d, v_20c8a0);
       });
     },
   };

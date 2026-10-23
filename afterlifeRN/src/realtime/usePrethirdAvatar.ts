@@ -215,6 +215,7 @@ export function v_3d8d48(v_328259): v_b01667 {
         personId: v_81e2ef.personId,
         score: v_81e2ef.score,
         retry: v_81e2ef.retry,
+        who: v_81e2ef.who ?? null,
       }));
     } catch {
 

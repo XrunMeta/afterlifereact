@@ -32,7 +32,7 @@ export interface FaceEvent {
   mentionName?: boolean;
 }
 
-export type TurnFaceReport = v_516d40 & { retry: boolean };
+export type TurnFaceReport = v_516d40 & { retry: boolean; who?: 'self' | 'other' | null };
 
 export interface AvatarCall {
   state: LiveAvatarState;

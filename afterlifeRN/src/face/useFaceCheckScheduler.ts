@@ -17,7 +17,8 @@ export interface FaceCheckScheduler {
   onUserSpeechStart(): void;
   onCloneSpeechEnd(remainingMs: number | null | undefined): void;
   onWhoAsked(): void;
-  burst(count: number): void;
+
+  burst(count: number, holdMs?: number): void;
 
   onCycleDone(): void;
 
@@ -133,7 +134,7 @@ export function v_33d47b(v_328259): FaceCheckScheduler {
   }, [v_0100e1, v_9591ca]);
 
   const v_b1b543 = v_de06a3(
-    (v_9e8c70) => {
+    (v_9e8c70, v_354244 = v_692765) => {
       v_0df5d4();
 
       if (!Number.isFinite(v_9e8c70) || !(v_9e8c70 > 0)) return;
@@ -144,7 +145,7 @@ export function v_33d47b(v_328259): FaceCheckScheduler {
       v_cc92a5.current = setTimeout(() => {
         v_cc92a5.current = null;
         v_d0228f.current = 0;
-      }, v_692765);
+      }, v_354244);
       if (!v_3f8465) v_0100e1("burst");
     },
     [v_0100e1, v_0df5d4],

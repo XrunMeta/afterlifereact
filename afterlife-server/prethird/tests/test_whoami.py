@@ -146,6 +146,27 @@ async def test_on_ask_who_sends_who_asked(monkeypatch):
     assert [m for m in ch.sent if m.get("type") == "who_asked"] == [{"type": "who_asked"}]
 
 
+async def test_app_detected_who_turn_suppresses_who_asked(monkeypatch):
+    # 앱이 "누구냐"를 알아채 turn_face.who 를 보냈으면 LLM 이 <ask=who> 를 달아도 who_asked 는 안 보낸다.
+    _no_writeback(monkeypatch)
+    sess, ch = _Sess(_Pipeline(ask="who")), _Channel()
+    h = _make_dc_handler(sess, ch)
+    h(json.dumps({"type": "turn_face", "verdict": "unknown", "quality": "ok", "who": "self"}))
+    h(json.dumps({"type": "say", "text": "나 누구야?", "seq": 1}))
+    await _drain()
+    assert not [m for m in ch.sent if m.get("type") == "who_asked"]
+
+
+async def test_turn_face_who_field_whitelisted(monkeypatch):
+    _no_writeback(monkeypatch)
+    sess, ch = _Sess(), _Channel()
+    h = _make_dc_handler(sess, ch)
+    h(json.dumps({"type": "turn_face", "verdict": "known", "who": "self"}))
+    assert sess.turn_face["who"] == "self"
+    h(json.dumps({"type": "turn_face", "verdict": "known", "who": "지호"}))
+    assert sess.turn_face["who"] is None
+
+
 async def test_no_ask_no_who_asked(monkeypatch):
     _no_writeback(monkeypatch)
     sess, ch = _Sess(), _Channel()
@@ -457,3 +478,36 @@ def test_hedge_only_when_user_asks_about_self_not_clone():
     # 실통화: "너 이름이 뭐냐고" 에 "혹시 Guao야? 나는 쿄카야."
     s = turn_face_instruction(tf(verdict="known", quality="ok", score=0.55, personId=1), "지호", NOW)
     assert "혹시 지호야?" in s and "상대 자신" in s and "너(클론)를 물으면" in s
+
+
+# 2026-10-23: 앱이 음성 인식 결과로 "누구냐" 질문을 확실히 알아챈 턴(turn_face.who).
+def test_who_self_known_answers_name_without_tag():
+    s = turn_face_instruction(tf(verdict="known", quality="ok", score=0.9, personId=1, who="self"), "지호", NOW)
+    assert "자기가 누구냐고 물었다" in s and "'지호'" in s and "혹시" not in s
+    assert "<ask=who> 는 붙이지 마라" in s
+
+
+def test_who_self_known_low_score_hedges():
+    s = turn_face_instruction(tf(verdict="known", quality="ok", score=0.55, personId=1, who="self"), "지호", NOW)
+    assert "혹시 지호야?" in s
+
+
+def test_who_unknown_invites_registration_no_camera():
+    s = turn_face_instruction(tf(verdict="unknown", quality="ok", score=0.1, who="self"), "지호", NOW)
+    assert "처음 보는 얼굴" in s and "등록 창" in s and "지호" not in s
+    assert "카메라를 봐 달라고 하지 마라" in s
+
+
+def test_who_other_unknown_mentions_that_person():
+    s = turn_face_instruction(tf(verdict="unknown", quality="ok", who="other"), None, NOW)
+    assert "화면 속 사람이 누구냐고" in s and "그 사람 이름" in s
+
+
+def test_who_insufficient_asks_camera_with_quality_hint():
+    s = turn_face_instruction(tf(verdict="insufficient", quality="dark", who="self"), "지호", NOW)
+    assert "확인되지 않았다" in s and "조명" in s and "지호" not in s and "<ask=who> 는 붙이지 마라" in s
+
+
+def test_who_known_but_server_not_swapped_is_not_named():
+    s = turn_face_instruction(tf(verdict="switch", quality="ok", personId=2, score=0.9, who="self", speaker_ok=False), "지호", NOW)
+    assert "지호" not in s and "확인되지 않았다" in s and "처음 보는" not in s

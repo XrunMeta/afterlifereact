@@ -1195,6 +1195,9 @@ def _store_turn_face(sess, data: dict) -> None:
         "personId": data.get("personId"),
         "score": data.get("score"),
         "retry": bool(data.get("retry")),
+        # 2026-10-23: 앱이 음성 인식 결과로 "누구냐" 질문을 확실히 알아챘을 때만 "self"(나 누구야)·"other"(이 사람 누구야).
+        #   이때 앱이 판정·재대조·등록 팝업을 직접 한다 — 서버는 그에 맞는 답 지시만 붙이고 who_asked 는 안 보낸다.
+        "who": data.get("who") if data.get("who") in ("self", "other") else None,
         "at": now,
     }
     if data.get("verdict") == "switch":
@@ -1412,6 +1415,9 @@ def _make_dc_handler(sess, channel):
             # LLM 이 <ask=who> 를 달았다 → 앱에 재대조 요청. 이름 등 다른 필드는 싣지 않는다.
             # sess.datachannel 재참조 금지 — 이 메시지를 받은 클로저 인자 channel 로만 전송.
             if ask != "who":
+                return
+            # 앱이 이미 "누구냐" 질문으로 알아채 판정·재대조를 맡은 턴이면 보내지 않는다(중복 재대조 방지).
+            if isinstance(_turn_face, dict) and _turn_face.get("who"):
                 return
             if channel is not None and getattr(channel, "readyState", None) == "open":
                 try:
