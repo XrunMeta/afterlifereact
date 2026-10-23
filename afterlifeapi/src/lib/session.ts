@@ -22,6 +22,9 @@ type Payload = Record<string, unknown> & {
   epoch?: number;
 };
 
+export const v_d81306 =
+  "서비스 운영 정책 위반으로 계정 이용이 정지되었습니다.\n문의: oth-staff@example.invalid";
+
 const v_5f2751 = "revoked:";
 const v_698fc3 = "rotate_lock:";
 const v_d4aa79 = 60; 
@@ -75,13 +78,17 @@ export async function v_27b603(
 
   if (!v_931bf0.admin) {
     const v_ceb55a = await v_3f4e2e.env.DB
-      .prepare(`SELECT banned_until, session_epoch AS ep FROM users WHERE id = ? AND deleted_at IS NULL`)
+      .prepare(`SELECT banned_until, deactivated_at, session_epoch AS ep FROM users WHERE id = ? AND deleted_at IS NULL`)
       .bind(v_931bf0.sub)
-      .first<{ banned_until: string | null; ep: number | null }>();
+      .first<{ banned_until: string | null; deactivated_at: string | null; ep: number | null }>();
     if (v_ceb55a?.banned_until && v_e8cd3d(v_ceb55a.banned_until) > Date.now()) {
-      throw new v_3ebe58("ACCOUNT_SUSPENDED", "신고 누적으로 계정 사용이 정지되었습니다.", {
+      throw new v_3ebe58("ACCOUNT_SUSPENDED", v_d81306, {
         bannedUntil: v_ceb55a.banned_until,
       });
+    }
+
+    if (v_ceb55a?.deactivated_at) {
+      throw new v_3ebe58("UNAUTHENTICATED", "비활성화 중인 계정이에요. 다시 로그인해 주세요.");
     }
 
     if ((v_ceb55a?.ep ?? 0) > ((v_931bf0.epoch as number) ?? 0)) {

@@ -899,8 +899,8 @@
       "accountLocked": "Account is locked. Try again in ~10 minutes, or reset your password.",
       "accountDeletedTitle": "This account was deleted",
       "accountDeletedMessage": "This account has been deleted and can no longer sign in.",
-      "accountSuspendedTitle": "Account suspended",
-      "accountSuspendedMessage": "This account has been suspended due to accumulated reports.",
+      "accountSuspendedTitle": "Your account has been suspended.",
+      "accountSuspendedMessage": "Your account has been suspended for violating our service policy.\nContact: oth-staff@example.invalid",
       "googleUnavailableTitle": "Google sign-in unavailable",
       "googleUnavailableMessage": "Please try again in a moment.",
       "googleNoToken": "Couldn't get a Google sign-in token.",
@@ -1095,6 +1095,12 @@
       "submit": "Start afterlife",
       "googleOnboardingDesc": "First time with Google. Just a quick basic info.",
       "submitting": "Processing..."
+    },
+    "deactivated": {
+      "title": "This account is deactivated.",
+      "message": "Log back in and restore your account and AI clones?",
+      "activate": "Activate",
+      "failed": "Couldn't activate. Please log in again."
     }
   },
   "create": {
@@ -1881,7 +1887,7 @@
   },
   "errors": {
     "accountDeleted": "This account has been deleted.",
-    "accountSuspended": "Your account is suspended due to repeated reports.",
+    "accountSuspended": "Your account has been suspended for violating our service policy.\nContact: oth-staff@example.invalid",
     "accountSuspendedForPersona": "Your account is temporarily disabled due to repeated reports, so you can't create a clone right now.",
     "accountLocked": "Your account is temporarily locked. Please try again later.",
     "tooManyFailures": "Too many failed attempts. Please try again later.",
@@ -2405,6 +2411,27 @@
       "subtitle": "Our terms have been updated for the service integration.\nPlease agree to the required terms below again.",
       "saving": "Processing...",
       "continue": "Agree and continue"
+    }
+  },
+  "deactivate": {
+    "whatHappens": "When you deactivate",
+    "verify": "Verify it's you",
+    "byPassword": "Password",
+    "byEmail": "Email code (social account)",
+    "passwordPlaceholder": "Enter password",
+    "sendCode": "Send a code to my email",
+    "resendCode": "Resend code",
+    "codeSent": "Sent to {{email}}.",
+    "codePlaceholder": "6-digit code",
+    "submit": "Deactivate",
+    "confirmTitle": "Deactivate your account?",
+    "confirmBody": "You'll be logged out on all devices right away.",
+    "effect": {
+      "hide": "Your profile and AI clones are hidden from home, explore and search, and others can't chat or call them.",
+      "posts": "Your posts and comments are hidden.",
+      "interaction": "Others can't send you gifts or shares.",
+      "notify": "All notifications stop.",
+      "restore": "Log back in anytime to restore everything. Your data is kept."
     }
   }
 }

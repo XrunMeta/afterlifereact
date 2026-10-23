@@ -11,6 +11,8 @@ interface RegexRule {
 const v_bdafcd = {
   "ACCOUNT_DELETED::이미 탈퇴한 계정이에요.": "errors.accountDeleted",
   "ACCOUNT_SUSPENDED::신고 누적으로 계정 사용이 정지되었습니다.": "errors.accountSuspended",
+
+  "ACCOUNT_SUSPENDED::서비스 운영 정책 위반으로 계정 이용이 정지되었습니다.\n문의: oth-staff@example.invalid": "errors.accountSuspended",
   "ACCOUNT_LOCKED::Account temporarily locked.": "errors.accountLocked",
   "ACCOUNT_LOCKED::Too many failures — try again later.": "errors.tooManyFailures",
   "ACCOUNT_LOCKED::Account locked.": "errors.accountLocked",

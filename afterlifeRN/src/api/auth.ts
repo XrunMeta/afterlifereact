@@ -229,6 +229,24 @@ export async function v_7ef860(v_2ca7e0): Promise<{ user: AuthUser; interests: s
   return v_9b97b4("/oth-path", v_2ca7e0);
 }
 
+export async function v_2d81c4(v_2ca7e0): Promise<{ ok: true; email: string }> {
+  return v_9b97b4("/oth-path", v_2ca7e0, { method: "POST", body: "{}" });
+}
+
+export async function v_ab34b7(
+  v_2ca7e0,
+  v_68f0aa,
+): Promise<{ ok: true }> {
+  return v_9b97b4("/oth-path", v_2ca7e0, { method: "POST", body: JSON.stringify(v_68f0aa) });
+}
+
+export async function v_887ecd(
+  v_801c01,
+  v_929b58,
+): Promise<LoginSuccessResponse> {
+  return v_c34e2f("/oth-path", { reactivateToken: v_801c01, deviceId: v_929b58 });
+}
+
 export interface UserSearchItem {
   id: number;
   name: string | null;

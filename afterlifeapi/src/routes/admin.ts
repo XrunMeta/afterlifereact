@@ -1,3 +1,4 @@
+import { v_1186b8 } from "../lib/deactivation";
 import { v_b7c41b, type v_437670 } from "zmui";
 import type { v_de0a25 } from "../lib/env";
 import { v_3ebe58 } from "../lib/errors";
@@ -2158,6 +2159,8 @@ v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
     case "account_ban":
       await v_3f4e2e.env.DB.prepare(`UPDATE users SET banned_until = datetime('now', ?) WHERE id = ?`).bind(`+${v_6a53fd || 30} days`, v_389afb).run();
       v_c8eee3 = `${v_6a53fd || 30}일간 계정 사용이 정지됩니다.`;
+
+      await v_1186b8(v_3f4e2e.env, v_389afb);
       break;
     case "clone_deactivate":
 
