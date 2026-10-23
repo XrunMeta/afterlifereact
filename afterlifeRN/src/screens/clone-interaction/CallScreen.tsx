@@ -2990,14 +2990,15 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
       {
 }
-      {!isOwnClone && (
       <View style={s.rightActions}>
+        {!isOwnClone && (
         <TouchableOpacity
           style={[s.sideBtn, showGifts && s.sideBtnActive]}
           onPress={() => setShowGifts(!showGifts)}
         >
           <Feather name="gift" size={22} color={COLORS.white} />
         </TouchableOpacity>
+        )}
         <TouchableOpacity
           style={s.sideBtn}
           onPress={async () => {
@@ -3026,7 +3027,6 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         </TouchableOpacity>
         {}
       </View>
-      )}
 
       {}
       {floatingGifts.map((g) =>
