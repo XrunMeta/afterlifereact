@@ -87,7 +87,8 @@ def turn_face_instruction(turn_face: dict | None, speaker_name: str | None, now:
         if (isinstance(score, (int, float)) and not isinstance(score, bool)
                 and score < HEDGE_SCORE_BELOW and speaker_name):
             return (
-                f"[이번 턴] 상대가 자기가 누구냐고 물으면 '혹시 {speaker_name}야?' 처럼 "
-                "확인하는 말투로 답해라. 묻지 않았으면 평소처럼 답해라."
+                f"[이번 턴] 상대가 '나 누구야?'처럼 **상대 자신**이 누구냐고 물을 때만 '혹시 {speaker_name}야?' 처럼 "
+                "확인하는 말투로 답해라. '너는 누구야?'·'네 이름은?'처럼 너(클론)를 물으면 이 말투를 쓰지 말고 "
+                "네 이름으로 답해라. 묻지 않았으면 평소처럼 답해라."
             )
     return None
