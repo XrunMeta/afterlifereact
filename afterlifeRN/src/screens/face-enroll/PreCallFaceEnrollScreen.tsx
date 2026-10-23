@@ -491,7 +491,10 @@ export default function v_8640b9() {
   );
   const v_eead09 = v_de06a3(
     (v_73db7e) => {
-      const v_e2a85c = v_73db7e >= v_77ce37.length - 1 ? v_343670 : v_5e24d8[v_73db7e];
+      const v_0d0d82 = v_73db7e >= v_77ce37.length - 1;
+
+      v_d49152.vibrate(v_0d0d82 ? [0, 120, 90, 260] : 120);
+      const v_e2a85c = v_0d0d82 ? v_343670 : v_5e24d8[v_73db7e];
       if (!v_e2a85c) return;
       try {
         void v_e2a85c.seekTo(0);
