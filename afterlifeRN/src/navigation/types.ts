@@ -122,7 +122,8 @@ export type MyStackParamList = {
   EditProfile: undefined;
   NotificationSettings: undefined;
   PrivacySettings: undefined;
-  Agreements: undefined;
+
+  Agreements: { section?: "face" | "terms" } | undefined;
   SavedItems: undefined;
   RememberingClones: undefined;
   RememberingCloneDetail: { cloneId: number; cloneName: string };

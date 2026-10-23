@@ -816,7 +816,18 @@
       "faceEnrollDev": "面部5角度登记 (dev)",
       "faceEnrollDevDesc": "正面·左·右·上·下拍摄 → 克隆首次通话准备",
       "voiceLangTest": "声音测试",
-      "voiceLangTestDesc": "试听各语言的克隆声音"
+      "voiceLangTestDesc": "试听各语言的克隆声音",
+      "profileEdit": "个人资料 / 个人信息修改",
+      "deactivate": "停用账号（暂停）",
+      "deactivateDesc": "暂时停用你的账号",
+      "pushNotifications": "应用推送通知",
+      "pushNotificationsDesc": "通知设置 · 收到的通知 · 邀请状态",
+      "faceSettings": "人脸检测与识别同意",
+      "faceSettingsDesc": "人脸识别 · 记得我的克隆 · 通话学习",
+      "blockedUsers": "屏蔽用户管理",
+      "reportsMenu": "举报 / 举报记录",
+      "termsConsent": "条款与同意管理",
+      "termsConsentDesc": "查看条款 · 营销信息接收同意"
     },
     "logout": {
       "title": "要退出登录吗?",
@@ -840,6 +851,16 @@
       "otaEmergency": "OTA 紧急运行(embedded fallback)",
       "otaEmbedded": "OTA 内置(embedded)",
       "otaUpdate": "OTA {{id}}"
+    },
+    "section": {
+      "account": "账号与个人信息",
+      "notifications": "通知设置",
+      "face": "人脸与生物识别设置",
+      "service": "服务使用与屏蔽",
+      "app": "应用设置"
+    },
+    "deactivate": {
+      "soon": "即将推出。"
     }
   },
   "auth": {
@@ -1624,6 +1645,16 @@
       "deleteConfirmMessage": "{{name}} 对你的记忆和面部信息将被全部删除，无法恢复。",
       "deleteError": "删除失败。",
       "deleteErrorTitle": "删除失败"
+    },
+    "faceSettings": {
+      "title": "人脸与生物识别设置",
+      "callLearning": "通话对话学习",
+      "callLearningDesc": "通话对话学习包含在“AI 数据使用与生成”同意中"
+    },
+    "termsConsent": {
+      "title": "条款与同意管理",
+      "service": "服务条款",
+      "privacy": "隐私政策"
     }
   },
   "permissionGate": {
