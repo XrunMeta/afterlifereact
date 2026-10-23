@@ -68,8 +68,14 @@ import type { Face as DetectorFace } from "react-native-vision-camera-face-detec
 import { useTensorflowModel } from "react-native-fast-tflite";
 import { useResizePlugin } from "vision-camera-resize-plugin";
 import { useSharedValue } from "react-native-worklets-core";
+import {
+  INITIAL_FACE_COUNT_TRIGGER,
+  stepFaceCountTrigger,
+  type FaceCountTriggerState,
+} from "../../face/faceCountTrigger";
 import { useFaceDetection } from "../../hooks/useFaceDetection";
 import { largestFace, significantFaces } from "../../face/largestFace";
+import { normalizeFrameTimestampMs } from "../../face/frameTimestamp";
 import { modelCropFor } from "../../face/faceAlignCrop";
 import { detectWhoIntent } from "../../face/whoIntent";
 import { computeLandmarkRatios, type LandmarkRatios } from "../../face/faceLandmarkRatios";
@@ -651,7 +657,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
   const embedFaceCountTrigger = useSharedValue(false);
 
-  const lastFaceCount = useSharedValue(-1);
+  const faceCountTrig = useSharedValue<FaceCountTriggerState>(INITIAL_FACE_COUNT_TRIGGER);
+  const isAndroidFrame = Platform.OS === "android";
 
   const embedAllowed = useSharedValue(true);
 
@@ -1239,11 +1246,16 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
       const sigFaces = significantFaces(faces, largestFace(faces));
       const curFaceCount = sigFaces.length;
-      if (lastFaceCount.value !== -1 && curFaceCount !== lastFaceCount.value && embedAllowed.value) {
+      const fc = stepFaceCountTrigger(
+        faceCountTrig.value,
+        curFaceCount,
+        normalizeFrameTimestampMs(frame.timestamp, isAndroidFrame),
+      );
+      faceCountTrig.value = fc.state;
+      if (fc.trigger && embedAllowed.value) {
         embedRequested.value = true;
         embedFaceCountTrigger.value = true;
       }
-      lastFaceCount.value = curFaceCount;
 
       if (faceEmbedModel != null && embedRequested.value) {
         embedRequested.value = false;
@@ -1309,7 +1321,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       handleFacesOnJS,
       faceEmbedModel,
       resize,
-      lastFaceCount,
+      faceCountTrig,
+      isAndroidFrame,
       embedAllowed,
       embedRequested,
       embedFaceCountTrigger,
