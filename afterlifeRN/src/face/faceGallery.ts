@@ -5,6 +5,8 @@ import { v_a64bce } from "./l2normalize";
 
 export const v_e4eb8a = 10 * 60_000;
 
+export const v_21ae3d = 60_000;
+
 export const v_d9d053 = 15_000;
 
 export type GalleryPerson = {
@@ -36,6 +38,7 @@ export function v_0a1524(v_84b93d) {
   let v_41026d = null;
   let v_683210 = null;
   let v_f19252 = -Infinity;
+  let v_e3f4b6 = -Infinity;
 
   const v_abd1a7 = new Map<number, string>();
 
@@ -53,13 +56,15 @@ export function v_0a1524(v_84b93d) {
       console.log(`[Call][face] 얼굴 갤러리 받음 clone=${v_6e0fd3} persons=${v_fded81.size} vectors=${[...v_fded81.values()].reduce((v_f4e98d, v_e2a85c) => v_f4e98d + v_e2a85c.vectors.length, 0)}`);
       return v_41026d;
     } catch (v_49263d) {
-      console.warn("[Call][face] 얼굴 갤러리 받기 실패 — 서버 대조로", v_49263d);
+      v_e3f4b6 = v_5c2f9f();
+      console.warn("[Call][face] 얼굴 갤러리 받기 실패 — 1분간 서버 대조로", v_49263d);
       return null;
     }
   }
 
   async function v_d99d28(v_2ca7e0, v_6e0fd3): Promise<Gallery | null> {
     if (v_41026d && v_41026d.cloneId === v_6e0fd3 && v_5c2f9f() - v_41026d.loadedAt < v_e4eb8a) return v_41026d;
+    if (!v_683210 && v_5c2f9f() - v_e3f4b6 < v_21ae3d) return null;
     if (!v_683210) {
       v_683210 = v_f6f5de(v_2ca7e0, v_6e0fd3).finally(() => {
         v_683210 = null;
@@ -135,6 +140,7 @@ export function v_0a1524(v_84b93d) {
     invalidate(): void {
       v_41026d = null;
       v_f19252 = -Infinity;
+      v_e3f4b6 = -Infinity;
     },
   };
 }
