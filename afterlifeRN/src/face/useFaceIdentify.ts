@@ -191,7 +191,7 @@ export interface UseFaceIdentifyOptions {
 
   onSelfMatch?: (selfMatch: boolean) => void;
 
-  onCycle?: (c: { personId: number | null; score: number; displayName: string | null }) => void;
+  onCycle?: (c: { personId: number | null; score: number; displayName: string | null; noCandidates?: boolean }) => void;
 
   onCycleEnd?: () => void;
 
@@ -251,7 +251,7 @@ export function v_e9685b(v_328259): UseFaceIdentifyResult {
           if (v_bdad26) v_548612?.(v_a74d7a);
           if (v_bdad26) {
             try {
-              v_fa87f6.current?.({ personId: v_bdad26.personId, score: v_7f9794 ?? v_bdad26.score, displayName: v_bdad26.displayName });
+              v_fa87f6.current?.({ personId: v_bdad26.personId, score: v_7f9794 ?? v_bdad26.score, displayName: v_bdad26.displayName, noCandidates: v_bdad26.topPersonId == null });
             } catch (v_49263d) {
 
               console.warn("[useFaceIdentify] onCycle threw:", v_49263d);
