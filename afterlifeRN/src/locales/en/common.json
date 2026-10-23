@@ -816,7 +816,18 @@
       "faceEnrollDev": "Face 5-angle enroll (dev)",
       "faceEnrollDevDesc": "Front · left · right · up · down shots → first clone call prep",
       "voiceLangTest": "Voice test",
-      "voiceLangTestDesc": "Hear the clone voice in each language"
+      "voiceLangTestDesc": "Hear the clone voice in each language",
+      "profileEdit": "Profile / personal info",
+      "deactivate": "Deactivate account (pause)",
+      "deactivateDesc": "Pause your account for a while",
+      "pushNotifications": "App push notifications",
+      "pushNotificationsDesc": "Notifications · inbox · invitations",
+      "faceSettings": "Face detection & recognition consent",
+      "faceSettingsDesc": "Face recognition · clones that remember me · call learning",
+      "blockedUsers": "Blocked users",
+      "reportsMenu": "Report / report history",
+      "termsConsent": "Terms & consents",
+      "termsConsentDesc": "View terms · marketing consent"
     },
     "logout": {
       "title": "Log out?",
@@ -840,6 +851,16 @@
       "otaEmergency": "OTA emergency run (embedded fallback)",
       "otaEmbedded": "OTA embedded",
       "otaUpdate": "OTA {{id}}"
+    },
+    "section": {
+      "account": "Account & privacy",
+      "notifications": "Notifications",
+      "face": "Face & biometrics",
+      "service": "Service & blocking",
+      "app": "App settings"
+    },
+    "deactivate": {
+      "soon": "Coming soon."
     }
   },
   "auth": {
@@ -1631,6 +1652,16 @@
       "deleteConfirmMessage": "{{name}} will forget you and delete your face data. This cannot be undone.",
       "deleteError": "Could not delete.",
       "deleteErrorTitle": "Delete failed"
+    },
+    "faceSettings": {
+      "title": "Face & biometrics",
+      "callLearning": "Call conversation learning",
+      "callLearningDesc": "Call learning is part of the AI data use & generation consent"
+    },
+    "termsConsent": {
+      "title": "Terms & consents",
+      "service": "Terms of Service",
+      "privacy": "Privacy Policy"
     }
   },
   "permissionGate": {
