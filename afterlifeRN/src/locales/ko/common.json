@@ -861,6 +861,13 @@
     },
     "deactivate": {
       "soon": "준비 중이에요."
+    },
+    "sectionDesc": {
+      "account": "프로필 · 계정 비활성화 · 회원탈퇴",
+      "notifications": "앱 푸시 알림 · 받은 알림 · 초대 현황",
+      "face": "얼굴 감지 및 인식 동의",
+      "service": "차단 · 신고 · 약관 및 동의 관리",
+      "app": "언어 설정"
     }
   },
   "auth": {
