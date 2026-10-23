@@ -442,3 +442,12 @@ def test_unconfirmed_instruction_only_on_direct_question():
     assert "직접 묻는 말일 때만" in s
     assert "얼굴·카메라 얘기를 꺼내지 말고" in s
     assert "</ask=who>" in s  # 닫는 태그 금지 문구
+
+
+def test_screen_state_has_no_unconditional_request():
+    # 괄호 속 화면 설명에 명령형이 있으면 LLM 이 조건과 무관하게 따른다(실통화: 인사에 "顔、見せてくれる？").
+    for q in ("dark", "small", "turned", "none", "ok"):
+        s = turn_face_instruction(tf(quality=q, verdict="insufficient"), None, NOW)
+        head = s.split(")", 1)[0]
+        assert "부탁" not in head and "달라고" not in head
+        assert "직접 묻는 말일 때만" in s
