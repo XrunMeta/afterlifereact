@@ -65,6 +65,7 @@ v_de7ba7.get("/search", v_6690d9, async (v_3f4e2e) => {
         `SELECT id, name, email, avatar_url AS avatarUrl
            FROM users
           WHERE deleted_at IS NULL
+            AND deactivated_at IS NULL
             AND deletion_state = 'active'
             AND id != ?
             AND id NOT IN (SELECT blocked_id FROM user_blocks WHERE blocker_id = ?)
@@ -1416,7 +1417,8 @@ v_de7ba7.post("/:id/follow", v_6690d9, async (v_3f4e2e) => {
   await v_5bb199(v_3f4e2e.env.DB, v_43e90c);
 
   const v_c3c3b0 = await v_3f4e2e.env.DB
-    .prepare(`SELECT id FROM users WHERE id = ? AND deleted_at IS NULL`)
+
+    .prepare(`SELECT id FROM users WHERE id = ? AND deleted_at IS NULL AND deactivated_at IS NULL`)
     .bind(v_b1de41)
     .first<{ id: number }>();
   if (!v_c3c3b0) throw new v_3ebe58("NOT_FOUND", "User not found.");
@@ -1563,10 +1565,11 @@ v_de7ba7.get("/:id", v_6690d9, async (v_3f4e2e) => {
 
   const v_3ac7e7 = await v_a1651b
     .prepare(
+
       `SELECT id, name, email, avatar_url AS avatarUrl, created_at AS createdAt
-         FROM users WHERE id = ? AND deleted_at IS NULL`,
+         FROM users WHERE id = ? AND deleted_at IS NULL AND (deactivated_at IS NULL OR id = ?)`,
     )
-    .bind(v_b1de41)
+    .bind(v_b1de41, v_013af2)
     .first<{
       id: number;
       name: string | null;

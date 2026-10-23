@@ -899,8 +899,8 @@
       "accountLocked": "账户已被锁定。请约 10 分钟后重试，或通过找回密码重置。",
       "accountDeletedTitle": "已注销的账户",
       "accountDeletedMessage": "该账户已完成注销，无法再次登录。",
-      "accountSuspendedTitle": "账户已被停用",
-      "accountSuspendedMessage": "因举报累积，账户已被停用。",
+      "accountSuspendedTitle": "账号已被暂停。",
+      "accountSuspendedMessage": "由于违反服务运营政策，您的账号已被暂停使用。\n联系: oth-staff@example.invalid",
       "googleUnavailableTitle": "无法使用 Google 登录",
       "googleUnavailableMessage": "请稍后再试。",
       "googleNoToken": "未能获取 Google 登录令牌。",
@@ -1095,6 +1095,12 @@
       "submit": "开始使用 afterlife",
       "googleOnboardingDesc": "首次使用 Google 账户，请填写一次基本信息。",
       "submitting": "处理中..."
+    },
+    "deactivated": {
+      "title": "该账号已停用。",
+      "message": "重新登录并恢复账号和 AI 克隆吗？",
+      "activate": "启用",
+      "failed": "无法启用，请重新登录。"
     }
   },
   "create": {
@@ -1874,7 +1880,7 @@
   },
   "errors": {
     "accountDeleted": "该账号已注销。",
-    "accountSuspended": "由于举报累积,账号已被停用。",
+    "accountSuspended": "由于违反服务运营政策，您的账号已被暂停使用。\n联系: oth-staff@example.invalid",
     "accountSuspendedForPersona": "由于举报累积账号已被暂时停用,无法创建 克隆。",
     "accountLocked": "账号已暂时锁定,请稍后再试。",
     "tooManyFailures": "失败次数过多,请稍后再试。",
@@ -2398,6 +2404,27 @@
       "subtitle": "为整合服务，条款已修订。\n请重新同意以下必选条款。",
       "saving": "处理中...",
       "continue": "同意并继续"
+    }
+  },
+  "deactivate": {
+    "whatHappens": "停用后",
+    "verify": "身份验证",
+    "byPassword": "密码",
+    "byEmail": "邮箱验证（社交账号）",
+    "passwordPlaceholder": "输入密码",
+    "sendCode": "向注册邮箱发送验证码",
+    "resendCode": "重新发送验证码",
+    "codeSent": "已发送至 {{email}}。",
+    "codePlaceholder": "6位验证码",
+    "submit": "停用",
+    "confirmTitle": "要停用账号吗？",
+    "confirmBody": "所有设备将立即退出登录。",
+    "effect": {
+      "hide": "你的资料和创建的 AI 克隆将从首页、探索和搜索中隐藏，其他人无法对话或通话。",
+      "posts": "你的帖子和评论将被隐藏。",
+      "interaction": "其他人无法向你发送礼物或分享。",
+      "notify": "所有通知将停止。",
+      "restore": "重新登录即可随时恢复，数据不会被删除。"
     }
   }
 }

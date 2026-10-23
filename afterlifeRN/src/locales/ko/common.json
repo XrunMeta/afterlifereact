@@ -899,8 +899,8 @@
       "accountLocked": "계정이 잠겼습니다. 약 10분 뒤 다시 시도하거나, 비밀번호 찾기로 재설정해 주십시오.",
       "accountDeletedTitle": "탈퇴한 계정입니다",
       "accountDeletedMessage": "이미 탈퇴 처리된 계정이라 다시 로그인할 수 없습니다.",
-      "accountSuspendedTitle": "계정 사용 정지",
-      "accountSuspendedMessage": "신고 누적으로 계정 사용이 정지되었습니다.",
+      "accountSuspendedTitle": "계정이 일시정지되었습니다.",
+      "accountSuspendedMessage": "서비스 운영 정책 위반으로 계정 이용이 정지되었습니다.\n문의: oth-staff@example.invalid",
       "googleUnavailableTitle": "구글 로그인을 사용할 수 없습니다",
       "googleUnavailableMessage": "잠시 후 다시 시도해 주십시오.",
       "googleNoToken": "Google 로그인 토큰을 받지 못했습니다.",
@@ -1095,6 +1095,12 @@
       "submit": "afterlife 시작하기",
       "googleOnboardingDesc": "Google 계정으로 처음 시작입니다. 기본 정보 한번만 입력해 주십시오.",
       "submitting": "처리 중..."
+    },
+    "deactivated": {
+      "title": "비활성화 중인 계정이에요.",
+      "message": "다시 로그인하여 원래대로 계정과 AI 클론을 사용할까요?",
+      "activate": "활성화",
+      "failed": "활성화하지 못했어요. 다시 로그인해 주세요."
     }
   },
   "create": {
@@ -1878,7 +1884,7 @@
   },
   "errors": {
     "accountDeleted": "이미 탈퇴한 계정입니다.",
-    "accountSuspended": "신고 누적으로 계정 사용이 정지되었습니다.",
+    "accountSuspended": "서비스 운영 정책 위반으로 계정 이용이 정지되었습니다.\n문의: oth-staff@example.invalid",
     "accountSuspendedForPersona": "신고 누적으로 계정이 일시 비활성화되어 클론을 생성할 수 없습니다.",
     "accountLocked": "계정이 잠시 잠겼습니다. 잠시 후 다시 시도해 주십시오.",
     "tooManyFailures": "실패가 너무 많습니다. 잠시 후 다시 시도해 주십시오.",
@@ -2402,6 +2408,27 @@
       "subtitle": "서비스 통합을 위해 약관이 개정되었습니다.\n아래 필수 약관에 다시 동의해 주세요.",
       "saving": "처리 중...",
       "continue": "동의하고 계속"
+    }
+  },
+  "deactivate": {
+    "whatHappens": "비활성화하면",
+    "verify": "본인 확인",
+    "byPassword": "비밀번호",
+    "byEmail": "이메일 인증 (소셜 계정)",
+    "passwordPlaceholder": "비밀번호 입력",
+    "sendCode": "가입 이메일로 인증코드 받기",
+    "resendCode": "인증코드 다시 받기",
+    "codeSent": "{{email}} 으로 보냈어요.",
+    "codePlaceholder": "6자리 인증코드",
+    "submit": "비활성화",
+    "confirmTitle": "계정을 비활성화할까요?",
+    "confirmBody": "모든 기기에서 바로 로그아웃돼요.",
+    "effect": {
+      "hide": "내 프로필과 내가 만든 AI 클론이 홈피드·탐색·검색에서 숨겨지고, 다른 사람이 대화·통화할 수 없어요.",
+      "posts": "내가 쓴 글과 댓글이 보이지 않아요.",
+      "interaction": "다른 사람이 선물·공유를 보낼 수 없어요.",
+      "notify": "모든 알림이 중단돼요.",
+      "restore": "다시 로그인하면 언제든 원래대로 되돌릴 수 있어요. 데이터는 지워지지 않아요."
     }
   }
 }

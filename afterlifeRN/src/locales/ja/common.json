@@ -899,8 +899,8 @@
       "accountLocked": "アカウントがロックされました。約10分後に再試行するか、パスワードを忘れた方から再設定してください。",
       "accountDeletedTitle": "退会済みのアカウントです",
       "accountDeletedMessage": "既に退会処理されたアカウントのため、再度ログインできません。",
-      "accountSuspendedTitle": "アカウント使用停止",
-      "accountSuspendedMessage": "通報の累積によりアカウントの使用が停止されました。",
+      "accountSuspendedTitle": "アカウントが一時停止されました。",
+      "accountSuspendedMessage": "サービス運営ポリシー違反により、アカウントの利用が停止されました。\nお問い合わせ: oth-staff@example.invalid",
       "googleUnavailableTitle": "Google ログインを使用できません",
       "googleUnavailableMessage": "しばらくしてから再度お試しください。",
       "googleNoToken": "Google ログイントークンを受け取れませんでした。",
@@ -1095,6 +1095,12 @@
       "submit": "アフターライフを始める",
       "googleOnboardingDesc": "Googleアカウントでの初回開始です。基本情報を一度だけ入力してください。",
       "submitting": "処理中..."
+    },
+    "deactivated": {
+      "title": "無効化中のアカウントです。",
+      "message": "再ログインして、アカウントとAIクローンを元通り使いますか？",
+      "activate": "有効化",
+      "failed": "有効化できませんでした。もう一度ログインしてください。"
     }
   },
   "create": {
@@ -1881,7 +1887,7 @@
   },
   "errors": {
     "accountDeleted": "このアカウントは既に退会しています。",
-    "accountSuspended": "通報が累積したためアカウントの利用が停止されています。",
+    "accountSuspended": "サービス運営ポリシー違反により、アカウントの利用が停止されました。\nお問い合わせ: oth-staff@example.invalid",
     "accountSuspendedForPersona": "通報の累積によりアカウントが一時的に無効になっているため、クローンを作成できません。",
     "accountLocked": "アカウントが一時的にロックされています。しばらくしてから再度お試しください。",
     "tooManyFailures": "失敗が多すぎます。しばらくしてから再度お試しください。",
@@ -2405,6 +2411,27 @@
       "subtitle": "サービス統合のため規約が改定されました。\n以下の必須規約に改めて同意してください。",
       "saving": "処理中...",
       "continue": "同意して続ける"
+    }
+  },
+  "deactivate": {
+    "whatHappens": "無効化すると",
+    "verify": "本人確認",
+    "byPassword": "パスワード",
+    "byEmail": "メール認証（ソーシャルアカウント）",
+    "passwordPlaceholder": "パスワードを入力",
+    "sendCode": "登録メールに認証コードを送る",
+    "resendCode": "認証コードを再送",
+    "codeSent": "{{email}} に送信しました。",
+    "codePlaceholder": "6桁の認証コード",
+    "submit": "無効化",
+    "confirmTitle": "アカウントを無効化しますか？",
+    "confirmBody": "すべての端末ですぐにログアウトされます。",
+    "effect": {
+      "hide": "プロフィールと作成したAIクローンがホーム・探索・検索から非表示になり、他の人は会話・通話できません。",
+      "posts": "投稿とコメントが非表示になります。",
+      "interaction": "他の人からギフト・共有を受け取れません。",
+      "notify": "すべての通知が止まります。",
+      "restore": "再ログインすればいつでも元に戻せます。データは削除されません。"
     }
   }
 }

@@ -1872,7 +1872,10 @@ v_f891e6.post("/:id/gift", v_6690d9, async (v_3f4e2e) => {
   }
 
   const v_eb25ce = await v_3f4e2e.env.DB
-    .prepare(`SELECT id, owner_id, admin_suspended_at FROM clones WHERE id = ? AND ${v_74c502()}`)
+
+    .prepare(`SELECT id, owner_id,
+                     COALESCE(admin_suspended_at, (SELECT u.deactivated_at FROM users u WHERE u.id = clones.owner_id)) AS admin_suspended_at
+                FROM clones WHERE id = ? AND ${v_74c502()}`)
     .bind(v_6e0fd3)
     .first<{ id: number; owner_id: number; admin_suspended_at: string | null }>();
   if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "페르소나를 찾을 수 없어요.");
