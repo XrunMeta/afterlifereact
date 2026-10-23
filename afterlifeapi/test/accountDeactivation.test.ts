@@ -33,7 +33,7 @@ v_469bf2("계정 비활성화", () => {
     const v_0c8987 = await v_bfb240(v_e0c7e8);
     const { accessToken: v_2ca7e0 } = (await (await v_182fdb(v_e0c7e8)).json()) as { accessToken: string };
 
-    v_4d37e3((await v_4f438a("/oth-path", { password: "Wrong999" }, v_2ca7e0)).status).toBe(401);
+    v_4d37e3((await v_4f438a("/oth-path", { password: "Wrong999" }, v_2ca7e0)).status).toBe(422);
 
     const v_8f00b9 = await v_4f438a("/oth-path", { password: v_8c880b }, v_2ca7e0);
     v_4d37e3(v_8f00b9.status).toBe(200);

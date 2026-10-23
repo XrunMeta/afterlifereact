@@ -1,6 +1,6 @@
 
 
-import v_a3453e, { v_5ab095 } from "bapkr";
+import v_a3453e, { v_c4deb2, v_5ab095 } from "bapkr";
 import { v_39a996, v_472849, v_19b633, v_79c4f2, v_4623af, v_3094a2 } from "rcmrninabrnb";
 import { v_ada615 } from "ixigazcpvfldbecwtbvavtbi";
 import { v_772971 } from "jmpfvteuuztnp";
@@ -11,6 +11,7 @@ import { v_1bfbd0 } from "../../components/constants";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_889fad } from "../../stores/dialogStore";
 import { v_84a859, v_ab34b7, v_2d81c4 } from "../../api/auth";
+import { v_8cf39a } from "../../lib/loginMethod";
 
 type Method = "password" | "email";
 
@@ -19,7 +20,11 @@ export default function v_f0969e() {
   const { t: v_8d41d7 } = v_772971();
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
   const v_d7d5a2 = v_1ed7d9((v_fd5f43) => v_fd5f43.logout);
-  const [v_bfe9b9, v_f12919] = v_5ab095<Method>("password");
+
+  const [v_bfe9b9, v_f12919] = v_5ab095<Method | null>(null);
+  v_c4deb2(() => {
+    void v_8cf39a().then((v_35f85c) => v_f12919(v_35f85c === "email" ? "password" : "email"));
+  }, []);
   const [v_adc076, v_52b279] = v_5ab095("");
   const [v_c99bd2, v_537cbb] = v_5ab095("");
   const [v_e83b97, v_19a0a2] = v_5ab095<string | null>(null);
@@ -94,20 +99,15 @@ export default function v_f0969e() {
           ))}
         </View>
 
-        <Text style={v_fd5f43.label}>{v_8d41d7("deactivate.verify", { defaultValue: "본인 확인" })}</Text>
-        <View style={v_fd5f43.tabs}>
-          {(["password", "email"] as Method[]).map((v_35f85c) => (
-            <TouchableOpacity key={v_35f85c} style={[v_fd5f43.tab, v_bfe9b9 === v_35f85c && v_fd5f43.tabOn]} onPress={() => v_f12919(v_35f85c)}>
-              <Text style={[v_fd5f43.tabText, v_bfe9b9 === v_35f85c && v_fd5f43.tabTextOn]}>
-                {v_35f85c === "password"
-                  ? v_8d41d7("deactivate.byPassword", { defaultValue: "비밀번호" })
-                  : v_8d41d7("deactivate.byEmail", { defaultValue: "이메일 인증 (소셜 계정)" })}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        <Text style={v_fd5f43.label}>
+          {v_bfe9b9 === "password"
+            ? v_8d41d7("deactivate.verifyPassword", { defaultValue: "본인 확인 · 비밀번호" })
+            : v_8d41d7("deactivate.verifyEmail", { defaultValue: "본인 확인 · 이메일 인증코드" })}
+        </Text>
 
-        {v_bfe9b9 === "password" ? (
+        {v_bfe9b9 === null ? (
+          <ActivityIndicator color={v_1bfbd0.zinc500} />
+        ) : v_bfe9b9 === "password" ? (
           <TextInput
             style={v_fd5f43.input}
             value={v_adc076}
@@ -158,11 +158,6 @@ const v_fd5f43 = v_472849.create({
   cardTitle: { fontSize: 15, fontWeight: "700", color: v_1bfbd0.zinc900 },
   bullet: { fontSize: 14, lineHeight: 20, color: v_1bfbd0.zinc700 },
   label: { marginTop: 8, fontSize: 13, fontWeight: "600", color: v_1bfbd0.zinc700 },
-  tabs: { flexDirection: "row", gap: 8 },
-  tab: { flex: 1, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: v_1bfbd0.zinc200, backgroundColor: v_1bfbd0.white, alignItems: "center" },
-  tabOn: { backgroundColor: v_1bfbd0.zinc900, borderColor: v_1bfbd0.zinc900 },
-  tabText: { fontSize: 13, color: v_1bfbd0.zinc700 },
-  tabTextOn: { color: v_1bfbd0.white, fontWeight: "600" },
   input: { borderWidth: 1, borderColor: v_1bfbd0.zinc200, borderRadius: 10, backgroundColor: v_1bfbd0.white, paddingHorizontal: 12, paddingVertical: 12, fontSize: 15, color: v_1bfbd0.zinc900 },
   secondaryBtn: { paddingVertical: 12, borderRadius: 10, borderWidth: 1, borderColor: v_1bfbd0.zinc300, alignItems: "center", backgroundColor: v_1bfbd0.white },
   secondaryBtnText: { fontSize: 14, fontWeight: "600", color: v_1bfbd0.zinc800 },
