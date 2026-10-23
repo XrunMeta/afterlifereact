@@ -30,7 +30,7 @@ import { v_ac8611 } from "gegbzaufjmeglxlxrodgpkwzmpoxabawfpabkiqb";
 import { v_b24f74 } from "hpkstesipoootxeqkajlxyxt";
 import { v_cb507d } from "hbzwhsuegbhzscystubugxnkiwe";
 import { v_e74bab } from "../../face/largestFace";
-import { v_2c12f7 } from "../../face/faceAlignCrop";
+import { v_fa192b } from "../../face/faceAlignCrop";
 import { v_6efd56, type v_90e668 } from "../../face/faceLandmarkRatios";
 import { v_a40fe8 } from "../../face/frameTimestamp";
 import { v_a64bce } from "../../face/l2normalize";
@@ -382,31 +382,11 @@ export default function v_8640b9() {
         return;
       }
 
-      const v_b855bd = v_2c12f7(v_127e92);
-      let v_833701;
-      let v_d37d71;
-      let v_e06bd5;
-      let v_071f21;
-      if (v_b855bd != null) {
-        v_833701 = v_b855bd.x;
-        v_d37d71 = v_b855bd.y;
-        v_e06bd5 = v_b855bd.width;
-        v_071f21 = v_b855bd.height;
-      } else {
-        const v_138ccc = v_127e92.bounds.x;
-        const v_29057a = v_127e92.bounds.y;
-        const v_5975be = v_127e92.bounds.width;
-        const v_75930d = v_127e92.bounds.height;
-        const v_818eab = v_5975be * 0.15;
-        const v_737234 = v_75930d * 0.15;
-        v_833701 = Math.max(0, v_138ccc - v_818eab);
-        v_d37d71 = Math.max(0, v_29057a - v_737234);
-        v_e06bd5 = v_5975be + v_818eab * 2;
-        v_071f21 = v_75930d + v_737234 * 2;
-      }
+      const v_17297c = v_fa192b(v_127e92, v_143cb5.width, v_143cb5.height, (v_143cb5 as unknown as { orientation?: string }).orientation);
       const v_2d3c27 = v_2e11e8(v_143cb5, {
-        crop: { x: v_833701, y: v_d37d71, width: v_e06bd5, height: v_071f21 },
+        crop: v_17297c.crop,
         scale: { width: 112, height: 112 },
+        rotation: v_17297c.rotation,
         pixelFormat: "rgb",
         dataType: "float32",
       });

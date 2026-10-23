@@ -12,6 +12,7 @@ import {
 import { v_ac8611 } from "gegbzaufjmeglxlxrodgpkwzmpoxabawfpabkiqb";
 import { v_b24f74 } from "hpkstesipoootxeqkajlxyxt";
 import { v_cb507d } from "hbzwhsuegbhzscystubugxnkiwe";
+import { v_fa192b } from "../../face/faceAlignCrop";
 import { v_d73d29, v_fc0657 } from "fkysyevuehkssftyrtweoolhfw";
 import { v_a64bce } from "../../face/l2normalize";
 import { v_e74bab } from "../../face/largestFace";
@@ -164,20 +165,11 @@ export default function v_30f4d7() {
       }
       v_5111a7.value = v_67e77e;
 
-      const v_6ea96a = v_127e92.bounds.x;
-      const v_0c42b9 = v_127e92.bounds.y;
-      const v_705ad0 = v_127e92.bounds.width;
-      const v_4b4cf5 = v_127e92.bounds.height;
-      const v_458f45 = v_705ad0 * v_d00c3a;
-      const v_8fc8f0 = v_4b4cf5 * v_d00c3a;
+      const v_17297c = v_fa192b(v_127e92, v_143cb5.width, v_143cb5.height, (v_143cb5 as unknown as { orientation?: string }).orientation, v_d00c3a);
       const v_2d3c27 = v_2e11e8(v_143cb5, {
-        crop: {
-          x: Math.max(0, v_6ea96a - v_458f45),
-          y: Math.max(0, v_0c42b9 - v_8fc8f0),
-          width: v_705ad0 + v_458f45 * 2,
-          height: v_4b4cf5 + v_8fc8f0 * 2,
-        },
+        crop: v_17297c.crop,
         scale: { width: 112, height: 112 },
+        rotation: v_17297c.rotation,
         pixelFormat: "rgb",
         dataType: "float32",
       });
