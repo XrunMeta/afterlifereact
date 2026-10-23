@@ -95,6 +95,16 @@ describe("useFaceCheckScheduler", () => {
     expect(v_576f5a.mock.calls.filter((v_3f4e2e) => v_3f4e2e[0] === "who_retry")).toHaveLength(1);
   });
 
+  test("who retry waits for the remaining playback too (remaining_ms + 2000)", () => {
+    const { request: v_576f5a, hook: v_ae701f } = v_9a4ebd();
+    v_be73a0(() => v_ae701f.result.current.onWhoAsked());
+    v_be73a0(() => v_ae701f.result.current.onCloneSpeechEnd(3000));
+    v_660ac0(4999);
+    expect(v_576f5a).not.toHaveBeenCalledWith("who_retry");
+    v_660ac0(1);
+    expect(v_576f5a).toHaveBeenLastCalledWith("who_retry");
+  });
+
   test("speech end before who asked does not start the retry", () => {
     const { request: v_576f5a, hook: v_ae701f } = v_9a4ebd();
     v_be73a0(() => v_ae701f.result.current.onCloneSpeechEnd(0));
@@ -142,6 +152,21 @@ describe("useFaceCheckScheduler", () => {
     v_be73a0(() => v_ae701f.result.current.onCycleDone()); 
     expect(v_576f5a).toHaveBeenCalledTimes(3);
     expect(v_576f5a.mock.calls.every((v_3f4e2e) => v_3f4e2e[0] === "burst")).toBe(true);
+  });
+
+  test("burst while a cycle is in flight defers the first request to that cycle's end", () => {
+    const v_576f5a = jest.fn();
+    let v_3f8465 = true;
+    const v_ae701f = v_0da18b(() => v_33d47b({ request: v_576f5a, userTurnActive: true, isBusy: () => v_3f8465 }));
+    v_be73a0(() => v_ae701f.result.current.burst(3));
+    expect(v_576f5a).not.toHaveBeenCalled(); 
+    v_3f8465 = false;
+    v_be73a0(() => v_ae701f.result.current.onCycleDone());
+    v_be73a0(() => v_ae701f.result.current.onCycleDone());
+    v_be73a0(() => v_ae701f.result.current.onCycleDone());
+    expect(v_576f5a).toHaveBeenCalledTimes(3); 
+    v_be73a0(() => v_ae701f.result.current.onCycleDone());
+    expect(v_576f5a).toHaveBeenCalledTimes(3);
   });
 
   test("burst stops after the 1000ms hold even if cycles keep finishing", () => {

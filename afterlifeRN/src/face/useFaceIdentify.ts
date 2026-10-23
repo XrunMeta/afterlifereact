@@ -207,6 +207,8 @@ export interface UseFaceIdentifyResult {
   getBuffer: () => v_4f64ba;
 
   resetRecognition: () => void;
+
+  isInFlight: () => boolean;
 }
 
 export function v_e9685b(v_328259): UseFaceIdentifyResult {
@@ -326,5 +328,6 @@ export function v_e9685b(v_328259): UseFaceIdentifyResult {
     [v_d20c84, v_2ca7e0, v_6e0fd3, v_68885c, v_32837c, v_faccce, v_84b93d, v_5de650, v_d23335],
   );
 
-  return { onEmbedding: v_7167fd, getBuffer: () => v_5228f1.current, resetRecognition: v_4921f9 };
+  const v_e50531 = v_de06a3(() => v_9468fd.current, []);
+  return { onEmbedding: v_7167fd, getBuffer: () => v_5228f1.current, resetRecognition: v_4921f9, isInFlight: v_e50531 };
 }

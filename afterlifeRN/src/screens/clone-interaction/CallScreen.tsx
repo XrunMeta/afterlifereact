@@ -798,15 +798,17 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       const meta = cycleMetaRef.current;
       cycleMetaRef.current = null;
       if (c.personId != null) personNamesRef.current.set(c.personId, c.displayName);
+
+      const named = c.personId != null && !!(c.displayName?.trim() || personNameOfRef.current(c.personId));
       const sample: TurnSample = {
-        personId: c.personId,
+        personId: named ? c.personId : null,
         score: c.score,
         quality: meta?.quality ?? "ok",
         atMs: Date.now(),
       };
       turnFaceGate.addSample(sample);
       console.log(
-        `[Call][face] cycle trigger=${meta?.trigger ?? "?"} person=${c.personId ?? "none"} ` +
+        `[Call][face] cycle trigger=${meta?.trigger ?? "?"} person=${c.personId ?? "none"}${c.personId != null && !named ? "(unnamed)" : ""} ` +
           `score=${c.score.toFixed(3)} q=${sample.quality} infer=${meta?.inferMs ?? "?"}ms`,
       );
       if (whoRetryArm.take()) resolveWhoRetry(sample, c.displayName);
@@ -818,6 +820,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     onEmbedding: onFaceEmbedding,
     getBuffer: getFaceEmbeddingBuffer,
     resetRecognition: resetSpeakerRecognition,
+    isInFlight: isFaceCycleInFlight,
   } = useFaceIdentify({
 
     enabled: consentGranted && liveState === "live" && faceIdentifyEnabled,
@@ -1467,7 +1470,11 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     },
     [embedRequested, whoRetryArm],
   );
-  const faceCheck = useFaceCheckScheduler({ request: requestFaceCheck, userTurnActive: userSpeaking });
+  const faceCheck = useFaceCheckScheduler({
+    request: requestFaceCheck,
+    userTurnActive: userSpeaking,
+    isBusy: isFaceCycleInFlight,
+  });
   faceCheckRef.current = faceCheck;
 
   whoAskedImplRef.current = () => {
