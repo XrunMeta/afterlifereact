@@ -816,7 +816,9 @@
       "faceEnrollDev": "顔5角度登録 (dev)",
       "faceEnrollDevDesc": "正面·左·右·上·下撮影 → clones初回通話準備",
       "voiceLangTest": "音声テスト",
-      "voiceLangTestDesc": "言語ごとのクローン音声を試す"
+      "voiceLangTestDesc": "言語ごとのクローン音声を試す",
+      "faceEnroll": "顔の登録",
+      "faceEnrollDesc": "ペルソナごとに顔を登録"
     },
     "logout": {
       "title": "ログアウトしますか?",
