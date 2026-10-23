@@ -1274,7 +1274,6 @@
       "recordStartFailedMsg": "Gagal memulai rekaman. Silakan coba lagi nanti.",
       "chooseScriptHint": "Silakan pilih skrip dan baca.",
       "uploading": "Mengunggah...",
-      "cloneJobRegistered": "Tugas kloning terdaftar",
       "recordDoneUploadFailed": "Rekaman selesai (unggah gagal — mencoba ulang)",
       "uploadPromptHint": "Silakan unggah file suara",
       "pickAnother": "Pilih file lain",
@@ -1296,7 +1295,9 @@
       "toastNoise": "Sekitar Anda bising. Mohon rekam di tempat yang tenang.",
       "recordQualityTitle": "Periksa kualitas rekaman",
       "recordQualitySilenceMsg": "Rekaman memiliki banyak bagian hening. Mohon rekam ulang seluruh kalimat dengan jelas di tempat yang tenang.",
-      "recordQualityNoiseMsg": "Rekaman tercampur suara bising. Merekam ulang di tempat yang tenang akan membuat suara jauh lebih alami."
+      "recordQualityNoiseMsg": "Rekaman tercampur suara bising. Merekam ulang di tempat yang tenang akan membuat suara jauh lebih alami.",
+      "registeredFile": "File suara berhasil didaftarkan.",
+      "registeredRecording": "Rekaman suara berhasil didaftarkan."
     },
     "visibility": {
       "memlowLocked": "Klon Kenangan diatur sebagai pribadi. Hanya ko-admin yang dapat melihat.",
