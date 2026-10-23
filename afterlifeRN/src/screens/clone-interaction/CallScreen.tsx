@@ -109,6 +109,7 @@ import {
   selfConfirm,
   fetchFacePolicy,
   enrollFaces,
+  faceMatcher,
   type Person,
 } from "../../api/persons";
 import { AuthApiError } from "../../api/auth";
@@ -2805,6 +2806,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
   useEffect(() => {
     console.log(`[Call][flow] +${Date.now()} CallScreen mount cloneId=${cloneId} name=${paramName ?? "?"} hasImage=${!!paramImage}`);
+
+    faceMatcher.invalidate();
 
   }, []);
 
