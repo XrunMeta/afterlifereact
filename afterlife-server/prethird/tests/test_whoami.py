@@ -546,3 +546,44 @@ def test_who_insufficient_asks_camera_with_quality_hint():
 def test_who_known_but_server_not_swapped_is_not_named():
     s = turn_face_instruction(tf(verdict="switch", quality="ok", personId=2, score=0.9, who="self", speaker_ok=False), "지호", NOW)
     assert "지호" not in s and "확인되지 않았다" in s and "처음 보는" not in s
+
+
+# ---------------------------------------------------------------------------
+# 2026-10-23: 이름 반복 억제 — 직전 답에 이름을 불렀으면 다음 턴은 부르지 않게
+# ---------------------------------------------------------------------------
+
+_NO_REPEAT = "직전 답에서 이미"
+
+
+async def test_pipeline_suppresses_name_right_after_reply_with_name(monkeypatch):
+    _fast_bridge(monkeypatch)
+    seen = []
+    pipe = _make_pipe(["<lang=ko>", "오른이잖아"], seen)
+    pipe.current_speaker_name = "오른"
+    await pipe.say("나 누구야?", turn_face={"verdict": "known", "who": "self", "personId": 175,
+                                            "score": 0.8, "quality": "ok", "at": time.monotonic()})
+    assert not any(_NO_REPEAT in c for c in _sys_texts(seen[0]))   # 누구냐 턴은 억제 없음
+    await pipe.say("오늘 뭐 했어?", turn_face={"verdict": "known", "personId": 175, "score": 0.8,
+                                               "quality": "ok", "at": time.monotonic()})
+    assert any(_NO_REPEAT in c and "'오른'" in c for c in _sys_texts(seen[1]))
+
+
+async def test_pipeline_no_suppression_when_last_reply_had_no_name(monkeypatch):
+    _fast_bridge(monkeypatch)
+    seen = []
+    pipe = _make_pipe(["<lang=ko>", "좋았어"], seen)
+    pipe.current_speaker_name = "오른"
+    await pipe.say("안녕", turn_face=None)
+    await pipe.say("오늘 뭐 했어?", turn_face=None)
+    assert not any(_NO_REPEAT in c for c in _sys_texts(seen[1]))
+
+
+async def test_pipeline_who_turn_is_not_suppressed_even_after_name(monkeypatch):
+    _fast_bridge(monkeypatch)
+    seen = []
+    pipe = _make_pipe(["<lang=ko>", "오른이잖아"], seen)
+    pipe.current_speaker_name = "오른"
+    await pipe.say("나 누구야?", turn_face=None)
+    await pipe.say("나 누구라고?", turn_face={"verdict": "known", "who": "self", "personId": 175,
+                                              "score": 0.8, "quality": "ok", "at": time.monotonic()})
+    assert not any(_NO_REPEAT in c for c in _sys_texts(seen[1]))
