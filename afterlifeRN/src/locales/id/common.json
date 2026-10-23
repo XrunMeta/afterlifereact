@@ -816,7 +816,9 @@
       "faceEnrollDev": "Daftar wajah 5 sudut (dev)",
       "faceEnrollDevDesc": "Depan·kiri·kanan·atas·bawah → siap panggilan pertama",
       "voiceLangTest": "Tes suara",
-      "voiceLangTestDesc": "Dengarkan suara klon per bahasa"
+      "voiceLangTestDesc": "Dengarkan suara klon per bahasa",
+      "faceEnroll": "Daftar wajah",
+      "faceEnrollDesc": "Daftarkan wajah untuk tiap persona"
     },
     "logout": {
       "title": "Keluar?",
