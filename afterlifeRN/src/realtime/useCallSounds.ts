@@ -6,7 +6,7 @@ import { v_e82960 } from 'qmmwyqbwrg';
 export function v_efd35e() {
 
   const v_9e1212 = v_df9f57(() => {
-    const v_e2a85c = v_e82960(require('../../assets/sfx/dialing_soft.m4a'));
+    const v_e2a85c = v_e82960(require('../../assets/sfx/ringback.mp3'));
     v_e2a85c.loop = true;
     return v_e2a85c;
   }, []);
