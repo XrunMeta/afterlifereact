@@ -1383,7 +1383,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       console.log(
         `[Call][face] turn verdict=${v.kind} n=${samples.length} held=${Date.now() - heldStart}ms who=${who ?? "-"}`,
       );
-      sendTurnFace?.({ ...v, retry: false, who });
+      sendTurnFace?.({ ...v, retry: false, who, noFaces: samples.some((x) => x.noCandidates === true) });
       const displayName = personNameOfRef.current(v.personId);
       if (who && v.kind !== "insufficient") {
 

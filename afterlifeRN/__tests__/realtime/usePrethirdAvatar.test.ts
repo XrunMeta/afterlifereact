@@ -399,7 +399,7 @@ describe('AFL-1039 sendTurnFace / who_asked', () => {
       v_43c42e.current.sendTurnFace!({ kind: 'switch', personId: 4, score: 0.71, quality: 'ok', retry: false });
     });
     const v_f966e3 = v_32dc97.sent.map((v_fd5f43) => JSON.parse(v_fd5f43));
-    expect(v_f966e3[0]).toEqual({ type: 'turn_face', verdict: 'switch', quality: 'ok', personId: 4, score: 0.71, retry: false, who: null });
+    expect(v_f966e3[0]).toEqual({ type: 'turn_face', verdict: 'switch', quality: 'ok', personId: 4, score: 0.71, retry: false, who: null, noFaces: false });
   });
 
   it('sendTurnFace — personId/score null 도 그대로, retry:true', async () => {
@@ -411,7 +411,7 @@ describe('AFL-1039 sendTurnFace / who_asked', () => {
       v_43c42e.current.sendTurnFace!({ kind: 'insufficient', personId: null, score: null, quality: 'none', retry: true });
     });
     const v_f966e3 = v_32dc97.sent.map((v_fd5f43) => JSON.parse(v_fd5f43));
-    expect(v_f966e3[0]).toEqual({ type: 'turn_face', verdict: 'insufficient', quality: 'none', personId: null, score: null, retry: true, who: null });
+    expect(v_f966e3[0]).toEqual({ type: 'turn_face', verdict: 'insufficient', quality: 'none', personId: null, score: null, retry: true, who: null, noFaces: false });
   });
 
   it('sendTurnFace — "누구냐" 질문 턴은 who 를 싣는다', async () => {
