@@ -83,5 +83,8 @@ export function v_686e50(
   const v_fbc0a4 = v_c67510.reduce((v_779914, v_148ff6) => (v_148ff6.score > v_779914.score ? v_148ff6 : v_779914));
   const v_643757 =
     v_fbc0a4.score >= v_43c42e.threshold && (v_43c42e.best == null || v_fbc0a4.score > v_43c42e.best.score) ? v_fbc0a4 : v_43c42e.best;
+  if (v_643757 === v_fbc0a4) {
+    console.log(`[Call][face] 등록 직후 앱 대조 → person=${v_fbc0a4.personId} score=${v_fbc0a4.score.toFixed(3)} (서버 best=${v_43c42e.best?.personId ?? "없음"})`);
+  }
   return { ...v_43c42e, matches: v_a49907, best: v_643757 };
 }
