@@ -831,7 +831,9 @@ class DialoguePipeline:
         #   확정·스왑을 못 마쳤으면 이번 턴에는 이름을 어디에도 넣지 않는다(T-566 힌트·이름 부르기
         #   힌트·확인 말투 전부). current_speaker·persona(L2') 는 그대로 둔다 — 이번 턴 프롬프트만.
         _tf_now = time.monotonic()
-        if not turn_face_names_allowed(turn_face, _tf_now):
+        # 확정된 화자가 있으면 얼굴이 안 잡힌 턴(insufficient)도 그 화자로 유지한다(whoami._unconfirmed).
+        _has_speaker = bool(_speaker_now)
+        if not turn_face_names_allowed(turn_face, _tf_now, _has_speaker):
             _speaker_now = None
         if _speaker_now:
             messages = messages + [{
@@ -860,7 +862,7 @@ class DialoguePipeline:
             messages = messages + [{"role": "system", "content": _tf_rule}]
 
         _hint = getattr(self, "name_mention_hint", None)
-        if _hint and not turn_face_names_allowed(turn_face, _tf_now):
+        if _hint and not turn_face_names_allowed(turn_face, _tf_now, _has_speaker):
             # 미확인 턴 — 이름 부르기 힌트는 쓰지 않고 버린다(다음 턴에 다른 사람에게 새지 않게).
             self.name_mention_hint = None
             _hint = None
