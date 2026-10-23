@@ -816,7 +816,9 @@
       "faceEnrollDev": "面部5角度登记 (dev)",
       "faceEnrollDevDesc": "正面·左·右·上·下拍摄 → 克隆首次通话准备",
       "voiceLangTest": "声音测试",
-      "voiceLangTestDesc": "试听各语言的克隆声音"
+      "voiceLangTestDesc": "试听各语言的克隆声音",
+      "faceEnroll": "面部注册",
+      "faceEnrollDesc": "为每个角色注册面部"
     },
     "logout": {
       "title": "要退出登录吗?",

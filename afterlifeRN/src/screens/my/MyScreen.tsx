@@ -259,6 +259,12 @@ export default function v_ed02a5() {
           labelKey: "my.menu.voiceLangTest",
           descKey: "my.menu.voiceLangTestDesc",
           route: "VoiceLangTest" as const,
+        }, {
+
+          icon: "smile" as const,
+          labelKey: "my.menu.faceEnroll",
+          descKey: "my.menu.faceEnrollDesc",
+          route: "FaceEnrollSettings" as const,
         }]
       : []),
     {
