@@ -35,41 +35,41 @@ function v_29757a(v_5b2623): number | null {
   return v_5b2623.reduce((v_35f85c, v_62c214) => (v_62c214.score > v_35f85c ? v_62c214.score : v_35f85c), v_5b2623[0].score);
 }
 
+export function v_2ec84d(v_5b2623): TurnSample | null {
+  for (let v_ebec57 = v_5b2623.length - 1; v_ebec57 >= 0; v_ebec57--) {
+    const v_62c214 = v_5b2623[v_ebec57];
+    if (v_62c214.personId != null && v_e0418a(v_62c214)) return v_62c214;
+  }
+  return null;
+}
+
 export function v_6fea6b(v_5b2623, v_34a66a): TurnVerdict {
   const v_506e86 = v_5b2623.length > 0 ? v_5b2623[v_5b2623.length - 1] : null;
   const lastQuality: v_13de12 = v_506e86 ? v_506e86.quality : "none";
 
-  if (v_5b2623.length < v_3f2d5d) {
-    return { kind: "insufficient", personId: null, score: null, quality: v_3a9e05 };
-  }
-
   const v_4cd692 = v_5b2623.slice(-v_3f2d5d);
-  const v_ea719c = v_4cd692[0].personId;
 
-  if (v_4cd692.every((v_62c214) => v_62c214.personId === null)) {
-    if (v_4cd692.every(v_e0418a)) {
-      return { kind: "unknown", personId: null, score: v_29757a(v_4cd692), quality: v_3a9e05 };
-    }
+  if (!v_4cd692.some(v_e0418a)) {
     return { kind: "insufficient", personId: null, score: null, quality: v_3a9e05 };
   }
 
-  if (v_ea719c !== null && v_4cd692.every((v_62c214) => v_62c214.personId === v_ea719c)) {
+  const v_63db2f = v_2ec84d(v_4cd692);
+  if (v_63db2f) {
+    const v_d4923e = v_63db2f.personId as number;
     return {
-      kind: v_ea719c === v_34a66a ? "known" : "switch",
-      personId: v_ea719c,
-      score: v_29757a(v_4cd692),
+      kind: v_d4923e === v_34a66a ? "known" : "switch",
+      personId: v_d4923e,
+      score: v_63db2f.score,
       quality: v_3a9e05,
     };
+  }
+
+  if (v_4cd692.length >= v_3f2d5d && v_4cd692.every(v_e0418a)) {
+    return { kind: "unknown", personId: null, score: v_29757a(v_4cd692), quality: v_3a9e05 };
   }
 
   if (v_34a66a !== null) {
-    const v_e4f965 = v_4cd692.filter((v_62c214) => v_62c214.personId === v_34a66a);
-    return {
-      kind: "known",
-      personId: v_34a66a,
-      score: v_29757a(v_e4f965),
-      quality: v_3a9e05,
-    };
+    return { kind: "known", personId: v_34a66a, score: null, quality: v_3a9e05 };
   }
   return { kind: "insufficient", personId: null, score: null, quality: v_3a9e05 };
 }
