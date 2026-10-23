@@ -543,8 +543,6 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
   const [liveVoiceModelManifestUrl, setLiveVoiceModelManifestUrl] = useState<string | null>(null);
 
-  const [liveIdleVideoUrl, setLiveIdleVideoUrl] = useState<string | null>(null);
-
   const {
     state: liveState,
     remoteStream,
@@ -603,7 +601,6 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
           setLiveVisemePrefix(vp);
           setLiveTtsOutput(to);
           setLiveVoiceModelManifestUrl(vmu);
-          setLiveIdleVideoUrl(iv);
           if (__DEV__) console.log(`[T-467] livePipeline for clone ${cloneId} = ${p} · visemePrefix = ${vp ? "set" : "null"} · ttsOutput = ${to ?? "null"} · voiceManifest = ${vmu ? "set" : "null"} · idleVideo = ${iv ? "set" : "null"}`);
 
           const needsIdleAsset = p === 'musetalk' || p === 'echomimic_v3';
@@ -2008,13 +2005,6 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     p.muted = true;
   });
 
-  const idlePlayer = useVideoPlayer(liveIdleVideoUrl, (p) => {
-    p.loop = true;
-    p.muted = true;
-    if (liveIdleVideoUrl) {
-      try { p.play(); } catch {  }
-    }
-  });
   const triggerEmote = useCallback(
     (key: EmoteKey, emoji: string, label: string) => {
       if (emoteTimerRef.current) clearTimeout(emoteTimerRef.current);
