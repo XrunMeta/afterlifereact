@@ -68,11 +68,7 @@ import type { Face as DetectorFace } from "react-native-vision-camera-face-detec
 import { useTensorflowModel } from "react-native-fast-tflite";
 import { useResizePlugin } from "vision-camera-resize-plugin";
 import { useSharedValue } from "react-native-worklets-core";
-import {
-  INITIAL_FACE_COUNT_TRIGGER,
-  stepFaceCountTrigger,
-  type FaceCountTriggerState,
-} from "../../face/faceCountTrigger";
+import { INITIAL_FACE_COUNT_TRIGGER, stepFaceCountTrigger } from "../../face/faceCountTrigger";
 import { useFaceDetection } from "../../hooks/useFaceDetection";
 import { largestFace, significantFaces } from "../../face/largestFace";
 import { normalizeFrameTimestampMs } from "../../face/frameTimestamp";
@@ -657,7 +653,10 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
   const embedFaceCountTrigger = useSharedValue(false);
 
-  const faceCountTrig = useSharedValue<FaceCountTriggerState>(INITIAL_FACE_COUNT_TRIGGER);
+  const fcStable = useSharedValue(INITIAL_FACE_COUNT_TRIGGER.stable);
+  const fcPending = useSharedValue(INITIAL_FACE_COUNT_TRIGGER.pending);
+  const fcPendingSince = useSharedValue(INITIAL_FACE_COUNT_TRIGGER.pendingSinceMs);
+  const fcLastTrigger = useSharedValue(INITIAL_FACE_COUNT_TRIGGER.lastTriggerMs);
   const isAndroidFrame = Platform.OS === "android";
 
   const embedAllowed = useSharedValue(true);
@@ -1246,12 +1245,26 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
       const sigFaces = significantFaces(faces, largestFace(faces));
       const curFaceCount = sigFaces.length;
+
+      const rawTs = (frame as unknown as { timestamp?: number }).timestamp;
+      const fcNowMs =
+        typeof rawTs === "number" && Number.isFinite(rawTs) && rawTs > 0
+          ? normalizeFrameTimestampMs(rawTs, isAndroidFrame)
+          : Date.now();
       const fc = stepFaceCountTrigger(
-        faceCountTrig.value,
+        {
+          stable: fcStable.value,
+          pending: fcPending.value,
+          pendingSinceMs: fcPendingSince.value,
+          lastTriggerMs: fcLastTrigger.value,
+        },
         curFaceCount,
-        normalizeFrameTimestampMs(frame.timestamp, isAndroidFrame),
+        fcNowMs,
       );
-      faceCountTrig.value = fc.state;
+      fcStable.value = fc.state.stable;
+      fcPending.value = fc.state.pending;
+      fcPendingSince.value = fc.state.pendingSinceMs;
+      fcLastTrigger.value = fc.state.lastTriggerMs;
       if (fc.trigger && embedAllowed.value) {
         embedRequested.value = true;
         embedFaceCountTrigger.value = true;
@@ -1321,7 +1334,10 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       handleFacesOnJS,
       faceEmbedModel,
       resize,
-      faceCountTrig,
+      fcStable,
+      fcPending,
+      fcPendingSince,
+      fcLastTrigger,
       isAndroidFrame,
       embedAllowed,
       embedRequested,
