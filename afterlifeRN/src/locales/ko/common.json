@@ -827,7 +827,12 @@
       "blockedUsers": "차단 사용자 관리",
       "reportsMenu": "신고하기 / 신고 내역",
       "termsConsent": "약관 및 동의 관리",
-      "termsConsentDesc": "약관 보기 · 마케팅 정보 수신 동의"
+      "termsConsentDesc": "약관 보기 · 마케팅 정보 수신 동의",
+      "notificationsListShort": "알림 리스트",
+      "faceDetect": "얼굴 감지",
+      "faceDetectDesc": "나를 기억하는 클론",
+      "faceRecognition": "얼굴 인식 동의",
+      "faceRecognitionDesc": "조용한 자동등록 · 얼굴 인식 약관 · 통화 대화 학습"
     },
     "logout": {
       "title": "로그아웃할까요?",
@@ -864,8 +869,8 @@
     },
     "sectionDesc": {
       "account": "프로필 · 계정 비활성화 · 회원탈퇴",
-      "notifications": "앱 푸시 알림 · 받은 알림 · 초대 현황",
-      "face": "얼굴 감지 및 인식 동의",
+      "notifications": "알림 설정 · 알림 리스트",
+      "face": "얼굴 감지 · 얼굴 인식 동의",
       "service": "차단 · 신고 · 약관 및 동의 관리",
       "app": "언어 설정"
     }

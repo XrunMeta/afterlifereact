@@ -3,7 +3,7 @@
 import v_a3453e from "bapkr";
 import { v_39a996, v_472849, v_19b633, v_4623af, v_3094a2 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
-import { v_ada615, v_2d8264, type v_ee3714 } from "ixigazcpvfldbecwtbvavtbi";
+import { v_650cfa, v_ada615, v_2d8264, type v_ee3714 } from "ixigazcpvfldbecwtbvavtbi";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import { v_772971 } from "jmpfvteuuztnp";
 
@@ -68,17 +68,28 @@ export default function v_1619c2() {
           },
         ];
       case "notifications":
+
         return [
           {
-            key: "push", icon: "bell", labelKey: "my.menu.pushNotifications", label: "앱 푸시 알림",
-            descKey: "my.menu.pushNotificationsDesc", onPress: () => v_c65f5d.navigate("NotificationSettings"),
+            key: "push", icon: "bell", labelKey: "my.menu.notifications", label: "알림 설정",
+            descKey: "settings.notifications.title", onPress: () => v_c65f5d.navigate("NotificationSettings"),
+          },
+          {
+            key: "list", icon: "inbox", labelKey: "my.menu.notificationsListShort", label: "알림 리스트",
+            descKey: "my.menu.notificationsListDesc",
+            onPress: () => v_c65f5d.getParent()?.dispatch(v_650cfa.navigate({ name: "Notifications" })),
           },
         ];
       case "face":
+
         return [
           {
-            key: "face", icon: "smile", labelKey: "my.menu.faceSettings", label: "얼굴 감지 및 인식 동의",
-            descKey: "my.menu.faceSettingsDesc", onPress: () => v_c65f5d.navigate("Agreements", { section: "face" }),
+            key: "detect", icon: "eye", labelKey: "my.menu.faceDetect", label: "얼굴 감지",
+            descKey: "my.menu.faceDetectDesc", onPress: () => v_c65f5d.navigate("RememberingClones"),
+          },
+          {
+            key: "recog", icon: "smile", labelKey: "my.menu.faceRecognition", label: "얼굴 인식 동의",
+            descKey: "my.menu.faceRecognitionDesc", onPress: () => v_c65f5d.navigate("Agreements", { section: "face" }),
           },
         ];
       case "service":
