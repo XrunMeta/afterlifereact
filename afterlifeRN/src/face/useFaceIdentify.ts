@@ -71,9 +71,11 @@ export async function v_f644ce(
   selfMatch: boolean;
 
   threshold: number | null;
+
+  effectiveScore: number | null;
 }> {
   if (v_67e77e < v_b6e533.backoffUntilMs) {
-    return { state: v_b6e533, event: null, cycle: null, selfMatch: false, threshold: null };
+    return { state: v_b6e533, event: null, cycle: null, selfMatch: false, threshold: null, effectiveScore: null };
   }
 
   let result: v_ac8014;
@@ -85,7 +87,7 @@ export async function v_f644ce(
       v_3b90a4 >= v_65c90d
         ? v_67e77e + v_dd916a
         : v_b6e533.backoffUntilMs;
-    return { state: { ...v_b6e533, consecutiveFailures: v_3b90a4, backoffUntilMs: v_b93b45 }, event: null, cycle: null, selfMatch: false, threshold: null };
+    return { state: { ...v_b6e533, consecutiveFailures: v_3b90a4, backoffUntilMs: v_b93b45 }, event: null, cycle: null, selfMatch: false, threshold: null, effectiveScore: null };
   }
 
   let v_d2fcdb = v_43c42e.best?.personId ?? null;
@@ -167,6 +169,7 @@ export async function v_f644ce(
     cycle: v_bdad26,
     selfMatch: v_43c42e.selfMatch === true && v_d2fcdb == null,
     threshold: v_43c42e.threshold,
+    effectiveScore: v_7f9794,
   };
 }
 
@@ -188,6 +191,10 @@ export interface UseFaceIdentifyOptions {
 
   onSelfMatch?: (selfMatch: boolean) => void;
 
+  onCycle?: (c: { personId: number | null; score: number; displayName: string | null }) => void;
+
+  onCycleEnd?: () => void;
+
   deps?: IdentifyCycleDeps;
 
   now?: () => number;
@@ -195,15 +202,17 @@ export interface UseFaceIdentifyOptions {
 
 export interface UseFaceIdentifyResult {
 
-  onEmbedding: (raw: number[]) => void;
+  onEmbedding: (raw: number[]) => boolean;
 
   getBuffer: () => v_4f64ba;
 
   resetRecognition: () => void;
+
+  isInFlight: () => boolean;
 }
 
 export function v_e9685b(v_328259): UseFaceIdentifyResult {
-  const { enabled: v_d20c84, accessToken: v_2ca7e0, cloneId: v_6e0fd3, onEvent: v_68885c, onDiag: v_32837c, calibrate: v_faccce, onCollected: v_d23335, onSelfMatch: v_548612, getCurrentLandmark: v_bed13d } = v_328259;
+  const { enabled: v_d20c84, accessToken: v_2ca7e0, cloneId: v_6e0fd3, onEvent: v_68885c, onDiag: v_32837c, calibrate: v_faccce, onCollected: v_d23335, onSelfMatch: v_548612, onCycle: v_e028d7, getCurrentLandmark: v_bed13d } = v_328259;
   const v_84b93d = v_df9f57<IdentifyCycleDeps>(
     () => v_328259.deps ?? { matchFaceFn: v_afc2e6, getCurrentLandmark: v_bed13d },
     [v_328259.deps, v_bed13d],
@@ -213,6 +222,11 @@ export function v_e9685b(v_328259): UseFaceIdentifyResult {
   const v_8d3dea = v_e662ae<IdentifyCycleState>(v_48b3dc);
   const v_5228f1 = v_e662ae<v_4f64ba>(new v_4f64ba());
   const v_9468fd = v_e662ae(false);
+
+  const v_fa87f6 = v_e662ae(v_e028d7);
+  v_fa87f6.current = v_e028d7;
+  const v_2e2909 = v_e662ae(v_328259.onCycleEnd);
+  v_2e2909.current = v_328259.onCycleEnd;
 
   const v_4921f9 = v_de06a3(() => {
 
@@ -225,16 +239,24 @@ export function v_e9685b(v_328259): UseFaceIdentifyResult {
   }, [v_5de650]);
 
   const v_7167fd = v_de06a3(
-    (v_479f05) => {
-      if (!v_d20c84 || !v_2ca7e0) return;
-      if (v_9468fd.current) return; 
+    (v_479f05): boolean => {
+      if (!v_d20c84 || !v_2ca7e0) return false;
+      if (v_9468fd.current) return false; 
       const v_46ff7a = v_a64bce(Float32Array.from(v_479f05));
       v_5228f1.current.push(v_46ff7a);
       v_9468fd.current = true;
       void v_f644ce(v_8d3dea.current, v_46ff7a, v_2ca7e0, v_6e0fd3, v_5de650(), v_84b93d)
-        .then(({ state: v_b6e533, event: v_d48baf, cycle: v_bdad26, selfMatch: v_a74d7a, threshold: v_d361d7 }) => {
+        .then(({ state: v_b6e533, event: v_d48baf, cycle: v_bdad26, selfMatch: v_a74d7a, threshold: v_d361d7, effectiveScore: v_7f9794 }) => {
           v_8d3dea.current = v_b6e533;
           if (v_bdad26) v_548612?.(v_a74d7a);
+          if (v_bdad26) {
+            try {
+              v_fa87f6.current?.({ personId: v_bdad26.personId, score: v_7f9794 ?? v_bdad26.score, displayName: v_bdad26.displayName });
+            } catch (v_49263d) {
+
+              console.warn("[useFaceIdentify] onCycle threw:", v_49263d);
+            }
+          }
           if (v_d48baf) v_68885c(v_d48baf);
 
           if (v_bdad26) {
@@ -294,11 +316,18 @@ export function v_e9685b(v_328259): UseFaceIdentifyResult {
         })
         .finally(() => {
           v_9468fd.current = false;
+          try {
+            v_2e2909.current?.();
+          } catch (v_49263d) {
+            console.warn("[useFaceIdentify] onCycleEnd threw:", v_49263d);
+          }
         });
+      return true;
     },
 
     [v_d20c84, v_2ca7e0, v_6e0fd3, v_68885c, v_32837c, v_faccce, v_84b93d, v_5de650, v_d23335],
   );
 
-  return { onEmbedding: v_7167fd, getBuffer: () => v_5228f1.current, resetRecognition: v_4921f9 };
+  const v_e50531 = v_de06a3(() => v_9468fd.current, []);
+  return { onEmbedding: v_7167fd, getBuffer: () => v_5228f1.current, resetRecognition: v_4921f9, isInFlight: v_e50531 };
 }
