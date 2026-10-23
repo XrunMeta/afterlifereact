@@ -1,4 +1,9 @@
-import { v_0a1524, v_e4eb8a, v_d9d053 } from "../../src/face/faceGallery";
+import {
+  v_0a1524,
+  v_21ae3d,
+  v_e4eb8a,
+  v_d9d053,
+} from "../../src/face/faceGallery";
 import type { v_ac8014 } from "../../src/api/persons";
 
 const v_40e36e = 9194;
@@ -62,11 +67,16 @@ describe("createFaceMatcher", () => {
     await expect(v_35f85c.match("tok", v_c03ab0, v_40e36e)).resolves.toMatchObject({ best: null });
   });
 
-  it("갤러리를 못 받으면 서버 대조로 간다", async () => {
-    const { m: v_35f85c, fetchGallery: v_0b3759, serverMatch: v_c33c0e } = v_9a4ebd();
-    v_0b3759.mockRejectedValueOnce(new Error("net"));
+  it("갤러리를 못 받으면 서버 대조로 가고, 1분 동안은 다시 받지 않는다", async () => {
+    const { m: v_35f85c, fetchGallery: v_0b3759, serverMatch: v_c33c0e, tick: v_9a5f22 } = v_9a4ebd();
+    v_0b3759.mockRejectedValueOnce(new Error("404"));
     await v_35f85c.match("tok", v_736293, v_40e36e);
-    expect(v_c33c0e).toHaveBeenCalledTimes(1);
+    await v_35f85c.match("tok", v_736293, v_40e36e);
+    expect(v_c33c0e).toHaveBeenCalledTimes(2);
+    expect(v_0b3759).toHaveBeenCalledTimes(1);
+    v_9a5f22(v_21ae3d);
+    expect((await v_35f85c.match("tok", v_736293, v_40e36e)).best?.personId).toBe(175);
+    expect(v_0b3759).toHaveBeenCalledTimes(2);
   });
 
   it("등록한 벡터·이름을 바로 더하고, 삭제를 따른다", async () => {
