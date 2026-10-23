@@ -178,7 +178,8 @@ export default function v_c78d4f() {
       <PageHeader title={v_9f1622} showBackButton onBackPress={() => v_c65f5d.goBack()} />
 
       {}
-      {v_89c2aa && <FaceConsentSection t={v_8d41d7} />}
+      {}
+      {v_b4fa6c === undefined && <FaceConsentSection t={v_8d41d7} />}
 
       {}
       {}

@@ -827,7 +827,12 @@
       "blockedUsers": "ブロックしたユーザー",
       "reportsMenu": "通報 / 通報履歴",
       "termsConsent": "規約と同意の管理",
-      "termsConsentDesc": "規約の確認・マーケティング受信の同意"
+      "termsConsentDesc": "規約の確認・マーケティング受信の同意",
+      "notificationsListShort": "通知リスト",
+      "faceDetect": "顔の検出",
+      "faceDetectDesc": "私を覚えているクローン",
+      "faceRecognition": "顔認識の同意",
+      "faceRecognitionDesc": "自動登録・顔認識の規約・通話の学習"
     },
     "logout": {
       "title": "ログアウトしますか?",
@@ -864,8 +869,8 @@
     },
     "sectionDesc": {
       "account": "プロフィール・無効化・退会",
-      "notifications": "プッシュ通知・受信した通知・招待状況",
-      "face": "顔の検出・認識の同意",
+      "notifications": "通知設定・通知リスト",
+      "face": "顔の検出・顔認識の同意",
       "service": "ブロック・通報・規約と同意",
       "app": "言語設定"
     }
