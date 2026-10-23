@@ -31,6 +31,8 @@ export function v_33d47b(v_328259): FaceCheckScheduler {
   v_45ffc8.current = v_328259.request;
   const v_c622fb = v_e662ae(v_328259.userTurnActive);
   v_c622fb.current = v_328259.userTurnActive;
+  const v_aa2980 = v_e662ae(v_328259.isBusy);
+  v_aa2980.current = v_328259.isBusy;
 
   const v_3ac63b = v_e662ae<ReturnType<typeof setInterval> | null>(null);
   const v_eb1d75 = v_e662ae<Timer | null>(null);
@@ -114,7 +116,7 @@ export function v_33d47b(v_328259): FaceCheckScheduler {
         v_bfa20e.current = setTimeout(() => {
           v_bfa20e.current = null;
           v_0100e1("who_retry");
-        }, v_9cd1f6);
+        }, v_3300b9 + v_9cd1f6);
       }
     },
     [v_0100e1],
@@ -135,13 +137,15 @@ export function v_33d47b(v_328259): FaceCheckScheduler {
       v_0df5d4();
 
       if (!Number.isFinite(v_9e8c70) || !(v_9e8c70 > 0)) return;
-      v_d0228f.current = Math.floor(v_9e8c70) - 1;
+
+      const v_3f8465 = v_aa2980.current?.() ?? false;
+      v_d0228f.current = Math.floor(v_9e8c70) - (v_3f8465 ? 0 : 1);
 
       v_cc92a5.current = setTimeout(() => {
         v_cc92a5.current = null;
         v_d0228f.current = 0;
       }, v_692765);
-      v_0100e1("burst");
+      if (!v_3f8465) v_0100e1("burst");
     },
     [v_0100e1, v_0df5d4],
   );
