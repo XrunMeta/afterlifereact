@@ -1198,6 +1198,8 @@ def _store_turn_face(sess, data: dict) -> None:
         # 2026-10-23: 앱이 음성 인식 결과로 "누구냐" 질문을 확실히 알아챘을 때만 "self"(나 누구야)·"other"(이 사람 누구야).
         #   이때 앱이 판정·재대조·등록 팝업을 직접 한다 — 서버는 그에 맞는 답 지시만 붙이고 who_asked 는 안 보낸다.
         "who": data.get("who") if data.get("who") in ("self", "other") else None,
+        # 2026-10-23: 이 클론에 등록된 얼굴이 하나도 없다(앱 대조 대상 없음) — 어두우면 밝은 곳을 부탁한다(pipeline).
+        "noFaces": data.get("noFaces") is True,
         "at": now,
     }
     if data.get("verdict") == "switch":

@@ -587,3 +587,63 @@ async def test_pipeline_who_turn_is_not_suppressed_even_after_name(monkeypatch):
     await pipe.say("나 누구라고?", turn_face={"verdict": "known", "who": "self", "personId": 175,
                                               "score": 0.8, "quality": "ok", "at": time.monotonic()})
     assert not any(_NO_REPEAT in c for c in _sys_texts(seen[1]))
+
+
+# ---------------------------------------------------------------------------
+# 2026-10-23: 등록 얼굴 없음 + 어두운 화면 → 첫 턴과 그 뒤 3턴마다 밝은 곳 부탁
+# ---------------------------------------------------------------------------
+
+_BRIGHT = "밝은 곳으로 가거나"
+
+
+def _dark_tf(**kw):
+    d = {"verdict": "insufficient", "quality": "dark", "personId": None, "score": None,
+         "noFaces": True, "at": time.monotonic()}
+    d.update(kw)
+    return d
+
+
+async def test_pipeline_dark_no_faces_asks_first_then_every_3_turns(monkeypatch):
+    _fast_bridge(monkeypatch)
+    seen = []
+    pipe = _make_pipe(["<lang=ko>", "응"], seen)
+    pipe.current_speaker_name = None
+    for _ in range(7):
+        await pipe.say("뭐 해?", turn_face=_dark_tf())
+    asked = [any(_BRIGHT in c for c in _sys_texts(m)) for m in seen]
+    assert asked == [True, False, False, True, False, False, True]
+
+
+async def test_pipeline_dark_no_faces_resets_when_face_seen(monkeypatch):
+    _fast_bridge(monkeypatch)
+    seen = []
+    pipe = _make_pipe(["<lang=ko>", "응"], seen)
+    pipe.current_speaker_name = None
+    await pipe.say("a", turn_face=_dark_tf())
+    await pipe.say("b", turn_face=_dark_tf())
+    await pipe.say("c", turn_face=_dark_tf(quality="ok", verdict="unknown"))   # 밝아짐 → 리셋
+    await pipe.say("d", turn_face=_dark_tf())
+    asked = [any(_BRIGHT in c for c in _sys_texts(m)) for m in seen]
+    assert asked == [True, False, False, True]
+
+
+async def test_pipeline_dark_with_registered_faces_or_speaker_does_not_ask(monkeypatch):
+    _fast_bridge(monkeypatch)
+    seen = []
+    pipe = _make_pipe(["<lang=ko>", "응"], seen)
+    pipe.current_speaker_name = None
+    await pipe.say("a", turn_face=_dark_tf(noFaces=False))          # 등록 얼굴이 있으면 해당 없음
+    pipe.current_speaker_name = "오른"
+    await pipe.say("b", turn_face=_dark_tf())                       # 확정 화자가 있으면 유지(부탁 없음)
+    assert not any(any(_BRIGHT in c for c in _sys_texts(m)) for m in seen)
+
+
+async def test_pipeline_dark_no_faces_who_turn_counts_but_uses_whoami_hint(monkeypatch):
+    _fast_bridge(monkeypatch)
+    seen = []
+    pipe = _make_pipe(["<lang=ko>", "응"], seen)
+    pipe.current_speaker_name = None
+    await pipe.say("나 누구야?", turn_face=_dark_tf(who="self"))
+    texts = _sys_texts(seen[0])
+    assert not any(_BRIGHT in c for c in texts)
+    assert any("조명을 밝게" in c for c in texts)        # whoami 의 누구냐 지시가 조명을 부탁
