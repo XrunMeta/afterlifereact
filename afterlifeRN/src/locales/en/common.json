@@ -861,6 +861,13 @@
     },
     "deactivate": {
       "soon": "Coming soon."
+    },
+    "sectionDesc": {
+      "account": "Profile · deactivate · delete account",
+      "notifications": "Push notifications · inbox · invitations",
+      "face": "Face detection & recognition consent",
+      "service": "Blocking · reports · terms & consents",
+      "app": "Language"
     }
   },
   "auth": {

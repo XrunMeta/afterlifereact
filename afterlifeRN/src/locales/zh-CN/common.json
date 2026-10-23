@@ -861,6 +861,13 @@
     },
     "deactivate": {
       "soon": "即将推出。"
+    },
+    "sectionDesc": {
+      "account": "个人资料 · 停用账号 · 注销",
+      "notifications": "推送通知 · 收到的通知 · 邀请状态",
+      "face": "人脸检测与识别同意",
+      "service": "屏蔽 · 举报 · 条款与同意",
+      "app": "语言设置"
     }
   },
   "auth": {

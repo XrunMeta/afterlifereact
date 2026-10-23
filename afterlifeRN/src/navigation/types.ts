@@ -146,6 +146,8 @@ export type MyStackParamList = {
   TtsVits: undefined;
 
   VoiceLangTest: undefined;
+
+  SettingsGroup: { group: "account" | "notifications" | "face" | "service" | "app" };
 };
 
 declare global {
