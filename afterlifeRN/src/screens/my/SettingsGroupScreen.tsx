@@ -163,7 +163,8 @@ const v_fd5f43 = v_472849.create({
     borderRadius: 16,
     overflow: "hidden",
   },
-  row: { flexDirection: "row", alignItems: "center", gap: 16, paddingHorizontal: 20, paddingVertical: 18 },
+
+  row: { flexDirection: "row", alignItems: "center", gap: 16, paddingHorizontal: 20, paddingVertical: 18, minHeight: 86 },
   rowBorder: { borderBottomWidth: 1, borderBottomColor: v_1bfbd0.zinc100 },
   icon: {
     width: 48, height: 48, borderRadius: 24, backgroundColor: v_1bfbd0.zinc50,

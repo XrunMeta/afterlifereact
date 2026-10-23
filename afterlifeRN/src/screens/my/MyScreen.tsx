@@ -192,7 +192,9 @@ export default function v_ed02a5() {
       action: () =>
         v_206b88.id === "app"
           ? v_c65f5d.navigate("LanguageSettings")
-          : v_c65f5d.navigate("SettingsGroup", { group: v_206b88.id }),
+          : v_206b88.id === "notifications"
+            ? v_c65f5d.navigate("NotificationSettings")
+            : v_c65f5d.navigate("SettingsGroup", { group: v_206b88.id }),
     })),
 
     ...(false && ["oth-staff@example.invalid", "oth-user@example.invalid"].includes(v_b113dd?.email ?? "")
@@ -834,6 +836,8 @@ const v_fd5f43 = v_472849.create({
     gap: 16,
     paddingHorizontal: 20,
     paddingVertical: 18,
+
+    minHeight: 86,
   },
   settingsRowBorder: { borderBottomWidth: 1, borderBottomColor: v_1bfbd0.zinc100 },
   settingsIcon: {
