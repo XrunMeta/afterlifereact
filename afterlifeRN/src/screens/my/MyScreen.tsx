@@ -220,37 +220,71 @@ export default function v_ed02a5() {
     labelKey: string;
     descKey: string;
     danger?: boolean;
+    section?: 1 | 2 | 3 | 4 | 5 | 6;
   } & ({ route: keyof v_e57140 } | { action: () => void });
 
   const v_7f0fd3 = [
     {
       icon: "user",
-      labelKey: "my.menu.editProfile",
+      labelKey: "my.menu.profileEdit",
       descKey: "settings.editProfile.title",
       route: "EditProfile",
+      section: 1,
     },
     {
 
-      icon: "inbox",
-      labelKey: "my.menu.notificationsList",
-      descKey: "my.menu.notificationsListDesc",
-      action: () => {
-        v_c65f5d.getParent()?.dispatch(
-          v_650cfa.navigate({ name: "Notifications" }),
-        );
-      },
+      icon: "pause-circle",
+      labelKey: "my.menu.deactivate",
+      descKey: "my.menu.deactivateDesc",
+      action: () =>
+        v_889fad(
+          v_8d41d7("my.menu.deactivate", { defaultValue: "계정 비활성화 (일시정지)" }),
+          v_8d41d7("my.deactivate.soon", { defaultValue: "준비 중이에요." }),
+        ),
+      section: 1,
     },
     {
+
       icon: "bell",
-      labelKey: "my.menu.notifications",
-      descKey: "settings.notifications.title",
+      labelKey: "my.menu.pushNotifications",
+      descKey: "my.menu.pushNotificationsDesc",
       route: "NotificationSettings",
+      section: 2,
+    },
+    {
+      icon: "smile",
+      labelKey: "my.menu.faceSettings",
+      descKey: "my.menu.faceSettingsDesc",
+      action: () => v_c65f5d.navigate("Agreements", { section: "face" }),
+      section: 3,
+    },
+    {
+      icon: "slash",
+      labelKey: "my.menu.blockedUsers",
+      descKey: "settings.privacy.title",
+      route: "PrivacySettings",
+      section: 4,
+    },
+    {
+      icon: "flag",
+      labelKey: "my.menu.reportsMenu",
+      descKey: "my.menu.reportsDesc",
+      route: "Reports",
+      section: 4,
+    },
+    {
+      icon: "check-square",
+      labelKey: "my.menu.termsConsent",
+      descKey: "my.menu.termsConsentDesc",
+      action: () => v_c65f5d.navigate("Agreements", { section: "terms" }),
+      section: 4,
     },
     {
       icon: "globe",
       labelKey: "my.menu.language",
       descKey: "settings.language.title",
       route: "LanguageSettings",
+      section: 5,
     },
 
     ...(["oth-staff@example.invalid", "oth-user@example.invalid", "oth-test@example.invalid"].includes(v_b113dd?.email ?? "")
@@ -259,26 +293,9 @@ export default function v_ed02a5() {
           labelKey: "my.menu.voiceLangTest",
           descKey: "my.menu.voiceLangTestDesc",
           route: "VoiceLangTest" as const,
+          section: 5 as const,
         }]
       : []),
-    {
-      icon: "slash",
-      labelKey: "my.menu.privacy",
-      descKey: "settings.privacy.title",
-      route: "PrivacySettings",
-    },
-    {
-      icon: "check-square",
-      labelKey: "my.menu.agreements",
-      descKey: "settings.agreements.title",
-      route: "Agreements",
-    },
-    {
-      icon: "flag",
-      labelKey: "my.menu.reports",
-      descKey: "my.menu.reportsDesc",
-      route: "Reports",
-    },
 
     ...(false && ["oth-staff@example.invalid", "oth-user@example.invalid"].includes(v_b113dd?.email ?? "")
       ? [
@@ -420,11 +437,13 @@ export default function v_ed02a5() {
       labelKey: "settings.privacy.deleteAccount",
       descKey: "settings.privacy.deleteAccount",
       action: v_5bc46a,
+      section: 1,
     },
     {
       icon: "log-out",
       labelKey: "my.menu.logout",
       descKey: "my.menu.logout",
+      section: 6,
       action: () => {
 
         v_889fad(
@@ -467,8 +486,19 @@ export default function v_ed02a5() {
 
         {
 }
+        {}
+        {v_b7a474.map((v_b6a7e0) => {
+          const v_2afa46 = v_7f0fd3.filter((v_23805a) => (v_23805a.section ?? 5) === v_b6a7e0.id);
+          if (v_2afa46.length === 0) return null;
+          return (
+            <View key={v_b6a7e0.id} style={v_fd5f43.settingsSection}>
+              {v_b6a7e0.titleKey && (
+                <View style={v_fd5f43.sectionHeader}>
+                  <Text style={v_fd5f43.sectionLabel}>{v_8d41d7(v_b6a7e0.titleKey, { defaultValue: v_b6a7e0.fallback })}</Text>
+                </View>
+              )}
         <View style={v_fd5f43.settingsCard}>
-          {v_7f0fd3.map((v_8c0b26, v_ebec57) => {
+          {v_2afa46.map((v_8c0b26, v_ebec57) => {
             const v_d57179 = "action" in v_8c0b26;
             const v_cdbcb3 = v_8c0b26.labelKey === "settings.privacy.deleteAccount";
             const v_4a6533 = v_cdbcb3 && v_a1f68f;
@@ -478,7 +508,7 @@ export default function v_ed02a5() {
                 key={v_8c0b26.labelKey}
                 style={[
                   v_fd5f43.settingsRow,
-                  v_ebec57 < v_7f0fd3.length - 1 && v_fd5f43.settingsRowBorder,
+                  v_ebec57 < v_2afa46.length - 1 && v_fd5f43.settingsRowBorder,
                 ]}
                 disabled={v_4a6533}
                 onPress={() => {
@@ -505,6 +535,9 @@ export default function v_ed02a5() {
             );
           })}
         </View>
+            </View>
+          );
+        })}
 
         {}
         <AppVersionFooter />
@@ -640,6 +673,15 @@ export default function v_ed02a5() {
     </SafeScrollView>
   );
 }
+
+const v_b7a474 = [
+  { id: 1, titleKey: "my.section.account", fallback: "계정 및 개인정보" },
+  { id: 2, titleKey: "my.section.notifications", fallback: "알림 설정" },
+  { id: 3, titleKey: "my.section.face", fallback: "얼굴 및 생체 인식 설정" },
+  { id: 4, titleKey: "my.section.service", fallback: "서비스 이용 및 차단" },
+  { id: 5, titleKey: "my.section.app", fallback: "앱 환경 설정" },
+  { id: 6 },
+];
 
 const v_fd5f43 = v_472849.create({
   content: {
@@ -918,6 +960,7 @@ const v_fd5f43 = v_472849.create({
   },
   balanceCtaText: { ...v_c10a43.sm, color: "#fff" },
 
+  settingsSection: { marginBottom: 20 },
   settingsCard: {
     backgroundColor: v_1bfbd0.white,
     borderWidth: 1,
