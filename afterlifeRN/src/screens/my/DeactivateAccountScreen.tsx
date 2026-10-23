@@ -1,10 +1,9 @@
 
 
 import v_a3453e, { v_c4deb2, v_5ab095 } from "bapkr";
-import { v_39a996, v_0e1f26, v_e767d1, v_326be8, v_472849, v_19b633, v_79c4f2, v_4623af, v_3094a2 } from "rcmrninabrnb";
+import { v_39a996, v_472849, v_19b633, v_79c4f2, v_4623af, v_3094a2 } from "rcmrninabrnb";
 import { v_ada615 } from "ixigazcpvfldbecwtbvavtbi";
 import { v_772971 } from "jmpfvteuuztnp";
-import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 
 import v_570c34 from "../../components/ui/SafeScrollView";
@@ -29,14 +28,6 @@ export default function v_f0969e() {
   }, []);
   const [v_adc076, v_52b279] = v_5ab095("");
   const [v_b5ab16, v_b7733b] = v_5ab095(false);
-
-  const v_033e14 = v_e0068c();
-  const [v_16c81f, v_025f28] = v_5ab095(false);
-  v_c4deb2(() => {
-    const v_fdffe1 = v_0e1f26.addListener(v_326be8.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow", () => v_025f28(true));
-    const v_2f19d2 = v_0e1f26.addListener(v_326be8.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide", () => v_025f28(false));
-    return () => { v_fdffe1.remove(); v_2f19d2.remove(); };
-  }, []);
   const [v_c99bd2, v_537cbb] = v_5ab095("");
   const [v_e83b97, v_19a0a2] = v_5ab095<string | null>(null);
   const [v_3f8465, v_b4f1d2] = v_5ab095(false);
@@ -96,21 +87,13 @@ export default function v_f0969e() {
   };
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: v_1bfbd0.zinc50 }} behavior={v_326be8.OS === "ios" ? "padding" : undefined}>
-      <SafeScrollView backgroundColor={v_1bfbd0.zinc50} keyboardShouldPersistTaps="handled" disableBottomPadding showBottomBackground={false}>
+    <SafeScrollView backgroundColor={v_1bfbd0.zinc50} keyboardShouldPersistTaps="handled">
       <PageHeader
         title={v_8d41d7("my.menu.deactivate", { defaultValue: "계정 비활성화 (일시정지)" })}
         showBackButton
         onBackPress={() => v_c65f5d.goBack()}
       />
       <View style={v_fd5f43.content}>
-        <View style={v_fd5f43.card}>
-          <Text style={v_fd5f43.cardTitle}>{v_8d41d7("deactivate.whatHappens", { defaultValue: "비활성화하면" })}</Text>
-          {v_27ef63.map((v_e6293e) => (
-            <Text key={v_e6293e} style={v_fd5f43.bullet}>• {v_e6293e}</Text>
-          ))}
-        </View>
-
         <Text style={v_fd5f43.label}>
           {v_bfe9b9 === "password"
             ? v_8d41d7("deactivate.verifyPassword", { defaultValue: "본인 확인 · 비밀번호" })
@@ -156,9 +139,6 @@ export default function v_f0969e() {
             />
           </View>
         )}
-      </View>
-      </SafeScrollView>
-      <View style={[v_fd5f43.footer, { paddingBottom: v_16c81f ? 12 : Math.max(v_033e14.bottom, 12) }]}>
         <TouchableOpacity style={[v_fd5f43.dangerBtn, (!v_4b57e7 || v_3f8465) && v_fd5f43.btnOff]} onPress={v_fbb22a} disabled={!v_4b57e7 || v_3f8465}>
           {v_3f8465 ? (
             <ActivityIndicator color={v_1bfbd0.white} />
@@ -166,17 +146,25 @@ export default function v_f0969e() {
             <Text style={v_fd5f43.dangerBtnText}>{v_8d41d7("deactivate.submit", { defaultValue: "비활성화" })}</Text>
           )}
         </TouchableOpacity>
+
+        {}
+        <View style={v_fd5f43.info}>
+          <Text style={v_fd5f43.infoTitle}>{v_8d41d7("deactivate.whatHappens", { defaultValue: "비활성화하면" })}</Text>
+          {v_27ef63.map((v_e6293e) => (
+            <Text key={v_e6293e} style={v_fd5f43.bullet}>• {v_e6293e}</Text>
+          ))}
+        </View>
       </View>
-    </KeyboardAvoidingView>
+    </SafeScrollView>
   );
 }
 
 const v_fd5f43 = v_472849.create({
   content: { padding: 16, gap: 12 },
-  card: { backgroundColor: v_1bfbd0.white, borderWidth: 1, borderColor: v_1bfbd0.zinc200, borderRadius: 16, padding: 16, gap: 8 },
-  cardTitle: { fontSize: 15, fontWeight: "700", color: v_1bfbd0.zinc900 },
+  info: { marginTop: 12, gap: 6 },
+  infoTitle: { fontSize: 15, fontWeight: "700", color: v_1bfbd0.zinc900 },
   bullet: { fontSize: 14, lineHeight: 20, color: v_1bfbd0.zinc700 },
-  label: { marginTop: 8, fontSize: 13, fontWeight: "600", color: v_1bfbd0.zinc700 },
+  label: { fontSize: 13, fontWeight: "600", color: v_1bfbd0.zinc700 },
   input: { borderWidth: 1, borderColor: v_1bfbd0.zinc200, borderRadius: 10, backgroundColor: v_1bfbd0.white, paddingHorizontal: 12, paddingVertical: 12, fontSize: 15, color: v_1bfbd0.zinc900 },
   inputRow: { flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: v_1bfbd0.zinc200, borderRadius: 10, backgroundColor: v_1bfbd0.white, paddingLeft: 12 },
   inputFlex: { flex: 1, paddingVertical: 12, fontSize: 15, color: v_1bfbd0.zinc900 },
@@ -184,8 +172,7 @@ const v_fd5f43 = v_472849.create({
   secondaryBtn: { paddingVertical: 12, borderRadius: 10, borderWidth: 1, borderColor: v_1bfbd0.zinc300, alignItems: "center", backgroundColor: v_1bfbd0.white },
   secondaryBtnText: { fontSize: 14, fontWeight: "600", color: v_1bfbd0.zinc800 },
   hint: { fontSize: 12, color: v_1bfbd0.zinc500 },
-  footer: { paddingHorizontal: 16, paddingTop: 12, backgroundColor: v_1bfbd0.zinc50, borderTopWidth: 1, borderTopColor: v_1bfbd0.zinc200 },
-  dangerBtn: { height: 50, borderRadius: 12, backgroundColor: v_1bfbd0.error, alignItems: "center", justifyContent: "center" },
+  dangerBtn: { marginTop: 8, height: 50, borderRadius: 12, backgroundColor: v_1bfbd0.error, alignItems: "center", justifyContent: "center" },
   dangerBtnText: { color: v_1bfbd0.white, fontSize: 16, fontWeight: "700" },
   btnOff: { opacity: 0.5 },
 });
