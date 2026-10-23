@@ -193,6 +193,60 @@ v_fded81.post("/match", v_6690d9, async (v_3f4e2e) => {
   return v_3f4e2e.json({ matches: v_a49907, best: v_643757, threshold: v_d361d7, selfMatch: v_a74d7a });
 });
 
+const v_23583f = 300;
+const v_c57f07 = 20;
+
+v_fded81.get("/face-gallery", v_6690d9, async (v_3f4e2e) => {
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_6e0fd3 = Number(v_3f4e2e.req.query("cloneId"));
+  if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0)
+    throw new v_3ebe58("VALIDATION_FAILED", "cloneId: 양의 정수여야 합니다");
+  const v_eb25ce = await v_0b07b9(v_3f4e2e.env.DB, v_6e0fd3, v_43e90c);
+  if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "클론을 찾을 수 없습니다.");
+
+  const v_d361d7 = await v_4e929c(v_3f4e2e.env.DB);
+  type Row = { person_id: number; vectorize_id: string; display_name: string | null; landmark_ratios?: string | null };
+  const v_f8df46 = (v_8a6a5b) =>
+    `SELECT f.person_id, f.vectorize_id, p.display_name${v_8a6a5b ? ", f.landmark_ratios" : ""}
+       FROM clone_person_faces f
+       JOIN persons p ON p.id = f.person_id
+      WHERE f.clone_id = ? AND p.user_id = ? AND p.clone_id = ?
+      ORDER BY f.id DESC
+      LIMIT ${v_23583f}`;
+  let v_18b8bf;
+  try {
+    v_18b8bf = (await v_3f4e2e.env.DB.prepare(v_f8df46(true)).bind(v_6e0fd3, v_43e90c, v_6e0fd3).all<Row>()).results;
+  } catch {
+
+    v_18b8bf = (await v_3f4e2e.env.DB.prepare(v_f8df46(false)).bind(v_6e0fd3, v_43e90c, v_6e0fd3).all<Row>()).results;
+  }
+
+  const v_e86ad8 = v_a8d2cc(v_3f4e2e.env);
+  const v_6fea0b = new Map<string, number[]>();
+  const v_52e08b = v_18b8bf.map((v_cb35cb) => v_cb35cb.vectorize_id).filter(Boolean);
+  for (let v_ebec57 = 0; v_ebec57 < v_52e08b.length; v_ebec57 += v_c57f07) {
+    const v_df0713 = await v_e86ad8.getByIds(v_52e08b.slice(v_ebec57, v_ebec57 + v_c57f07));
+    for (const v_206b88 of v_df0713) v_6fea0b.set(v_206b88.id, v_206b88.values.map((v_62c214) => Math.round(v_62c214 * 1e5) / 1e5));
+  }
+
+  const v_8a69ab = new Map<number, { personId: number; displayName: string | null; vectors: number[][]; landmarkRatiosList: (Record<string, number> | null)[] }>();
+  for (const v_cb35cb of v_18b8bf) {
+    const v_81e2ef = v_6fea0b.get(v_cb35cb.vectorize_id);
+    if (!v_81e2ef) continue; 
+    const v_2b8338 = v_8a69ab.get(v_cb35cb.person_id) ?? { personId: v_cb35cb.person_id, displayName: v_cb35cb.display_name, vectors: [], landmarkRatiosList: [] };
+    v_2b8338.vectors.push(v_81e2ef);
+    let v_8c6427 = null;
+    if (v_cb35cb.landmark_ratios) {
+      try { v_8c6427 = JSON.parse(v_cb35cb.landmark_ratios); } catch { v_8c6427 = null; }
+    }
+    v_2b8338.landmarkRatiosList.push(v_8c6427);
+    v_8a69ab.set(v_cb35cb.person_id, v_2b8338);
+  }
+
+  v_3f4e2e.header("Cache-Control", "no-store");
+  return v_3f4e2e.json({ cloneId: v_6e0fd3, threshold: v_d361d7, persons: [...v_8a69ab.values()] });
+});
+
 v_fded81.get("/self-face", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
   const v_b1d852 = await v_1bffe3(v_3f4e2e.env, v_43e90c);
