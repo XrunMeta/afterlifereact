@@ -750,11 +750,11 @@
       "charge": "Isi Ulang"
     },
     "delete": {
-      "title": "Sudah mau pergi?",
-      "desc": "Kami akan mengingat waktu berharga yang telah dilewati bersama {{name}}.\nAkun dan klon akan hilang secara permanen.",
+      "title": "Hapus akun",
+      "desc": "Yakin ingin menghapus akun?\nSemua data akan dihapus dan tidak dapat dipulihkan.",
       "userFallback": "Anggota",
-      "stay": "Coba tetap sedikit lagi",
-      "leave": "Keluar",
+      "stay": "Batal",
+      "leave": "Hapus",
       "failed": "Gagal keluar.",
       "subMessage": "Jika Anda anggota xrun, akun xrun akan tetap dipertahankan"
     },
@@ -869,7 +869,7 @@
     },
     "sectionDesc": {
       "account": "Profil · nonaktifkan · hapus akun",
-      "notifications": "Pengaturan & daftar notifikasi",
+      "notifications": "Notifikasi push",
       "face": "Deteksi · persetujuan pengenalan wajah",
       "service": "Blokir · laporan · ketentuan & persetujuan",
       "app": "Bahasa"

@@ -397,8 +397,17 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const emoteDebugEnabled =
     debugEmail === "oth-staff@example.invalid" || debugEmail === "oth-user@example.invalid";
 
-  const isOwnClone =
-    !!clone && clone.ownerId != null && currentUserId != null && clone.ownerId === currentUserId;
+  const [remoteOwnerId, setRemoteOwnerId] = useState<number | null>(null);
+  useEffect(() => {
+    if (clone?.ownerId != null) return;
+    let cancelled = false;
+    getCloneDetail(cloneId, accessToken ?? undefined)
+      .then((d) => { if (!cancelled) setRemoteOwnerId(d.clone.ownerId); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [cloneId, accessToken, clone?.ownerId]);
+  const ownerId = clone?.ownerId ?? remoteOwnerId;
+  const isOwnClone = ownerId != null && currentUserId != null && ownerId === currentUserId;
   const insets = useSafeAreaInsets();
   const navBarHeight = useAndroidNavigationBarHeight(0);
   const bottomInset =
