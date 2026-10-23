@@ -156,7 +156,7 @@ export default function v_8640b9() {
 
   const v_79a64b = (v_c7daf6.params as { cloneId: unknown }).cloneId;
   const v_6e0fd3 = Number(v_79a64b);
-  const { name: v_dfb220, image: v_0e38ad, midCall: v_c414dc, fromSettings: v_f34488 } = v_c7daf6.params;
+  const { name: v_dfb220, image: v_0e38ad, midCall: v_c414dc } = v_c7daf6.params;
 
   const v_5d7bbf = v_e662ae<number[][] | null | undefined>(undefined);
   if (v_5d7bbf.current === undefined) {
@@ -431,18 +431,13 @@ export default function v_8640b9() {
       v_3c9f12.goBack();
       return;
     }
-
-    if (v_f34488 && v_3c9f12.canGoBack()) {
-      v_3c9f12.goBack();
-      return;
-    }
     v_3c9f12.dispatch(
       v_650cfa.reset({
         index: 0,
         routes: [{ name: "Call", params: { cloneId: v_6e0fd3, name: v_dfb220, image: v_0e38ad } }],
       }),
     );
-  }, [v_3c9f12, v_6e0fd3, v_dfb220, v_0e38ad, v_c414dc, v_f34488]);
+  }, [v_3c9f12, v_6e0fd3, v_dfb220, v_0e38ad, v_c414dc]);
 
   const v_6ca26b = v_de06a3(() => {
     if (v_c414dc) {
