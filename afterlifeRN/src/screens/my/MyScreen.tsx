@@ -24,13 +24,13 @@ import { v_1ed7d9 } from "../../stores/authStore";
 import { v_b4902e } from "../../stores/followStore";
 import { v_194498 } from "../../stores/cloneStore";
 import { v_694b7f } from "../../api/source";
-import { v_55fc7c, v_84a859 } from "../../api/auth";
 import { v_d60cdf, v_7281a5, type v_c33ae3, type v_fa0201 } from "../../api/clones";
 import { v_48981e, type v_2b70d7 } from "../../api/credits";
 import { v_8372de } from "../../hooks/useHardwareBack";
 import { v_94c936 } from "../../navigation/navigationRef";
 
 import v_0e3f52 from "../../components/my/AppVersionFooter";
+import { v_05537d } from "./SettingsGroupScreen";
 import { v_1bfbd0, v_9b1a04, v_8b0c90, v_c10a43, v_119e65 } from "../../components/constants";
 import type { v_e57140 } from "../../navigation/types";
 
@@ -175,127 +175,21 @@ export default function v_ed02a5() {
     v_694b7f.clones().filter((v_3f4e2e) => v_3f4e2e.ownerId === v_0c8987).length +
       v_06f32b.filter((v_3f4e2e) => v_3f4e2e.ownerId === v_0c8987).length;
 
-  const [v_a1f68f, v_bdf535] = v_5ab095(false);
-
-  const v_5bc46a = () => {
-
-    const v_8a1355 =
-      v_b113dd?.name ||
-      v_b113dd?.email?.split("@")[0] ||
-      v_8d41d7("my.delete.userFallback", { defaultValue: "회원" });
-    v_889fad(
-      v_8d41d7("my.delete.title", { defaultValue: "벌써 떠나시나요?" }),
-      v_8d41d7("my.delete.desc", {
-        name: v_8a1355,
-        defaultValue: `${v_8a1355} 님과 함께한 소중한 시간들을 기억할게요.\n계정과 클론은 영구적으로 사라져요.`,
-      }),
-      [
-
-        { text: v_8d41d7("my.delete.stay", { defaultValue: "조금 더 써볼래요" }), style: "cancel" },
-        {
-          text: v_8d41d7("my.delete.leave", { defaultValue: "탈퇴하기" }),
-          style: "destructive",
-          onPress: async () => {
-            if (!v_2ca7e0) return;
-            v_bdf535(true);
-            try {
-              await v_55fc7c(v_2ca7e0);
-              await v_d7d5a2();
-            } catch (v_49263d) {
-              const v_badeaf =
-                v_49263d instanceof v_84a859
-                  ? v_49263d.message
-                  : v_8d41d7("my.delete.failed", { defaultValue: "탈퇴에 실패했어요." });
-              v_889fad(v_8d41d7("common.error", { defaultValue: "오류" }), v_badeaf);
-              v_bdf535(false);
-            }
-          },
-        },
-      ],
-    );
-  };
-
   type SettingsItem = {
     icon: keyof typeof v_dec439.glyphMap;
     labelKey: string;
     descKey: string;
     danger?: boolean;
-    section?: 1 | 2 | 3 | 4 | 5 | 6;
   } & ({ route: keyof v_e57140 } | { action: () => void });
 
   const v_7f0fd3 = [
-    {
-      icon: "user",
-      labelKey: "my.menu.profileEdit",
-      descKey: "settings.editProfile.title",
-      route: "EditProfile",
-      section: 1,
-    },
-    {
 
-      icon: "pause-circle",
-      labelKey: "my.menu.deactivate",
-      descKey: "my.menu.deactivateDesc",
-      action: () =>
-        v_889fad(
-          v_8d41d7("my.menu.deactivate", { defaultValue: "계정 비활성화 (일시정지)" }),
-          v_8d41d7("my.deactivate.soon", { defaultValue: "준비 중이에요." }),
-        ),
-      section: 1,
-    },
-    {
-
-      icon: "bell",
-      labelKey: "my.menu.pushNotifications",
-      descKey: "my.menu.pushNotificationsDesc",
-      route: "NotificationSettings",
-      section: 2,
-    },
-    {
-      icon: "smile",
-      labelKey: "my.menu.faceSettings",
-      descKey: "my.menu.faceSettingsDesc",
-      action: () => v_c65f5d.navigate("Agreements", { section: "face" }),
-      section: 3,
-    },
-    {
-      icon: "slash",
-      labelKey: "my.menu.blockedUsers",
-      descKey: "settings.privacy.title",
-      route: "PrivacySettings",
-      section: 4,
-    },
-    {
-      icon: "flag",
-      labelKey: "my.menu.reportsMenu",
-      descKey: "my.menu.reportsDesc",
-      route: "Reports",
-      section: 4,
-    },
-    {
-      icon: "check-square",
-      labelKey: "my.menu.termsConsent",
-      descKey: "my.menu.termsConsentDesc",
-      action: () => v_c65f5d.navigate("Agreements", { section: "terms" }),
-      section: 4,
-    },
-    {
-      icon: "globe",
-      labelKey: "my.menu.language",
-      descKey: "settings.language.title",
-      route: "LanguageSettings",
-      section: 5,
-    },
-
-    ...(["oth-staff@example.invalid", "oth-user@example.invalid", "oth-test@example.invalid"].includes(v_b113dd?.email ?? "")
-      ? [{
-          icon: "mic" as const,
-          labelKey: "my.menu.voiceLangTest",
-          descKey: "my.menu.voiceLangTestDesc",
-          route: "VoiceLangTest" as const,
-          section: 5 as const,
-        }]
-      : []),
+    ...v_05537d.map((v_206b88) => ({
+      icon: v_206b88.icon,
+      labelKey: v_206b88.titleKey,
+      descKey: `my.sectionDesc.${v_206b88.id}`,
+      action: () => v_c65f5d.navigate("SettingsGroup", { group: v_206b88.id }),
+    })),
 
     ...(false && ["oth-staff@example.invalid", "oth-user@example.invalid"].includes(v_b113dd?.email ?? "")
       ? [
@@ -433,17 +327,9 @@ export default function v_ed02a5() {
         ]
       : []),
     {
-      icon: "trash-2",
-      labelKey: "settings.privacy.deleteAccount",
-      descKey: "settings.privacy.deleteAccount",
-      action: v_5bc46a,
-      section: 1,
-    },
-    {
       icon: "log-out",
       labelKey: "my.menu.logout",
       descKey: "my.menu.logout",
-      section: 6,
       action: () => {
 
         v_889fad(
@@ -486,31 +372,17 @@ export default function v_ed02a5() {
 
         {
 }
-        {}
-        {v_b7a474.map((v_b6a7e0) => {
-          const v_2afa46 = v_7f0fd3.filter((v_23805a) => (v_23805a.section ?? 5) === v_b6a7e0.id);
-          if (v_2afa46.length === 0) return null;
-          return (
-            <View key={v_b6a7e0.id} style={v_fd5f43.settingsSection}>
-              {v_b6a7e0.titleKey && (
-                <View style={v_fd5f43.sectionHeader}>
-                  <Text style={v_fd5f43.sectionLabel}>{v_8d41d7(v_b6a7e0.titleKey, { defaultValue: v_b6a7e0.fallback })}</Text>
-                </View>
-              )}
         <View style={v_fd5f43.settingsCard}>
-          {v_2afa46.map((v_8c0b26, v_ebec57) => {
+          {v_7f0fd3.map((v_8c0b26, v_ebec57) => {
             const v_d57179 = "action" in v_8c0b26;
-            const v_cdbcb3 = v_8c0b26.labelKey === "settings.privacy.deleteAccount";
-            const v_4a6533 = v_cdbcb3 && v_a1f68f;
             const v_ef160b = v_8c0b26.danger ? v_1bfbd0.error : v_1bfbd0.zinc900;
             return (
               <TouchableOpacity
                 key={v_8c0b26.labelKey}
                 style={[
                   v_fd5f43.settingsRow,
-                  v_ebec57 < v_2afa46.length - 1 && v_fd5f43.settingsRowBorder,
+                  v_ebec57 < v_7f0fd3.length - 1 && v_fd5f43.settingsRowBorder,
                 ]}
-                disabled={v_4a6533}
                 onPress={() => {
                   if (v_d57179) v_8c0b26.action();
 
@@ -526,18 +398,11 @@ export default function v_ed02a5() {
                   </Text>
                   <Text style={v_fd5f43.settingsDesc}>{v_8d41d7(v_8c0b26.descKey)}</Text>
                 </View>
-                {v_4a6533 ? (
-                  <ActivityIndicator color={v_1bfbd0.zinc500} />
-                ) : (
-                  <Feather name="chevron-right" size={20} color={v_1bfbd0.zinc400} />
-                )}
+                <Feather name="chevron-right" size={20} color={v_1bfbd0.zinc400} />
               </TouchableOpacity>
             );
           })}
         </View>
-            </View>
-          );
-        })}
 
         {}
         <AppVersionFooter />
@@ -673,15 +538,6 @@ export default function v_ed02a5() {
     </SafeScrollView>
   );
 }
-
-const v_b7a474 = [
-  { id: 1, titleKey: "my.section.account", fallback: "계정 및 개인정보" },
-  { id: 2, titleKey: "my.section.notifications", fallback: "알림 설정" },
-  { id: 3, titleKey: "my.section.face", fallback: "얼굴 및 생체 인식 설정" },
-  { id: 4, titleKey: "my.section.service", fallback: "서비스 이용 및 차단" },
-  { id: 5, titleKey: "my.section.app", fallback: "앱 환경 설정" },
-  { id: 6 },
-];
 
 const v_fd5f43 = v_472849.create({
   content: {
@@ -960,7 +816,6 @@ const v_fd5f43 = v_472849.create({
   },
   balanceCtaText: { ...v_c10a43.sm, color: "#fff" },
 
-  settingsSection: { marginBottom: 20 },
   settingsCard: {
     backgroundColor: v_1bfbd0.white,
     borderWidth: 1,

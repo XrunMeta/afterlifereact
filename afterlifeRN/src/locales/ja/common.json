@@ -861,6 +861,13 @@
     },
     "deactivate": {
       "soon": "準備中です。"
+    },
+    "sectionDesc": {
+      "account": "プロフィール・無効化・退会",
+      "notifications": "プッシュ通知・受信した通知・招待状況",
+      "face": "顔の検出・認識の同意",
+      "service": "ブロック・通報・規約と同意",
+      "app": "言語設定"
     }
   },
   "auth": {
