@@ -131,3 +131,13 @@ def test_stream_lone_lt_kept():
     s = LangTagStream("ko")
     out = s.feed("<lang=ko>a <") + s.feed("3 b") + s.feed(" <") + s.finish()
     assert out == "a <3 b <"
+
+
+def test_닫는_태그_등호없음도_제거():
+    # 2026-10-23 영어 실통화: 답 끝에 "</lang>" 이 따로 나와 TTS 로 갔다.
+    assert split_lang_tag("<lang=en>Hi there.</lang>", "en") == ("en", "Hi there.")
+    s = LangTagStream("en")
+    out = s.feed("<lang=en>") + s.feed("Hi there.") + s.feed("</") + s.feed("lang") + s.feed(">") + s.finish()
+    assert out == "Hi there." and s.lang == "en"
+    # 일반 단어 language 는 건드리지 않는다.
+    assert split_lang_tag("<lang=en>I love language.", "en") == ("en", "I love language.")
