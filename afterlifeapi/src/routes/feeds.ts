@@ -490,7 +490,7 @@ v_f1d06f.get("/:id/likes", async (v_3f4e2e) => {
                 u.avatar_url AS userAvatarUrl
            FROM feed_likes fl
            JOIN users u ON u.id = fl.user_id
-          WHERE ${v_abcc8d.join(" AND ")} AND u.deleted_at IS NULL
+          WHERE ${v_abcc8d.join(" AND ")} AND u.deleted_at IS NULL AND u.deactivated_at IS NULL
           ORDER BY fl.id DESC
           LIMIT ?`,
       )
@@ -804,7 +804,7 @@ v_f1d06f.get("/:id/comments", async (v_3f4e2e) => {
                      AND fcc.id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('open','reviewed','actioned'))) AS repliesCount
            FROM feed_comments fc
            JOIN users u ON u.id = fc.user_id
-          WHERE ${v_abcc8d.join(" AND ")} AND u.deleted_at IS NULL
+          WHERE ${v_abcc8d.join(" AND ")} AND u.deleted_at IS NULL AND u.deactivated_at IS NULL
           ORDER BY fc.id DESC
           LIMIT ?`,
       )
@@ -884,7 +884,7 @@ v_f1d06f.get("/:id/comments/:cid/replies", async (v_3f4e2e) => {
            JOIN users u ON u.id = fc.user_id
           WHERE fc.feed_id = ?
             AND fc.parent_comment_id = ?
-            AND u.deleted_at IS NULL
+            AND u.deleted_at IS NULL AND u.deactivated_at IS NULL
             AND fc.id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('open','reviewed','actioned'))
             AND fc.parent_comment_id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('open','reviewed','actioned'))${v_fb635a}
           ORDER BY fc.id ASC
@@ -1072,7 +1072,7 @@ v_96e8d7.get("/:id/comments", async (v_3f4e2e) => {
            JOIN users u ON u.id = fc.user_id
           WHERE f.clone_id = ?
             AND fc.parent_comment_id IS NULL
-            AND u.deleted_at IS NULL
+            AND u.deleted_at IS NULL AND u.deactivated_at IS NULL
             AND fc.id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('open','reviewed','actioned'))${v_fb635a}
           ORDER BY fc.id DESC
           LIMIT ?`,
@@ -1131,7 +1131,7 @@ v_96e8d7.get("/:id/likes", async (v_3f4e2e) => {
            FROM feed_likes fl
            JOIN feeds f ON f.id = fl.feed_id
            JOIN users u ON u.id = fl.user_id
-          WHERE f.clone_id = ? AND u.deleted_at IS NULL
+          WHERE f.clone_id = ? AND u.deleted_at IS NULL AND u.deactivated_at IS NULL
           GROUP BY fl.user_id, u.name, u.email, u.avatar_url
           ORDER BY likeId DESC
           LIMIT ?`,

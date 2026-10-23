@@ -151,6 +151,65 @@ describe("runIdentifyCycle (순수 로직)", () => {
   });
 });
 
+describe("useFaceIdentify onCycle · 접수 여부 (AFL-1039)", () => {
+  it("cycle 마다 onCycle(personId, score, displayName) — score 는 최종 판정 점수", async () => {
+    const v_a97841 = jest.fn().mockResolvedValue({
+      matches: [{ personId: 7, displayName: "영희", score: 0.81 }],
+      best: { personId: 7, displayName: "영희", score: 0.81 },
+      threshold: 0.6,
+    });
+    const v_e028d7 = jest.fn();
+    const { result: v_43c42e } = v_0da18b(() =>
+      v_e9685b({ enabled: true, accessToken: "tok", cloneId: 1, onEvent: jest.fn(), onCycle: v_e028d7, deps: { matchFaceFn: v_a97841 } }),
+    );
+    expect(v_43c42e.current.onEmbedding(v_87d4f2)).toBe(true);
+    await v_81e49f(() => expect(v_e028d7).toHaveBeenCalledTimes(1));
+    expect(v_e028d7).toHaveBeenCalledWith({ personId: 7, score: 0.81, displayName: "영희" });
+  });
+
+  it("일치 없음이면 personId null · score 는 top1 점수", async () => {
+    const v_a97841 = jest.fn().mockResolvedValue({
+      matches: [{ personId: 3, displayName: "철수", score: 0.31 }],
+      best: null,
+      threshold: 0.6,
+    });
+    const v_e028d7 = jest.fn();
+    const { result: v_43c42e } = v_0da18b(() =>
+      v_e9685b({ enabled: true, accessToken: "tok", cloneId: 1, onEvent: jest.fn(), onCycle: v_e028d7, deps: { matchFaceFn: v_a97841 } }),
+    );
+    v_43c42e.current.onEmbedding(v_87d4f2);
+    await v_81e49f(() => expect(v_e028d7).toHaveBeenCalledTimes(1));
+    expect(v_e028d7).toHaveBeenCalledWith({ personId: null, score: 0.31, displayName: null });
+  });
+
+  it("네트워크 실패(cycle 없음)면 onCycle 미호출", async () => {
+    const v_a97841 = jest.fn().mockRejectedValue(new Error("net"));
+    const v_e028d7 = jest.fn();
+    const { result: v_43c42e } = v_0da18b(() =>
+      v_e9685b({ enabled: true, accessToken: "tok", cloneId: 1, onEvent: jest.fn(), onCycle: v_e028d7, deps: { matchFaceFn: v_a97841 } }),
+    );
+    v_43c42e.current.onEmbedding(v_87d4f2);
+    await v_81e49f(() => expect(v_a97841).toHaveBeenCalledTimes(1));
+    await new Promise((v_cb35cb) => setTimeout(v_cb35cb, 0));
+    expect(v_e028d7).not.toHaveBeenCalled();
+  });
+
+  it("진행 중 사이클이 있거나 꺼져 있으면 onEmbedding 은 false(접수 안 함)", async () => {
+    let v_4b5fe9 = () => {};
+    const v_a97841 = jest.fn().mockImplementation(() => new Promise((v_cb35cb) => { v_4b5fe9 = v_cb35cb; }));
+    const { result: v_43c42e } = v_0da18b(() =>
+      v_e9685b({ enabled: true, accessToken: "tok", cloneId: 1, onEvent: jest.fn(), deps: { matchFaceFn: v_a97841 } }),
+    );
+    expect(v_43c42e.current.onEmbedding(v_87d4f2)).toBe(true);
+    expect(v_43c42e.current.onEmbedding(v_87d4f2)).toBe(false);
+    v_4b5fe9({ matches: [], best: null, threshold: 0.6 });
+    const v_fa04a0 = v_0da18b(() =>
+      v_e9685b({ enabled: false, accessToken: "tok", cloneId: 1, onEvent: jest.fn(), deps: { matchFaceFn: v_a97841 } }),
+    );
+    expect(v_fa04a0.result.current.onEmbedding(v_87d4f2)).toBe(false);
+  });
+});
+
 describe("useFaceIdentify (훅 오케스트레이션)", () => {
   it("onEmbedding 3연속 호출(동일 personId) → onEvent(speaker_confirmed) 1회", async () => {
     const v_a97841 = jest.fn().mockResolvedValue({

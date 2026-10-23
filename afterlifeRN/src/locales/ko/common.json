@@ -385,7 +385,9 @@
     "imageSendFailTitle": "사진을 보내지 못했어요",
     "imageSendFailBody": "네트워크 상태를 확인한 뒤 다시 시도해 주세요.",
     "imageApiUnavailable": "사진 보내기 준비 중이에요. 잠시 후 다시 시도해 주세요.",
-    "typingA11y": "상대가 입력 중"
+    "typingA11y": "상대가 입력 중",
+    "listTitle": "대화목록",
+    "listCount": "대화목록 {{count}}"
   },
   "call": {
     "calling": "연결 중...",
@@ -748,10 +750,10 @@
       "charge": "충전"
     },
     "delete": {
-      "title": "벌써 떠나시나요?",
-      "desc": "{{name}} 님과 함께한 소중한 시간들을 기억하겠습니다.\n계정과 클론은 영구적으로 사라집니다.",
+      "title": "회원탈퇴",
+      "desc": "정말 탈퇴하시겠어요?\n탈퇴 시 모든 데이터(포인트, 이용 내역, 저장한 콘텐츠)가 삭제되며 복구할 수 없습니다.",
       "userFallback": "회원",
-      "stay": "조금 더 쓰겠습니다",
+      "stay": "취소",
       "leave": "탈퇴하기",
       "failed": "탈퇴에 실패했습니다.",
       "subMessage": "xrun 가입자라면 xrun 계정은 유지됩니다"
@@ -814,7 +816,23 @@
       "faceEnrollDev": "얼굴 5각도 등록 (dev)",
       "faceEnrollDevDesc": "정면·좌·우·위·아래 촬영 → clones 첫 통화 대비",
       "voiceLangTest": "목소리 테스트",
-      "voiceLangTestDesc": "언어별 클론 목소리 들어보기"
+      "voiceLangTestDesc": "언어별 클론 목소리 들어보기",
+      "profileEdit": "프로필 / 개인정보 수정",
+      "deactivate": "계정 비활성화 (일시정지)",
+      "deactivateDesc": "잠시 쉬고 싶을 때 계정을 멈춰요",
+      "pushNotifications": "앱 푸시 알림",
+      "pushNotificationsDesc": "알림 받기 · 받은 알림 · 초대 현황",
+      "faceSettings": "얼굴 감지 및 인식 동의",
+      "faceSettingsDesc": "얼굴 인식 · 나를 기억하는 클론 · 통화 대화 학습",
+      "blockedUsers": "차단 사용자 관리",
+      "reportsMenu": "신고하기 / 신고 내역",
+      "termsConsent": "약관 및 동의 관리",
+      "termsConsentDesc": "약관 보기 · 마케팅 정보 수신 동의",
+      "notificationsListShort": "알림 리스트",
+      "faceDetect": "얼굴 감지",
+      "faceDetectDesc": "나를 기억하는 클론",
+      "faceRecognition": "얼굴 인식 동의",
+      "faceRecognitionDesc": "조용한 자동등록 · 얼굴 인식 약관 · 통화 대화 학습"
     },
     "logout": {
       "title": "로그아웃할까요?",
@@ -838,6 +856,23 @@
       "otaEmergency": "OTA 비상실행(embedded fallback)",
       "otaEmbedded": "OTA 내장(embedded)",
       "otaUpdate": "OTA {{id}}"
+    },
+    "section": {
+      "account": "계정 및 개인정보",
+      "notifications": "알림 설정",
+      "face": "얼굴 및 생체 인식 설정",
+      "service": "서비스 이용 및 차단",
+      "app": "앱 환경 설정"
+    },
+    "deactivate": {
+      "soon": "준비 중이에요."
+    },
+    "sectionDesc": {
+      "account": "프로필 · 계정 비활성화 · 회원탈퇴",
+      "notifications": "앱 푸시 알림",
+      "face": "얼굴 감지 · 얼굴 인식 동의",
+      "service": "차단 · 신고 · 약관 및 동의 관리",
+      "app": "언어 설정"
     }
   },
   "auth": {
@@ -864,8 +899,8 @@
       "accountLocked": "계정이 잠겼습니다. 약 10분 뒤 다시 시도하거나, 비밀번호 찾기로 재설정해 주십시오.",
       "accountDeletedTitle": "탈퇴한 계정입니다",
       "accountDeletedMessage": "이미 탈퇴 처리된 계정이라 다시 로그인할 수 없습니다.",
-      "accountSuspendedTitle": "계정 사용 정지",
-      "accountSuspendedMessage": "신고 누적으로 계정 사용이 정지되었습니다.",
+      "accountSuspendedTitle": "계정이 일시정지되었습니다.",
+      "accountSuspendedMessage": "서비스 운영 정책 위반으로 계정 이용이 정지되었습니다.\n문의: oth-staff@example.invalid",
       "googleUnavailableTitle": "구글 로그인을 사용할 수 없습니다",
       "googleUnavailableMessage": "잠시 후 다시 시도해 주십시오.",
       "googleNoToken": "Google 로그인 토큰을 받지 못했습니다.",
@@ -1060,6 +1095,12 @@
       "submit": "afterlife 시작하기",
       "googleOnboardingDesc": "Google 계정으로 처음 시작입니다. 기본 정보 한번만 입력해 주십시오.",
       "submitting": "처리 중..."
+    },
+    "deactivated": {
+      "title": "비활성화 중인 계정이에요.",
+      "message": "다시 로그인하여 원래대로 계정과 AI 클론을 사용할까요?",
+      "activate": "활성화",
+      "failed": "활성화하지 못했어요. 다시 로그인해 주세요."
     }
   },
   "create": {
@@ -1233,7 +1274,6 @@
       "recordStartFailedMsg": "녹음을 시작하지 못했습니다. 잠시 후 다시 시도해 주십시오.",
       "chooseScriptHint": "스크립트를 선택하고 읽어주십시오.",
       "uploading": "업로드 중...",
-      "cloneJobRegistered": "클로닝 잡 등록됨",
       "recordDoneUploadFailed": "녹음 완료 (업로드 실패 — 재시도됨)",
       "uploadPromptHint": "음성파일을 올려주십시오",
       "pickAnother": "다른 파일 선택",
@@ -1255,7 +1295,9 @@
       "toastNoise": "주변이 시끄러워요. 조용한 곳에서 녹음해 주세요.",
       "recordQualityTitle": "녹음 품질 확인",
       "recordQualitySilenceMsg": "녹음에 무음 구간이 많아요. 조용한 곳에서 문장 전체를 또렷하게 다시 녹음해 주세요.",
-      "recordQualityNoiseMsg": "녹음에 주변 소음이 섞였어요. 조용한 곳에서 다시 녹음해 주시면 클론 목소리가 훨씬 자연스러워집니다."
+      "recordQualityNoiseMsg": "녹음에 주변 소음이 섞였어요. 조용한 곳에서 다시 녹음해 주시면 클론 목소리가 훨씬 자연스러워집니다.",
+      "registeredFile": "음성 파일이 정상적으로 등록되었습니다.",
+      "registeredRecording": "녹음한 음성이 정상적으로 등록되었습니다."
     },
     "visibility": {
       "memlowLocked": "추모 클론은 비공개로 고정됩니다. 공동관리자만 볼 수 있습니다.",
@@ -1626,6 +1668,16 @@
       "deleteConfirmMessage": "{{name}} 이(가) 나를 기억하는 내용과 얼굴 정보가 모두 삭제돼요. 되돌릴 수 없어요.",
       "deleteError": "삭제에 실패했어요.",
       "deleteErrorTitle": "삭제 실패"
+    },
+    "faceSettings": {
+      "title": "얼굴 및 생체 인식 설정",
+      "callLearning": "통화 대화 학습",
+      "callLearningDesc": "통화 대화 학습은 AI 데이터 활용 및 생성 동의에 포함돼요"
+    },
+    "termsConsent": {
+      "title": "약관 및 동의 관리",
+      "service": "서비스 이용약관",
+      "privacy": "개인정보 처리방침"
     }
   },
   "permissionGate": {
@@ -1833,7 +1885,7 @@
   },
   "errors": {
     "accountDeleted": "이미 탈퇴한 계정입니다.",
-    "accountSuspended": "신고 누적으로 계정 사용이 정지되었습니다.",
+    "accountSuspended": "서비스 운영 정책 위반으로 계정 이용이 정지되었습니다.\n문의: oth-staff@example.invalid",
     "accountSuspendedForPersona": "신고 누적으로 계정이 일시 비활성화되어 클론을 생성할 수 없습니다.",
     "accountLocked": "계정이 잠시 잠겼습니다. 잠시 후 다시 시도해 주십시오.",
     "tooManyFailures": "실패가 너무 많습니다. 잠시 후 다시 시도해 주십시오.",
@@ -2358,5 +2410,28 @@
       "saving": "처리 중...",
       "continue": "동의하고 계속"
     }
+  },
+  "deactivate": {
+    "whatHappens": "비활성화하면",
+    "verify": "본인 확인",
+    "byPassword": "비밀번호",
+    "byEmail": "이메일 인증 (소셜 계정)",
+    "passwordPlaceholder": "비밀번호 입력",
+    "sendCode": "가입 이메일로 인증코드 받기",
+    "resendCode": "인증코드 다시 받기",
+    "codeSent": "{{email}} 으로 보냈어요.",
+    "codePlaceholder": "6자리 인증코드",
+    "submit": "비활성화",
+    "confirmTitle": "계정을 비활성화할까요?",
+    "confirmBody": "모든 기기에서 바로 로그아웃돼요.",
+    "effect": {
+      "hide": "내 프로필과 내가 만든 AI 클론이 홈피드·탐색·검색에서 숨겨지고, 다른 사람이 대화·통화할 수 없어요.",
+      "posts": "내가 쓴 글과 댓글이 보이지 않아요.",
+      "interaction": "다른 사람이 선물·공유를 보낼 수 없어요.",
+      "notify": "모든 알림이 중단돼요.",
+      "restore": "다시 로그인하면 언제든 원래대로 되돌릴 수 있어요. 데이터는 지워지지 않아요."
+    },
+    "verifyPassword": "본인 확인 · 비밀번호",
+    "verifyEmail": "본인 확인 · 이메일 인증코드"
   }
 }

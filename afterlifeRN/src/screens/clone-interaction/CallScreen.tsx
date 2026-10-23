@@ -68,12 +68,21 @@ import type { Face as DetectorFace } from "react-native-vision-camera-face-detec
 import { useTensorflowModel } from "react-native-fast-tflite";
 import { useResizePlugin } from "vision-camera-resize-plugin";
 import { useSharedValue } from "react-native-worklets-core";
+import { INITIAL_FACE_COUNT_TRIGGER, stepFaceCountTrigger } from "../../face/faceCountTrigger";
 import { useFaceDetection } from "../../hooks/useFaceDetection";
 import { largestFace, significantFaces } from "../../face/largestFace";
-import { computeAlignedCrop } from "../../face/faceAlignCrop";
-import { computeLandmarkRatios, type LandmarkRatios } from "../../face/faceLandmarkRatios";
-import { shouldRunEmbedding } from "../../face/embeddingThrottle";
 import { normalizeFrameTimestampMs } from "../../face/frameTimestamp";
+import { modelCropFor } from "../../face/faceAlignCrop";
+import { detectWhoIntent } from "../../face/whoIntent";
+import { computeLandmarkRatios, type LandmarkRatios } from "../../face/faceLandmarkRatios";
+import { meanLuma, classifyFaceQualityGuarded, faceYawRatio, type FaceQuality } from "../../face/faceQuality";
+import { type TurnSample } from "../../face/faceTurnJudge";
+import { createTurnFaceGate, createWhoRetryArm, retryVerdict } from "../../face/turnFaceGate";
+import {
+  useFaceCheckScheduler,
+  type FaceCheckScheduler,
+  type FaceCheckTrigger,
+} from "../../face/useFaceCheckScheduler";
 import { detectNewFaces } from "../../face/newFaceDetector";
 import { useFaceIdentify } from "../../face/useFaceIdentify";
 import { useAngleCollector } from "../../face/useAngleCollector";
@@ -100,6 +109,7 @@ import {
   selfConfirm,
   fetchFacePolicy,
   enrollFaces,
+  faceMatcher,
   type Person,
 } from "../../api/persons";
 import { AuthApiError } from "../../api/auth";
@@ -162,7 +172,7 @@ import {
   initRememberMeState,
   rememberMeReducer,
   shouldHoldMic,
-  GRACE_HOLD_MS,
+  AWAY_END_CALL_MS,
   type RememberMeAction,
   type RememberMeEvent,
 } from "../../realtime/rememberMeReducer";
@@ -387,8 +397,17 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const emoteDebugEnabled =
     debugEmail === "oth-staff@example.invalid" || debugEmail === "oth-user@example.invalid";
 
-  const isOwnClone =
-    !!clone && clone.ownerId != null && currentUserId != null && clone.ownerId === currentUserId;
+  const [remoteOwnerId, setRemoteOwnerId] = useState<number | null>(null);
+  useEffect(() => {
+    if (clone?.ownerId != null) return;
+    let cancelled = false;
+    getCloneDetail(cloneId, accessToken ?? undefined)
+      .then((d) => { if (!cancelled) setRemoteOwnerId(d.clone.ownerId); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [cloneId, accessToken, clone?.ownerId]);
+  const ownerId = clone?.ownerId ?? remoteOwnerId;
+  const isOwnClone = ownerId != null && currentUserId != null && ownerId === currentUserId;
   const insets = useSafeAreaInsets();
   const navBarHeight = useAndroidNavigationBarHeight(0);
   const bottomInset =
@@ -520,6 +539,11 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     enrollSuggestImplRef.current(name, personId);
   }, []);
 
+  const whoAskedImplRef = useRef<() => void>(() => {});
+  const handleWhoAsked = useCallback(() => {
+    whoAskedImplRef.current();
+  }, []);
+
   const [livePipeline, setLivePipeline] = useState<string | null>(initialPipeline);
 
   const [liveVisemePrefix, setLiveVisemePrefix] = useState<string | null>(null);
@@ -527,8 +551,6 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const [liveTtsOutput, setLiveTtsOutput] = useState<string | null>(null);
 
   const [liveVoiceModelManifestUrl, setLiveVoiceModelManifestUrl] = useState<string | null>(null);
-
-  const [liveIdleVideoUrl, setLiveIdleVideoUrl] = useState<string | null>(null);
 
   const {
     state: liveState,
@@ -542,6 +564,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     speak,
     lastSignal,
     sendFaceEvent,
+    sendTurnFace,
     sendAudioReady,
     sendAdPrepareReturn,
     sendAdReturned,
@@ -554,6 +577,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     onEnrollSuggest: handleEnrollSuggest,
 
     onRememberMe: handleRememberMeAsked,
+
+    onWhoAsked: handleWhoAsked,
 
     pipeline: livePipeline ?? (clone as { pipeline?: string | null })?.pipeline ?? null,
 
@@ -585,7 +610,6 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
           setLiveVisemePrefix(vp);
           setLiveTtsOutput(to);
           setLiveVoiceModelManifestUrl(vmu);
-          setLiveIdleVideoUrl(iv);
           if (__DEV__) console.log(`[T-467] livePipeline for clone ${cloneId} = ${p} · visemePrefix = ${vp ? "set" : "null"} · ttsOutput = ${to ?? "null"} · voiceManifest = ${vmu ? "set" : "null"} · idleVideo = ${iv ? "set" : "null"}`);
 
           const needsIdleAsset = p === 'musetalk' || p === 'echomimic_v3';
@@ -632,17 +656,61 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     faceEmbedModelPlugin.state === "loaded" ? faceEmbedModelPlugin.model : undefined;
   const { resize } = useResizePlugin();
 
+  const embedRequested = useSharedValue(false);
+
+  const embedFaceCountTrigger = useSharedValue(false);
+
+  const fcStable = useSharedValue(INITIAL_FACE_COUNT_TRIGGER.stable);
+  const fcPending = useSharedValue(INITIAL_FACE_COUNT_TRIGGER.pending);
+  const fcPendingSince = useSharedValue(INITIAL_FACE_COUNT_TRIGGER.pendingSinceMs);
+  const fcLastTrigger = useSharedValue(INITIAL_FACE_COUNT_TRIGGER.lastTriggerMs);
   const isAndroidFrame = Platform.OS === "android";
-
-  const lastEmbedTs = useSharedValue(0);
-
-  const lastFaceCount = useSharedValue(-1);
 
   const embedAllowed = useSharedValue(true);
 
   const seenFaceIdsRef = useRef<Set<number>>(new Set());
 
   const currentLandmarkRef = useRef<LandmarkRatios | null>(null);
+
+  const faceCheckTriggersRef = useRef<Set<FaceCheckTrigger>>(new Set());
+
+  const faceCheckRef = useRef<FaceCheckScheduler | null>(null);
+
+  const turnFaceGate = useMemo(
+    () =>
+      createTurnFaceGate({
+        burst: (n, holdMs) => faceCheckRef.current?.burst(n, holdMs),
+        stopBurst: () => faceCheckRef.current?.stopBurst(),
+        now: Date.now,
+      }),
+    [],
+  );
+
+  const cycleMetaRef = useRef<{ trigger: string; quality: FaceQuality; inferMs: number } | null>(null);
+
+  const whoRetryPendingRef = useRef(false);
+
+  const whoRetryArm = useMemo(
+    () =>
+      createWhoRetryArm({
+        onExpire: () => {
+          faceCheckTriggersRef.current.delete("who_retry");
+          console.log("[Call][face] who retry 결과 없음(3초) — 재대조 대기 해제");
+        },
+      }),
+    [],
+  );
+  useEffect(() => () => whoRetryArm.clear(), [whoRetryArm]);
+
+  const personNameOfRef = useRef<(personId: number | null) => string | null>(() => null);
+
+  const personNamesRef = useRef<Map<number, string | null>>(new Map());
+  personNameOfRef.current = (personId) => {
+    if (personId == null) return null;
+    const n =
+      personNamesRef.current.get(personId) ?? persons.find((p) => p.id === personId)?.displayName ?? null;
+    return n && n.trim() ? n : null;
+  };
 
   const handleSpeakerEventRef = useRef<(evt: SpeakerEvent) => void>(() => {});
 
@@ -719,10 +787,54 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     enabled: consentGranted && liveState === "live" && faceIdentifyEnabled,
   });
 
+  const resolveWhoRetry = useCallback(
+    (sample: TurnSample, displayName: string | null) => {
+      const v = retryVerdict(sample, rmStateRef.current.personId);
+      const name = displayName?.trim() ? displayName : personNameOfRef.current(sample.personId);
+      console.log(`[Call][face] who retry verdict=${v.kind} person=${v.personId ?? "none"} q=${v.quality}`);
+      sendTurnFace?.({ ...v, retry: true });
+      dispatchRm({
+        type: "WHO_RETRY_RESULT",
+        personId: sample.personId,
+        displayName: name,
+
+        named: !!name,
+
+        selfMatch: sample.personId == null && sample.quality !== "none" && accountSelfMatchRef.current,
+        nowMs: Date.now(),
+      });
+    },
+    [sendTurnFace, dispatchRm],
+  );
+
+  const handleFaceCycle = useCallback(
+    (c: { personId: number | null; score: number; displayName: string | null }) => {
+      const meta = cycleMetaRef.current;
+      cycleMetaRef.current = null;
+      if (c.personId != null) personNamesRef.current.set(c.personId, c.displayName);
+
+      const named = c.personId != null && !!(c.displayName?.trim() || personNameOfRef.current(c.personId));
+      const sample: TurnSample = {
+        personId: named ? c.personId : null,
+        score: c.score,
+        quality: meta?.quality ?? "ok",
+        atMs: Date.now(),
+      };
+      turnFaceGate.addSample(sample);
+      console.log(
+        `[Call][face] cycle trigger=${meta?.trigger ?? "?"} person=${c.personId ?? "none"}${c.personId != null && !named ? "(unnamed)" : ""} ` +
+          `score=${c.score.toFixed(3)} q=${sample.quality} infer=${meta?.inferMs ?? "?"}ms`,
+      );
+      if (whoRetryArm.take()) resolveWhoRetry(sample, c.displayName);
+    },
+    [turnFaceGate, resolveWhoRetry, whoRetryArm],
+  );
+
   const {
     onEmbedding: onFaceEmbedding,
     getBuffer: getFaceEmbeddingBuffer,
     resetRecognition: resetSpeakerRecognition,
+    isInFlight: isFaceCycleInFlight,
   } = useFaceIdentify({
 
     enabled: consentGranted && liveState === "live" && faceIdentifyEnabled,
@@ -734,6 +846,10 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     onCollected: angleCollector.observe,
 
     onSelfMatch: (v: boolean) => { if (v) accountSelfMatchRef.current = true; },
+
+    onCycle: handleFaceCycle,
+
+    onCycleEnd: useCallback(() => faceCheckRef.current?.onCycleDone(), []),
 
     getCurrentLandmark: useCallback(() => currentLandmarkRef.current, []),
   });
@@ -1063,10 +1179,40 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     [faceEnroll, dispatchRm, accessToken, cloneId, t],
   );
 
+  const takeFaceCheckTrigger = useCallback((byFaceCount: boolean): string => {
+    const parts: string[] = Array.from(faceCheckTriggersRef.current);
+    faceCheckTriggersRef.current.clear();
+    if (byFaceCount) parts.push("face_count");
+    if (parts.includes("who_retry")) whoRetryArm.consumed();
+    return parts.length > 0 ? parts.join("+") : "?";
+  }, [whoRetryArm]);
+
+  const handleNoFaceOnJS = React.useMemo(
+    () =>
+      Worklets.createRunOnJS((byFaceCount: boolean) => {
+        const trigger = takeFaceCheckTrigger(byFaceCount);
+        const sample: TurnSample = { personId: null, score: 0, quality: "none", atMs: Date.now() };
+        turnFaceGate.addSample(sample);
+        console.log(`[Call][face] cycle trigger=${trigger} person=none score=0.000 q=none infer=0ms`);
+        if (whoRetryArm.take()) resolveWhoRetry(sample, null);
+
+        faceCheckRef.current?.onCycleDone();
+      }),
+    [takeFaceCheckTrigger, turnFaceGate, resolveWhoRetry, whoRetryArm],
+  );
+
   const handleEmbeddingOnJS = React.useMemo(
     () =>
       Worklets.createRunOnJS(
-        (vector: number[], faceCount: number, trackingIds: number[], landmarkRatiosJson: string | null) => {
+        (
+          vector: number[],
+          faceCount: number,
+          trackingIds: number[],
+          landmarkRatiosJson: string | null,
+          quality: FaceQuality,
+          inferMs: number,
+          byFaceCount: boolean,
+        ) => {
           if (faceCount > 1) {
             const { newIds, seen } = detectNewFaces(seenFaceIdsRef.current, trackingIds);
             seenFaceIdsRef.current = seen;
@@ -1083,13 +1229,19 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
           currentLandmarkRef.current = landmarkRatiosJson
             ? (JSON.parse(landmarkRatiosJson) as LandmarkRatios)
             : null;
-          onFaceEmbedding(vector);
+
+          const trigger = takeFaceCheckTrigger(byFaceCount);
+          if (onFaceEmbedding(vector)) {
+            cycleMetaRef.current = { trigger, quality, inferMs };
+          } else {
+            console.log(`[Call][face] cycle skip trigger=${trigger} (진행 중 대조 있음/꺼짐) q=${quality} infer=${inferMs}ms`);
+          }
 
           publishFaceTracks(trackingIds, Date.now());
         },
       ),
 
-    [onFaceEmbedding, sendFaceEvent, dispatchRm, resetSpeakerRecognition],
+    [onFaceEmbedding, sendFaceEvent, dispatchRm, resetSpeakerRecognition, takeFaceCheckTrigger],
   );
 
   const faceFrameProcessor = useFrameProcessor(
@@ -1098,45 +1250,52 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       const faces = detectFaces(frame);
       handleFacesOnJS(faces); 
 
-      const nowMs = normalizeFrameTimestampMs(frame.timestamp, isAndroidFrame);
-
       const sigFaces = significantFaces(faces, largestFace(faces));
       const curFaceCount = sigFaces.length;
-      if (lastFaceCount.value !== -1 && curFaceCount !== lastFaceCount.value) {
-        lastEmbedTs.value = 0;
+
+      const rawTs = (frame as unknown as { timestamp?: number }).timestamp;
+      const fcNowMs =
+        typeof rawTs === "number" && Number.isFinite(rawTs) && rawTs > 0
+          ? normalizeFrameTimestampMs(rawTs, isAndroidFrame)
+          : Date.now();
+      const fc = stepFaceCountTrigger(
+        {
+          stable: fcStable.value,
+          pending: fcPending.value,
+          pendingSinceMs: fcPendingSince.value,
+          lastTriggerMs: fcLastTrigger.value,
+        },
+        curFaceCount,
+        fcNowMs,
+      );
+      fcStable.value = fc.state.stable;
+      fcPending.value = fc.state.pending;
+      fcPendingSince.value = fc.state.pendingSinceMs;
+      fcLastTrigger.value = fc.state.lastTriggerMs;
+      if (fc.trigger && embedAllowed.value) {
+        embedRequested.value = true;
+        embedFaceCountTrigger.value = true;
       }
-      lastFaceCount.value = curFaceCount;
 
-      if (faceEmbedModel != null && embedAllowed.value && shouldRunEmbedding(lastEmbedTs.value, nowMs)) {
-        lastEmbedTs.value = nowMs;
+      if (faceEmbedModel != null && embedRequested.value) {
+        embedRequested.value = false;
+        const byFaceCount = embedFaceCountTrigger.value;
+        embedFaceCountTrigger.value = false;
         const primary = largestFace(faces);
-        if (primary != null) {
+        if (primary == null) {
+          handleNoFaceOnJS(byFaceCount);
+        } else {
 
-          const aligned = computeAlignedCrop(primary);
-          let cropX: number;
-          let cropY: number;
-          let cropW: number;
-          let cropH: number;
-          if (aligned != null) {
-            cropX = aligned.x;
-            cropY = aligned.y;
-            cropW = aligned.width;
-            cropH = aligned.height;
-          } else {
-            const _bx = primary.bounds.x;
-            const _by = primary.bounds.y;
-            const _bw = primary.bounds.width;
-            const _bh = primary.bounds.height;
-            const _mx = _bw * 0.15;
-            const _my = _bh * 0.15;
-            cropX = Math.max(0, _bx - _mx);
-            cropY = Math.max(0, _by - _my);
-            cropW = _bw + _mx * 2;
-            cropH = _bh + _my * 2;
-          }
+          const fo = (frame as unknown as { orientation?: string }).orientation;
+          const mc = modelCropFor(primary, frame.width, frame.height, fo);
+          const cropX = mc.crop.x;
+          const cropY = mc.crop.y;
+          const cropW = mc.crop.width;
+          const cropH = mc.crop.height;
           const resized = resize(frame, {
             crop: { x: cropX, y: cropY, width: cropW, height: cropH },
             scale: { width: 112, height: 112 },
+            rotation: mc.rotation,
             pixelFormat: "rgb",
             dataType: "float32",
           });
@@ -1145,14 +1304,35 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
           for (let i = 0; i < resized.length; i++) {
             normalized[i] = resized[i] * 2 - 1;
           }
+
+          const quality = classifyFaceQualityGuarded({
+            luma: meanLuma(resized),
+            faceWidthRatio: primary.bounds.width / frame.width,
+            yawRatio: faceYawRatio(
+              (primary as unknown as {
+                landmarks?: Record<string, { x: number; y: number }> | null;
+              }).landmarks,
+            ),
+          });
+
+          const inferStart = Date.now();
           const out = faceEmbedModel.runSync([normalized])[0] as Float32Array;
+          const inferMs = Date.now() - inferStart;
           const trackingIds = sigFaces
             .map((f) => f.trackingId)
             .filter((id): id is number => typeof id === "number");
 
           const rtRatios = computeLandmarkRatios(primary as unknown as { bounds: { x: number; y: number; width: number; height: number }; landmarks?: Record<string, { x: number; y: number }> | null });
           const rtRatiosJson: string | null = rtRatios ? JSON.stringify(rtRatios) : null;
-          handleEmbeddingOnJS(Array.from(out), sigFaces.length, trackingIds, rtRatiosJson);
+          handleEmbeddingOnJS(
+            Array.from(out),
+            sigFaces.length,
+            trackingIds,
+            rtRatiosJson,
+            quality,
+            inferMs,
+            byFaceCount,
+          );
         }
       }
     },
@@ -1161,11 +1341,16 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       handleFacesOnJS,
       faceEmbedModel,
       resize,
-      lastEmbedTs,
-      lastFaceCount,
-      embedAllowed,
+      fcStable,
+      fcPending,
+      fcPendingSince,
+      fcLastTrigger,
       isAndroidFrame,
+      embedAllowed,
+      embedRequested,
+      embedFaceCountTrigger,
       handleEmbeddingOnJS,
+      handleNoFaceOnJS,
     ],
   );
 
@@ -1179,8 +1364,49 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     void stopLive();
   }, [stopLive]);
 
+  const faceDetectRunning =
+    consentGranted && !faceProcOff && !isVideoOff && !!vcDevice && dialingDone;
+  const turnFaceGateOnRef = useRef(false);
+  turnFaceGateOnRef.current =
+    faceDetectRunning && faceIdentifyEnabled && faceEmbedModel != null;
+
+  const reportTurnFace = useCallback(async (text: string) => {
+    try {
+      const heldStart = Date.now();
+      const who = detectWhoIntent(text);
+      const current = rmStateRef.current.personId;
+
+      const { verdict: v, samples } = who
+        ? await turnFaceGate.awaitWhoVerdict(current)
+        : await turnFaceGate.awaitVerdict(current);
+      console.log(
+        `[Call][face] turn verdict=${v.kind} n=${samples.length} held=${Date.now() - heldStart}ms who=${who ?? "-"}`,
+      );
+      sendTurnFace?.({ ...v, retry: false, who });
+      const displayName = personNameOfRef.current(v.personId);
+      if (who && v.kind !== "insufficient") {
+
+        dispatchRm({
+          type: "WHO_RETRY_RESULT",
+          personId: v.personId,
+          displayName,
+          named: !!displayName,
+          selfMatch: v.personId == null && accountSelfMatchRef.current,
+          nowMs: Date.now(),
+        });
+        return;
+      }
+
+      dispatchRm({ type: "TURN_VERDICT", verdict: v, displayName, named: !!displayName, nowMs: Date.now() });
+
+      if (who) whoAskedImplRef.current();
+    } catch (err) {
+      console.warn("[Call][face] turn verdict 실패(말은 그대로 보낸다):", err);
+    }
+  }, [turnFaceGate, sendTurnFace, dispatchRm]);
   const sayForHandsFree = useCallback(
-    (text: string) => {
+    async (text: string) => {
+      if (turnFaceGateOnRef.current) await reportTurnFace(text);
       const willBeRound = afl971RoundCountRef.current + 1;
 
       const faceBusy = rmStateRef.current.promptRegister;
@@ -1209,8 +1435,15 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       }
       return adNext ? say(text, { adNotice: "pre" }) : say(text);
     },
-    [say],
+    [say, reportTurnFace],
   );
+
+  const handleUserSpeechStart = useCallback(() => {
+    turnFaceGate.startTurn();
+    whoRetryPendingRef.current = false;
+    whoRetryArm.clear();
+    faceCheckRef.current?.onUserSpeechStart();
+  }, [turnFaceGate, whoRetryArm]);
 
   const sttEndpointMs = useTimingConfigStore((s) => s.sttEndpointMs);
 
@@ -1227,10 +1460,14 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     micLevel,
     cloneAudioLevel,
     sttActive,
+    sttRecovering,
     notifyFaceInterrupt,
     idleGreetCount,
+    userSpeaking,
   } = useHandsFreeController({
     onSttUnrecoverable: handleSttUnrecoverable,
+
+    onUserSpeechStart: handleUserSpeechStart,
 
     enabled: liveState === "live",
 
@@ -1258,6 +1495,41 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   useEffect(() => {
     notifyFaceInterruptRef.current = notifyFaceInterrupt;
   }, [notifyFaceInterrupt]);
+
+  const faceCheckEnabledRef = useRef(false);
+  faceCheckEnabledRef.current = consentGranted && faceIdentifyEnabled && liveState === "live";
+  const requestFaceCheck = useCallback(
+    (trigger: FaceCheckTrigger) => {
+      if (!faceCheckEnabledRef.current) return;
+      if (trigger === "who_retry") {
+
+        if (!whoRetryPendingRef.current) return;
+        whoRetryPendingRef.current = false;
+
+        whoRetryArm.requested();
+      }
+      faceCheckTriggersRef.current.add(trigger);
+      embedRequested.value = true;
+    },
+    [embedRequested, whoRetryArm],
+  );
+  const faceCheck = useFaceCheckScheduler({
+    request: requestFaceCheck,
+    userTurnActive: userSpeaking,
+    isBusy: isFaceCycleInFlight,
+  });
+  faceCheckRef.current = faceCheck;
+
+  whoAskedImplRef.current = () => {
+
+    if (!faceCheckEnabledRef.current || !turnFaceGateOnRef.current) {
+      console.log("[Call][face] who_asked 무시 — 얼굴 대조를 돌릴 수 없는 상태");
+      return;
+    }
+    console.log("[Call][face] who_asked → 클론 말 끝 2초 뒤 재대조");
+    whoRetryPendingRef.current = true;
+    faceCheck.onWhoAsked();
+  };
 
   const micHeld = shouldHoldMic(rmState) || bridgeActive || afl971AdInProgress;
 
@@ -1370,7 +1642,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   }, []);
 
   useEffect(() => {
-    if (liveState !== "live" || rmState.mode !== "grace") return;
+    if (liveState !== "live") return;
     const id = setInterval(() => {
 
       if (chatReplyStartAt.current !== null) dispatchRm({ type: "ACTIVITY" });
@@ -1382,7 +1654,13 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       dispatchRm({ type: "TICK" });
     }, 5_000);
     return () => clearInterval(id);
-  }, [liveState, rmState.mode, dispatchRm]);
+  }, [liveState, dispatchRm]);
+
+  const facePresent = faceDetectRunning ? faceState.status === "detected" : true;
+  useEffect(() => {
+    if (liveState !== "live") return;
+    dispatchRm({ type: "FACE_PRESENCE", present: facePresent, nowMs: Date.now() });
+  }, [facePresent, liveState, dispatchRm]);
 
   const afl971PromptAlertShownRef = useRef(false);
   useEffect(() => {
@@ -1516,10 +1794,12 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
       dispatchRm({ type: "CLONE_SPEECH_END" });
       dispatchRm({ type: "ACTIVITY" });
+
+      faceCheckRef.current?.onCloneSpeechEnd(lastSignal.remainingMs);
     }
   }, [lastSignal, dispatchRm, triggerEmote]);
 
-  const canSpeak = (phase === 'listening' || phase === 'confirming') && sttActive;
+  const canSpeak = (phase === 'listening' || phase === 'confirming') && sttActive && !sttRecovering;
 
   useEffect(() => {
     const audio = (remoteStream as unknown as { getAudioTracks?: () => Array<{ enabled: boolean }> })
@@ -1734,13 +2014,6 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     p.muted = true;
   });
 
-  const idlePlayer = useVideoPlayer(liveIdleVideoUrl, (p) => {
-    p.loop = true;
-    p.muted = true;
-    if (liveIdleVideoUrl) {
-      try { p.play(); } catch {  }
-    }
-  });
   const triggerEmote = useCallback(
     (key: EmoteKey, emoji: string, label: string) => {
       if (emoteTimerRef.current) clearTimeout(emoteTimerRef.current);
@@ -2359,6 +2632,9 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         displayName: enrolled.displayName,
         silent: true,
       });
+    } else {
+
+      dispatchRm({ type: "ENROLL_ABORTED" });
     }
 
   }, [isFocused]);
@@ -2436,7 +2712,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
           break;
         case "END_CALL":
           console.log(
-            `[Call][rm] grace ${GRACE_HOLD_MS / 1000}초 동안 얼굴·대화 모두 없음 → 통화 종료`,
+            `[Call][rm] 자리 비움 ${AWAY_END_CALL_MS / 1000}초(얼굴 검출 0 · 대화 없음) → 통화 종료`,
           );
           void stopLive();
           exitToMain();
@@ -2529,6 +2805,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
   useEffect(() => {
     console.log(`[Call][flow] +${Date.now()} CallScreen mount cloneId=${cloneId} name=${paramName ?? "?"} hasImage=${!!paramImage}`);
+
+    faceMatcher.invalidate();
 
   }, []);
 
@@ -2990,14 +3268,15 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
       {
 }
-      {!isOwnClone && (
       <View style={s.rightActions}>
+        {!isOwnClone && (
         <TouchableOpacity
           style={[s.sideBtn, showGifts && s.sideBtnActive]}
           onPress={() => setShowGifts(!showGifts)}
         >
           <Feather name="gift" size={22} color={COLORS.white} />
         </TouchableOpacity>
+        )}
         <TouchableOpacity
           style={s.sideBtn}
           onPress={async () => {
@@ -3026,7 +3305,6 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         </TouchableOpacity>
         {}
       </View>
-      )}
 
       {}
       {floatingGifts.map((g) =>

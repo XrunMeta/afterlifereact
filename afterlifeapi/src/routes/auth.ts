@@ -12,7 +12,9 @@ import {
   v_56035d,
   v_91a253,
   v_bde6da,
+  v_d81306,
 } from "../lib/session";
+import { v_7b7f5b, v_94117c } from "../lib/deactivation";
 import { v_6690d9 } from "../middleware/auth";
 import { v_f8ffae } from "../lib/penaltyGate";
 import { v_74defc } from "../lib/logger";
@@ -251,10 +253,12 @@ v_68f0aa.post("/google", async (v_3f4e2e) => {
       throw new v_3ebe58("ACCOUNT_DELETED", "이미 탈퇴한 계정이에요.");
     }
     if (v_d1b635.banned_until && v_e8cd3d(v_d1b635.banned_until) > Date.now()) {
-      throw new v_3ebe58("ACCOUNT_SUSPENDED", "신고 누적으로 계정 사용이 정지되었습니다.", {
+      throw new v_3ebe58("ACCOUNT_SUSPENDED", v_d81306, {
         bannedUntil: v_d1b635.banned_until,
       });
     }
+
+    await v_7b7f5b(v_3f4e2e, v_d1b635.id);
 
     const v_cc65d6 = v_931bf0.email.split("@")[0];
     const v_771f4c =
@@ -439,10 +443,12 @@ v_68f0aa.post("/apple", async (v_3f4e2e) => {
       throw new v_3ebe58("ACCOUNT_DELETED", "이미 탈퇴한 계정이에요.");
     }
     if (v_d1b635.banned_until && v_e8cd3d(v_d1b635.banned_until) > Date.now()) {
-      throw new v_3ebe58("ACCOUNT_SUSPENDED", "신고 누적으로 계정 사용이 정지되었습니다.", {
+      throw new v_3ebe58("ACCOUNT_SUSPENDED", v_d81306, {
         bannedUntil: v_d1b635.banned_until,
       });
     }
+
+    await v_7b7f5b(v_3f4e2e, v_d1b635.id);
     await v_74defc(v_3f4e2e, {
       userId: v_d1b635.id,
       action: "auth.apple.login",
@@ -951,10 +957,12 @@ v_68f0aa.post("/login", async (v_3f4e2e) => {
   }
 
   if (v_625c74.banned_until && v_e8cd3d(v_625c74.banned_until) > Date.now()) {
-    throw new v_3ebe58("ACCOUNT_SUSPENDED", "신고 누적으로 계정 사용이 정지되었습니다.", {
+    throw new v_3ebe58("ACCOUNT_SUSPENDED", v_d81306, {
       bannedUntil: v_625c74.banned_until,
     });
   }
+
+  await v_7b7f5b(v_3f4e2e, v_625c74.id);
 
   await v_a1651b
     .prepare(
@@ -994,6 +1002,19 @@ v_68f0aa.post("/login", async (v_3f4e2e) => {
   await v_74defc(v_3f4e2e, { userId: v_625c74.id, action: v_1329db ? "auth.login.xrun_link.session" : "auth.login" });
 
   return v_3f4e2e.json({ accessToken: v_2ca7e0, refreshToken: v_dfaee3, accessExpiresIn: v_ff8c95, linkedFromXrun: v_1329db });
+});
+
+const v_09495f = v_1f4ea7.object({
+  reactivateToken: v_1f4ea7.string().min(20),
+  deviceId: v_1f4ea7.string().min(1).max(200).optional(),
+});
+v_68f0aa.post("/reactivate", async (v_3f4e2e) => {
+  const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_09495f);
+  const v_43e90c = await v_94117c(v_3f4e2e.env, v_4d33b2.reactivateToken);
+  const { accessToken: v_2ca7e0, refreshToken: v_dfaee3, accessExpiresIn: v_ff8c95 } = await v_8ab5ff(v_3f4e2e, v_43e90c, v_4d33b2.deviceId);
+  v_56035d(v_3f4e2e, v_dfaee3);
+  await v_74defc(v_3f4e2e, { userId: v_43e90c, action: "account.reactivate" });
+  return v_3f4e2e.json({ accessToken: v_2ca7e0, refreshToken: v_dfaee3, accessExpiresIn: v_ff8c95 });
 });
 
 v_68f0aa.post("/refresh", async (v_3f4e2e) => {
@@ -1177,10 +1198,12 @@ v_68f0aa.post("/email/login", async (v_3f4e2e) => {
     throw new v_3ebe58("ACCOUNT_DELETED", "이미 탈퇴한 계정이에요.");
   }
   if (v_625c74.banned_until && v_e8cd3d(v_625c74.banned_until) > Date.now()) {
-    throw new v_3ebe58("ACCOUNT_SUSPENDED", "신고 누적으로 계정 사용이 정지되었습니다.", {
+    throw new v_3ebe58("ACCOUNT_SUSPENDED", v_d81306, {
       bannedUntil: v_625c74.banned_until,
     });
   }
+
+  await v_7b7f5b(v_3f4e2e, v_625c74.id);
 
   if (v_4d33b2.deviceId && v_4d33b2.pushToken) {
     await v_3f4e2e.env.DB

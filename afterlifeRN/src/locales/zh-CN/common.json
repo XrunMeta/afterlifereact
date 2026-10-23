@@ -385,7 +385,9 @@
     "imageSendFailTitle": "照片发送失败",
     "imageSendFailBody": "请检查网络后重试。",
     "imageApiUnavailable": "照片发送功能准备中，请稍后再试。",
-    "typingA11y": "对方正在输入"
+    "typingA11y": "对方正在输入",
+    "listTitle": "对话列表",
+    "listCount": "对话列表 {{count}}"
   },
   "call": {
     "calling": "连接中...",
@@ -748,11 +750,11 @@
       "charge": "充值"
     },
     "delete": {
-      "title": "这就要走了吗？",
-      "desc": "{{name}} 与您共度的珍贵时光我们会一直记得。\n账户和克隆将被永久删除。",
+      "title": "注销账号",
+      "desc": "确定要注销吗？\n注销后所有数据（积分、使用记录、保存的内容）将被删除且无法恢复。",
       "userFallback": "会员",
-      "stay": "再用用看",
-      "leave": "注销账户",
+      "stay": "取消",
+      "leave": "注销",
       "failed": "注销失败。",
       "subMessage": "如果您是 xrun 用户，xrun 账户将保留"
     },
@@ -814,7 +816,23 @@
       "faceEnrollDev": "面部5角度登记 (dev)",
       "faceEnrollDevDesc": "正面·左·右·上·下拍摄 → 克隆首次通话准备",
       "voiceLangTest": "声音测试",
-      "voiceLangTestDesc": "试听各语言的克隆声音"
+      "voiceLangTestDesc": "试听各语言的克隆声音",
+      "profileEdit": "个人资料 / 个人信息修改",
+      "deactivate": "停用账号（暂停）",
+      "deactivateDesc": "暂时停用你的账号",
+      "pushNotifications": "应用推送通知",
+      "pushNotificationsDesc": "通知设置 · 收到的通知 · 邀请状态",
+      "faceSettings": "人脸检测与识别同意",
+      "faceSettingsDesc": "人脸识别 · 记得我的克隆 · 通话学习",
+      "blockedUsers": "屏蔽用户管理",
+      "reportsMenu": "举报 / 举报记录",
+      "termsConsent": "条款与同意管理",
+      "termsConsentDesc": "查看条款 · 营销信息接收同意",
+      "notificationsListShort": "通知列表",
+      "faceDetect": "人脸检测",
+      "faceDetectDesc": "记得我的克隆",
+      "faceRecognition": "人脸识别同意",
+      "faceRecognitionDesc": "静默自动注册 · 人脸识别条款 · 通话学习"
     },
     "logout": {
       "title": "要退出登录吗?",
@@ -838,6 +856,23 @@
       "otaEmergency": "OTA 紧急运行(embedded fallback)",
       "otaEmbedded": "OTA 内置(embedded)",
       "otaUpdate": "OTA {{id}}"
+    },
+    "section": {
+      "account": "账号与个人信息",
+      "notifications": "通知设置",
+      "face": "人脸与生物识别设置",
+      "service": "服务使用与屏蔽",
+      "app": "应用设置"
+    },
+    "deactivate": {
+      "soon": "即将推出。"
+    },
+    "sectionDesc": {
+      "account": "个人资料 · 停用账号 · 注销",
+      "notifications": "推送通知",
+      "face": "人脸检测 · 人脸识别同意",
+      "service": "屏蔽 · 举报 · 条款与同意",
+      "app": "语言设置"
     }
   },
   "auth": {
@@ -864,8 +899,8 @@
       "accountLocked": "账户已被锁定。请约 10 分钟后重试，或通过找回密码重置。",
       "accountDeletedTitle": "已注销的账户",
       "accountDeletedMessage": "该账户已完成注销，无法再次登录。",
-      "accountSuspendedTitle": "账户已被停用",
-      "accountSuspendedMessage": "因举报累积，账户已被停用。",
+      "accountSuspendedTitle": "账号已被暂停。",
+      "accountSuspendedMessage": "由于违反服务运营政策，您的账号已被暂停使用。\n联系: oth-staff@example.invalid",
       "googleUnavailableTitle": "无法使用 Google 登录",
       "googleUnavailableMessage": "请稍后再试。",
       "googleNoToken": "未能获取 Google 登录令牌。",
@@ -1060,6 +1095,12 @@
       "submit": "开始使用 afterlife",
       "googleOnboardingDesc": "首次使用 Google 账户，请填写一次基本信息。",
       "submitting": "处理中..."
+    },
+    "deactivated": {
+      "title": "该账号已停用。",
+      "message": "重新登录并恢复账号和 AI 克隆吗？",
+      "activate": "启用",
+      "failed": "无法启用，请重新登录。"
     }
   },
   "create": {
@@ -1233,7 +1274,6 @@
       "recordStartFailedMsg": "无法开始录音，请稍后重试。",
       "chooseScriptHint": "请选择脚本并朗读。",
       "uploading": "上传中...",
-      "cloneJobRegistered": "克隆任务已注册",
       "recordDoneUploadFailed": "录音完成（上传失败 — 已重试）",
       "uploadPromptHint": "请上传语音文件",
       "pickAnother": "选择其他文件",
@@ -1255,7 +1295,9 @@
       "toastNoise": "周围太吵，请在安静的地方录音。",
       "recordQualityTitle": "录音质量检查",
       "recordQualitySilenceMsg": "录音中静音部分较多。请在安静的地方清晰地重新录制整句话。",
-      "recordQualityNoiseMsg": "录音中混入了环境噪音。在安静的地方重新录制，声音会自然得多。"
+      "recordQualityNoiseMsg": "录音中混入了环境噪音。在安静的地方重新录制，声音会自然得多。",
+      "registeredFile": "语音文件已成功登记。",
+      "registeredRecording": "录制的语音已成功登记。"
     },
     "visibility": {
       "memlowLocked": "追思克隆固定为不公开。仅共同管理员可见。",
@@ -1622,6 +1664,16 @@
       "deleteConfirmMessage": "{{name}} 对你的记忆和面部信息将被全部删除，无法恢复。",
       "deleteError": "删除失败。",
       "deleteErrorTitle": "删除失败"
+    },
+    "faceSettings": {
+      "title": "人脸与生物识别设置",
+      "callLearning": "通话对话学习",
+      "callLearningDesc": "通话对话学习包含在“AI 数据使用与生成”同意中"
+    },
+    "termsConsent": {
+      "title": "条款与同意管理",
+      "service": "服务条款",
+      "privacy": "隐私政策"
     }
   },
   "permissionGate": {
@@ -1829,7 +1881,7 @@
   },
   "errors": {
     "accountDeleted": "该账号已注销。",
-    "accountSuspended": "由于举报累积,账号已被停用。",
+    "accountSuspended": "由于违反服务运营政策，您的账号已被暂停使用。\n联系: oth-staff@example.invalid",
     "accountSuspendedForPersona": "由于举报累积账号已被暂时停用,无法创建 克隆。",
     "accountLocked": "账号已暂时锁定,请稍后再试。",
     "tooManyFailures": "失败次数过多,请稍后再试。",
@@ -2354,5 +2406,28 @@
       "saving": "处理中...",
       "continue": "同意并继续"
     }
+  },
+  "deactivate": {
+    "whatHappens": "停用后",
+    "verify": "身份验证",
+    "byPassword": "密码",
+    "byEmail": "邮箱验证（社交账号）",
+    "passwordPlaceholder": "输入密码",
+    "sendCode": "向注册邮箱发送验证码",
+    "resendCode": "重新发送验证码",
+    "codeSent": "已发送至 {{email}}。",
+    "codePlaceholder": "6位验证码",
+    "submit": "停用",
+    "confirmTitle": "要停用账号吗？",
+    "confirmBody": "所有设备将立即退出登录。",
+    "effect": {
+      "hide": "你的资料和创建的 AI 克隆将从首页、探索和搜索中隐藏，其他人无法对话或通话。",
+      "posts": "你的帖子和评论将被隐藏。",
+      "interaction": "其他人无法向你发送礼物或分享。",
+      "notify": "所有通知将停止。",
+      "restore": "重新登录即可随时恢复，数据不会被删除。"
+    },
+    "verifyPassword": "身份验证 · 密码",
+    "verifyEmail": "身份验证 · 邮箱验证码"
   }
 }

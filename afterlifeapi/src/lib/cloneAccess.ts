@@ -11,7 +11,8 @@ export function v_74c502(v_81fc5c = ""): string {
 
 export function v_a9ae28(v_81fc5c = ""): string {
   const v_e2a85c = v_81fc5c ? `${v_81fc5c}.` : "";
-  return `${v_e2a85c}admin_suspended_at IS NULL`;
+
+  return `${v_e2a85c}admin_suspended_at IS NULL AND NOT EXISTS (SELECT 1 FROM users ou WHERE ou.id = ${v_e2a85c}owner_id AND ou.deactivated_at IS NOT NULL)`;
 }
 
 export interface CloneRow {
@@ -67,7 +68,11 @@ export async function v_5d4a51(
               c.voice_type, c.voice_preset_id, c.training_status, c.created_at,
               c.is_system,
               c.idle_video_url, c.voice_se_url, c.filler_video_urls, c.guide_video_urls,
-              c.relation, c.admin_suspended_at, c.pipeline, c.viseme_prefix,
+              c.relation,
+              -- 2026-10-23: 주인 계정 비활성화도 정지와 같이 취급(타인 상세·채팅·통화·선물 차단).
+              COALESCE(c.admin_suspended_at,
+                       (SELECT u.deactivated_at FROM users u WHERE u.id = c.owner_id)) AS admin_suspended_at,
+              c.pipeline, c.viseme_prefix,
               c.avatar_sdk_glb_url, c.avatar_sdk_id, c.tts_output,
               COALESCE(s.followers_count, 0) AS followers_count,
               COALESCE(s.messages_count, 0)  AS messages_count,

@@ -1021,14 +1021,13 @@ export default function v_14b43e() {
   return (
     <SafeView backgroundColor={v_1bfbd0.white} showBottomBackground={false}>
       <PageHeader
-        title="Messages"
+        title={v_8d41d7("chat.listTitle", { defaultValue: "대화목록" })}
         hideBorder
         titleStyle={{ fontSize: 28, fontWeight: "800", color: "#1A253D" }}
         rightAction={<NotificationBell />}
       />
 
-      {
-}
+      {}
       <FlatList
         data={v_066fa2}
         keyExtractor={(v_8c0b26) => String(v_8c0b26.persona.id)}
@@ -1074,7 +1073,10 @@ export default function v_14b43e() {
             {}
             <View style={v_fd5f43.subSectionHeader}>
               <Text style={v_fd5f43.subSectionCount}>
-                Kins {v_066fa2.length}
+                {v_8d41d7("chat.listCount", {
+                  defaultValue: "대화목록 {{count}}",
+                  count: v_066fa2.length,
+                })}
               </Text>
               <TouchableOpacity hitSlop={8} onPress={() => v_538ca9(true)}>
                 <Text style={v_fd5f43.subSectionSort}>

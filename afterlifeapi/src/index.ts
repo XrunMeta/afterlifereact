@@ -10,6 +10,7 @@ import { v_353f26 } from "./middleware/rateLimit";
 
 import { v_68f0aa } from "./routes/auth";
 import { v_de7ba7 } from "./routes/users";
+import { v_344cd4 } from "./routes/accountDeactivation";
 import { v_f891e6 } from "./routes/clones";
 import { v_773b4c } from "./routes/memory";
 import { v_19e2a3, v_fa56e0 } from "./routes/messages";
@@ -123,6 +124,7 @@ v_466992.route("/oth-path", v_74e200);
 v_466992.route("/oth-path", v_5c0bb5);
 
 v_466992.route("/oth-path", v_5add74);
+v_466992.route("/oth-path", v_344cd4);
 v_466992.route("/oth-path", v_de7ba7);
 v_466992.route("/oth-path", v_f891e6);
 
