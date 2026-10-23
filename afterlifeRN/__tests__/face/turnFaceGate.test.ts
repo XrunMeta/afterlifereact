@@ -40,21 +40,29 @@ describe("createTurnFaceGate — say 전송 보류(최대 1초)", () => {
     expect(v_b1b543).not.toHaveBeenCalled();
   });
 
-  test("1 sample (not current) → burst(2) and resolves when 3 arrive", async () => {
+  test("이름 있는 다른 사람 1개 → 바로 switch(최종 인식 기준), burst 없음", async () => {
     const { burst: v_b1b543, gate: v_98ce98 } = v_9a4ebd();
     v_98ce98.startTurn();
     v_98ce98.addSample(v_f1a0c2(2, 1));
+    const v_df0713 = await v_98ce98.awaitVerdict(1);
+    expect(v_df0713.verdict).toMatchObject({ kind: "switch", personId: 2 });
+    expect(v_b1b543).not.toHaveBeenCalled();
+  });
+
+  test("모르는 얼굴 1개 → burst(2), 모르는 얼굴 3개가 모이면 unknown", async () => {
+    const { burst: v_b1b543, gate: v_98ce98 } = v_9a4ebd();
+    v_98ce98.startTurn();
+    v_98ce98.addSample(v_f1a0c2(null, 1));
     let v_1794cd = null;
     void v_98ce98.awaitVerdict(1).then((v_fd5f43) => { v_1794cd = v_fd5f43; });
     expect(v_b1b543).toHaveBeenCalledWith(2);
-    v_98ce98.addSample(v_f1a0c2(2, 2));
+    v_98ce98.addSample(v_f1a0c2(null, 2));
     await Promise.resolve();
     expect(v_1794cd).toBeNull();
-    v_98ce98.addSample(v_f1a0c2(2, 3));
+    v_98ce98.addSample(v_f1a0c2(null, 3));
     await Promise.resolve();
-    expect(v_1794cd).not.toBeNull();
     expect(v_1794cd!.samples.map((v_fd5f43) => v_fd5f43.atMs)).toEqual([1, 2, 3]);
-    expect(v_1794cd!.verdict).toMatchObject({ kind: "switch", personId: 2 });
+    expect(v_1794cd!.verdict).toMatchObject({ kind: "unknown" });
   });
 
   test("0 samples → burst(3)", () => {
@@ -76,7 +84,8 @@ describe("createTurnFaceGate — say 전송 보류(최대 1초)", () => {
     jest.advanceTimersByTime(1);
     await Promise.resolve();
     expect(v_1794cd!.samples).toEqual([v_f1a0c2(null, 1)]);
-    expect(v_1794cd!.verdict.kind).toBe("insufficient");
+
+    expect(v_1794cd!.verdict).toMatchObject({ kind: "known", personId: 1, score: null });
   });
 
   test("startTurn clears previous turn samples", async () => {
@@ -154,7 +163,7 @@ describe("createTurnFaceGate — say 전송 보류(최대 1초)", () => {
 
     v_1794cd = null;
     v_98ce98.startTurn();
-    v_98ce98.addSample({ personId: 2, score: 0.7, quality: "ok", atMs: 2 });
+    v_98ce98.addSample({ personId: null, score: 0.3, quality: "ok", atMs: 2 });
     void v_98ce98.awaitVerdict(1).then((v_fd5f43) => { v_1794cd = v_fd5f43; });
     expect(v_b1b543).toHaveBeenLastCalledWith(2);
     v_98ce98.addSample({ personId: 1, score: 0.66, quality: "small", atMs: 3 });
@@ -206,18 +215,13 @@ describe("createTurnFaceGate — say 전송 보류(최대 1초)", () => {
     expect(v_1794cd!.verdict.kind).toBe("insufficient");
   });
 
-  test("no current speaker: named + unknown-face mixed → not early (waits, then insufficient)", async () => {
+  test("no current speaker: 모르는 얼굴 뒤에 이름 있는 얼굴 → 바로 그 사람으로 switch", async () => {
     const { gate: v_98ce98 } = v_9a4ebd();
     v_98ce98.startTurn();
     v_98ce98.addSample(v_f1a0c2(null, 1));
     v_98ce98.addSample(v_f1a0c2(163, 2));
-    let v_1794cd = null;
-    void v_98ce98.awaitVerdict(null).then((v_fd5f43) => { v_1794cd = v_fd5f43; });
-    await Promise.resolve();
-    expect(v_1794cd).toBeNull();
-    jest.advanceTimersByTime(1000);
-    await Promise.resolve();
-    expect(v_1794cd!.verdict.kind).toBe("insufficient");
+    const v_df0713 = await v_98ce98.awaitVerdict(null);
+    expect(v_df0713.verdict).toMatchObject({ kind: "switch", personId: 163 });
   });
 
   test("no current speaker: unknown samples (personId null) never count as current", async () => {
