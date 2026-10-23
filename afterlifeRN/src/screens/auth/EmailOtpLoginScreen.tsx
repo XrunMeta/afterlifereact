@@ -1,5 +1,6 @@
 
 
+import { v_fec9c0 } from "../../lib/accountStatusAlert";
 import { v_889fad } from "../../stores/dialogStore";
 import v_a3453e, { v_c4deb2, v_5ab095 } from "bapkr";
 import { v_3094a2, v_472849 } from "rcmrninabrnb";
@@ -95,6 +96,17 @@ export default function v_415807({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       }
       await v_232d52();
     } catch (v_49263d) {
+
+      const v_c5c078 = v_fec9c0(v_49263d, v_8d41d7, {
+        deviceId: await v_ea1c99(),
+        onReactivated: async (v_fd5f43) => {
+          const v_9ec4c0 = await v_7ef860(v_fd5f43.accessToken);
+          await v_31080f(v_fd5f43.accessToken, v_9ec4c0.user, { persist: v_f53eaa, refreshToken: v_fd5f43.refreshToken ?? null });
+          v_e41029("email_otp");
+          await v_232d52();
+        },
+      });
+      if (v_c5c078) return;
       let v_badeaf = v_8d41d7("auth.emailOtpLogin.loginFailed");
       if (v_49263d instanceof v_84a859) {
         if (v_49263d.code === "ACCOUNT_DELETED") {

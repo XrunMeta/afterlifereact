@@ -899,8 +899,8 @@
       "accountLocked": "Akun terkunci. Silakan coba lagi sekitar 10 menit lagi, atau setel ulang melalui Lupa Kata Sandi.",
       "accountDeletedTitle": "Akun telah dihapus",
       "accountDeletedMessage": "Akun ini sudah diproses untuk dihapus dan tidak dapat login kembali.",
-      "accountSuspendedTitle": "Akun Ditangguhkan",
-      "accountSuspendedMessage": "Akun ini ditangguhkan karena akumulasi laporan.",
+      "accountSuspendedTitle": "Akun Anda ditangguhkan.",
+      "accountSuspendedMessage": "Akun Anda ditangguhkan karena melanggar kebijakan layanan.\nKontak: oth-staff@example.invalid",
       "googleUnavailableTitle": "Login Google tidak tersedia",
       "googleUnavailableMessage": "Silakan coba lagi nanti.",
       "googleNoToken": "Token login Google tidak diterima.",
@@ -1095,6 +1095,12 @@
       "submit": "Mulai afterlife",
       "googleOnboardingDesc": "Ini pertama kali Anda memulai dengan akun Google. Silakan masukkan informasi dasar sekali saja.",
       "submitting": "Memproses..."
+    },
+    "deactivated": {
+      "title": "Akun ini dinonaktifkan.",
+      "message": "Masuk kembali dan pulihkan akun serta klon AI Anda?",
+      "activate": "Aktifkan",
+      "failed": "Gagal mengaktifkan. Silakan masuk lagi."
     }
   },
   "create": {
@@ -1878,7 +1884,7 @@
   },
   "errors": {
     "accountDeleted": "Akun ini sudah dihapus.",
-    "accountSuspended": "Akun Anda diblokir karena laporan yang menumpuk.",
+    "accountSuspended": "Akun Anda ditangguhkan karena melanggar kebijakan layanan.\nKontak: oth-staff@example.invalid",
     "accountSuspendedForPersona": "Akun Anda dinonaktifkan sementara karena laporan yang menumpuk, sehingga tidak bisa membuat clone.",
     "accountLocked": "Akun Anda dikunci sementara. Silakan coba lagi nanti.",
     "tooManyFailures": "Terlalu banyak percobaan gagal. Silakan coba lagi nanti.",
@@ -2402,6 +2408,27 @@
       "subtitle": "Ketentuan telah diperbarui untuk integrasi layanan.\nSilakan setujui kembali ketentuan wajib di bawah ini.",
       "saving": "Memproses...",
       "continue": "Setuju dan lanjutkan"
+    }
+  },
+  "deactivate": {
+    "whatHappens": "Jika dinonaktifkan",
+    "verify": "Verifikasi",
+    "byPassword": "Kata sandi",
+    "byEmail": "Kode email (akun sosial)",
+    "passwordPlaceholder": "Masukkan kata sandi",
+    "sendCode": "Kirim kode ke email saya",
+    "resendCode": "Kirim ulang kode",
+    "codeSent": "Dikirim ke {{email}}.",
+    "codePlaceholder": "Kode 6 digit",
+    "submit": "Nonaktifkan",
+    "confirmTitle": "Nonaktifkan akun?",
+    "confirmBody": "Anda akan langsung keluar dari semua perangkat.",
+    "effect": {
+      "hide": "Profil dan klon AI Anda disembunyikan dari beranda, jelajah, dan pencarian, dan orang lain tidak bisa mengobrol atau menelepon.",
+      "posts": "Postingan dan komentar Anda disembunyikan.",
+      "interaction": "Orang lain tidak bisa mengirim hadiah atau berbagi.",
+      "notify": "Semua notifikasi berhenti.",
+      "restore": "Masuk kembali kapan saja untuk memulihkan. Data Anda tetap tersimpan."
     }
   }
 }
