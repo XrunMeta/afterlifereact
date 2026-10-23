@@ -22,6 +22,14 @@ export type TurnVerdict = {
   quality: v_13de12;
 };
 
+export const v_b4eadd = 0.1;
+
+export function v_e0418a(v_fd5f43): boolean {
+  if (v_fd5f43.quality === "none") return false;
+  if (v_fd5f43.personId != null) return true;
+  return v_fd5f43.quality === "ok" && v_fd5f43.score > v_b4eadd;
+}
+
 function v_29757a(v_5b2623): number | null {
   if (v_5b2623.length === 0) return null;
   return v_5b2623.reduce((v_35f85c, v_62c214) => (v_62c214.score > v_35f85c ? v_62c214.score : v_35f85c), v_5b2623[0].score);
@@ -39,7 +47,7 @@ export function v_6fea6b(v_5b2623, v_34a66a): TurnVerdict {
   const v_ea719c = v_4cd692[0].personId;
 
   if (v_4cd692.every((v_62c214) => v_62c214.personId === null)) {
-    if (v_4cd692.every((v_62c214) => v_62c214.quality !== "none")) {
+    if (v_4cd692.every(v_e0418a)) {
       return { kind: "unknown", personId: null, score: v_29757a(v_4cd692), quality: v_3a9e05 };
     }
     return { kind: "insufficient", personId: null, score: null, quality: v_3a9e05 };

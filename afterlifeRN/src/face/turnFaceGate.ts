@@ -1,6 +1,6 @@
 
 
-import { v_6fea6b, v_3f2d5d, type v_537043, type v_516d40 } from "./faceTurnJudge";
+import { v_e0418a, v_6fea6b, v_3f2d5d, type v_537043, type v_516d40 } from "./faceTurnJudge";
 
 export const v_692765 = 1000;
 
@@ -23,7 +23,7 @@ export interface TurnFaceGate {
 export const v_c68f2a = 2500;
 
 export function v_c63cdb(samples: v_537043[], v_275ccd): v_516d40 {
-  const v_110a8b = v_5b2623.filter((v_62c214) => v_62c214.quality !== "none");
+  const v_110a8b = v_5b2623.filter(v_e0418a);
   const v_3a9e05 = v_5b2623.length > 0 ? v_5b2623[v_5b2623.length - 1].quality : "none";
   const v_5d6c0f = (xs: v_537043[]) => v_6bdf03.reduce((v_35f85c, v_62c214) => (v_62c214.score > v_35f85c ? v_62c214.score : v_35f85c), v_6bdf03[0].score);
   if (v_110a8b.length === 0) return { kind: "insufficient", personId: null, score: null, quality: v_3a9e05 };
@@ -38,7 +38,7 @@ export function v_c63cdb(samples: v_537043[], v_275ccd): v_516d40 {
 }
 
 function v_7c6ce2(samples: v_537043[], v_275ccd): TurnFaceResult | null {
-  const v_110a8b = v_5b2623.filter((v_62c214) => v_62c214.quality !== "none");
+  const v_110a8b = v_5b2623.filter(v_e0418a);
   if (v_110a8b.some((v_62c214) => v_62c214.personId != null) || v_110a8b.length >= 2) {
     return { verdict: v_c63cdb(v_5b2623, v_275ccd), samples: v_5b2623.slice() };
   }
@@ -59,7 +59,7 @@ function v_e3b24b(samples: v_537043[], v_275ccd): v_516d40 | null {
 
 function v_03a5b0(samples: v_537043[], v_275ccd): v_516d40 | null {
   if (v_275ccd != null) return null;
-  const v_110a8b = v_5b2623.filter((v_62c214) => v_62c214.quality !== "none");
+  const v_110a8b = v_5b2623.filter(v_e0418a);
   if (v_110a8b.length === 0) return null;
   const v_e2a85c = v_110a8b[0].personId;
   if (v_e2a85c == null || !v_110a8b.every((v_62c214) => v_62c214.personId === v_e2a85c)) return null;
@@ -156,6 +156,8 @@ export function v_febfc7(s: v_537043, v_34a66a): v_516d40 {
     return { kind: "insufficient", personId: null, score: null, quality: "none" };
   }
   if (v_fd5f43.personId == null) {
+
+    if (!v_e0418a(v_fd5f43)) return { kind: "insufficient", personId: null, score: null, quality: v_fd5f43.quality };
     return { kind: "unknown", personId: null, score: v_fd5f43.score, quality: v_fd5f43.quality };
   }
   return {
