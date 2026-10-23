@@ -71,6 +71,7 @@ import { useSharedValue } from "react-native-worklets-core";
 import { useFaceDetection } from "../../hooks/useFaceDetection";
 import { largestFace, significantFaces } from "../../face/largestFace";
 import { modelCropFor } from "../../face/faceAlignCrop";
+import { detectWhoIntent } from "../../face/whoIntent";
 import { computeLandmarkRatios, type LandmarkRatios } from "../../face/faceLandmarkRatios";
 import { meanLuma, classifyFaceQualityGuarded, faceYawRatio, type FaceQuality } from "../../face/faceQuality";
 import { type TurnSample } from "../../face/faceTurnJudge";
@@ -665,7 +666,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const turnFaceGate = useMemo(
     () =>
       createTurnFaceGate({
-        burst: (n) => faceCheckRef.current?.burst(n),
+        burst: (n, holdMs) => faceCheckRef.current?.burst(n, holdMs),
         stopBurst: () => faceCheckRef.current?.stopBurst(),
         now: Date.now,
       }),
@@ -1333,23 +1334,43 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   turnFaceGateOnRef.current =
     faceDetectRunning && faceIdentifyEnabled && faceEmbedModel != null;
 
-  const reportTurnFace = useCallback(async () => {
+  const reportTurnFace = useCallback(async (text: string) => {
     try {
       const heldStart = Date.now();
+      const who = detectWhoIntent(text);
+      const current = rmStateRef.current.personId;
 
-      const { verdict: v, samples } = await turnFaceGate.awaitVerdict(rmStateRef.current.personId);
-      console.log(`[Call][face] turn verdict=${v.kind} n=${samples.length} held=${Date.now() - heldStart}ms`);
-      sendTurnFace?.({ ...v, retry: false });
+      const { verdict: v, samples } = who
+        ? await turnFaceGate.awaitWhoVerdict(current)
+        : await turnFaceGate.awaitVerdict(current);
+      console.log(
+        `[Call][face] turn verdict=${v.kind} n=${samples.length} held=${Date.now() - heldStart}ms who=${who ?? "-"}`,
+      );
+      sendTurnFace?.({ ...v, retry: false, who });
       const displayName = personNameOfRef.current(v.personId);
+      if (who && v.kind !== "insufficient") {
+
+        dispatchRm({
+          type: "WHO_RETRY_RESULT",
+          personId: v.personId,
+          displayName,
+          named: !!displayName,
+          selfMatch: v.personId == null && accountSelfMatchRef.current,
+          nowMs: Date.now(),
+        });
+        return;
+      }
 
       dispatchRm({ type: "TURN_VERDICT", verdict: v, displayName, named: !!displayName, nowMs: Date.now() });
+
+      if (who) whoAskedImplRef.current();
     } catch (err) {
       console.warn("[Call][face] turn verdict 실패(말은 그대로 보낸다):", err);
     }
   }, [turnFaceGate, sendTurnFace, dispatchRm]);
   const sayForHandsFree = useCallback(
     async (text: string) => {
-      if (turnFaceGateOnRef.current) await reportTurnFace();
+      if (turnFaceGateOnRef.current) await reportTurnFace(text);
       const willBeRound = afl971RoundCountRef.current + 1;
 
       const faceBusy = rmStateRef.current.promptRegister;

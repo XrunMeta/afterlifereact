@@ -169,6 +169,17 @@ describe("useFaceCheckScheduler", () => {
     expect(v_576f5a).toHaveBeenCalledTimes(3);
   });
 
+  test("burst holdMs override — who question keeps chaining up to 2500ms", () => {
+    const { request: v_576f5a, hook: v_ae701f } = v_9a4ebd();
+    v_be73a0(() => v_ae701f.result.current.burst(3, 2500));
+    v_660ac0(2000);
+    v_be73a0(() => v_ae701f.result.current.onCycleDone());
+    expect(v_576f5a).toHaveBeenCalledTimes(2);
+    v_660ac0(500);
+    v_be73a0(() => v_ae701f.result.current.onCycleDone());
+    expect(v_576f5a).toHaveBeenCalledTimes(2);
+  });
+
   test("burst stops after the 1000ms hold even if cycles keep finishing", () => {
     const { request: v_576f5a, hook: v_ae701f } = v_9a4ebd();
     v_be73a0(() => v_ae701f.result.current.burst(3));

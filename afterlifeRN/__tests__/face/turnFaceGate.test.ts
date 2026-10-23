@@ -304,3 +304,71 @@ describe("createWhoRetryArm — 재대조 결과 대기(3초 한도)", () => {
     expect(v_7d5140.take()).toBe(false);
   });
 });
+
+import { v_c63cdb, v_c68f2a } from "../../src/face/turnFaceGate";
+
+describe("judgeWho", () => {
+  test("현재 화자 얼굴이 하나라도 있으면 known", () =>
+    expect(v_c63cdb([v_f1a0c2(null), v_f1a0c2(7)], 7)).toMatchObject({ kind: "known", personId: 7 }));
+  test("다른 이름 있는 사람 → switch", () =>
+    expect(v_c63cdb([v_f1a0c2(9)], 7)).toMatchObject({ kind: "switch", personId: 9 }));
+  test("얼굴은 있는데 일치 없음 → unknown", () =>
+    expect(v_c63cdb([v_f1a0c2(null), v_f1a0c2(null)], 7)).toMatchObject({ kind: "unknown", personId: null }));
+  test("얼굴 없음뿐 → insufficient", () =>
+    expect(v_c63cdb([v_f1a0c2(null, 0, "none")], 7)).toMatchObject({ kind: "insufficient", quality: "none" }));
+  test("어두운 프레임도 얼굴 있음으로 친다(quality 는 마지막 표본)", () =>
+    expect(v_c63cdb([v_f1a0c2(null, 0, "dark")], null)).toMatchObject({ kind: "unknown", quality: "dark" }));
+});
+
+describe("awaitWhoVerdict", () => {
+  beforeEach(() => jest.useFakeTimers());
+  afterEach(() => jest.useRealTimers());
+
+  test("hold 는 2500ms", () => expect(v_c68f2a).toBe(2500));
+
+  test("이름 있는 얼굴 1개면 바로 넘긴다 + burst 는 2.5초 한도로 요청", async () => {
+    const { burst: v_b1b543, gate: v_98ce98 } = v_9a4ebd();
+    v_98ce98.startTurn();
+    let v_cb35cb = null;
+    void v_98ce98.awaitWhoVerdict(7).then((v_62c214) => { v_cb35cb = v_62c214; });
+    expect(v_b1b543).toHaveBeenCalledWith(3, 2500);
+    v_98ce98.addSample(v_f1a0c2(7));
+    await Promise.resolve();
+    expect(v_cb35cb.verdict.kind).toBe("known");
+  });
+
+  test("모르는 얼굴은 2개 모이면 넘긴다(1개로는 안 넘김)", async () => {
+    const { gate: v_98ce98 } = v_9a4ebd();
+    v_98ce98.startTurn();
+    let v_cb35cb = null;
+    void v_98ce98.awaitWhoVerdict(7).then((v_62c214) => { v_cb35cb = v_62c214; });
+    v_98ce98.addSample(v_f1a0c2(null));
+    await Promise.resolve();
+    expect(v_cb35cb).toBeNull();
+    v_98ce98.addSample(v_f1a0c2(null));
+    await Promise.resolve();
+    expect(v_cb35cb.verdict.kind).toBe("unknown");
+  });
+
+  test("2.5초 안에 얼굴이 하나도 없으면 insufficient, 모르는 얼굴 1개면 unknown", async () => {
+    const v_779914 = v_9a4ebd();
+    v_779914.gate.startTurn();
+    let v_2d1eeb = null;
+    void v_779914.gate.awaitWhoVerdict(7).then((v_62c214) => { v_2d1eeb = v_62c214; });
+    jest.advanceTimersByTime(2499);
+    await Promise.resolve();
+    expect(v_2d1eeb).toBeNull();
+    jest.advanceTimersByTime(1);
+    await Promise.resolve();
+    expect(v_2d1eeb.verdict.kind).toBe("insufficient");
+
+    const v_148ff6 = v_9a4ebd();
+    v_148ff6.gate.startTurn();
+    v_148ff6.gate.addSample(v_f1a0c2(null));
+    let v_b96973 = null;
+    void v_148ff6.gate.awaitWhoVerdict(7).then((v_62c214) => { v_b96973 = v_62c214; });
+    jest.advanceTimersByTime(2500);
+    await Promise.resolve();
+    expect(v_b96973.verdict.kind).toBe("unknown");
+  });
+});

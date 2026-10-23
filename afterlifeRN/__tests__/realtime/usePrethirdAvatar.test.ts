@@ -399,7 +399,7 @@ describe('AFL-1039 sendTurnFace / who_asked', () => {
       v_43c42e.current.sendTurnFace!({ kind: 'switch', personId: 4, score: 0.71, quality: 'ok', retry: false });
     });
     const v_f966e3 = v_32dc97.sent.map((v_fd5f43) => JSON.parse(v_fd5f43));
-    expect(v_f966e3[0]).toEqual({ type: 'turn_face', verdict: 'switch', quality: 'ok', personId: 4, score: 0.71, retry: false });
+    expect(v_f966e3[0]).toEqual({ type: 'turn_face', verdict: 'switch', quality: 'ok', personId: 4, score: 0.71, retry: false, who: null });
   });
 
   it('sendTurnFace — personId/score null 도 그대로, retry:true', async () => {
@@ -411,7 +411,19 @@ describe('AFL-1039 sendTurnFace / who_asked', () => {
       v_43c42e.current.sendTurnFace!({ kind: 'insufficient', personId: null, score: null, quality: 'none', retry: true });
     });
     const v_f966e3 = v_32dc97.sent.map((v_fd5f43) => JSON.parse(v_fd5f43));
-    expect(v_f966e3[0]).toEqual({ type: 'turn_face', verdict: 'insufficient', quality: 'none', personId: null, score: null, retry: true });
+    expect(v_f966e3[0]).toEqual({ type: 'turn_face', verdict: 'insufficient', quality: 'none', personId: null, score: null, retry: true, who: null });
+  });
+
+  it('sendTurnFace — "누구냐" 질문 턴은 who 를 싣는다', async () => {
+    const { dc: v_32dc97, pc: v_12cd99 } = v_1d3fbb();
+    const { result: v_43c42e } = v_0da18b(() =>
+      v_3d8d48({ cloneId: 1, accessToken: 't', deps: v_3a122d(v_12cd99) as never }));
+    await v_be73a0(async () => { await v_43c42e.current.start(); });
+    v_be73a0(() => {
+      v_43c42e.current.sendTurnFace!({ kind: 'unknown', personId: null, score: 0.1, quality: 'ok', retry: false, who: 'other' });
+    });
+    const v_f966e3 = v_32dc97.sent.map((v_fd5f43) => JSON.parse(v_fd5f43));
+    expect(v_f966e3[0]).toMatchObject({ type: 'turn_face', verdict: 'unknown', who: 'other' });
   });
 
   it('sendTurnFace — dc 미오픈이면 조용히 스킵', async () => {

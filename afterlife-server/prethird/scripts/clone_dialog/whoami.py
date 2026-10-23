@@ -70,6 +70,9 @@ def turn_face_instruction(turn_face: dict | None, speaker_name: str | None, now:
         return None
 
     verdict = turn_face.get("verdict")
+    who = turn_face.get("who")
+    if who in ("self", "other"):
+        return _who_question_instruction(turn_face, who, speaker_name)
     if _unconfirmed(turn_face):
         state, ask = _QUALITY_HINTS.get(turn_face.get("quality"), _DEFAULT_HINT)
         return (
@@ -92,3 +95,36 @@ def turn_face_instruction(turn_face: dict | None, speaker_name: str | None, now:
                 "네 이름으로 답해라. 묻지 않았으면 평소처럼 답해라."
             )
     return None
+
+
+def _who_question_instruction(turn_face: dict, who: str, speaker_name: str | None) -> str:
+    """앱이 음성 인식 결과로 "누구냐" 질문을 확실히 알아채고 얼굴을 대조한 턴(2026-10-23).
+
+    판정·재대조·등록 팝업은 앱이 한다 — 여기서는 답 내용만 정한다. <ask=who> 는 쓰지 않게 한다."""
+    asked = ("상대가 자기가 누구냐고 물었다" if who == "self"
+             else "상대가 화면 속 사람이 누구냐고 물었다")
+    target = "상대" if who == "self" else "그 사람"
+    no_tag = " <ask=who> 는 붙이지 마라."
+    verdict = turn_face.get("verdict")
+    if verdict in ("known", "switch") and speaker_name and not _unconfirmed(turn_face):
+        score = turn_face.get("score")
+        hedge = (isinstance(score, (int, float)) and not isinstance(score, bool)
+                 and score < HEDGE_SCORE_BELOW)
+        how = (f"'혹시 {speaker_name}야?' 처럼 확인하는 말투로" if hedge
+               else f"'{speaker_name}'이라고 자연스럽게 알아보며")
+        return f"[이번 턴] {asked}. 얼굴로 확인한 {target}은 '{speaker_name}'이다. {how} 답해라.{no_tag}"
+    nameless_known = (verdict in ("known", "switch") and not speaker_name
+                      and turn_face.get("speaker_ok") is not False)
+    if verdict == "unknown" or nameless_known:
+        # 처음 보는 얼굴(또는 이름을 모르는 사람) — 앱이 등록 창을 이미 띄웠다.
+        # (아는 사람인데 서버가 화자 교체를 아직 못 마친 경우 speaker_ok=False 는 아래 "확인 중"으로 간다.)
+        return (
+            f"[이번 턴] {asked}. 얼굴을 대조해 보니 {target}은 처음 보는 얼굴이다. 이름을 지어내지 말고 "
+            f"처음 보는 것 같다고 솔직하게 말한 뒤, 화면에 뜬 등록 창에 {target} 이름을 알려 달라고 짧게 권해라. "
+            f"카메라를 봐 달라고 하지 마라.{no_tag}"
+        )
+    state, ask = _QUALITY_HINTS.get(turn_face.get("quality"), _DEFAULT_HINT)
+    return (
+        f"[이번 턴] {asked}. 그런데 얼굴이 확인되지 않았다(화면: {state}). 이름을 말하지 말고 "
+        f"{ask} 짧게 부탁해라(곧 다시 확인한다).{no_tag}"
+    )
