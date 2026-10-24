@@ -50,8 +50,12 @@ export function v_a5ab77(v_bbda62): SelfConfirmAction {
   return { kind: 'confirm', vectors: v_dd108b };
 }
 
-export type SelfConfirmErrorClass = 'confirmed' | 'retryable';
+export type SelfConfirmErrorClass = 'confirmed' | 'consent_revoked' | 'retryable';
 
-export function v_7a4056(v_d308b5): SelfConfirmErrorClass {
+export function v_7a4056(
+  v_d308b5,
+  v_c99bd2,
+): SelfConfirmErrorClass {
+  if (v_d308b5 === 403 && v_c99bd2 === 'FACE_CONSENT_REQUIRED') return 'consent_revoked';
   return v_d308b5 === 409 ? 'confirmed' : 'retryable';
 }

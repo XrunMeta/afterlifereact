@@ -14,6 +14,15 @@ beforeEach(() => {
 });
 
 describe('translateApiError', () => {
+  test('FACE_CONSENT_REQUIRED — code 단독 매핑(메시지 무관)', () => {
+    v_ceba62.mockImplementation((v_b24339) =>
+      v_b24339 === 'errors.faceConsentRequired' ? '얼굴 인식 동의가 필요합니다.' : '',
+    );
+    expect(v_3be591('FACE_CONSENT_REQUIRED', 'Face consent required.')).toBe(
+      '얼굴 인식 동의가 필요합니다.',
+    );
+  });
+
   test('combo match — code + message → i18n key', () => {
     v_ceba62.mockImplementation((v_b24339) =>
       v_b24339 === 'errors.accountDeleted' ? 'This account has been deleted.' : '',
