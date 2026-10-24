@@ -832,7 +832,7 @@
       "faceDetect": "Face detection",
       "faceDetectDesc": "Clones that remember me",
       "faceRecognition": "Face recognition consent",
-      "faceRecognitionDesc": "Quiet auto-enroll · face recognition terms · call learning"
+      "faceRecognitionDesc": "Allow face recognition · face recognition terms · call learning"
     },
     "logout": {
       "title": "Log out?",
@@ -1614,13 +1614,13 @@
       },
       "faceBiometric": {
         "sectionTitle": "Facial Recognition (Biometric)",
-        "description": "Lets your clone quietly remember a new face during a call without a confirmation card, so it recognizes them more naturally next time. You can turn this on/off anytime. Turning it off deletes speakers registered this way (manually registered speakers are unaffected).",
-        "toggleLabel": "Allow silent auto-registration",
+        "description": "Recognizes faces during calls so your clone can recognize the other person. A face seen for the first time is registered automatically without a separate confirmation. You can turn this on or off anytime. When off, no face recognition happens during calls and automatically registered speaker data is deleted. Manually registered speakers are not deleted, but they are not used for recognition until you turn this back on.",
+        "toggleLabel": "Allow face recognition (biometric)",
         "saveError": "Failed to save your setting. Please try again.",
-        "revokeConfirmTitle": "Turn Off Silent Auto-Registration",
-        "revokeConfirmMessage": "Turning this off immediately deletes the facial recognition data for every speaker registered this way. Manually registered speakers are unaffected. This cannot be undone. Continue?",
+        "revokeConfirmTitle": "Disable Face Recognition",
+        "revokeConfirmMessage": "Disabling stops face recognition during calls and immediately deletes the face recognition data of every automatically registered speaker. Manually registered speakers are not deleted. This cannot be undone. Do you want to disable it?",
         "retroPromptTitle": "Would you like to enable facial recognition (biometric data)?",
-        "retroPromptMessage": "If you agree, your clone will quietly remember a new face during calls without a confirmation card, so it recognizes them more naturally next time. You can change this anytime in Settings.",
+        "retroPromptMessage": "If you agree, faces are recognized during calls so your clone can recognize the other person, and a face seen for the first time is registered automatically without a separate confirmation. If you do not agree, no face recognition happens during calls. You can change this anytime in Settings.",
         "retroPromptAgree": "Agree",
         "retroPromptDecline": "Decline"
       },
@@ -2205,6 +2205,11 @@
     "other": "Other"
   },
   "faceEnroll": {
+    "consentRequired": {
+      "title": "Face Recognition Consent Required",
+      "message": "To register a face, turn on 'Allow face recognition (biometric)' in Settings.",
+      "goSettings": "Go to Settings"
+    },
     "rescanNotice": "Let's check your face again.",
     "permissionRequired": "Camera permission is required.",
     "permissionSkip": "Skip enroll and start call",
