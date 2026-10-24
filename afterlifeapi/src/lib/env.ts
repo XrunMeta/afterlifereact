@@ -72,6 +72,8 @@ export interface Bindings {
 
   FACE_CONSENT_ENFORCED?: string;
 
+  FACE_API_CONSENT_CHECK?: string;
+
   PREBUILD_SECRET?: string;        
   PRETHIRD_PUBLIC_BASE?: string;   
 

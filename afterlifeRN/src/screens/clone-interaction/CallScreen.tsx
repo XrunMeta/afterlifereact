@@ -108,6 +108,7 @@ import {
   type SpeakerHandoffAction,
 } from "../../realtime/speakerHandoff";
 import { isFaceConsentEnforced } from "../../config/faceConsent";
+import { subscribeFaceConsentRequired, shouldRevokeFaceConsent } from "../../lib/faceConsentError";
 import {
   listPersons,
   deletePerson,
@@ -528,6 +529,17 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     };
 
   }, [accessToken]);
+
+  const consentStateRef = useRef({ faceBiometricConsent: null as boolean | null, consentGranted: false });
+  consentStateRef.current = { faceBiometricConsent, consentGranted };
+  useEffect(() => {
+    return subscribeFaceConsentRequired(() => {
+      if (!shouldRevokeFaceConsent(consentStateRef.current)) return;
+      console.warn("[Call][face] 서버 403 FACE_CONSENT_REQUIRED — 통화 중 동의 철회로 보고 얼굴 인식 중단");
+      setFaceBiometricConsent(false);
+      setConsentGranted(false);
+    });
+  }, []);
 
   const autoEnrolledNoNameRef = useRef<Set<number>>(new Set());
 
@@ -985,6 +997,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     if (selfConfirmed || !faceIdentifyEnabled) return;
     if (!accessToken || !cloneId) return;
 
+    if (!consentGranted) return;
+
     let cancelled = false;
 
     const timer = setInterval(() => {
@@ -1019,8 +1033,11 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
           if (cancelled) return;
 
           const status = err instanceof AuthApiError ? err.status : undefined;
-          const cls = classifySelfConfirmError(status);
-          if (cls === "confirmed") {
+          const cls = classifySelfConfirmError(status, err instanceof AuthApiError ? err.code : undefined);
+          if (cls === "consent_revoked") {
+
+            console.warn("[Call][self] self 확정 거절 — 얼굴 인식 동의 철회, 중단");
+          } else if (cls === "confirmed") {
             console.log("[Call][self] self 확정 실패 → 409(이미 확정) — 확정으로 간주, 재시도 중단");
             setSelfConfirmed(true);
           } else {
@@ -1041,7 +1058,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       cancelled = true;
       clearInterval(timer);
     };
-  }, [selfConfirmed, faceIdentifyEnabled, accessToken, cloneId, getFaceEmbeddingBuffer]);
+  }, [selfConfirmed, faceIdentifyEnabled, consentGranted, accessToken, cloneId, getFaceEmbeddingBuffer]);
 
   const NAMING_TIMEOUT_MS = 20000;
   const namingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);

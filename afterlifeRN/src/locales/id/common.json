@@ -1885,6 +1885,7 @@
     "later": "Tambahkan Nanti"
   },
   "errors": {
+    "faceConsentRequired": "Diperlukan persetujuan pengenalan wajah. Aktifkan 'Izinkan pengenalan wajah (data biometrik)' di Pengaturan.",
     "accountDeleted": "Akun ini sudah dihapus.",
     "accountSuspended": "Akun Anda ditangguhkan karena melanggar kebijakan layanan.\nKontak: oth-staff@example.invalid",
     "accountSuspendedForPersona": "Akun Anda dinonaktifkan sementara karena laporan yang menumpuk, sehingga tidak bisa membuat clone.",

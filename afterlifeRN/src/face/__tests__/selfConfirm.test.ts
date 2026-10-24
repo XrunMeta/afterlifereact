@@ -67,3 +67,13 @@ describe('classifySelfConfirmError', () => {
     expect(v_7a4056(undefined)).toBe('retryable');
   });
 });
+
+describe('classifySelfConfirmError - AFL-1041 동의 철회', () => {
+  it('403 FACE_CONSENT_REQUIRED 는 consent_revoked (retryable 아님)', () => {
+    expect(v_7a4056(403, 'FACE_CONSENT_REQUIRED')).toBe('consent_revoked');
+  });
+  it('다른 403 은 기존대로 retryable', () => {
+    expect(v_7a4056(403, 'FORBIDDEN')).toBe('retryable');
+    expect(v_7a4056(403)).toBe('retryable');
+  });
+});

@@ -609,28 +609,26 @@ v_469bf2("persons route", () => {
     v_4d37e3(v_3ac7e7?.display_name).toBeNull();
   });
 
-  v_23805a("mizu CRITICAL fix: user.face_biometric_consent 미동의(기본0) + enrolledVia='auto_biometric' → 서버가 card/none 로 폴백(granted 미부여)", async () => {
+  v_23805a("AFL-1041: user.face_biometric_consent 미동의(기본0) + enrolledVia='auto_biometric' → 403 FACE_CONSENT_REQUIRED, person 미생성 / card 는 201", async () => {
     const { id: v_43e90c, token: v_21cc31 } = await v_d33950("auto-biometric-unconsented@test.test");
 
     const v_6e0fd3 = await v_4d24a9(v_43e90c, "auto-biometric-unconsented-clone");
+    const v_4f438a = (v_4d33b2) =>
+      v_1df298.fetch("http://localhost/oth-path", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${v_21cc31}`, "Content-Type": "application/json" },
+        body: JSON.stringify(v_4d33b2),
+      });
 
-    const v_8f00b9 = await v_1df298.fetch("http://localhost/oth-path", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${v_21cc31}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ cloneId: v_6e0fd3, enrolledVia: "auto_biometric" }),
-    });
-    v_4d37e3(v_8f00b9.status).toBe(201);
-    const v_4d33b2 = (await v_8f00b9.json()) as { id: number; consentState: string; enrolledVia: string };
+    const v_8f00b9 = await v_4f438a({ cloneId: v_6e0fd3, enrolledVia: "auto_biometric" });
+    v_4d37e3(v_8f00b9.status).toBe(403);
+    v_4d37e3(((await v_8f00b9.json()) as { error: { code: string } }).error.code).toBe("FACE_CONSENT_REQUIRED");
+    const v_7b3f91 = await (v_c9c489 as any).DB.prepare("SELECT COUNT(*) AS n FROM persons WHERE user_id = ?").bind(v_43e90c).first<{ n: number }>();
+    v_4d37e3(v_7b3f91?.n).toBe(0);
 
-    v_4d37e3(v_4d33b2.consentState).toBe("none");
-    v_4d37e3(v_4d33b2.enrolledVia).toBe("card");
-
-    const v_3ac7e7 = await (v_c9c489 as any).DB.prepare(
-      "SELECT consent_state, enrolled_via, consent_at FROM persons WHERE id = ?",
-    ).bind(v_4d33b2.id).first<{ consent_state: string; enrolled_via: string; consent_at: number | null }>();
-    v_4d37e3(v_3ac7e7?.consent_state).toBe("none");
-    v_4d37e3(v_3ac7e7?.enrolled_via).toBe("card");
-    v_4d37e3(v_3ac7e7?.consent_at).toBeNull();
+    const v_5eae50 = await v_4f438a({ cloneId: v_6e0fd3 });
+    v_4d37e3(v_5eae50.status).toBe(201);
+    v_4d37e3(((await v_5eae50.json()) as { consentState: string }).consentState).toBe("none");
   });
 
   v_23805a("enrolledVia 미지정 → 기존과 동일하게 'card'/consentState 'none'(회귀)", async () => {

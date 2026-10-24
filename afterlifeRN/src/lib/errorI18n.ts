@@ -8,6 +8,10 @@ interface RegexRule {
   extract?: (m: RegExpMatchArray) => Record<string, unknown>;
 }
 
+const v_9435c9 = {
+  FACE_CONSENT_REQUIRED: "errors.faceConsentRequired",
+};
+
 const v_bdafcd = {
   "ACCOUNT_DELETED::이미 탈퇴한 계정이에요.": "errors.accountDeleted",
   "ACCOUNT_SUSPENDED::신고 누적으로 계정 사용이 정지되었습니다.": "errors.accountSuspended",
@@ -196,6 +200,12 @@ const v_ed458f = [
 export function v_3be591(v_c99bd2, v_a8cd21): string {
   if (!v_a8cd21) return v_a8cd21;
   const v_2f361a = v_a8cd21.trim();
+
+  const v_cbf01a = v_9435c9[v_c99bd2];
+  if (v_cbf01a) {
+    const v_6dce25 = v_9c213b.t(v_cbf01a, { defaultValue: "" });
+    if (v_6dce25 && v_6dce25 !== v_cbf01a) return v_6dce25;
+  }
 
   const v_291a7c = v_bdafcd[`${v_c99bd2}::${v_2f361a}`];
   if (v_291a7c) {
