@@ -55,7 +55,7 @@ export default function v_db6725({ visible: v_cf55be, onAgree: v_5cccfe, onCance
             />
             {v_35bf26 && <ActivityIndicator color={v_1bfbd0.zinc500} />}
             <TouchableOpacity onPress={v_c7001c} style={v_fd5f43.cancel} disabled={v_35bf26}>
-              <Text style={v_fd5f43.cancelText}>{v_8d41d7("common.cancel", { defaultValue: "취소" })}</Text>
+              <Text style={v_fd5f43.cancelText}>{v_8d41d7("call.faceConsentPrompt.continue", { defaultValue: "그대로 진행" })}</Text>
             </TouchableOpacity>
           </View>
         </View>

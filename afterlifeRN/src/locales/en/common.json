@@ -473,7 +473,8 @@
     "faceConsentPrompt": {
       "title": "Face recognition consent",
       "desc": "To recognize who is speaking during calls, the consents below are needed. (optional)",
-      "agree": "Agree"
+      "agree": "Agree",
+      "continue": "Continue anyway"
     },
     "poorConnection": "The connection is poor.\nPlease call again.",
     "giftInsufficientTitle": "Not enough XRUN",
@@ -1618,7 +1619,7 @@
         "toggleLabel": "Allow face recognition (biometric)",
         "saveError": "Failed to save your setting. Please try again.",
         "revokeConfirmTitle": "Disable Face Recognition",
-        "revokeConfirmMessage": "If you turn this off, facial recognition will no longer be used during conversations, and some facial recognition data will be deleted immediately. This cannot be undone. Turn it off?",
+        "revokeConfirmMessage": "If you turn this off, facial recognition will no longer be used during conversations, and facial recognition data will be deleted immediately. This cannot be undone. Turn it off?",
         "retroPromptTitle": "Would you like to enable facial recognition (biometric data)?",
         "retroPromptMessage": "If you agree, facial recognition will be used during conversations. You can change this anytime in Settings.",
         "retroPromptAgree": "Agree",
