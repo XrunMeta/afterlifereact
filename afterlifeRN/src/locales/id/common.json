@@ -2221,7 +2221,7 @@
       "title": "Siapa orang ini?",
       "desc": "Beritahu nama dan hubungan agar kami bisa mengenalinya pada panggilan berikutnya.",
       "existingLabel": "Sudah terdaftar (pilih untuk menambah pembelajaran saja)",
-      "markSelf": "Wajah ini adalah saya",
+      "markSelf": "Simpan informasi wajah saya",
       "alreadyRegistered": "{{name}} sudah terdaftar",
       "updateName": "Perbarui nama",
       "existingHint": "Jika ini orang baru, ketik namanya di bawah",
