@@ -1614,7 +1614,7 @@
       },
       "faceBiometric": {
         "sectionTitle": "Facial Recognition (Biometric)",
-        "description": "Recognizes faces during calls so your clone can recognize the other person. A face seen for the first time is registered automatically without a separate confirmation. You can turn this on or off anytime. When off, no face recognition happens during calls and automatically registered speaker data is deleted. Manually registered speakers are not deleted, but they are not used for recognition until you turn this back on.",
+        "description": "Uses facial recognition during conversations.",
         "toggleLabel": "Allow face recognition (biometric)",
         "saveError": "Failed to save your setting. Please try again.",
         "revokeConfirmTitle": "Disable Face Recognition",

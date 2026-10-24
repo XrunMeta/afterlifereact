@@ -1593,7 +1593,7 @@
       },
       "faceBiometric": {
         "sectionTitle": "Pengenalan Wajah (Informasi Biometrik)",
-        "description": "Mengenali wajah selama panggilan agar klon dapat mengenali lawan bicara. Wajah yang baru pertama kali dilihat didaftarkan secara otomatis tanpa konfirmasi terpisah. Anda dapat menyalakan atau mematikannya kapan saja. Jika dimatikan, pengenalan wajah tidak dilakukan selama panggilan dan informasi pembicara yang terdaftar otomatis akan dihapus. Pembicara yang didaftarkan sendiri tidak dihapus, tetapi tidak digunakan untuk pengenalan sampai Anda menyalakannya kembali.",
+        "description": "Menggunakan pengenalan wajah selama percakapan.",
         "toggleLabel": "Izinkan pengenalan wajah (informasi biometrik)",
         "saveError": "Gagal menyimpan pengaturan. Silakan coba lagi.",
         "revokeConfirmTitle": "Nonaktifkan Pengenalan Wajah",
