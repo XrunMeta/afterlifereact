@@ -2221,7 +2221,7 @@
       "title": "이 분은 누구신가요?",
       "desc": "이름과 관계를 알려주시면 다음 통화부터 알아볼 수 있어요.",
       "existingLabel": "이미 등록된 사람 (이 중에서 선택하면 학습만 추가돼요)",
-      "markSelf": "이 얼굴은 나예요",
+      "markSelf": "얼굴정보를 저장해둡니다",
       "alreadyRegistered": "이미 등록된 {{name}}님이에요",
       "updateName": "이름 업데이트",
       "existingHint": "새로운 사람이면 아래에 이름을 직접 입력하세요",
