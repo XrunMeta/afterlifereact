@@ -473,7 +473,8 @@
     "faceConsentPrompt": {
       "title": "人脸识别同意",
       "desc": "为在通话中识别说话人，需要以下同意。（可选）",
-      "agree": "同意"
+      "agree": "同意",
+      "continue": "直接继续"
     },
     "poorConnection": "通话信号不佳\n请重新拨打",
     "giftInsufficientTitle": "XRUN 不足",
@@ -1580,7 +1581,7 @@
         "toggleLabel": "允许人脸识别（生物识别信息）",
         "saveError": "设置保存失败，请重试。",
         "revokeConfirmTitle": "停用人脸识别",
-        "revokeConfirmMessage": "停用后，对话中将不再使用人脸识别，部分人脸识别信息会立即删除且无法恢复。确定要停用吗？",
+        "revokeConfirmMessage": "停用后，对话中将不再使用人脸识别，人脸识别信息会立即删除且无法恢复。确定要停用吗？",
         "retroPromptTitle": "是否同意使用面部识别（生物识别信息）？",
         "retroPromptMessage": "同意后，对话中将使用人脸识别。您可以随时在设置中更改。",
         "retroPromptAgree": "同意",
