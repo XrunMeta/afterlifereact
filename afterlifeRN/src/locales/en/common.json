@@ -1618,9 +1618,9 @@
         "toggleLabel": "Allow face recognition (biometric)",
         "saveError": "Failed to save your setting. Please try again.",
         "revokeConfirmTitle": "Disable Face Recognition",
-        "revokeConfirmMessage": "Disabling stops face recognition during calls and immediately deletes the face recognition data of every automatically registered speaker. Manually registered speakers are not deleted. This cannot be undone. Do you want to disable it?",
+        "revokeConfirmMessage": "If you turn this off, facial recognition will no longer be used during conversations, and some facial recognition data will be deleted immediately. This cannot be undone. Turn it off?",
         "retroPromptTitle": "Would you like to enable facial recognition (biometric data)?",
-        "retroPromptMessage": "If you agree, faces are recognized during calls so your clone can recognize the other person, and a face seen for the first time is registered automatically without a separate confirmation. If you do not agree, no face recognition happens during calls. You can change this anytime in Settings.",
+        "retroPromptMessage": "If you agree, facial recognition will be used during conversations. You can change this anytime in Settings.",
         "retroPromptAgree": "Agree",
         "retroPromptDecline": "Decline"
       },

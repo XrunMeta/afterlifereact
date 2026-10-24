@@ -1597,9 +1597,9 @@
         "toggleLabel": "Izinkan pengenalan wajah (informasi biometrik)",
         "saveError": "Gagal menyimpan pengaturan. Silakan coba lagi.",
         "revokeConfirmTitle": "Nonaktifkan Pengenalan Wajah",
-        "revokeConfirmMessage": "Jika dinonaktifkan, pengenalan wajah tidak dilakukan selama panggilan dan informasi pengenalan wajah dari semua pembicara yang terdaftar otomatis akan segera dihapus. Pembicara yang didaftarkan sendiri tidak dihapus. Tidak dapat dibatalkan. Apakah Anda ingin menonaktifkannya?",
+        "revokeConfirmMessage": "Jika dinonaktifkan, pengenalan wajah tidak akan digunakan selama percakapan, dan sebagian data pengenalan wajah akan segera dihapus serta tidak dapat dikembalikan. Nonaktifkan?",
         "retroPromptTitle": "Apakah Anda menyetujui penggunaan pengenalan wajah (informasi biometrik)?",
-        "retroPromptMessage": "Jika Anda setuju, wajah akan dikenali selama panggilan agar klon dapat mengenali lawan bicara, dan wajah yang baru pertama kali dilihat didaftarkan secara otomatis tanpa konfirmasi terpisah. Jika tidak setuju, pengenalan wajah tidak dilakukan selama panggilan. Anda dapat mengubahnya kapan saja di pengaturan.",
+        "retroPromptMessage": "Jika Anda setuju, pengenalan wajah akan digunakan selama percakapan. Anda dapat mengubahnya kapan saja di Pengaturan.",
         "retroPromptAgree": "Setuju",
         "retroPromptDecline": "Tolak"
       },

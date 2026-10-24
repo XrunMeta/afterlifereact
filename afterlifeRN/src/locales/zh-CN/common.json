@@ -1580,9 +1580,9 @@
         "toggleLabel": "允许人脸识别（生物识别信息）",
         "saveError": "设置保存失败，请重试。",
         "revokeConfirmTitle": "停用人脸识别",
-        "revokeConfirmMessage": "停用后，通话中不再进行人脸识别，所有自动登记的说话人的人脸识别信息将被立即删除。手动登记的说话人不会被删除。此操作不可撤销。是否停用？",
+        "revokeConfirmMessage": "停用后，对话中将不再使用人脸识别，部分人脸识别信息会立即删除且无法恢复。确定要停用吗？",
         "retroPromptTitle": "是否同意使用面部识别（生物识别信息）？",
-        "retroPromptMessage": "同意后，通话中将识别面孔，克隆体即可认出对方，首次遇见的面孔无需单独确认，将被自动登记。若不同意，通话中不会进行人脸识别。可在设置中随时更改。",
+        "retroPromptMessage": "同意后，对话中将使用人脸识别。您可以随时在设置中更改。",
         "retroPromptAgree": "同意",
         "retroPromptDecline": "拒绝"
       },
