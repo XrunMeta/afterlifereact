@@ -36,12 +36,17 @@ def _enabled() -> bool:
     return os.environ.get("PRETHIRD_WHOAMI_ENABLED", "1") == "1"
 
 
-def _active(turn_face, now: float) -> bool:
-    """스위치 on 이고 이번 턴 것으로 볼 만큼 새로운 turn_face 인지."""
-    if not _enabled() or not isinstance(turn_face, dict):
+def _fresh(turn_face, now: float) -> bool:
+    """이번 턴 것으로 볼 만큼 새로운 turn_face 인지(스위치와 무관)."""
+    if not isinstance(turn_face, dict):
         return False
     at = turn_face.get("at")
     return isinstance(at, (int, float)) and now - at <= TURN_FACE_MAX_AGE_S
+
+
+def _active(turn_face, now: float) -> bool:
+    """스위치 on 이고 이번 턴 것으로 볼 만큼 새로운 turn_face 인지."""
+    return _enabled() and _fresh(turn_face, now)
 
 
 def _unconfirmed(turn_face: dict, has_speaker: bool = False) -> bool:
@@ -60,18 +65,64 @@ def _unconfirmed(turn_face: dict, has_speaker: bool = False) -> bool:
     return verdict in ("known", "switch") and turn_face.get("speaker_ok") is False
 
 
-def turn_face_names_allowed(turn_face: dict | None, now: float, has_speaker: bool = False) -> bool:
+NO_CONSENT_GUIDE = (
+    "얼굴 인식 동의가 꺼져 있어 이 통화에서는 상대의 얼굴을 보거나 알아볼 수 없다. "
+    "이름을 말하지 말고 \"얼굴 인식에 동의해 주면 알아볼 수 있다\"는 취지로, "
+    "앱 설정에서 '얼굴 인식 허용'을 켜 달라고 네 말투로 짧게 안내해라(예: \"얼굴 인식에 동의해 주면 내가 알아볼 수 있어. "
+    "설정에서 '얼굴 인식 허용'을 켜 줘.\"). "
+    "<ask=who> 는 붙이지 마라."
+)
+
+
+def no_consent_instruction() -> str:
+    """AFL-1040: 얼굴 비동의 사용자가 누구냐고 물은 턴(verdict=no_consent) 지시. 이름 금지 + 설정 안내.
+
+    일반 규칙(\"얼굴 인식·버튼·등록·팝업 같은 화면·시스템 얘기는 하지 마라\")의 이번 턴 한정 예외다."""
+    return (
+        "[이번 턴] 상대가 자기(또는 화면 속 사람)가 누구냐고 물었다. "
+        "이번 턴에 한해, '얼굴 인식·화면·시스템 얘기는 하지 마라'는 규칙의 예외로 아래를 따라라. "
+        + NO_CONSENT_GUIDE
+    )
+
+
+def remember_me_consent_instruction() -> str:
+    """AFL-1040: 얼굴 비동의 사용자가 \"기억해\" 류를 요청한 턴 지시(등록 시트는 열지 않는다)."""
+    return (
+        "[이번 턴] 상대가 자기를 기억해 달라고 했다. "
+        "이번 턴에 한해, '얼굴 인식·화면·시스템 얘기는 하지 마라'는 규칙의 예외로 아래를 따라라. "
+        + NO_CONSENT_GUIDE
+    )
+
+
+def turn_face_names_allowed(turn_face: dict | None, now: float, has_speaker: bool = False,
+                            face_consent=None) -> bool:
     """이번 턴 프롬프트에 화자 이름(T-566 화자 힌트·이름 부르기 힌트·확인 말투)을 넣어도 되는지.
 
     미확인 턴이면 False — "이름을 말하지 마라" 지시와 "이름을 말해라" 힌트가 한 프롬프트에
-    함께 들어가지 않게 한다. turn_face 가 없거나 낡았거나 스위치 off 면 True(기존 동작)."""
+    함께 들어가지 않게 한다. turn_face 가 없거나 낡았거나 스위치 off 면 True(기존 동작).
+    AFL-1040: face_consent 가 False(비동의)면 항상 False, verdict=no_consent 도 False."""
+    # AFL-1040: 비동의 이름 차단은 PRETHIRD_WHOAMI_ENABLED 롤백 스위치와 무관하게 유지한다.
+    if face_consent is False:
+        return False
+    if _fresh(turn_face, now) and turn_face.get("verdict") == "no_consent":
+        return False
     if not _active(turn_face, now):
         return True
     return not _unconfirmed(turn_face, has_speaker)
 
 
-def turn_face_instruction(turn_face: dict | None, speaker_name: str | None, now: float) -> str | None:
+def turn_face_instruction(turn_face: dict | None, speaker_name: str | None, now: float,
+                          face_consent=None) -> str | None:
     """이번 턴에 붙일 시스템 지시 문장. 붙일 게 없으면 None."""
+    # AFL-1040: 비동의 안내는 PRETHIRD_WHOAMI_ENABLED 스위치와 무관(_fresh) — 스위치 off 여도 유지한다.
+    #   앱이 no_consent 로 알렸거나 세션이 비동의면 이름·카메라 부탁·<ask=who> 없이 설정 안내만.
+    if _fresh(turn_face, now):
+        if turn_face.get("verdict") == "no_consent":
+            return no_consent_instruction()
+        if face_consent is False:
+            if turn_face.get("who") in ("self", "other"):
+                return no_consent_instruction()
+            return None
     if not _active(turn_face, now):
         return None
 

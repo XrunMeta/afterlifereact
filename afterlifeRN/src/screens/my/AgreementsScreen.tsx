@@ -360,7 +360,7 @@ function v_b8358a({
             <Switch
               testID="face-biometric-consent-toggle"
 
-              value={v_b6e533 !== "revoked"}
+              value={v_b6e533 === "granted"}
               onValueChange={v_0a2cea}
               disabled={v_35bf26}
               trackColor={{ false: v_1bfbd0.zinc200, true: v_1bfbd0.violet600 }}
