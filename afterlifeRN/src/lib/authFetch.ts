@@ -3,6 +3,7 @@
 import { v_cc9198 } from "../config/apiBase";
 import { v_84a859, type v_669377 } from "../api/auth";
 import { v_3be591 } from "./errorI18n";
+import { v_9100c8, v_c57813 } from "./faceConsentError";
 
 const v_a089f8 = "/oth-path";
 const v_d331e7 = "/oth-path";
@@ -179,6 +180,8 @@ export async function v_04b58a<T>(
   } else {
     console.warn("[authFetch] failed:", v_bfe9b9, v_f71b56, "status=", v_8f00b9.status, "code=", v_c99bd2, "msg=", v_a8cd21);
   }
+
+  if (v_9100c8(v_8f00b9.status, v_c99bd2)) v_c57813();
   throw new v_84a859(v_8f00b9.status, v_c99bd2, v_3be591(v_c99bd2, v_a8cd21), v_4d33b2?.error?.details);
 }
 

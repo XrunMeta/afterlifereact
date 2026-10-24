@@ -1881,6 +1881,7 @@
     "later": "稍后添加"
   },
   "errors": {
+    "faceConsentRequired": "需要同意人脸识别。请在设置中开启“允许人脸识别(生物识别信息)”。",
     "accountDeleted": "该账号已注销。",
     "accountSuspended": "由于违反服务运营政策，您的账号已被暂停使用。\n联系: oth-staff@example.invalid",
     "accountSuspendedForPersona": "由于举报累积账号已被暂时停用,无法创建 克隆。",

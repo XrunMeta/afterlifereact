@@ -1885,6 +1885,7 @@
     "later": "나중에 추가"
   },
   "errors": {
+    "faceConsentRequired": "얼굴 인식 동의가 필요합니다. 설정에서 '얼굴 인식(생체정보) 허용'을 켜 주세요.",
     "accountDeleted": "이미 탈퇴한 계정입니다.",
     "accountSuspended": "서비스 운영 정책 위반으로 계정 이용이 정지되었습니다.\n문의: oth-staff@example.invalid",
     "accountSuspendedForPersona": "신고 누적으로 계정이 일시 비활성화되어 클론을 생성할 수 없습니다.",

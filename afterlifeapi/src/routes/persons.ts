@@ -18,6 +18,7 @@ import {
 } from "../lib/cloneFaceScope";
 import { v_a752e9 } from "../lib/personaBundle";
 import { v_74defc } from "../lib/logger";
+import { v_94652e } from "../lib/faceApiConsent";
 
 export const v_fded81 = new v_b7c41b<v_de0a25>();
 
@@ -64,6 +65,9 @@ v_fded81.post("/", v_6690d9, async (v_3f4e2e) => {
     v_926d89 = v_4d33b2.enrolledVia;
   }
 
+  if (v_926d89 === "auto_biometric") {
+    await v_94652e(v_3f4e2e.env, v_43e90c, "/oth-path(auto_biometric)");
+  }
   if (v_926d89 === "auto_biometric" && v_565c6d(v_3f4e2e.env)) {
     const v_625c74 = await v_3f4e2e.env.DB.prepare(`SELECT face_biometric_consent FROM users WHERE id = ?`)
       .bind(v_43e90c)
@@ -135,6 +139,7 @@ async function v_4e929c(v_a1651b): Promise<number> {
 
 v_fded81.post("/match", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
+  await v_94652e(v_3f4e2e.env, v_43e90c, "/oth-path"); 
   const v_4d33b2 = await v_3f4e2e.req
     .json<{ vector?: number[]; cloneId?: number }>()
     .catch(() => ({}) as { vector?: number[]; cloneId?: number });
@@ -198,6 +203,7 @@ const v_c57f07 = 20;
 
 v_fded81.get("/face-gallery", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
+  await v_94652e(v_3f4e2e.env, v_43e90c, "/oth-path"); 
   const v_6e0fd3 = Number(v_3f4e2e.req.query("cloneId"));
   if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0)
     throw new v_3ebe58("VALIDATION_FAILED", "cloneId: 양의 정수여야 합니다");
@@ -255,6 +261,7 @@ v_fded81.get("/self-face", v_6690d9, async (v_3f4e2e) => {
 
 v_fded81.post("/from-account-self", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
+  await v_94652e(v_3f4e2e.env, v_43e90c, "/oth-path"); 
   const v_4d33b2 = await v_3f4e2e.req
     .json<{ cloneId?: number; displayName?: string; vector?: number[]; vectors?: number[][] }>()
     .catch(() => ({}) as { cloneId?: number; displayName?: string; vector?: number[]; vectors?: number[][] });
@@ -361,6 +368,7 @@ export function v_70df81(v_c9c489): boolean {
 v_fded81.post("/calibrate", v_6690d9, async (v_3f4e2e) => {
   if (!v_70df81(v_3f4e2e.env)) return v_3f4e2e.notFound();
   const v_43e90c = v_3f4e2e.get("userId")!;
+  await v_94652e(v_3f4e2e.env, v_43e90c, "/oth-path"); 
   const v_4d33b2 = await v_3f4e2e.req
     .json<{ vector?: unknown; groundTruthPersonId?: string | null; cloneId?: number }>()
     .catch(() => ({}) as { vector?: unknown; groundTruthPersonId?: string | null; cloneId?: number });
@@ -522,6 +530,7 @@ v_fded81.post("/:id/consent", v_6690d9, async (v_3f4e2e) => {
 
 v_fded81.post("/:id/faces", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
+  await v_94652e(v_3f4e2e.env, v_43e90c, "/oth-path"); 
   const v_ca1ec5 = v_5c8583(v_3f4e2e);
   const v_4d33b2 = await v_3f4e2e.req
     .json<{ vectors?: number[][]; cloneId?: number; landmarkRatios?: (Record<string, number> | null)[] }>()
@@ -595,6 +604,7 @@ v_fded81.post("/:id/faces", v_6690d9, async (v_3f4e2e) => {
 
 v_fded81.post("/:id/account-self", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
+  await v_94652e(v_3f4e2e.env, v_43e90c, "/oth-path"); 
   const v_ca1ec5 = v_5c8583(v_3f4e2e);
 
   const v_306a28 = await v_3f4e2e.env.DB.prepare("SELECT id, clone_id, consent_state FROM persons WHERE id = ? AND user_id = ?")
