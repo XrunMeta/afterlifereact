@@ -885,6 +885,10 @@ async def _verify_person_then_replay(sess, data: dict, pid_int: int, ticket: int
         _clear_current_speaker(sess, "unknown_face")
 
 
+# [AFL-1040] 얼굴 판정에서 나온 face_event 타입(비동의 세션에서 차단 대상).
+_FACE_JUDGMENT_EVENTS = frozenset({"speaker_confirmed", "unknown_face", "multi_face", "known_face"})
+
+
 def _handle_face_event(sess, data: dict) -> None:
     """[T-067/T-135] datachannel face_event 메시지 처리.
 
@@ -912,6 +916,12 @@ def _handle_face_event(sess, data: dict) -> None:
     persona 스왑)는 _maybe_swap_l2p — 화자가 바뀔 때(쿨다운과 무관) fire-and-forget으로
     스케줄되며 react(_run, 쿨다운 게이트 대상)와는 완전히 분리된 별도 태스크(§6.4).
     """
+    # [AFL-1040] 얼굴 비동의 세션 — 얼굴 판정 계열 이벤트는 화자 확정·L2' 스왑·current_speaker 주입·react·
+    #   pending_enroll 어디에도 쓰지 않고 버린다(앱 우회·구버전 방어). True/None 은 기존 그대로.
+    if getattr(sess, "face_consent", None) is False and data.get("event") in _FACE_JUDGMENT_EVENTS:
+        log.info("[face_consent] session=%s face_event 무시(비동의) event=%s",
+                 getattr(sess, "session_id", "?"), data.get("event"))
+        return
     if not face_event_clone_matches(getattr(sess, "clone_id", None), data.get("clone_id")):
         log.warning(
             "session %s face_event clone_id 불일치(무시): session=%s event=%s",
@@ -1183,6 +1193,16 @@ async def _send_enroll_suggest(sess, channel, text: str, person_id: Optional[int
                         getattr(sess, "session_id", "?"), exc)
 
 
+def _set_face_consent(sess, value, source: str) -> None:
+    """[AFL-1040] 앱이 알린 얼굴 생체정보 동의를 세션에 저장한다(bool 만 — 그 밖은 무시, 마지막 값 사용).
+    구버전 앱은 신호가 없어 sess.face_consent 가 None 으로 남고 기존 동작과 같다."""
+    if not isinstance(value, bool):
+        return
+    sess.face_consent = value
+    log.info("[face_consent] session=%s source=%s granted=%s",
+             getattr(sess, "session_id", "?"), source, value)
+
+
 def _store_turn_face(sess, data: dict) -> None:
     """[AFL-1039] 앱의 turn_face 를 세션에 보관한다(수신 시각 time.monotonic 동봉).
 
@@ -1311,6 +1331,10 @@ def _make_dc_handler(sess, channel):
         if mtype == "turn_face":
             _store_turn_face(sess, data)
             return
+        # [AFL-1040] 얼굴 생체정보 동의 확정(offer 이후) — 여러 번 올 수 있고 마지막 값을 쓴다.
+        if mtype == "face_consent":
+            _set_face_consent(sess, data.get("granted"), "dc")
+            return
         if mtype not in ("say", "speak", "greet", "face_event", "ad_returned", "ad_prepare_return") or sess.pipeline is None:
             return
         if mtype == "face_event":
@@ -1343,18 +1367,30 @@ def _make_dc_handler(sess, channel):
         # LLM 으로 추출해 카드에 채우는 경로이고, 이쪽은 **이름을 만들지 않는다**.
         # payload 에 이름 자리가 아예 없는 것이 계약이다. 사용자가 시트에 직접 입력한다.
         # 잘못 발동해도 시트가 한 번 열릴 뿐이라 fail-open 으로 둔다.
+        # [AFL-1040] 얼굴 비동의 세션(face_consent is False)에서는 시트를 열지 않고(dc 미송신) 그 턴 LLM 이
+        #   설정 안내를 하도록 _remember_me_asked 만 세운다. True/None 이면 기존 그대로.
+        _consent_off = getattr(sess, "face_consent", None) is False
+        _remember_me_asked = False
         if mtype == "say" and channel is not None:
             try:
                 from remember_me_intent import wants_remember_me
                 if wants_remember_me(text) and getattr(channel, "readyState", None) == "open":
-                    channel.send(_json.dumps({"type": "remember_me", "reason": "asked"}))
+                    if _consent_off:
+                        _remember_me_asked = True
+                        log.info("[face_consent] session=%s remember_me 우회(설정 안내 지시)",
+                                 getattr(sess, "session_id", "?"))
+                    else:
+                        channel.send(_json.dumps({"type": "remember_me", "reason": "asked"}))
             except Exception as exc:
                 log.warning("session %s remember_me signal failed: %s",
                             getattr(sess, "session_id", "?"), exc)
 
         # [T-067 Task 11] 즉석등록: pending_enroll 상태의 첫 say에서만 1회 발화(플래그를
         # 즉시 내려 재진입 차단) — fire-and-forget이라 say 본 흐름은 지연되지 않는다.
-        if mtype == "say" and getattr(sess, "pending_enroll", False):
+        if mtype == "say" and _consent_off:
+            # [AFL-1040] 비동의 — 등록 제안(enroll_suggest) 발생 안 함. 대기 플래그는 내린다.
+            sess.pending_enroll = False
+        elif mtype == "say" and getattr(sess, "pending_enroll", False):
             sess.pending_enroll = False
             asyncio.ensure_future(_send_enroll_suggest(sess, channel, text))
         elif (
@@ -1418,6 +1454,10 @@ def _make_dc_handler(sess, channel):
                 return
             # 앱이 이미 "누구냐" 질문으로 알아채 판정·재대조를 맡은 턴이면 보내지 않는다(중복 재대조 방지).
             if isinstance(_turn_face, dict) and _turn_face.get("who"):
+                return
+            # [AFL-1040] 비동의 — 재대조해도 얼굴 처리가 꺼져 있어 의미 없다. LLM 이 태그를 달아도 보내지 않는다.
+            if getattr(sess, "face_consent", None) is False or (
+                    isinstance(_turn_face, dict) and _turn_face.get("verdict") == "no_consent"):
                 return
             if channel is not None and getattr(channel, "readyState", None) == "open":
                 try:
@@ -1560,6 +1600,15 @@ def _make_dc_handler(sess, channel):
                             _say_kw["turn_face"] = _tf_for_say
                         if _accepts_kw(sess.pipeline.say, "on_ask"):
                             _say_kw["on_ask"] = _emit_who_asked
+                        # [AFL-1040] 비동의 세션일 때만 전달(None·True 는 생략 → 기존 호출과 동일).
+                        if _consent_off and _accepts_kw(sess.pipeline.say, "face_consent"):
+                            _say_kw["face_consent"] = False
+                            _say_kw["remember_me_asked"] = _remember_me_asked
+                        if (_remember_me_asked
+                                or (isinstance(_tf_for_say, dict)
+                                    and _tf_for_say.get("verdict") == "no_consent")):
+                            log.info("[face_consent] session=%s no_consent 지시 적용 seq=%s",
+                                     sess.session_id, seq)
                         await sess.pipeline.say(
                             text, turn=turn,
                             on_first_audio=_emit_speech_start,
@@ -1854,6 +1903,10 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
                 sess.session_id, sess.clone_id, len(sess.persona_messages),
                 bool(sess.se_path), sess.video_path, bool(sess.face_path),
             )
+
+            # AFL-1040: 얼굴 생체정보 동의(offer "face_consent") — pipeline factory 유무와 무관하게 저장.
+            #   bool 아니면(없음·이상값) 무시 → None.
+            _set_face_consent(sess, params.get("face_consent"), "offer")
 
             # pipeline factory가 있으면 세션에 주입
             if pipeline_factory is not None:

@@ -981,7 +981,7 @@ export default function v_8640b9() {
                   {v_4ac921 ? <View style={v_fd5f43.selfCheckDot} /> : null}
                 </View>
                 <Text style={v_fd5f43.selfCheckText}>
-                  {v_8d41d7("faceEnroll.form.markSelf", { defaultValue: "이 얼굴은 나예요" })}
+                  {v_8d41d7("faceEnroll.form.markSelf", { defaultValue: "얼굴정보를 저장해둡니다" })}
                 </Text>
               </TouchableOpacity>
             ) : null}

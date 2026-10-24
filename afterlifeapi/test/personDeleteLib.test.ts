@@ -9,7 +9,7 @@ const v_9542f7 = v_c9c489 as unknown as v_273a0c;
 
 async function v_bfb240(v_e0c7e8): Promise<number> {
   await v_9542f7.DB.prepare(
-    `INSERT INTO users (email, password_hash, name, created_at) VALUES (?, 'x', 'U', CURRENT_TIMESTAMP)`,
+    `INSERT INTO users (email, password_hash, name, created_at, face_biometric_consent) VALUES (?, 'x', 'U', CURRENT_TIMESTAMP, 1)`,
   ).bind(v_e0c7e8).run();
   const v_ceb55a = await v_9542f7.DB.prepare("SELECT id FROM users WHERE email = ?").bind(v_e0c7e8).first<{ id: number }>();
   return v_ceb55a!.id;

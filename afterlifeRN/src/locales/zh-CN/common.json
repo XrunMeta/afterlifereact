@@ -473,7 +473,8 @@
     "faceConsentPrompt": {
       "title": "人脸识别同意",
       "desc": "为在通话中识别说话人，需要以下同意。（可选）",
-      "agree": "同意"
+      "agree": "同意",
+      "continue": "直接继续"
     },
     "poorConnection": "通话信号不佳\n请重新拨打",
     "giftInsufficientTitle": "XRUN 不足",
@@ -832,7 +833,7 @@
       "faceDetect": "人脸检测",
       "faceDetectDesc": "记得我的克隆",
       "faceRecognition": "人脸识别同意",
-      "faceRecognitionDesc": "静默自动注册 · 人脸识别条款 · 通话学习"
+      "faceRecognitionDesc": "允许人脸识别 · 人脸识别条款 · 通话学习"
     },
     "logout": {
       "title": "要退出登录吗?",
@@ -1576,13 +1577,13 @@
       },
       "faceBiometric": {
         "sectionTitle": "面部识别（生物识别信息）",
-        "description": "在通话中无需单独确认卡，默默记住首次遇见的面孔，下一次通话即可更自然地识别。可随时开关。关闭后，通过此方式登记的说话人信息将被删除（手动登记的说话人不受影响）。",
-        "toggleLabel": "允许静默自动登记",
+        "description": "对话中使用人脸识别。",
+        "toggleLabel": "允许人脸识别（生物识别信息）",
         "saveError": "设置保存失败，请重试。",
-        "revokeConfirmTitle": "关闭静默自动登记",
-        "revokeConfirmMessage": "关闭后，通过此方式自动登记的所有说话人的面部识别信息将被立即删除。手动登记的说话人不受影响。此操作不可撤销。是否继续？",
+        "revokeConfirmTitle": "停用人脸识别",
+        "revokeConfirmMessage": "停用后，对话中将不再使用人脸识别，人脸识别信息会立即删除且无法恢复。确定要停用吗？",
         "retroPromptTitle": "是否同意使用面部识别（生物识别信息）？",
-        "retroPromptMessage": "同意后，通话中首次遇见的面孔将无需确认默默记住，下一次通话即可更自然地识别。可在设置中随时更改。",
+        "retroPromptMessage": "同意后，对话中将使用人脸识别。您可以随时在设置中更改。",
         "retroPromptAgree": "同意",
         "retroPromptDecline": "拒绝"
       },
@@ -1880,6 +1881,7 @@
     "later": "稍后添加"
   },
   "errors": {
+    "faceConsentRequired": "需要同意人脸识别。请在设置中开启“允许人脸识别(生物识别信息)”。",
     "accountDeleted": "该账号已注销。",
     "accountSuspended": "由于违反服务运营政策，您的账号已被暂停使用。\n联系: oth-staff@example.invalid",
     "accountSuspendedForPersona": "由于举报累积账号已被暂时停用,无法创建 克隆。",
@@ -2198,6 +2200,11 @@
     "other": "其他"
   },
   "faceEnroll": {
+    "consentRequired": {
+      "title": "需要同意人脸识别",
+      "message": "要登记面孔，请在设置中开启“允许人脸识别（生物识别信息）”。",
+      "goSettings": "前往设置"
+    },
     "rescanNotice": "我们再确认一下面孔。",
     "permissionRequired": "需要摄像头权限。",
     "permissionSkip": "跳过登记直接通话",
@@ -2210,7 +2217,7 @@
       "title": "这位是谁?",
       "desc": "告诉我们姓名和关系,下次通话时就能认出来。",
       "existingLabel": "已登记的人 (从中选择会追加学习)",
-      "markSelf": "这张脸是我",
+      "markSelf": "保存我的面部信息",
       "alreadyRegistered": "{{name}}已经登记过了",
       "updateName": "更新名字",
       "existingHint": "如果是新的人,请在下方直接输入姓名",

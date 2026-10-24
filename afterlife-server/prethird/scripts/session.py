@@ -31,6 +31,8 @@ class Session:
         self.filler_player = None    # FillerPlayer (F7, PRETHIRD_FILLER on일 때만 생성·close는 cleanup)
         # --- T-067 face-speaker-id (Task 10~13) ---
         self.reacted_keys = {}       # face_event 쿨다운: key(personId str|"unknown")→마지막 react 단조시각
+        # AFL-1040: 앱이 알린 얼굴 생체정보 동의(True/False). None=모름(구버전 앱) → 기존 동작.
+        self.face_consent = None
         self.pending_enroll = False  # unknown_face/multi_face 이후 등록 대기 플래그(Task 11이 소비)
         self.current_speaker = None  # (personId:int, displayName:str|None) | None — 최근 확인된 화자
         # [T-252 fix / mizu H-1 · el B-2] 프롬프트가 지금 상태 4(얼굴 미확정)로 조립돼
