@@ -832,7 +832,7 @@
       "faceDetect": "Deteksi wajah",
       "faceDetectDesc": "Klon yang mengingat saya",
       "faceRecognition": "Persetujuan pengenalan wajah",
-      "faceRecognitionDesc": "Daftar otomatis · ketentuan pengenalan wajah · pembelajaran panggilan"
+      "faceRecognitionDesc": "Izinkan pengenalan wajah · ketentuan pengenalan wajah · pembelajaran panggilan"
     },
     "logout": {
       "title": "Keluar?",
@@ -1593,13 +1593,13 @@
       },
       "faceBiometric": {
         "sectionTitle": "Pengenalan Wajah (Informasi Biometrik)",
-        "description": "Selama panggilan, wajah baru akan diingat secara diam-diam tanpa kartu konfirmasi terpisah agar dapat dikenali lebih alami pada panggilan berikutnya. Anda dapat mematikan atau menyalakannya kapan saja. Jika dimatikan, informasi pembicara yang terdaftar melalui cara ini akan dihapus (pembicara yang didaftarkan sendiri tidak terpengaruh).",
-        "toggleLabel": "Izinkan pendaftaran otomatis diam",
+        "description": "Mengenali wajah selama panggilan agar klon dapat mengenali lawan bicara. Wajah yang baru pertama kali dilihat didaftarkan secara otomatis tanpa konfirmasi terpisah. Anda dapat menyalakan atau mematikannya kapan saja. Jika dimatikan, pengenalan wajah tidak dilakukan selama panggilan dan informasi pembicara yang terdaftar otomatis akan dihapus. Pembicara yang didaftarkan sendiri tidak dihapus, tetapi tidak digunakan untuk pengenalan sampai Anda menyalakannya kembali.",
+        "toggleLabel": "Izinkan pengenalan wajah (informasi biometrik)",
         "saveError": "Gagal menyimpan pengaturan. Silakan coba lagi.",
-        "revokeConfirmTitle": "Matikan Pendaftaran Otomatis Diam",
-        "revokeConfirmMessage": "Jika dimatikan, informasi pengenalan wajah dari semua pembicara yang terdaftar otomatis melalui cara ini akan segera dihapus. Pembicara yang didaftarkan sendiri tidak terpengaruh. Tidak dapat dibatalkan. Apakah Anda ingin melanjutkan?",
+        "revokeConfirmTitle": "Nonaktifkan Pengenalan Wajah",
+        "revokeConfirmMessage": "Jika dinonaktifkan, pengenalan wajah tidak dilakukan selama panggilan dan informasi pengenalan wajah dari semua pembicara yang terdaftar otomatis akan segera dihapus. Pembicara yang didaftarkan sendiri tidak dihapus. Tidak dapat dibatalkan. Apakah Anda ingin menonaktifkannya?",
         "retroPromptTitle": "Apakah Anda menyetujui penggunaan pengenalan wajah (informasi biometrik)?",
-        "retroPromptMessage": "Jika Anda setuju, wajah baru selama panggilan akan diingat secara diam-diam tanpa konfirmasi terpisah sehingga dapat dikenali lebih alami pada panggilan berikutnya. Anda dapat mengubahnya kapan saja di pengaturan.",
+        "retroPromptMessage": "Jika Anda setuju, wajah akan dikenali selama panggilan agar klon dapat mengenali lawan bicara, dan wajah yang baru pertama kali dilihat didaftarkan secara otomatis tanpa konfirmasi terpisah. Jika tidak setuju, pengenalan wajah tidak dilakukan selama panggilan. Anda dapat mengubahnya kapan saja di pengaturan.",
         "retroPromptAgree": "Setuju",
         "retroPromptDecline": "Tolak"
       },
@@ -2202,6 +2202,11 @@
     "other": "Lainnya"
   },
   "faceEnroll": {
+    "consentRequired": {
+      "title": "Persetujuan Pengenalan Wajah Diperlukan",
+      "message": "Untuk mendaftarkan wajah, nyalakan 'Izinkan pengenalan wajah (informasi biometrik)' di pengaturan.",
+      "goSettings": "Buka Pengaturan"
+    },
     "rescanNotice": "Kita periksa wajah sekali lagi.",
     "permissionRequired": "Izin kamera dibutuhkan.",
     "permissionSkip": "Lewati pendaftaran dan telepon",

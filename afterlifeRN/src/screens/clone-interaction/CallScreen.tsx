@@ -74,6 +74,12 @@ import { largestFace, significantFaces } from "../../face/largestFace";
 import { normalizeFrameTimestampMs } from "../../face/frameTimestamp";
 import { modelCropFor } from "../../face/faceAlignCrop";
 import { detectWhoIntent } from "../../face/whoIntent";
+import {
+  isFaceConsentGrantedState,
+  shouldHandleEnrollSuggest,
+  shouldOpenRememberMeSheet,
+  sendNoConsentTurnFaceIfAsked,
+} from "../../face/faceConsentGate";
 import { computeLandmarkRatios, type LandmarkRatios } from "../../face/faceLandmarkRatios";
 import { meanLuma, classifyFaceQualityGuarded, faceYawRatio, type FaceQuality } from "../../face/faceQuality";
 import { type TurnSample } from "../../face/faceTurnJudge";
@@ -505,10 +511,10 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       .then((r) => {
         if (cancelled) return;
 
-        const allowed = r.state !== "revoked";
+        const allowed = isFaceConsentGrantedState(r.state);
         setFaceBiometricConsent(allowed);
         setConsentGranted(allowed);
-        console.log(`[Call][face] getFaceBiometricConsent ← state=${r.state} · faceId=${allowed ? "on" : "off(설정에서 끔)"}`);
+        console.log(`[Call][face] getFaceBiometricConsent ← state=${r.state} · faceId=${allowed ? "on" : "off(동의 아님)"}`);
       })
       .catch((err) => {
         if (cancelled) return;
@@ -565,6 +571,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     lastSignal,
     sendFaceEvent,
     sendTurnFace,
+    sendNoConsentTurnFace,
     sendAudioReady,
     sendAdPrepareReturn,
     sendAdReturned,
@@ -586,6 +593,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       (livePipeline ?? (clone as { pipeline?: string | null })?.pipeline ?? null) === 'avatar_v2' ||
       String(paramName || (clone as { displayName?: string } | null | undefined)?.displayName || '')
         .toLowerCase().includes('[v2]'),
+
+    faceConsent: faceBiometricConsent,
 
     ttsOutput: liveTtsOutput ?? (clone as { ttsOutput?: string | null })?.ttsOutput ?? null,
 
@@ -755,10 +764,15 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
   useEffect(() => {
     rememberMeAskedImplRef.current = () => {
+
+      if (!shouldOpenRememberMeSheet(faceBiometricConsent)) {
+        console.log("[Call][rm] server asked → 얼굴 인식 비동의라 무시");
+        return;
+      }
       console.log("[Call][rm] server asked → open sheet");
       dispatchRm({ type: "OPEN_SHEET" });
     };
-  }, [dispatchRm]);
+  }, [dispatchRm, faceBiometricConsent]);
 
   const notifyFaceInterruptRef = useRef<(text: string, faceKey: string) => void>(() => {});
 
@@ -894,7 +908,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         ) {
           ownerAutoEnrollTriedRef.current = true;
           const _n = ownerEnrollName(surveyAddressRef.current ?? myNameRef.current);
-          console.log(`[Call][face] owner auto-enroll → "${_n}"`);
+          console.log(`[Call][face] owner auto-enroll (nameLen=${_n.length})`);
 
           unknownFaceSnapshotRef.current = getFaceEmbeddingBuffer().latest(FACE_ENROLL_VECTOR_COUNT);
           void faceEnroll
@@ -1080,6 +1094,11 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
   const handleEnrollSuggestImpl = useCallback(
     (name: string, personId?: number) => {
+
+      if (!shouldHandleEnrollSuggest(faceBiometricConsent)) {
+        console.log("[Call][face] enroll_suggest 무시 — 얼굴 인식 비동의");
+        return;
+      }
 
       const action = decideEnrollSuggestAction({
         personId,
@@ -1367,6 +1386,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const faceDetectRunning =
     consentGranted && !faceProcOff && !isVideoOff && !!vcDevice && dialingDone;
   const turnFaceGateOnRef = useRef(false);
+  const faceBiometricConsentRef = useRef<boolean | null>(null);
+  faceBiometricConsentRef.current = faceBiometricConsent;
   turnFaceGateOnRef.current =
     faceDetectRunning && faceIdentifyEnabled && faceEmbedModel != null;
 
@@ -1406,7 +1427,12 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   }, [turnFaceGate, sendTurnFace, dispatchRm]);
   const sayForHandsFree = useCallback(
     async (text: string) => {
-      if (turnFaceGateOnRef.current) await reportTurnFace(text);
+      if (turnFaceGateOnRef.current) {
+        await reportTurnFace(text);
+      } else {
+
+        sendNoConsentTurnFaceIfAsked(faceBiometricConsentRef.current, text, detectWhoIntent, sendNoConsentTurnFace);
+      }
       const willBeRound = afl971RoundCountRef.current + 1;
 
       const faceBusy = rmStateRef.current.promptRegister;
@@ -1435,7 +1461,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       }
       return adNext ? say(text, { adNotice: "pre" }) : say(text);
     },
-    [say, reportTurnFace],
+    [say, reportTurnFace, sendNoConsentTurnFace],
   );
 
   const handleUserSpeechStart = useCallback(() => {
@@ -1665,6 +1691,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const afl971PromptAlertShownRef = useRef(false);
   useEffect(() => {
     if (!rmState.promptRegister) { afl971PromptAlertShownRef.current = false; return; }
+
+    if (faceBiometricConsent !== true) return;
     if (afl971PromptAlertShownRef.current) return;      
 
     if (phase === "speaking" || afl971AdInProgressRef.current) return;
@@ -1741,7 +1769,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       ],
     );
 
-  }, [rmState.promptRegister, phase, isFocused, newFacePromptRecheck]);
+  }, [rmState.promptRegister, phase, isFocused, newFacePromptRecheck, faceBiometricConsent]);
 
   useEffect(() => {
     micOnRef.current = micOn;
@@ -2623,6 +2651,11 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     }
 
     const enrolled = takeMidCallEnrollResult(cloneId);
+
+    if (faceBiometricConsentRef.current !== true) {
+      dispatchRm({ type: "ENROLL_ABORTED" });
+      return;
+    }
     if (enrolled) {
       dispatchRm({ type: "ENROLLED", personId: enrolled.personId, displayName: enrolled.displayName });
       console.log(`[Call][face] 통화 중 등록 완료 → silent speaker_confirmed(${enrolled.personId})`);
