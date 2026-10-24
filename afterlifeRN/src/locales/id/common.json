@@ -473,7 +473,8 @@
     "faceConsentPrompt": {
       "title": "Persetujuan pengenalan wajah",
       "desc": "Untuk mengenali siapa yang berbicara selama panggilan, diperlukan persetujuan berikut. (opsional)",
-      "agree": "Setuju"
+      "agree": "Setuju",
+      "continue": "Lanjutkan saja"
     },
     "poorConnection": "Koneksi panggilan buruk\nSilakan telepon lagi",
     "giftInsufficientTitle": "XRUN tidak cukup",
@@ -1597,7 +1598,7 @@
         "toggleLabel": "Izinkan pengenalan wajah (informasi biometrik)",
         "saveError": "Gagal menyimpan pengaturan. Silakan coba lagi.",
         "revokeConfirmTitle": "Nonaktifkan Pengenalan Wajah",
-        "revokeConfirmMessage": "Jika dinonaktifkan, pengenalan wajah tidak akan digunakan selama percakapan, dan sebagian data pengenalan wajah akan segera dihapus serta tidak dapat dikembalikan. Nonaktifkan?",
+        "revokeConfirmMessage": "Jika dinonaktifkan, pengenalan wajah tidak akan digunakan selama percakapan, dan data pengenalan wajah akan segera dihapus serta tidak dapat dikembalikan. Nonaktifkan?",
         "retroPromptTitle": "Apakah Anda menyetujui penggunaan pengenalan wajah (informasi biometrik)?",
         "retroPromptMessage": "Jika Anda setuju, pengenalan wajah akan digunakan selama percakapan. Anda dapat mengubahnya kapan saja di Pengaturan.",
         "retroPromptAgree": "Setuju",

@@ -473,7 +473,8 @@
     "faceConsentPrompt": {
       "title": "얼굴 인식 동의",
       "desc": "통화 중 누가 말하는지 알아보려면 아래 동의가 필요합니다. (선택)",
-      "agree": "동의"
+      "agree": "동의",
+      "continue": "그대로 진행"
     },
     "poorConnection": "전화 상태가 좋지 않습니다\n다시 걸어주세요",
     "giftInsufficientTitle": "XRUN 부족",
@@ -1597,7 +1598,7 @@
         "toggleLabel": "얼굴 인식(생체정보) 허용",
         "saveError": "설정을 저장하지 못했습니다. 다시 시도해 주십시오.",
         "revokeConfirmTitle": "얼굴 인식 비활성화",
-        "revokeConfirmMessage": "비활성화하면 대화 중 얼굴 인식을 사용하지 않으며, 일부 얼굴 인식 정보가 즉시 삭제되어 되돌릴 수 없습니다. 비활성화하시겠습니까?",
+        "revokeConfirmMessage": "비활성화하면 대화 중 얼굴 인식을 사용하지 않으며, 얼굴 인식 정보가 즉시 삭제되어 되돌릴 수 없습니다. 비활성화하시겠습니까?",
         "retroPromptTitle": "얼굴 인식(생체정보) 활용에 동의하시겠어요?",
         "retroPromptMessage": "동의하시면 대화 중 얼굴 인식을 사용합니다. 설정에서 언제든 변경할 수 있습니다.",
         "retroPromptAgree": "동의",
