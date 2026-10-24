@@ -7,6 +7,7 @@ import { v_e0051d } from '../config/apiBase';
 import { v_5b540b } from '../stores/callConfigStore';
 import { v_335e37 } from '../lib/authFetch';
 import { type v_30869c, v_2f41d8 } from './useAudioSession';
+import { v_96e195, v_8c3a7c, v_41cb05 } from '../face/faceConsentGate';
 import { type v_b01667, type v_d20273, type v_b190e4, type v_9d43cd, type v_14f245, type v_c285b1, v_d8a22b } from './avatarCall';
 import { v_d7f7b1 } from './timingEvents';
 import { v_1fcb40 } from '../services/userLocation';
@@ -79,7 +80,7 @@ function v_9d05cd(v_32dc97, v_11bcf9): Promise<boolean> {
 }
 
 export function v_3d8d48(v_328259): v_b01667 {
-  const { cloneId: v_6e0fd3, accessToken: v_2ca7e0, onEnrollSuggest: v_46947d, onRememberMe: v_b94db0, onWhoAsked: v_5c23f9, pipeline: v_883ce9, usesBridge: v_b7b2b2 } = v_328259;
+  const { cloneId: v_6e0fd3, accessToken: v_2ca7e0, onEnrollSuggest: v_46947d, onRememberMe: v_b94db0, onWhoAsked: v_5c23f9, pipeline: v_883ce9, usesBridge: v_b7b2b2, faceConsent: v_65e52b } = v_328259;
 
   const v_84b93d = v_328259.deps ?? v_17f880;
   const [v_b6e533, v_1fa668] = v_5ab095<v_d20273>('idle');
@@ -129,6 +130,18 @@ export function v_3d8d48(v_328259): v_b01667 {
 
   const v_5fa2a5 = v_e662ae(v_b7b2b2);
   v_c4deb2(() => { v_5fa2a5.current = v_b7b2b2; }, [v_b7b2b2]);
+
+  const v_e2cba8 = v_e662ae(v_65e52b);
+  const v_dd1c8c = v_de06a3(() => {
+    const v_badeaf = v_96e195(v_e2cba8.current);
+    const v_32dc97 = v_fa9144.current;
+    if (!v_badeaf || !v_f98743.current || !v_32dc97 || v_32dc97.readyState !== 'open') return;
+    try { v_32dc97.send(JSON.stringify(v_badeaf)); } catch {  }
+  }, []);
+  v_c4deb2(() => {
+    v_e2cba8.current = v_65e52b;
+    v_dd1c8c();
+  }, [v_65e52b, v_dd1c8c]);
 
   v_c4deb2(() => { v_d7f7b1('avatar', { phase: v_ab4803 }); }, [v_ab4803]);
 
@@ -220,6 +233,12 @@ export function v_3d8d48(v_328259): v_b01667 {
     } catch {
 
     }
+  }, []);
+
+  const v_accc7b = v_de06a3((v_97d2e9) => {
+    const v_32dc97 = v_fa9144.current;
+    if (!v_f98743.current || !v_32dc97 || v_32dc97.readyState !== 'open') return;
+    try { v_32dc97.send(JSON.stringify(v_8c3a7c(v_97d2e9))); } catch {  }
   }, []);
 
   const v_16dd9f = v_de06a3(() => {
@@ -355,6 +374,8 @@ export function v_3d8d48(v_328259): v_b01667 {
 
     v_32dc97.addEventListener?.('message', (v_1d299c) => v_0db134(v_1d299c));
 
+    v_32dc97.addEventListener?.('open', () => { if (v_759436()) v_dd1c8c(); });
+
     v_1fa668('connecting');
     try {
       await v_12cd99.setLocalDescription(await v_12cd99.createOffer());
@@ -384,6 +405,8 @@ export function v_3d8d48(v_328259): v_b01667 {
       }
 
       if (typeof v_5fa2a5.current === 'boolean') v_7524b9.bridge = v_5fa2a5.current;
+
+      Object.assign(v_7524b9, v_41cb05(v_e2cba8.current));
 
       if (v_9c213b.language) v_7524b9.user_lang = v_9c213b.language;
       const v_cb35cb = await fetch(v_f71b56, {
@@ -432,5 +455,5 @@ export function v_3d8d48(v_328259): v_b01667 {
   v_c4deb2(() => () => { void v_3e54f8();  }, []);
 
   const v_800a73 = () => v_6e83c5.current;
-  return { state: v_b6e533, remoteStream: v_b4d824, error: v_5e9bfe, start: v_965edf, stop: v_3e54f8, phase: v_ab4803, say: v_3e2c87, notifySpeechEnd: v_811f30, getStatsReport: v_791152, greet: v_009e58, speak: v_a1d9db, lastSignal: v_88c591, sendFaceEvent: v_11f4a1, sendTurnFace: v_c18fe3, sendAudioReady: v_2a35c1, sendAdPrepareReturn: v_16dd9f, sendAdReturned: v_86d961, getCallId: v_800a73 };
+  return { state: v_b6e533, remoteStream: v_b4d824, error: v_5e9bfe, start: v_965edf, stop: v_3e54f8, phase: v_ab4803, say: v_3e2c87, notifySpeechEnd: v_811f30, getStatsReport: v_791152, greet: v_009e58, speak: v_a1d9db, lastSignal: v_88c591, sendFaceEvent: v_11f4a1, sendTurnFace: v_c18fe3, sendNoConsentTurnFace: v_accc7b, sendAudioReady: v_2a35c1, sendAdPrepareReturn: v_16dd9f, sendAdReturned: v_86d961, getCallId: v_800a73 };
 }

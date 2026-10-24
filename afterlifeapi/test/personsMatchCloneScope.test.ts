@@ -11,8 +11,8 @@ const v_a1651b = () => v_c9c489.DB as unknown as D1Database;
 async function v_bfb240(v_e0c7e8): Promise<number> {
   await v_a1651b()
     .prepare(
-      `INSERT INTO users (email, password_hash, name, created_at, call_learning_consent)
-       VALUES (?, 'x', 'U', CURRENT_TIMESTAMP, 1)`,
+      `INSERT INTO users (email, password_hash, name, created_at, call_learning_consent, face_biometric_consent)
+       VALUES (?, 'x', 'U', CURRENT_TIMESTAMP, 1, 1)`,
     )
     .bind(v_e0c7e8)
     .run();

@@ -79,7 +79,7 @@ export function v_3fc8fd(v_328259): UseFaceEnrollResult {
               const v_3c8572 = v_ef8ab1.items.find((v_e2a85c) => (v_e2a85c.displayName ?? "") === v_1833e7);
               if (!v_3c8572) throw v_7df476;
               v_306a28 = { id: v_3c8572.id };
-              console.log(`[useFaceEnroll] 이미 존재 person 재사용 · id=${v_3c8572.id} · displayName=${v_1833e7}`);
+              console.log(`[useFaceEnroll] 이미 존재 person 재사용 · id=${v_3c8572.id} · nameLen=${v_1833e7.length}`);
             } else {
               throw v_7df476;
             }

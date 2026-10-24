@@ -2,6 +2,7 @@
 
 import type { v_19c753, v_ac8014 } from "../api/persons";
 import { v_a64bce } from "./l2normalize";
+import { v_1c4418 } from "../lib/faceConsentError";
 
 export const v_e4eb8a = 10 * 60_000;
 
@@ -57,6 +58,8 @@ export function v_0a1524(v_84b93d) {
       return v_41026d;
     } catch (v_49263d) {
       v_e3f4b6 = v_5c2f9f();
+
+      if (v_1c4418(v_49263d)) throw v_49263d;
       console.warn("[Call][face] 얼굴 갤러리 받기 실패 — 1분간 서버 대조로", v_49263d);
       return null;
     }

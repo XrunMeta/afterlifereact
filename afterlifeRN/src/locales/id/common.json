@@ -473,7 +473,8 @@
     "faceConsentPrompt": {
       "title": "Persetujuan pengenalan wajah",
       "desc": "Untuk mengenali siapa yang berbicara selama panggilan, diperlukan persetujuan berikut. (opsional)",
-      "agree": "Setuju"
+      "agree": "Setuju",
+      "continue": "Lanjutkan saja"
     },
     "poorConnection": "Koneksi panggilan buruk\nSilakan telepon lagi",
     "giftInsufficientTitle": "XRUN tidak cukup",
@@ -832,7 +833,7 @@
       "faceDetect": "Deteksi wajah",
       "faceDetectDesc": "Klon yang mengingat saya",
       "faceRecognition": "Persetujuan pengenalan wajah",
-      "faceRecognitionDesc": "Daftar otomatis · ketentuan pengenalan wajah · pembelajaran panggilan"
+      "faceRecognitionDesc": "Izinkan pengenalan wajah · ketentuan pengenalan wajah · pembelajaran panggilan"
     },
     "logout": {
       "title": "Keluar?",
@@ -1593,13 +1594,13 @@
       },
       "faceBiometric": {
         "sectionTitle": "Pengenalan Wajah (Informasi Biometrik)",
-        "description": "Selama panggilan, wajah baru akan diingat secara diam-diam tanpa kartu konfirmasi terpisah agar dapat dikenali lebih alami pada panggilan berikutnya. Anda dapat mematikan atau menyalakannya kapan saja. Jika dimatikan, informasi pembicara yang terdaftar melalui cara ini akan dihapus (pembicara yang didaftarkan sendiri tidak terpengaruh).",
-        "toggleLabel": "Izinkan pendaftaran otomatis diam",
+        "description": "Menggunakan pengenalan wajah selama percakapan.",
+        "toggleLabel": "Izinkan pengenalan wajah (informasi biometrik)",
         "saveError": "Gagal menyimpan pengaturan. Silakan coba lagi.",
-        "revokeConfirmTitle": "Matikan Pendaftaran Otomatis Diam",
-        "revokeConfirmMessage": "Jika dimatikan, informasi pengenalan wajah dari semua pembicara yang terdaftar otomatis melalui cara ini akan segera dihapus. Pembicara yang didaftarkan sendiri tidak terpengaruh. Tidak dapat dibatalkan. Apakah Anda ingin melanjutkan?",
+        "revokeConfirmTitle": "Nonaktifkan Pengenalan Wajah",
+        "revokeConfirmMessage": "Jika dinonaktifkan, pengenalan wajah tidak akan digunakan selama percakapan, dan data pengenalan wajah akan segera dihapus serta tidak dapat dikembalikan. Nonaktifkan?",
         "retroPromptTitle": "Apakah Anda menyetujui penggunaan pengenalan wajah (informasi biometrik)?",
-        "retroPromptMessage": "Jika Anda setuju, wajah baru selama panggilan akan diingat secara diam-diam tanpa konfirmasi terpisah sehingga dapat dikenali lebih alami pada panggilan berikutnya. Anda dapat mengubahnya kapan saja di pengaturan.",
+        "retroPromptMessage": "Jika Anda setuju, pengenalan wajah akan digunakan selama percakapan. Anda dapat mengubahnya kapan saja di Pengaturan.",
         "retroPromptAgree": "Setuju",
         "retroPromptDecline": "Tolak"
       },
@@ -1884,6 +1885,7 @@
     "later": "Tambahkan Nanti"
   },
   "errors": {
+    "faceConsentRequired": "Diperlukan persetujuan pengenalan wajah. Aktifkan 'Izinkan pengenalan wajah (data biometrik)' di Pengaturan.",
     "accountDeleted": "Akun ini sudah dihapus.",
     "accountSuspended": "Akun Anda ditangguhkan karena melanggar kebijakan layanan.\nKontak: oth-staff@example.invalid",
     "accountSuspendedForPersona": "Akun Anda dinonaktifkan sementara karena laporan yang menumpuk, sehingga tidak bisa membuat clone.",
@@ -2202,6 +2204,11 @@
     "other": "Lainnya"
   },
   "faceEnroll": {
+    "consentRequired": {
+      "title": "Persetujuan Pengenalan Wajah Diperlukan",
+      "message": "Untuk mendaftarkan wajah, nyalakan 'Izinkan pengenalan wajah (informasi biometrik)' di pengaturan.",
+      "goSettings": "Buka Pengaturan"
+    },
     "rescanNotice": "Kita periksa wajah sekali lagi.",
     "permissionRequired": "Izin kamera dibutuhkan.",
     "permissionSkip": "Lewati pendaftaran dan telepon",
@@ -2214,7 +2221,7 @@
       "title": "Siapa orang ini?",
       "desc": "Beritahu nama dan hubungan agar kami bisa mengenalinya pada panggilan berikutnya.",
       "existingLabel": "Sudah terdaftar (pilih untuk menambah pembelajaran saja)",
-      "markSelf": "Wajah ini adalah saya",
+      "markSelf": "Simpan informasi wajah saya",
       "alreadyRegistered": "{{name}} sudah terdaftar",
       "updateName": "Perbarui nama",
       "existingHint": "Jika ini orang baru, ketik namanya di bawah",

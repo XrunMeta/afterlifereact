@@ -27,6 +27,8 @@ import { v_694b7f } from "../../api/source";
 import { v_d60cdf, v_7281a5, type v_c33ae3, type v_fa0201 } from "../../api/clones";
 import { v_48981e, type v_2b70d7 } from "../../api/credits";
 import { v_8372de } from "../../hooks/useHardwareBack";
+import { v_0f8436 } from "../../api/consent";
+import { v_9ff376 } from "../../face/faceConsentGate";
 import { v_94c936 } from "../../navigation/navigationRef";
 
 import v_0e3f52 from "../../components/my/AppVersionFooter";
@@ -308,7 +310,25 @@ export default function v_ed02a5() {
             icon: "user-plus" as const,
             labelKey: "my.menu.faceEnrollDev",
             descKey: "my.menu.faceEnrollDevDesc",
-            action: () => {
+            action: async () => {
+
+              const v_999957 = v_2ca7e0
+                ? await v_9ff376(() => v_0f8436(v_2ca7e0))
+                : false;
+              if (!v_999957) {
+                v_889fad(
+                  v_8d41d7("faceEnroll.consentRequired.title"),
+                  v_8d41d7("faceEnroll.consentRequired.message"),
+                  [
+                    { text: v_8d41d7("common.cancel", { defaultValue: "취소" }), style: "cancel" },
+                    {
+                      text: v_8d41d7("faceEnroll.consentRequired.goSettings"),
+                      onPress: () => v_c65f5d.navigate("Agreements", { section: "face" }),
+                    },
+                  ],
+                );
+                return;
+              }
 
               const v_f1fc28 = v_58e68f?.[0];
               if (!v_f1fc28) {

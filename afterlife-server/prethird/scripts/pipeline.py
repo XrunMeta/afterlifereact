@@ -28,7 +28,9 @@ import numpy as np
 from recorder import NULL_TURN
 from clone_dialog.conversation_history import ConversationHistory
 from clone_dialog.lang_tag import CALL_LANGS, LangTagStream, lang_instruction, normalize_lang, split_lang_tag
-from clone_dialog.whoami import turn_face_instruction, turn_face_names_allowed
+from clone_dialog.whoami import (
+    turn_face_instruction, turn_face_names_allowed, remember_me_consent_instruction,
+)
 
 # AFL-1034: 고정 인사(LLM 인사 off 일 때)의 언어별 문구. 없는 언어는 한국어 기본 문구.
 _GREETING_BY_LANG = {
@@ -769,10 +771,13 @@ class DialoguePipeline:
         self, user_text: str, turn=None, on_first_audio=None, on_response_ready=None,
         on_sentence=None, on_reply_done=None, ad_event: str | None = None,
         turn_face: dict | None = None, on_ask=None,
+        face_consent: bool | None = None, remember_me_asked: bool = False,
     ) -> None:
         """user_text 1턴을 처리해 video/audio 트랙에 적재하고 signal_end 호출.
         turn_face: [AFL-1039] 이번 턴 얼굴 대조 결과(앱 turn_face + 수신 시각 "at") — 지시 1줄로
           이번 턴 프롬프트에만 반영. None 이면 기존과 동일.
+        face_consent: [AFL-1040] 앱이 알린 얼굴 동의(False 면 이름 금지·설정 안내). None 이면 기존과 동일.
+        remember_me_asked: [AFL-1040] 비동의 세션에서 "기억해" 류를 말한 턴 — 설정 안내 지시를 붙인다.
         on_ask: [AFL-1039] 답 머리에 <ask=who> 가 붙었으면 답 끝에서 on_ask("who") 1회 호출.
         turn: recorder Turn 핸들(없으면 NULL_TURN) — LLM 토큰·TTS wav 누적.
         on_response_ready: 첫 infer 완료 후·첫 push 직전 1회 호출 (F7 filler 즉시컷).
@@ -835,7 +840,7 @@ class DialoguePipeline:
         _tf_now = time.monotonic()
         # 확정된 화자가 있으면 얼굴이 안 잡힌 턴(insufficient)도 그 화자로 유지한다(whoami._unconfirmed).
         _has_speaker = bool(_speaker_now)
-        if not turn_face_names_allowed(turn_face, _tf_now, _has_speaker):
+        if not turn_face_names_allowed(turn_face, _tf_now, _has_speaker, face_consent):
             _speaker_now = None
         if _speaker_now:
             messages = messages + [{
@@ -859,9 +864,11 @@ class DialoguePipeline:
 
         # [AFL-1039] 말하는 순간 얼굴 대조 결과 → 이번 턴 지시 1줄(위 화자 힌트 뒤). 이름은
         #   서버가 확정한 current_speaker_name 에서만 — 미확인이면 이름 없이 카메라 안내 + <ask=who>.
-        _tf_rule = turn_face_instruction(turn_face, _speaker_now, _tf_now)
+        _tf_rule = turn_face_instruction(turn_face, _speaker_now, _tf_now, face_consent)
         if _tf_rule:
             messages = messages + [{"role": "system", "content": _tf_rule}]
+        elif remember_me_asked and face_consent is False:
+            messages = messages + [{"role": "system", "content": remember_me_consent_instruction()}]
 
         # [2026-10-23 sungjius] "나 누구야?" 에 이름으로 답한 다음 턴에도 또 이름을 불렀다 — 매 턴 붙는 화자 힌트
         #   때문에 LLM 이 이름을 반복한다. 직전 답에 이미 그 이름이 있고 이번 턴이 "누구냐" 질문이 아니면
@@ -878,7 +885,7 @@ class DialoguePipeline:
             }]
 
         _hint = getattr(self, "name_mention_hint", None)
-        if _hint and not turn_face_names_allowed(turn_face, _tf_now, _has_speaker):
+        if _hint and not turn_face_names_allowed(turn_face, _tf_now, _has_speaker, face_consent):
             # 미확인 턴 — 이름 부르기 힌트는 쓰지 않고 버린다(다음 턴에 다른 사람에게 새지 않게).
             self.name_mention_hint = None
             _hint = None

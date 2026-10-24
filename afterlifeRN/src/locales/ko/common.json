@@ -473,7 +473,8 @@
     "faceConsentPrompt": {
       "title": "얼굴 인식 동의",
       "desc": "통화 중 누가 말하는지 알아보려면 아래 동의가 필요합니다. (선택)",
-      "agree": "동의"
+      "agree": "동의",
+      "continue": "그대로 진행"
     },
     "poorConnection": "전화 상태가 좋지 않습니다\n다시 걸어주세요",
     "giftInsufficientTitle": "XRUN 부족",
@@ -832,7 +833,7 @@
       "faceDetect": "얼굴 감지",
       "faceDetectDesc": "나를 기억하는 클론",
       "faceRecognition": "얼굴 인식 동의",
-      "faceRecognitionDesc": "조용한 자동등록 · 얼굴 인식 약관 · 통화 대화 학습"
+      "faceRecognitionDesc": "얼굴 인식 허용 · 얼굴 인식 약관 · 통화 대화 학습"
     },
     "logout": {
       "title": "로그아웃할까요?",
@@ -1593,13 +1594,13 @@
       },
       "faceBiometric": {
         "sectionTitle": "얼굴 인식(생체정보)",
-        "description": "통화 중 처음 보는 얼굴을 별도 확인 카드 없이 조용히 기억해 다음 통화부터 더 자연스럽게 알아보게 합니다. 언제든지 껐다 켤 수 있습니다. 끄면 이 방식으로 등록된 화자 정보가 삭제됩니다(직접 등록한 화자는 영향 없음).",
-        "toggleLabel": "조용한 자동등록 허용",
+        "description": "대화 중 얼굴 인식을 사용합니다.",
+        "toggleLabel": "얼굴 인식(생체정보) 허용",
         "saveError": "설정을 저장하지 못했습니다. 다시 시도해 주십시오.",
-        "revokeConfirmTitle": "조용한 자동등록 끄기",
-        "revokeConfirmMessage": "끄면 이 방식으로 자동등록된 모든 화자의 얼굴 인식 정보가 즉시 삭제됩니다. 직접 등록한 화자는 영향 없습니다. 되돌릴 수 없습니다. 계속하시겠어요?",
+        "revokeConfirmTitle": "얼굴 인식 비활성화",
+        "revokeConfirmMessage": "비활성화하면 대화 중 얼굴 인식을 사용하지 않으며, 얼굴 인식 정보가 즉시 삭제되어 되돌릴 수 없습니다. 비활성화하시겠습니까?",
         "retroPromptTitle": "얼굴 인식(생체정보) 활용에 동의하시겠어요?",
-        "retroPromptMessage": "동의하시면 통화 중 처음 보는 얼굴을 별도 확인 없이 조용히 기억해 다음 통화부터 더 자연스럽게 알아봅니다. 설정에서 언제든 변경할 수 있습니다.",
+        "retroPromptMessage": "동의하시면 대화 중 얼굴 인식을 사용합니다. 설정에서 언제든 변경할 수 있습니다.",
         "retroPromptAgree": "동의",
         "retroPromptDecline": "거부"
       },
@@ -1884,6 +1885,7 @@
     "later": "나중에 추가"
   },
   "errors": {
+    "faceConsentRequired": "얼굴 인식 동의가 필요합니다. 설정에서 '얼굴 인식(생체정보) 허용'을 켜 주세요.",
     "accountDeleted": "이미 탈퇴한 계정입니다.",
     "accountSuspended": "서비스 운영 정책 위반으로 계정 이용이 정지되었습니다.\n문의: oth-staff@example.invalid",
     "accountSuspendedForPersona": "신고 누적으로 계정이 일시 비활성화되어 클론을 생성할 수 없습니다.",
@@ -2202,6 +2204,11 @@
     "other": "기타"
   },
   "faceEnroll": {
+    "consentRequired": {
+      "title": "얼굴 인식 동의 필요",
+      "message": "얼굴을 등록하려면 설정에서 '얼굴 인식(생체정보) 허용'을 켜 주세요.",
+      "goSettings": "설정으로 이동"
+    },
     "rescanNotice": "얼굴을 다시 확인할게요.",
     "permissionRequired": "카메라 권한이 필요합니다.",
     "permissionSkip": "등록 건너뛰고 통화",
@@ -2214,7 +2221,7 @@
       "title": "이 분은 누구신가요?",
       "desc": "이름과 관계를 알려주시면 다음 통화부터 알아볼 수 있어요.",
       "existingLabel": "이미 등록된 사람 (이 중에서 선택하면 학습만 추가돼요)",
-      "markSelf": "이 얼굴은 나예요",
+      "markSelf": "얼굴정보를 저장해둡니다",
       "alreadyRegistered": "이미 등록된 {{name}}님이에요",
       "updateName": "이름 업데이트",
       "existingHint": "새로운 사람이면 아래에 이름을 직접 입력하세요",

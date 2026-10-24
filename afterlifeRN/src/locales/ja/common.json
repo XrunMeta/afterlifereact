@@ -473,7 +473,8 @@
     "faceConsentPrompt": {
       "title": "顔認識への同意",
       "desc": "通話中に誰が話しているかを認識するには、以下の同意が必要です。（任意）",
-      "agree": "同意"
+      "agree": "同意",
+      "continue": "このまま進む"
     },
     "poorConnection": "通話状態がよくありません\nもう一度おかけください",
     "giftInsufficientTitle": "XRUN不足",
@@ -832,7 +833,7 @@
       "faceDetect": "顔の検出",
       "faceDetectDesc": "私を覚えているクローン",
       "faceRecognition": "顔認識の同意",
-      "faceRecognitionDesc": "自動登録・顔認識の規約・通話の学習"
+      "faceRecognitionDesc": "顔認識の許可・顔認識の規約・通話の学習"
     },
     "logout": {
       "title": "ログアウトしますか?",
@@ -1596,13 +1597,13 @@
       },
       "faceBiometric": {
         "sectionTitle": "顔認識(生体情報)",
-        "description": "通話中に初めて見る顔を別途の確認カードなしに静かに記憶し、次の通話からより自然に認識できるようにします。いつでもオン/オフを切り替えできます。オフにするとこの方法で登録された話者情報が削除されます(直接登録した話者は影響なし)。",
-        "toggleLabel": "静かな自動登録を許可",
+        "description": "会話中に顔認識を使用します。",
+        "toggleLabel": "顔認識(生体情報)を許可",
         "saveError": "設定を保存できませんでした。もう一度お試しください。",
-        "revokeConfirmTitle": "静かな自動登録をオフにする",
-        "revokeConfirmMessage": "オフにするとこの方法で自動登録されたすべての話者の顔認識情報が即座に削除されます。直接登録した話者は影響ありません。元に戻せません。続行しますか?",
+        "revokeConfirmTitle": "顔認識を無効にする",
+        "revokeConfirmMessage": "無効にすると会話中に顔認識を使用しなくなり、顔認識情報がすぐに削除され、元に戻せません。無効にしますか?",
         "retroPromptTitle": "顔認識(生体情報)の活用に同意しますか?",
-        "retroPromptMessage": "同意されると通話中に初めて見る顔を別途の確認なしに静かに記憶し、次の通話からより自然に認識します。設定でいつでも変更できます。",
+        "retroPromptMessage": "同意すると会話中に顔認識を使用します。設定でいつでも変更できます。",
         "retroPromptAgree": "同意",
         "retroPromptDecline": "拒否"
       },
@@ -1887,6 +1888,7 @@
     "later": "後で追加"
   },
   "errors": {
+    "faceConsentRequired": "顔認識への同意が必要です。設定で「顔認識(生体情報)を許可」をオンにしてください。",
     "accountDeleted": "このアカウントは既に退会しています。",
     "accountSuspended": "サービス運営ポリシー違反により、アカウントの利用が停止されました。\nお問い合わせ: oth-staff@example.invalid",
     "accountSuspendedForPersona": "通報の累積によりアカウントが一時的に無効になっているため、クローンを作成できません。",
@@ -2205,6 +2207,11 @@
     "other": "その他"
   },
   "faceEnroll": {
+    "consentRequired": {
+      "title": "顔認識の同意が必要です",
+      "message": "顔を登録するには、設定で「顔認識(生体情報)を許可」をオンにしてください。",
+      "goSettings": "設定へ移動"
+    },
     "rescanNotice": "顔をもう一度確認します。",
     "permissionRequired": "カメラの権限が必要です。",
     "permissionSkip": "登録をスキップして通話",
@@ -2217,7 +2224,7 @@
       "title": "この方はどなたですか?",
       "desc": "名前と関係を教えていただくと、次回の通話から認識できます。",
       "existingLabel": "すでに登録済みの人 (選択すると学習だけ追加されます)",
-      "markSelf": "この顔は私です",
+      "markSelf": "顔情報を保存しておきます",
       "alreadyRegistered": "{{name}}さんはすでに登録されています",
       "updateName": "名前を更新",
       "existingHint": "新しい人の場合は、下に名前を直接入力してください",
