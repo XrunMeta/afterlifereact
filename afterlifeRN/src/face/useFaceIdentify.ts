@@ -1,5 +1,6 @@
 
 
+import { v_1c4418 } from "../lib/faceConsentError";
 import { v_de06a3, v_df9f57, v_e662ae } from "bapkr";
 import { v_a64bce } from "./l2normalize";
 import { v_4f64ba } from "./embeddingBuffer";
@@ -81,7 +82,11 @@ export async function v_f644ce(
   let result: v_ac8014;
   try {
     v_43c42e = await v_84b93d.matchFaceFn(v_2ca7e0, v_f9a45c, v_6e0fd3);
-  } catch {
+  } catch (v_49263d) {
+
+    if (v_1c4418(v_49263d)) {
+      return { state: v_b6e533, event: null, cycle: null, selfMatch: false, threshold: null, effectiveScore: null };
+    }
     const v_3b90a4 = v_b6e533.consecutiveFailures + 1;
     const v_b93b45 =
       v_3b90a4 >= v_65c90d

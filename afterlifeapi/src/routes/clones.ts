@@ -38,6 +38,7 @@ import { v_5acfc3 } from "../lib/utils";
 import { v_67dc73 } from "../lib/prebuildClient";
 import { v_842ce7 } from "../lib/guideJob";
 import { v_4c5429 } from "../lib/cloneFaceScope";
+import { v_94652e } from "../lib/faceApiConsent";
 import { v_d0fd96 } from "../lib/displayName";
 
 export const v_f891e6 = new v_b7c41b<v_de0a25>();
@@ -2240,6 +2241,7 @@ v_f891e6.get("/:id/gifts/summary", v_6690d9, async (v_3f4e2e) => {
 
 v_f891e6.post("/:cloneId/self-confirm", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
+  await v_94652e(v_3f4e2e.env, v_43e90c, "/oth-path"); 
   const v_6e0fd3 = Number(v_3f4e2e.req.param("cloneId"));
   if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0)
     throw new v_3ebe58("VALIDATION_FAILED", "cloneId: 양의 정수여야 합니다");

@@ -1888,6 +1888,7 @@
     "later": "後で追加"
   },
   "errors": {
+    "faceConsentRequired": "顔認識への同意が必要です。設定で「顔認識(生体情報)を許可」をオンにしてください。",
     "accountDeleted": "このアカウントは既に退会しています。",
     "accountSuspended": "サービス運営ポリシー違反により、アカウントの利用が停止されました。\nお問い合わせ: oth-staff@example.invalid",
     "accountSuspendedForPersona": "通報の累積によりアカウントが一時的に無効になっているため、クローンを作成できません。",
