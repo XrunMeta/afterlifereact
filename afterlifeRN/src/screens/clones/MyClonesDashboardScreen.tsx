@@ -1396,7 +1396,6 @@ export default function v_def15b() {
                         )}
                         <View style={v_fd5f43.accountInfo}>
                           <Text style={v_fd5f43.accountName}>{v_ceb55a.name ?? v_ceb55a.email}</Text>
-                          <Text style={v_fd5f43.accountSub}>{v_ceb55a.email}</Text>
                         </View>
                       </View>
                     ))
@@ -1425,7 +1424,6 @@ export default function v_def15b() {
                         )}
                         <View style={v_fd5f43.accountInfo}>
                           <Text style={v_fd5f43.accountName}>{v_ceb55a.name ?? v_ceb55a.email}</Text>
-                          <Text style={v_fd5f43.accountSub}>{v_ceb55a.email}</Text>
                         </View>
                       </View>
                     ))
@@ -2162,7 +2160,6 @@ const v_fd5f43 = v_472849.create({
   },
   accountInfo: { flex: 1 },
   accountName: { fontSize: 15, fontWeight: "600", color: v_1bfbd0.zinc900 },
-  accountSub: { fontSize: 13, color: v_1bfbd0.zinc500, marginTop: 2 },
 
   commentRow: {
     paddingVertical: 12,
