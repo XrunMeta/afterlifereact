@@ -1,7 +1,7 @@
 import { v_b7c41b, type v_437670 } from "zmui";
 import type { v_de0a25, v_273a0c } from "../lib/env";
 import { v_3ebe58 } from "../lib/errors";
-import { v_4c95c2, v_1f4ea7 } from "../lib/validate";
+import { v_ae1ce0, v_4c95c2, v_1f4ea7 } from "../lib/validate";
 import { v_54846c, v_1000e8, v_96aa7f } from "../lib/password";
 import { v_85de88, v_a8614b } from "../lib/ale";
 import { v_2ffe8e } from "../lib/hibp";
@@ -49,7 +49,7 @@ function v_e8cd3d(v_3a5fef): number {
 v_68f0aa.get("/health", (v_3f4e2e) => v_3f4e2e.json({ ok: true, module: "auth" }));
 
 const v_7b8b17 = v_1f4ea7.object({
-  email: v_1f4ea7.email().max(200),
+  email: v_ae1ce0(),
 
   password: v_1f4ea7.string().min(7).max(200).regex(
     /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{7,}$/,
@@ -74,7 +74,7 @@ const v_7b8b17 = v_1f4ea7.object({
 });
 
 const v_192e7b = v_1f4ea7.object({
-  email: v_1f4ea7.email().max(200),
+  email: v_ae1ce0(),
 });
 
 v_68f0aa.post("/email/request-code", async (v_3f4e2e) => {
@@ -83,7 +83,7 @@ v_68f0aa.post("/email/request-code", async (v_3f4e2e) => {
   return v_3f4e2e.json({ ok: true, expiresInSec: 300 });
 });
 
-const v_0666ec = v_1f4ea7.object({ email: v_1f4ea7.email().max(200) });
+const v_0666ec = v_1f4ea7.object({ email: v_ae1ce0() });
 v_68f0aa.post("/email/check-xrun", async (v_3f4e2e) => {
   const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_0666ec);
   const [v_ed2073, v_76be17] = await Promise.all([
@@ -769,7 +769,7 @@ v_68f0aa.post("/signup", async (v_3f4e2e) => {
 });
 
 const v_5460cc = v_1f4ea7.object({
-  email: v_1f4ea7.email(),
+  email: v_ae1ce0(),
   password: v_1f4ea7.string().min(1),
   deviceId: v_1f4ea7.string().min(1).max(200).optional(),
   pushToken: v_1f4ea7.string().min(1).max(500).optional(),
@@ -1102,7 +1102,7 @@ v_68f0aa.post("/password/request-reset", async (v_3f4e2e) => {
 });
 
 const v_18702b = v_1f4ea7.object({
-  email: v_1f4ea7.email().max(200),
+  email: v_ae1ce0(),
   verificationCode: v_1f4ea7.string().regex(/^\d{6}$/),
 
   newPassword: v_1f4ea7
@@ -1179,7 +1179,7 @@ v_68f0aa.post("/email/login-code", async (v_3f4e2e) => {
 });
 
 const v_a3bb20 = v_1f4ea7.object({
-  email: v_1f4ea7.email().max(200),
+  email: v_ae1ce0(),
   verificationCode: v_1f4ea7.string().regex(/^\d{6}$/),
   deviceId: v_1f4ea7.string().max(200).optional(),
   pushToken: v_1f4ea7.string().max(500).optional(),
