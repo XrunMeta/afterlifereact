@@ -873,35 +873,27 @@ export async function v_77a220(
   env: v_273a0c,
   v_e0c7e8,
   v_a85523,
-): Promise<{ ok: boolean; reason?: string }> {
-  if (!v_c9c489.XRUN_GATEWAY_TOKEN && !v_c9c489.XRUN_INTERNAL_SECRET) {
-    return { ok: false, reason: "missing XRUN credentials" };
+): Promise<{ ok: boolean; notFound?: boolean; reason?: string }> {
+  if (!v_c9c489.XRUN_INTERNAL_SECRET) {
+    return { ok: false, reason: "missing XRUN_INTERNAL_SECRET" };
   }
-  const v_32e376 = async (v_9fe22d, v_4d33b2) => {
-    const v_8f00b9 = await fetch(`${v_c9c489.XRUN_API_URL}${v_9fe22d}`, {
+  try {
+    const v_8f00b9 = await fetch(`${v_c9c489.XRUN_API_URL}/oth-path`, {
       method: "POST",
       headers: v_30e8dd(v_c9c489),
-      body: JSON.stringify(v_4d33b2),
+      body: JSON.stringify({ email: v_e0c7e8, pin: v_a85523 }),
     });
     const v_7ecfd1 = (await v_8f00b9.json().catch(() => ({}))) as {
       status?: string;
       code?: number;
-      message?: string;
+      data?: { member?: number; updated?: number } | null;
     };
-    return { res: v_8f00b9, json: v_7ecfd1 };
-  };
-  try {
-    const v_779914 = await v_32e376("/oth-path", { email: v_e0c7e8, pin: v_a85523 });
-    if (v_779914.res.ok && v_779914.json.status === "success") {
-      console.log(`[setXrunLoginPin] external-update ok email=${v_e0c7e8}`);
+    if (v_8f00b9.ok && v_7ecfd1.status === "success" && (v_7ecfd1.data?.updated ?? 0) >= 1) {
+      console.log(`[setXrunLoginPin] ok member=${v_7ecfd1.data?.member ?? "?"}`);
       return { ok: true };
     }
-    const v_148ff6 = await v_32e376("/oth-path", { email: v_e0c7e8, pin: v_a85523 });
-    if (v_148ff6.res.ok && v_148ff6.json.status === "success") {
-      console.log(`[setXrunLoginPin] external-set-login-pin ok email=${v_e0c7e8}`);
-      return { ok: true };
-    }
-    const v_58ca36 = `update=${v_779914.res.status}/${v_779914.json.code ?? ""} set-pin=${v_148ff6.res.status}/${v_148ff6.json.code ?? ""}`;
+    if (v_8f00b9.status === 404 || v_7ecfd1.code === 404) return { ok: false, notFound: true };
+    const v_58ca36 = `xrun ${v_8f00b9.status}/${v_7ecfd1.code ?? ""} updated=${v_7ecfd1.data?.updated ?? "?"}`;
     console.warn(`[setXrunLoginPin] failed email=${v_e0c7e8} ${v_58ca36}`);
     return { ok: false, reason: v_58ca36 };
   } catch (v_49263d) {
