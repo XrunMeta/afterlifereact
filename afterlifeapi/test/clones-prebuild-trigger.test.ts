@@ -70,7 +70,7 @@ v_ba7107(() => {
 v_719203(() => v_8fd90d.assertNoPendingInterceptors());
 
 v_469bf2("AFL-1017: createClone prebuild 트리거 (raw 음성 기반)", () => {
-  v_23805a("voice_se_url 이 null 이어도 voice_clone 잡 src_file_id 로 /prebuild 발화", async () => {
+  v_23805a("voice_clone 잡 src_file_id 로 /prebuild 발화 + voice_se_url = 원본 녹음 (AFL-1043 즉시 done)", async () => {
     const v_0c8987 = await v_bfb240("pbtrig_ok@test.com");
     const v_8d41d7 = await v_21cc31(v_0c8987);
     const v_d7fa74 = await v_c808bd(v_0c8987, "ok-wav");
@@ -93,7 +93,7 @@ v_469bf2("AFL-1017: createClone prebuild 트리거 (raw 음성 기반)", () => {
 
     const v_a1651b = v_c9c489.DB as unknown as D1Database;
     const v_3ac7e7 = await v_a1651b.prepare(`SELECT voice_se_url FROM clones WHERE id=?`).bind(v_6e0fd3).first<{ voice_se_url: string | null }>();
-    v_4d37e3(v_3ac7e7!.voice_se_url).toBeNull();
+    v_4d37e3(v_3ac7e7!.voice_se_url).toBe(`http://localhost/oth-path${v_d7fa74}`);
     v_4d37e3(v_df0713).toBeTruthy();
     v_4d37e3(v_df0713!.auth).toBe("Bearer test-secret");
     const v_8decf8 = JSON.parse(v_df0713!.body);
