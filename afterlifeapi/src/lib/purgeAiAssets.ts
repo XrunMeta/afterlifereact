@@ -45,7 +45,10 @@ const v_caf51a = `SELECT
   OR EXISTS (SELECT 1 FROM clone_shorts WHERE clone_id != ?3 AND ${v_7b2645("media_url")})
   OR EXISTS (SELECT 1 FROM voice_presets WHERE ${v_7b2645("sample_url")})
   OR EXISTS (SELECT 1 FROM gift_inventory_events WHERE ${v_7b2645("gift_image_url_snapshot")})
-  OR EXISTS (SELECT 1 FROM inheritance_release_logs WHERE ${v_7b2645("evidence_url")}) AS shared`;
+  OR EXISTS (SELECT 1 FROM inheritance_release_logs WHERE ${v_7b2645("evidence_url")})
+  -- 다른 클론, 또는 아직 클론에 연결 전(clone_id NULL)인 생성 작업이 원본·결과물로 쓰는 중.
+  OR EXISTS (SELECT 1 FROM clone_asset_jobs WHERE (clone_id IS NULL OR clone_id != ?3)
+             AND (src_file_id = ?4 OR out_file_id = ?4)) AS shared`;
 
 async function v_4944e0(
   env: v_273a0c,
@@ -58,7 +61,7 @@ async function v_4944e0(
     try {
       const v_b1c995 = await v_c9c489.DB
         .prepare(v_caf51a)
-        .bind(`%/oth-path${v_433c46}`, `%/oth-path${v_433c46}"%`, v_6e0fd3)
+        .bind(`%/oth-path${v_433c46}`, `%/oth-path${v_433c46}"%`, v_6e0fd3, v_433c46)
         .first<{ shared: number }>();
       if (v_b1c995?.shared !== 0) continue;
       const v_3ac7e7 = await v_c9c489.DB
@@ -67,7 +70,11 @@ async function v_4944e0(
         .first<{ r2_key: string }>();
       if (!v_3ac7e7) continue;
       await v_c9c489.R2_ARCHIVE.delete(v_3ac7e7.r2_key);
-      await v_c9c489.DB.prepare(`DELETE FROM files WHERE id = ?`).bind(v_433c46).run();
+
+      await v_c9c489.DB.batch([
+        v_c9c489.DB.prepare(`DELETE FROM clone_asset_jobs WHERE clone_id = ? AND src_file_id = ?`).bind(v_6e0fd3, v_433c46),
+        v_c9c489.DB.prepare(`DELETE FROM files WHERE id = ?`).bind(v_433c46),
+      ]);
       v_3ed4c3++;
     } catch (v_49263d) {
       console.warn(`[purgeAiAssets] file ${v_433c46} purge failed:`, (v_49263d as Error).message);
@@ -162,6 +169,19 @@ export async function v_ed063f(env: v_273a0c, v_6e0fd3): Promise<R2PurgeResult> 
     for (const v_3ac7e7 of v_dcaaa3.results ?? []) v_0faf90(v_3ac7e7.photo_url);
   } catch (v_49263d) {
     console.warn(`[purgeAiAssets] clone_photos lookup failed:`, (v_49263d as Error).message);
+  }
+
+  try {
+    const v_e3d2a2 = await v_c9c489.DB
+      .prepare(`SELECT src_file_id, out_file_id FROM clone_asset_jobs WHERE clone_id = ?`)
+      .bind(v_6e0fd3)
+      .all<{ src_file_id: number | null; out_file_id: number | null }>();
+    for (const v_b75e36 of v_e3d2a2.results ?? []) {
+      if (v_b75e36.src_file_id) v_a750e4.add(v_b75e36.src_file_id);
+      if (v_b75e36.out_file_id) v_a750e4.add(v_b75e36.out_file_id);
+    }
+  } catch (v_49263d) {
+    console.warn(`[purgeAiAssets] clone_asset_jobs lookup failed:`, (v_49263d as Error).message);
   }
 
   const v_2d1eeb = await v_fd967d(v_c9c489.R2_MEDIA, [...v_cf2c85, ...v_73a3bf]);
