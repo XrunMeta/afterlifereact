@@ -25,6 +25,34 @@ describe("baseCoverScale", () => {
 });
 
 describe("computeCropRect", () => {
+
+  it("줌·이동 없음: 1080x1920 · 프레임 331.3 → 원본 밖으로 안 나가는 정수 픽셀", () => {
+    const v_48a672 = { width: 1080, height: 1920 };
+    const v_cb35cb = v_e70373(v_48a672, { width: 331.3, height: 662.6 }, { translateX: 0, translateY: 0, scale: 1 });
+    for (const v_81e2ef of [v_cb35cb.originX, v_cb35cb.originY, v_cb35cb.width, v_cb35cb.height]) expect(Number.isInteger(v_81e2ef)).toBe(true);
+    expect(v_cb35cb.originX + v_cb35cb.width).toBeLessThanOrEqual(v_48a672.width);
+    expect(v_cb35cb.originY + v_cb35cb.height).toBeLessThanOrEqual(v_48a672.height);
+    expect(v_cb35cb.height).toBe(1920);
+  });
+
+  it("여러 사진·화면 크기에서 꽉 찬 상태·끝까지 이동해도 원본 안", () => {
+    const v_b5c473 = [[3024, 4032], [1080, 1920], [1440, 3200], [1179, 2556], [4032, 3024], [999, 1777]];
+    for (const [v_8e4fb6, v_c86e33] of v_b5c473) {
+      for (const v_754d3a of [300.8, 309.6, 319.9, 331.3, 353.4]) {
+        const v_143cb5 = { width: v_754d3a, height: v_754d3a * 2 };
+        for (const v_2f6fcc of [-1e4, 0, 1e4]) {
+          for (const v_a37637 of [1, 1.37, 2.5]) {
+            const v_cb35cb = v_e70373({ width: v_8e4fb6, height: v_c86e33 }, v_143cb5, { translateX: v_2f6fcc, translateY: -v_2f6fcc, scale: v_a37637 });
+            expect(v_cb35cb.originX).toBeGreaterThanOrEqual(0);
+            expect(v_cb35cb.originY).toBeGreaterThanOrEqual(0);
+            expect(v_cb35cb.originX + v_cb35cb.width).toBeLessThanOrEqual(v_8e4fb6);
+            expect(v_cb35cb.originY + v_cb35cb.height).toBeLessThanOrEqual(v_c86e33);
+          }
+        }
+      }
+    }
+  });
+
   const v_7ddb73 = { width: 1000, height: 1000 };
   const v_143cb5 = { width: 100, height: 200 }; 
   const v_0288f8 = { translateX: 0, translateY: 0, scale: 1 };

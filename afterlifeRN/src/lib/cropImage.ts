@@ -70,11 +70,14 @@ export function v_e70373(v_7ddb73, v_143cb5, v_0d09bb): CropRect {
   const v_c86e33 = v_143cb5.height / v_fd5f43;
   const v_9b490c = v_7ddb73.width / 2 - (v_143cb5.width / 2 + v_0d09bb.translateX) / v_fd5f43;
   const v_e3976e = v_7ddb73.height / 2 - (v_143cb5.height / 2 + v_0d09bb.translateY) / v_fd5f43;
+
+  const v_32f7b8 = Math.max(1, Math.min(v_7ddb73.width, Math.round(v_8e4fb6)));
+  const v_65a2cd = Math.max(1, Math.min(v_7ddb73.height, Math.round(v_c86e33)));
   return {
-    originX: v_ffa902(v_9b490c, 0, Math.max(0, v_7ddb73.width - v_8e4fb6)),
-    originY: v_ffa902(v_e3976e, 0, Math.max(0, v_7ddb73.height - v_c86e33)),
-    width: v_8e4fb6,
-    height: v_c86e33,
+    originX: v_ffa902(Math.round(v_9b490c), 0, v_7ddb73.width - v_32f7b8),
+    originY: v_ffa902(Math.round(v_e3976e), 0, v_7ddb73.height - v_65a2cd),
+    width: v_32f7b8,
+    height: v_65a2cd,
   };
 }
 
