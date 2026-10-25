@@ -30,6 +30,7 @@ import v_556baf from "../../components/ui/SafeView";
 import v_1a40c4 from "../../components/ui/Button";
 import v_258c1c from "../../components/common/PageHeader";
 import v_0e981f from "../../components/common/NotificationBell";
+import v_f9a626 from "../../components/common/PartnerAppBanners";
 import { v_772971 } from "jmpfvteuuztnp";
 import { v_c64cf7 } from "../../lib/chatSystemText";
 import { v_1bfbd0, v_9b1a04, v_8b0c90, v_8f28b1, v_7c5e29 } from "../../components/constants";
@@ -358,12 +359,13 @@ export default function v_14b43e() {
 
   const [v_9e799c, v_d69724] = v_5ab095("");
 
-  type SortMode = "recent" | "intimacy" | "name";
+  type SortMode = "recent" | "intimacy" | "intimacyAsc" | "name";
   const [v_5e8330, v_1db134] = v_5ab095<SortMode>("recent");
   const [v_557d00, v_538ca9] = v_5ab095(false);
   const v_904373 = {
     recent: v_8d41d7("chat.sortRecent", { defaultValue: "최근 대화순" }),
     intimacy: v_8d41d7("chat.sortIntimacy", { defaultValue: "친밀도 높은 순" }),
+    intimacyAsc: v_8d41d7("chat.sortIntimacyAsc", { defaultValue: "친밀도 낮은 순" }),
     name: v_8d41d7("chat.sortName", { defaultValue: "이름순" }),
   };
 
@@ -503,16 +505,24 @@ export default function v_14b43e() {
   const v_066fa2 = v_df9f57(() => {
     const v_ab6401 = v_9e799c.trim().toLowerCase();
 
+    const v_055208 = new Map(v_a48e44.map((v_e2a85c) => [v_e2a85c.id, v_e2a85c.intimacy]));
+
     if (v_7aa778 && v_002f27 !== null) {
       const v_ef8ab1 = v_002f27
         .map((v_23805a) => {
+          const v_38db88 = typeof v_23805a.intimacy === "number" ? v_23805a.intimacy : undefined;
+          const v_747a24 = v_055208.get(v_23805a.clone.id);
+          const v_b74b9c = Math.min(
+            100,
+            Math.max(0, v_38db88 ?? v_747a24 ?? 0),
+          );
           const v_5ed063 = {
             id: v_23805a.clone.id,
             name: v_23805a.clone.name,
             avatar: v_23805a.clone.avatarUrl ?? "",
             interests: [],
             creatorAccount: "",
-            intimacy: 0,
+            intimacy: v_b74b9c,
             interactions: 0,
             isOwn: v_23805a.isMine,
           };
@@ -555,6 +565,9 @@ export default function v_14b43e() {
         if (v_5e8330 === "intimacy") {
           return (v_148ff6.persona.intimacy || 0) - (v_779914.persona.intimacy || 0);
         }
+        if (v_5e8330 === "intimacyAsc") {
+          return (v_779914.persona.intimacy || 0) - (v_148ff6.persona.intimacy || 0);
+        }
         if (v_5e8330 === "name") {
           return (v_779914.persona.name || "").localeCompare(v_148ff6.persona.name || "", "ko");
         }
@@ -580,6 +593,9 @@ export default function v_14b43e() {
     v_ef8ab1.sort((v_779914, v_148ff6) => {
       if (v_5e8330 === "intimacy") {
         return (v_148ff6.persona.intimacy || 0) - (v_779914.persona.intimacy || 0);
+      }
+      if (v_5e8330 === "intimacyAsc") {
+        return (v_779914.persona.intimacy || 0) - (v_148ff6.persona.intimacy || 0);
       }
       if (v_5e8330 === "name") {
         return (v_779914.persona.name || "").localeCompare(v_148ff6.persona.name || "", "ko");
@@ -1093,6 +1109,7 @@ export default function v_14b43e() {
             <Text style={v_fd5f43.emptyDesc}>{v_8d41d7("feed.followingEmptyHint")}</Text>
           </View>
         }
+        ListFooterComponent={<PartnerAppBanners />}
       />
 
       {
@@ -1126,7 +1143,7 @@ export default function v_14b43e() {
                 <Feather name="help-circle" size={20} color={v_1bfbd0.zinc400} />
               </TouchableOpacity>
             </View>
-            <Text style={v_fd5f43.eventsSheetSub}>{v_821fc1?.cloneName}</Text>
+            {}
 
             {v_077f23?.summary && (
               <View style={v_fd5f43.eventsSummary}>
@@ -1444,7 +1461,7 @@ export default function v_14b43e() {
           >
             <View style={v_fd5f43.sortSheetHandle} />
             <Text style={v_fd5f43.sortSheetTitle}>{v_8d41d7("chat.sort")}</Text>
-            {(["recent", "intimacy", "name"] as const).map((v_34e5bb) => (
+            {(["recent", "intimacy", "intimacyAsc", "name"] as const).map((v_34e5bb) => (
               <TouchableOpacity
                 key={v_34e5bb}
                 style={v_fd5f43.sortOptionRow}
@@ -1742,7 +1759,6 @@ const v_fd5f43 = v_472849.create({
     backgroundColor: v_1bfbd0.zinc300, alignSelf: "center", marginBottom: 12,
   },
   eventsSheetTitle: { fontSize: 17, fontWeight: "700", color: v_1bfbd0.zinc900, textAlign: "center" },
-  eventsSheetSub: { fontSize: 13, color: v_1bfbd0.zinc500, textAlign: "center", marginTop: 4, marginBottom: 12 },
   eventsSummary: { paddingHorizontal: 4, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: v_1bfbd0.zinc100, marginBottom: 8 },
   eventsSummaryRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 6 },
   eventsSummaryScore: { fontSize: 24, fontWeight: "700", color: "#fb923c" },
@@ -1757,7 +1773,7 @@ const v_fd5f43 = v_472849.create({
   eventLabel: { fontSize: 14, fontWeight: "600", color: v_1bfbd0.zinc900 },
   eventTime: { fontSize: 11, color: v_1bfbd0.zinc500, marginTop: 2 },
   eventScore: { fontSize: 14, fontWeight: "700", color: "#fb923c" },
-  eventsSheetTitleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 4 },
+  eventsSheetTitleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 4, marginBottom: 12 },
 
   centerOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", alignItems: "center", justifyContent: "center", padding: 24 },
   infoBox: { width: "100%", maxWidth: 360, backgroundColor: v_1bfbd0.white, borderRadius: v_8b0c90.lg, padding: 20 },

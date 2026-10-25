@@ -96,6 +96,13 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
     });
     v_e41029(v_bfe9b9);
     await v_679b55(v_9ec4c0.user.email);
+
+    try {
+      const { resetToMyClonesDashboard: v_a3ff58 } = await import("../../lib/resetToMyClonesDashboard");
+      await v_a3ff58();
+    } catch (v_49263d) {
+      console.warn("[AUTH/reactivate] nav reset failed:", v_49263d);
+    }
   };
   const v_bab7a9 = async (v_49263d, v_bfe9b9) =>
     v_fec9c0(v_49263d, v_8d41d7, {
