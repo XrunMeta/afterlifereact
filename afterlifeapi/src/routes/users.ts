@@ -2,6 +2,7 @@ import { v_b7c41b } from "zmui";
 import type { v_de0a25 } from "../lib/env";
 import { v_6690d9 } from "../middleware/auth";
 import { v_3ebe58 } from "../lib/errors";
+import { v_8cf86b } from "../lib/utils";
 import { v_5bb199 } from "../lib/penaltyGate";
 import { v_4c95c2, v_1f4ea7 } from "../lib/validate";
 import { v_137694, v_85de88, v_a8614b, v_8ea38c, v_b31343 } from "../lib/ale";
@@ -89,7 +90,8 @@ v_de7ba7.get("/search", v_6690d9, async (v_3f4e2e) => {
     .filter((v_62c214) => v_62c214.score >= v_cfdcb0)
     .sort((v_779914, v_148ff6) => v_148ff6.score - v_779914.score || v_148ff6.u.id - v_779914.u.id)
     .slice(0, 20)
-    .map((v_62c214) => v_62c214.u);
+
+    .map((v_62c214) => ({ ...v_62c214.u, email: v_62c214.u.email.toLowerCase() === v_ab6401.toLowerCase() ? v_62c214.u.email : v_8cf86b(v_62c214.u.email) }));
   return v_3f4e2e.json({ items: v_4622b9 });
 });
 
@@ -1224,7 +1226,7 @@ v_de7ba7.get("/me/blocks", v_6690d9, async (v_3f4e2e) => {
     user: {
       id: v_cb35cb.uId,
       name: v_cb35cb.uName,
-      email: v_cb35cb.uEmail,
+      email: v_8cf86b(v_cb35cb.uEmail),
       avatarUrl: v_cb35cb.uAvatarUrl,
     },
   }));
@@ -1440,7 +1442,7 @@ v_de7ba7.post("/:id/follow", v_6690d9, async (v_3f4e2e) => {
         .bind(v_43e90c)
         .first<{ name: string | null; email: string | null }>();
       const v_6dd0ab =
-        v_380fb2?.name || v_380fb2?.email?.split("@")[0] || "누군가";
+        v_380fb2?.name || v_8cf86b(v_380fb2?.email) || "누군가";
       await v_c226a5(v_3f4e2e.env, {
         userId: v_b1de41,
         type: "user_follow",
@@ -1519,7 +1521,7 @@ v_de7ba7.get("/:id/followers", v_6690d9, async (v_3f4e2e) => {
       followId: v_cb35cb.followId,
       userId: v_cb35cb.userId,
       name: v_cb35cb.name,
-      email: v_cb35cb.email,
+      email: v_8cf86b(v_cb35cb.email),
       avatarUrl: v_cb35cb.avatarUrl,
       createdAt: v_cb35cb.createdAt,
     })),
@@ -1567,7 +1569,7 @@ v_de7ba7.get("/:id/following", v_6690d9, async (v_3f4e2e) => {
       followId: v_cb35cb.followId,
       userId: v_cb35cb.userId,
       name: v_cb35cb.name,
-      email: v_cb35cb.email,
+      email: v_8cf86b(v_cb35cb.email),
       avatarUrl: v_cb35cb.avatarUrl,
       createdAt: v_cb35cb.createdAt,
     })),
@@ -1683,7 +1685,8 @@ v_de7ba7.get("/:id", v_6690d9, async (v_3f4e2e) => {
     user: {
       id: v_3ac7e7.id,
       name: v_3ac7e7.name,
-      email: v_3ac7e7.email,
+
+      email: v_013af2 === v_b1de41 ? v_3ac7e7.email : v_8cf86b(v_3ac7e7.email),
       avatarUrl: v_3ac7e7.avatarUrl,
       createdAt: v_3ac7e7.createdAt,
       followersCount: v_62676b?.followersCount ?? 0,
