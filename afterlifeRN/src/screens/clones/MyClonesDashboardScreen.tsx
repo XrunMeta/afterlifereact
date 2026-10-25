@@ -31,6 +31,7 @@ import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import v_556baf from "../../components/ui/SafeView";
 import v_1a40c4 from "../../components/ui/Button";
 import v_258c1c from "../../components/common/PageHeader";
+import v_f9a626 from "../../components/common/PartnerAppBanners";
 import v_5778ce from "../../components/common/HashtagText";
 import v_4c2648 from "./components/FriendPickerModal";
 import v_92380d from "./components/VisibilityPickerModal";
@@ -134,6 +135,9 @@ export default function v_def15b() {
     } catch (v_49263d) {
       console.warn("[Dashboard] listMyClones failed:", v_49263d);
 
+      if (!v_cc88f5) {
+
+      }
     } finally {
       if (v_cc88f5) v_575aad(false);
     }
@@ -1005,45 +1009,51 @@ export default function v_def15b() {
           </>
         }
         ListFooterComponent={
-          v_959d04.length > 0 ? (
-            <View style={v_fd5f43.systemClonesSection}>
-              <Text style={v_fd5f43.systemClonesSectionTitle}>{v_8d41d7("dashboard.systemClonesTitle", { defaultValue: "통화 가능" })}</Text>
-              {v_959d04.map((v_69bba6) => (
-                <View key={v_69bba6.id} style={v_fd5f43.card}>
-                  <View style={v_fd5f43.cloneHeader}>
-                    <View style={v_fd5f43.avatarWrap}>
-                      <View style={[v_fd5f43.avatar, { backgroundColor: v_1bfbd0.zinc100, alignItems: "center", justifyContent: "center" }]}>
-                        <Feather name="user" size={20} color={v_1bfbd0.zinc400} />
+          <View>
+            {v_959d04.length > 0 ? (
+              <View style={v_fd5f43.systemClonesSection}>
+                <Text style={v_fd5f43.systemClonesSectionTitle}>{v_8d41d7("dashboard.systemClonesTitle", { defaultValue: "통화 가능" })}</Text>
+                {v_959d04.map((v_69bba6) => (
+                  <View key={v_69bba6.id} style={v_fd5f43.card}>
+                    <View style={v_fd5f43.cloneHeader}>
+                      <View style={v_fd5f43.avatarWrap}>
+                        <View style={[v_fd5f43.avatar, { backgroundColor: v_1bfbd0.zinc100, alignItems: "center", justifyContent: "center" }]}>
+                          <Feather name="user" size={20} color={v_1bfbd0.zinc400} />
+                        </View>
+                      </View>
+                      <View style={v_fd5f43.cloneInfo}>
+                        <Text style={v_fd5f43.cloneName}>{v_69bba6.name}</Text>
+                        <Text style={v_fd5f43.cloneUsername}>@{v_69bba6.username}</Text>
                       </View>
                     </View>
-                    <View style={v_fd5f43.cloneInfo}>
-                      <Text style={v_fd5f43.cloneName}>{v_69bba6.name}</Text>
-                      <Text style={v_fd5f43.cloneUsername}>@{v_69bba6.username}</Text>
+                    <View style={v_fd5f43.actionsRow}>
+                      <TouchableOpacity
+                        style={v_fd5f43.actionBtn}
+                        onPress={async () => {
+
+                          const v_3ed4c3 = await v_84d546(v_2ca7e0, () => {
+                            v_f4c991.dispatch(
+                              v_650cfa.navigate({ name: "MyTab", params: { screen: "Purchase" } }),
+                            );
+                          });
+                          if (!v_3ed4c3) return;
+                          v_38f9da({ cloneId: v_69bba6.id, name: v_69bba6.name, source: "my-clones-shared" });
+                          v_f4c991.navigate("Call", { cloneId: v_69bba6.id, name: v_69bba6.name });
+                        }}
+                      >
+                        <Feather name="video" size={16} color={v_1bfbd0.zinc700} />
+                        <Text style={v_fd5f43.actionText}>{v_8d41d7("dashboard.actionCall")}</Text>
+                      </TouchableOpacity>
                     </View>
                   </View>
-                  <View style={v_fd5f43.actionsRow}>
-                    <TouchableOpacity
-                      style={v_fd5f43.actionBtn}
-                      onPress={async () => {
-
-                        const v_3ed4c3 = await v_84d546(v_2ca7e0, () => {
-                          v_f4c991.dispatch(
-                            v_650cfa.navigate({ name: "MyTab", params: { screen: "Purchase" } }),
-                          );
-                        });
-                        if (!v_3ed4c3) return;
-                        v_38f9da({ cloneId: v_69bba6.id, name: v_69bba6.name, source: "my-clones-shared" });
-                        v_f4c991.navigate("Call", { cloneId: v_69bba6.id, name: v_69bba6.name });
-                      }}
-                    >
-                      <Feather name="video" size={16} color={v_1bfbd0.zinc700} />
-                      <Text style={v_fd5f43.actionText}>{v_8d41d7("dashboard.actionCall")}</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              ))}
+                ))}
+              </View>
+            ) : null}
+            {}
+            <View style={v_fd5f43.partnerAppsSection}>
+              <PartnerAppBanners />
             </View>
-          ) : null
+          </View>
         }
       />
       )}
@@ -2357,6 +2367,8 @@ const v_fd5f43 = v_472849.create({
   intimacyInfoActivityItem: { fontSize: 13, color: v_1bfbd0.zinc700, lineHeight: 20 },
   intimacyInfoOkBtn: { marginTop: 16, paddingVertical: 12, borderRadius: v_8b0c90.full, backgroundColor: v_1bfbd0.primary, alignItems: "center" },
   intimacyInfoOkText: { fontSize: 14, fontWeight: "700", color: v_1bfbd0.white },
+
+  partnerAppsSection: { marginTop: 8, paddingHorizontal: 4 },
 
   giftDashSection: { marginTop: 16, marginBottom: 16, paddingHorizontal: 4 },
   giftDashCard: {

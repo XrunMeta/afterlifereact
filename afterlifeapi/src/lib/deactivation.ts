@@ -50,6 +50,12 @@ export async function v_94117c(env: v_273a0c, v_21cc31): Promise<number> {
     .prepare(`UPDATE users SET deactivated_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?`)
     .bind(v_43e90c)
     .run();
+
+  try {
+    await v_c9c489.KV_AUTH.delete(v_389130 + v_43e90c);
+  } catch {
+
+  }
   return v_43e90c;
 }
 

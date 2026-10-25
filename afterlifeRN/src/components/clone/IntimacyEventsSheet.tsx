@@ -32,7 +32,7 @@ interface Props {
   onClose: () => void;
 }
 
-export default function v_06b8c0({ visible: v_cf55be, cloneId: v_6e0fd3, cloneName: v_f2ff36, onClose: v_0890f8 }: Props) {
+export default function v_06b8c0({ visible: v_cf55be, cloneId: v_6e0fd3, cloneName: v_a3356c, onClose: v_0890f8 }: Props) {
   const { t: v_8d41d7 } = v_772971();
   const v_033e14 = v_e0068c();
 
@@ -98,7 +98,7 @@ export default function v_06b8c0({ visible: v_cf55be, cloneId: v_6e0fd3, cloneNa
                 <Feather name="help-circle" size={20} color={v_1bfbd0.zinc400} />
               </TouchableOpacity>
             </View>
-            <Text style={v_fd5f43.eventsSheetSub}>{v_f2ff36}</Text>
+            {}
 
             {v_9390e8?.summary && (
               <View style={v_fd5f43.eventsSummary}>
@@ -225,9 +225,8 @@ const v_fd5f43 = v_472849.create({
     width: 40, height: 4, borderRadius: 2,
     backgroundColor: v_1bfbd0.zinc300, alignSelf: "center", marginBottom: 12,
   },
-  eventsSheetTitleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 4 },
+  eventsSheetTitleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 4, marginBottom: 12 },
   eventsSheetTitle: { fontSize: 17, fontWeight: "700", color: v_1bfbd0.zinc900, textAlign: "center" },
-  eventsSheetSub: { fontSize: 13, color: v_1bfbd0.zinc500, textAlign: "center", marginTop: 4, marginBottom: 12 },
   eventsSummary: { paddingHorizontal: 4, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: v_1bfbd0.zinc100, marginBottom: 8 },
   eventsSummaryRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 6 },
   eventsSummaryScore: { fontSize: 24, fontWeight: "700", color: "#fb923c" },

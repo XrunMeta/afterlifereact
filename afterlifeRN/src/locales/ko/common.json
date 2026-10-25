@@ -348,9 +348,11 @@
     "sort": "정렬",
     "sortRecent": "최근 대화순",
     "sortIntimacy": "친밀도 높은 순",
+    "sortIntimacyAsc": "친밀도 낮은 순",
     "sortName": "이름순",
     "adBannerFallback": "배너광고",
     "deleteMessageTitle": "메시지 삭제",
+    "copy": "복사",
     "notifyOff": "알림 끄기",
     "notifyOn": "알림 켜기",
     "callAction": "통화",
@@ -2440,5 +2442,21 @@
     },
     "verifyPassword": "본인 확인 · 비밀번호",
     "verifyEmail": "본인 확인 · 이메일 인증코드"
+  },
+  "partner": {
+    "appsCaption": "함께 쓰는 앱",
+    "open": "열기",
+    "xrunTitle": "XRUN",
+    "xrunEyebrow": "REWARD APP",
+    "xrunSlide1": "돈 버는 앱",
+    "xrunSlide2": "지갑",
+    "xrunSlide3": "보상",
+    "xrunSlide4": "로그인 연동",
+    "clubxTitle": "ClubX",
+    "clubxEyebrow": "METAVERSE CLUB",
+    "clubxSlide1": "가상 클럽",
+    "clubxSlide2": "파티 · 소셜",
+    "clubxSlide3": "댄스 · 아이템",
+    "clubxIosSoon": "App Store 준비 중입니다. Android에서 먼저 이용해 주세요."
   }
 }

@@ -819,21 +819,27 @@ export async function v_3e801c(
     console.log(
       `[getXrunMemberProfile] member=${v_660822} data=${JSON.stringify(v_d5dda0)}`,
     );
+
+    const v_2519dd = (v_81e2ef): number | null => {
+      if (v_81e2ef == null || v_81e2ef === "") return null;
+      const v_f4e98d = typeof v_81e2ef === "number" ? v_81e2ef : Number(v_81e2ef);
+      return Number.isFinite(v_f4e98d) ? v_f4e98d : null;
+    };
     return {
       ok: true,
       profile: {
-        member: v_d5dda0.member,
+        member: v_2519dd(v_d5dda0.member) ?? v_d5dda0.member,
         email: v_d5dda0.email,
         firstname: v_d5dda0.firstname,
         lastname: v_d5dda0.lastname,
         mobile: v_d5dda0.mobile,
         mobilecode: v_d5dda0.mobilecode,
-        gender: v_d5dda0.gender,
-        ages: v_d5dda0.ages,
-        age: v_d5dda0.age,
+        gender: v_2519dd(v_d5dda0.gender),
+        ages: v_2519dd(v_d5dda0.ages),
+        age: v_2519dd(v_d5dda0.age),
         countrycode: v_d5dda0.countrycode,
-        country: v_d5dda0.country,
-        region: v_d5dda0.region,
+        country: v_2519dd(v_d5dda0.country),
+        region: v_2519dd(v_d5dda0.region),
         guid: v_d5dda0.guid,
         appSource: v_d5dda0.app_source,
       },
@@ -861,6 +867,48 @@ export interface XrunMemberPatch {
   countrycode?: string | null;
   country?: number | null;
   region?: number | null;
+}
+
+export async function v_77a220(
+  env: v_273a0c,
+  v_e0c7e8,
+  v_a85523,
+): Promise<{ ok: boolean; reason?: string }> {
+  if (!v_c9c489.XRUN_GATEWAY_TOKEN && !v_c9c489.XRUN_INTERNAL_SECRET) {
+    return { ok: false, reason: "missing XRUN credentials" };
+  }
+  const v_32e376 = async (v_9fe22d, v_4d33b2) => {
+    const v_8f00b9 = await fetch(`${v_c9c489.XRUN_API_URL}${v_9fe22d}`, {
+      method: "POST",
+      headers: v_30e8dd(v_c9c489),
+      body: JSON.stringify(v_4d33b2),
+    });
+    const v_7ecfd1 = (await v_8f00b9.json().catch(() => ({}))) as {
+      status?: string;
+      code?: number;
+      message?: string;
+    };
+    return { res: v_8f00b9, json: v_7ecfd1 };
+  };
+  try {
+    const v_779914 = await v_32e376("/oth-path", { email: v_e0c7e8, pin: v_a85523 });
+    if (v_779914.res.ok && v_779914.json.status === "success") {
+      console.log(`[setXrunLoginPin] external-update ok email=${v_e0c7e8}`);
+      return { ok: true };
+    }
+    const v_148ff6 = await v_32e376("/oth-path", { email: v_e0c7e8, pin: v_a85523 });
+    if (v_148ff6.res.ok && v_148ff6.json.status === "success") {
+      console.log(`[setXrunLoginPin] external-set-login-pin ok email=${v_e0c7e8}`);
+      return { ok: true };
+    }
+    const v_58ca36 = `update=${v_779914.res.status}/${v_779914.json.code ?? ""} set-pin=${v_148ff6.res.status}/${v_148ff6.json.code ?? ""}`;
+    console.warn(`[setXrunLoginPin] failed email=${v_e0c7e8} ${v_58ca36}`);
+    return { ok: false, reason: v_58ca36 };
+  } catch (v_49263d) {
+    const v_58ca36 = `network: ${(v_49263d as Error).message}`;
+    console.warn(`[setXrunLoginPin] failed email=${v_e0c7e8} reason=${v_58ca36}`);
+    return { ok: false, reason: v_58ca36 };
+  }
 }
 
 export async function v_c0f252(

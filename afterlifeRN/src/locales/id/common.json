@@ -348,9 +348,11 @@
     "sort": "Urutkan",
     "sortRecent": "Obrolan terbaru",
     "sortIntimacy": "Keintiman tertinggi",
+    "sortIntimacyAsc": "Keintiman terendah",
     "sortName": "Nama",
     "adBannerFallback": "Spanduk iklan",
     "deleteMessageTitle": "Hapus pesan",
+    "copy": "Salin",
     "notifyOff": "Matikan notifikasi",
     "notifyOn": "Nyalakan notifikasi",
     "callAction": "Panggil",
@@ -2440,5 +2442,12 @@
     },
     "verifyPassword": "Verifikasi · Kata sandi",
     "verifyEmail": "Verifikasi · Kode email"
+  },
+  "partner": {
+    "appsCaption": "Aplikasi terkait",
+    "xrunTitle": "XRUN",
+    "xrunSub": "Dompet · hadiah · login",
+    "clubxTitle": "ClubX",
+    "clubxSub": "Klub · item"
   }
 }

@@ -18,7 +18,12 @@ import { v_7b7f5b, v_94117c } from "../lib/deactivation";
 import { v_6690d9 } from "../middleware/auth";
 import { v_f8ffae } from "../lib/penaltyGate";
 import { v_74defc } from "../lib/logger";
-import { v_b78f7e, v_656e8b } from "../lib/otp";
+import {
+  v_b78f7e,
+  v_c272bc,
+  v_656e8b,
+  v_09cc91,
+} from "../lib/otp";
 
 import { v_a32f1d } from "../lib/googleAuth";
 import { v_bb3c56 } from "../lib/appleAuth";
@@ -29,6 +34,7 @@ import {
   v_937e23,
   v_3326b4,
   v_f748f8,
+  v_77a220,
 } from "../lib/xrun";
 
 import { v_31fb59 } from "./users";
@@ -1077,26 +1083,22 @@ v_68f0aa.post("/logout", v_6690d9, async (v_3f4e2e) => {
 v_68f0aa.post("/password/request-reset", async (v_3f4e2e) => {
   const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_192e7b);
   const v_e0c7e8 = v_4d33b2.email.trim().toLowerCase();
-  let v_e2f7d0 = false;
-  try {
-    const v_8f00b9 = await fetch(`${v_3f4e2e.env.XRUN_API_URL}/oth-path`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Internal-Secret": v_3f4e2e.env.XRUN_INTERNAL_SECRET ?? "",
-      },
-      body: JSON.stringify({ email: v_e0c7e8 }),
-    });
-    const v_7ecfd1 = (await v_8f00b9.json().catch(() => ({}))) as { code?: number; message?: string };
-    console.log(`[auth.password.request-reset] xrun code=${v_7ecfd1.code ?? v_8f00b9.status}`);
-    v_e2f7d0 = v_7ecfd1.code === 404 || v_8f00b9.status === 404;
-  } catch (v_49263d) {
-    console.warn("[auth.password.request-reset] xrun fetch failed:", (v_49263d as Error).message);
+
+  const v_c67510 = await v_3f4e2e.env.DB
+    .prepare(`SELECT id FROM users WHERE email = ? AND deleted_at IS NULL`)
+    .bind(v_e0c7e8)
+    .first<{ id: number }>();
+  let v_adedee = !!v_c67510;
+  if (!v_adedee) {
+    const v_534695 = await v_a0ec33(v_3f4e2e.env, v_e0c7e8);
+    v_adedee = v_534695.found;
   }
-  if (v_e2f7d0) {
+  if (!v_adedee) {
     throw new v_3ebe58("NOT_FOUND", "가입된 이메일이 아닙니다.");
   }
-  return v_3f4e2e.json({ ok: true, expiresInSec: 600 });
+
+  await v_c272bc(v_3f4e2e.env, v_e0c7e8);
+  return v_3f4e2e.json({ ok: true, expiresInSec: v_09cc91 });
 });
 
 const v_18702b = v_1f4ea7.object({
@@ -1115,30 +1117,7 @@ v_68f0aa.post("/password/reset", async (v_3f4e2e) => {
   const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_18702b);
   const v_bb4bfd = v_4d33b2.email.trim().toLowerCase();
 
-  let v_69261d;
-  try {
-    const v_8f00b9 = await fetch(`${v_3f4e2e.env.XRUN_API_URL}/oth-path`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Internal-Secret": v_3f4e2e.env.XRUN_INTERNAL_SECRET ?? "",
-      },
-      body: JSON.stringify({ email: v_bb4bfd, code: v_4d33b2.verificationCode, newPin: v_4d33b2.newPassword }),
-    });
-    const v_7ecfd1 = (await v_8f00b9.json().catch(() => ({}))) as { code?: number; message?: string; status?: string };
-    v_69261d = v_7ecfd1.code ?? v_8f00b9.status;
-    console.log(`[auth.password.reset] xrun code=${v_69261d} msg=${v_7ecfd1.message ?? ""}`);
-    if (v_69261d === 410) throw new v_3ebe58("OTP_EXPIRED", "코드가 만료되었거나 발급된 적이 없습니다.");
-    if (v_69261d === 401) throw new v_3ebe58("OTP_INVALID", "코드가 올바르지 않습니다.");
-    if (v_69261d === 404) throw new v_3ebe58("NOT_FOUND", "가입된 이메일이 아닙니다.");
-    if (v_69261d !== 200 || v_7ecfd1.status !== "success") {
-      throw new v_3ebe58("INTERNAL_ERROR", `XRUN 비밀번호 재설정 실패 (code=${v_69261d})`);
-    }
-  } catch (v_49263d) {
-    if (v_49263d instanceof v_3ebe58) throw v_49263d;
-    console.warn("[auth.password.reset] xrun fetch failed:", (v_49263d as Error).message);
-    throw new v_3ebe58("INTERNAL_ERROR", `XRUN 네트워크 오류: ${(v_49263d as Error).message}`);
-  }
+  await v_656e8b(v_3f4e2e.env, v_bb4bfd, v_4d33b2.verificationCode);
 
   const v_d1b635 = await v_3f4e2e.env.DB
     .prepare(`SELECT id FROM users WHERE email = ? AND deleted_at IS NULL`)
@@ -1159,6 +1138,11 @@ v_68f0aa.post("/password/reset", async (v_3f4e2e) => {
       .run();
     await v_74defc(v_3f4e2e, { userId: v_d1b635.id, action: "auth.password.reset" });
   }
+
+  const v_29f7c7 = await v_77a220(v_3f4e2e.env, v_bb4bfd, v_4d33b2.newPassword);
+  if (!v_29f7c7.ok) {
+    console.warn(`[auth.password.reset] xrun pin sync skipped: ${v_29f7c7.reason}`);
+  }
   return v_3f4e2e.json({ ok: true });
 });
 
@@ -1169,9 +1153,9 @@ v_68f0aa.post("/email/login-code", async (v_3f4e2e) => {
     .bind(v_4d33b2.email.trim().toLowerCase())
     .first<{ id: number; deletion_state: string }>();
   if (v_d1b635 && v_d1b635.deletion_state === "active") {
-    await v_b78f7e(v_3f4e2e.env, v_4d33b2.email);
+    await v_b78f7e(v_3f4e2e.env, v_4d33b2.email, "login");
   }
-  return v_3f4e2e.json({ ok: true, expiresInSec: 300 });
+  return v_3f4e2e.json({ ok: true, expiresInSec: v_09cc91 });
 });
 
 const v_a3bb20 = v_1f4ea7.object({

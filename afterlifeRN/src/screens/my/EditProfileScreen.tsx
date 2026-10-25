@@ -37,15 +37,35 @@ import {
 } from "../../constants/xrunCodes";
 import type { v_8ad91b } from "../../navigation/types";
 
+const v_b8da6a = (v_81e2ef): number | null => {
+  if (v_81e2ef == null || v_81e2ef === "") return null;
+  const v_f4e98d = typeof v_81e2ef === "number" ? v_81e2ef : Number(v_81e2ef);
+  return Number.isFinite(v_f4e98d) ? v_f4e98d : null;
+};
+
 const v_d97109 = (v_206b88): number | null => {
   if (v_206b88 === "male") return v_7b2d46;
   if (v_206b88 === "female") return v_a2df5a;
   return null;
 };
 const v_048a83 = (v_f4e98d): "male" | "female" | "" => {
-  if (v_f4e98d === v_7b2d46) return "male";
-  if (v_f4e98d === v_a2df5a) return "female";
+  const v_c99bd2 = v_b8da6a(v_f4e98d);
+  if (v_c99bd2 === v_7b2d46) return "male";
+  if (v_c99bd2 === v_a2df5a) return "female";
   return "";
+};
+
+const v_23ffb0 = (p: Pick<v_fa06b2, "ages" | "age">): number | null => {
+  const v_6e272b = v_b8da6a(v_e2a85c.ages);
+  if (v_6e272b != null) {
+    if (v_867937.some((v_b6c474) => v_b6c474.value === v_6e272b)) return v_6e272b;
+    if (v_6e272b === 2260) return 2250;
+  }
+  const v_2694bd = v_b8da6a(v_e2a85c.age);
+  if (v_2694bd == null || v_2694bd < 10) return v_6e272b;
+  if (v_2694bd >= 50) return 2250;
+  const v_74f5e8 = Math.floor(v_2694bd / 10);
+  return 2200 + v_74f5e8 * 10;
 };
 
 type Gender = "male" | "female";
@@ -126,18 +146,21 @@ export default function v_e2b396() {
     const v_32d8c3 = v_786737.firstname ?? "";
     const v_f8874f = v_786737.mobile ?? "";
     const v_3b9456 = v_048a83(v_786737.gender);
+    const v_17ab8c = v_23ffb0(v_786737);
     console.log("[EditProfile] prefill from xrun:", JSON.stringify({
       name: v_32d8c3,
       phone: v_f8874f,
       gender: v_3b9456,
       ages: v_786737.ages,
+      age: v_786737.age,
+      resolvedAges: v_17ab8c,
       country: v_786737.country,
       region: v_786737.region,
     }));
     v_318f24(v_32d8c3);
     v_fcce73(v_f8874f);
     v_bdc43c(v_3b9456);
-    v_64a312(v_786737.ages ?? null);
+    v_64a312(v_17ab8c);
     if (v_32d8c3 && v_32d8c3 !== v_b113dd?.name) {
       v_21f395({ name: v_32d8c3 });
     }
@@ -150,11 +173,11 @@ export default function v_e2b396() {
   v_c4deb2(() => {
     if (!v_786737) return;
 
-    const v_7ebb7c = Number(v_786737.country);
+    const v_7ebb7c = v_b8da6a(v_786737.country);
     console.log(
       `[EditProfile] country prefill — xrun country=${v_786737.country} (target=${v_7ebb7c})`,
     );
-    if (Number.isFinite(v_7ebb7c) && v_7ebb7c > 0) {
+    if (v_7ebb7c != null && v_7ebb7c > 0) {
 
       const v_4b037d = v_202d44.find((v_3f4e2e) => {
         const v_c99bd2 =
@@ -171,11 +194,11 @@ export default function v_e2b396() {
     } else {
       v_b7066f(null);
     }
-    const v_fb2a0d = Number(v_786737.region);
+    const v_fb2a0d = v_b8da6a(v_786737.region);
     console.log(
       `[EditProfile] region prefill — xrun region=${v_786737.region} (target=${v_fb2a0d})`,
     );
-    v_c030e3(Number.isFinite(v_fb2a0d) && v_fb2a0d > 0 ? v_fb2a0d : null);
+    v_c030e3(v_fb2a0d != null && v_fb2a0d > 0 ? v_fb2a0d : null);
   }, [v_786737]);
 
   const v_afb146 = v_df9f57(
@@ -197,13 +220,24 @@ export default function v_e2b396() {
   const [v_35bf26, v_04e389] = v_5ab095(false);
 
   const v_12b1d1 = v_df9f57(() => {
+    if (!v_786737) {
+      return v_1833e7.trim() !== "" || v_d74a81.trim() !== "" || v_c3eac4 !== "" || v_f83808 != null || v_b9bbbd != null || v_a6c30b != null;
+    }
+    const v_c6f320 = v_23ffb0(v_786737);
+    const v_6f86ba = v_b8da6a(v_786737.country);
+    const v_f6907d =
+      v_b9bbbd == null
+        ? null
+        : typeof v_b9bbbd.countryCode === "number"
+          ? v_b9bbbd.countryCode
+          : Number(v_b9bbbd.dialCode?.replace(/^\+/, "") ?? "") || null;
     return (
-      v_1833e7.trim() !== (v_786737?.firstname ?? "") ||
-      v_d74a81.trim() !== (v_786737?.mobile ?? "") ||
-      v_c3eac4 !== v_048a83(v_786737?.gender) ||
-      v_f83808 !== (v_786737?.ages ?? null) ||
-      (v_b9bbbd?.countryCode ?? null) !== (v_786737?.country ?? null) ||
-      v_a6c30b !== (v_786737?.region ?? null)
+      v_1833e7.trim() !== (v_786737.firstname ?? "") ||
+      v_d74a81.trim() !== (v_786737.mobile ?? "") ||
+      v_c3eac4 !== v_048a83(v_786737.gender) ||
+      v_f83808 !== v_c6f320 ||
+      v_f6907d !== v_6f86ba ||
+      v_a6c30b !== v_b8da6a(v_786737.region)
     );
   }, [v_1833e7, v_d74a81, v_c3eac4, v_f83808, v_b9bbbd, v_a6c30b, v_786737]);
 
@@ -245,8 +279,10 @@ export default function v_e2b396() {
     if (v_affc3e !== (v_786737?.firstname ?? "")) v_588fa6.firstname = v_affc3e;
     if (v_d1d8b2 !== (v_786737?.mobile ?? "")) v_588fa6.mobile = v_d1d8b2 || null;
     const v_7ac969 = v_d97109(v_c3eac4);
-    if (v_7ac969 !== (v_786737?.gender ?? null)) v_588fa6.gender = v_7ac969;
-    if (v_f83808 !== (v_786737?.ages ?? null)) v_588fa6.age = v_f83808;
+    if (v_7ac969 !== v_b8da6a(v_786737?.gender)) v_588fa6.gender = v_7ac969;
+    if (v_f83808 !== v_23ffb0(v_786737 ?? { ages: null, age: null })) {
+      v_588fa6.age = v_f83808;
+    }
     if (v_b9bbbd) {
 
       const v_f6907d =
@@ -254,7 +290,7 @@ export default function v_e2b396() {
           ? v_b9bbbd.countryCode
           : Number(v_b9bbbd.dialCode?.replace(/^\+/, "") ?? "");
       if (Number.isFinite(v_f6907d) && v_f6907d > 0) {
-        if (v_f6907d !== (v_786737?.country ?? null)) {
+        if (v_f6907d !== v_b8da6a(v_786737?.country)) {
           v_588fa6.country = v_f6907d;
         }
         v_588fa6.mobilecode = String(v_f6907d);
@@ -264,7 +300,7 @@ export default function v_e2b396() {
         v_588fa6.countrycode = v_6f9eff;
       }
     }
-    if (v_a6c30b !== (v_786737?.region ?? null)) {
+    if (v_a6c30b !== v_b8da6a(v_786737?.region)) {
       v_588fa6.region = v_a6c30b;
     }
 

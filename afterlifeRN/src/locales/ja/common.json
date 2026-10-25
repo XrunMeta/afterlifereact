@@ -348,9 +348,11 @@
     "sort": "並び替え",
     "sortRecent": "最近の会話順",
     "sortIntimacy": "親密度が高い順",
+    "sortIntimacyAsc": "親密度が低い順",
     "sortName": "名前順",
     "adBannerFallback": "バナー広告",
     "deleteMessageTitle": "メッセージを削除",
+    "copy": "コピー",
     "notifyOff": "通知をオフ",
     "notifyOn": "通知をオン",
     "callAction": "通話",
@@ -2443,5 +2445,12 @@
     },
     "verifyPassword": "本人確認 · パスワード",
     "verifyEmail": "本人確認 · メール認証コード"
+  },
+  "partner": {
+    "appsCaption": "関連アプリ",
+    "xrunTitle": "XRUN",
+    "xrunSub": "ウォレット · 報酬 · ログイン連携",
+    "clubxTitle": "ClubX",
+    "clubxSub": "クラブ · アイテム"
   }
 }
