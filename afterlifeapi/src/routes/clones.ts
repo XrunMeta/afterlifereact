@@ -33,7 +33,7 @@ import { v_0b44ec } from "../lib/personaQuestions";
 import { v_70b594 } from "../lib/knowledgeQuestions";
 import { v_038cdc } from "../lib/knowledgeStore";
 import { v_71b908, v_cba618 } from "../lib/knowledgeBlacklist";
-import { v_041f8e, v_4b949c, v_5193f8, v_f64843 } from "../lib/assetJobs";
+import { v_041f8e, v_4b949c, v_5193f8, v_f64843, v_689a90 } from "../lib/assetJobs";
 import { v_5acfc3 } from "../lib/utils";
 import { v_67dc73 } from "../lib/prebuildClient";
 import { v_842ce7 } from "../lib/guideJob";
@@ -1217,6 +1217,11 @@ v_f891e6.post("/asset-job", v_6690d9, async (v_3f4e2e) => {
   const v_04211c = crypto.randomUUID();
 
   const v_59b4e0 = await v_041f8e(v_3f4e2e.env.DB, v_04211c, v_43e90c, v_94302c, v_2fa661);
+
+  if (v_94302c === "voice_clone") {
+    await v_689a90(v_3f4e2e.env.DB, v_04211c, `${new URL(v_3f4e2e.req.url).origin}/oth-path${v_4de33e.id}`);
+    return v_3f4e2e.json({ job_id: v_04211c, status: "done" }, 201);
+  }
 
   if (v_3f4e2e.env.ORCHESTRATOR_URL && v_3f4e2e.env.ORCH_SECRET) {
     const v_f17108 = new URL(v_3f4e2e.req.url).origin;
