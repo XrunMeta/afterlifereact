@@ -38,20 +38,25 @@ const ProgressButton: v_a3453e.FC<ProgressButtonProps> = ({
   const v_4a1c36 = v_e662ae(new v_a2349e.Value(0)).current;
   const v_1b0266 = v_e662ae(v_d472c7);
 
+  const v_11b02b = v_e662ae(0);
+
   v_c4deb2(() => {
     if (v_d472c7 !== v_1b0266.current) {
       v_1b0266.current = v_d472c7;
+      v_11b02b.current = 0;
       v_4a1c36.setValue(0);
     }
+    const v_5f5d6d = v_9c58a3 ? 0 : Math.max(v_11b02b.current, Math.max(0, Math.min(1, v_a63fde)));
+    if (!v_9c58a3) v_11b02b.current = v_5f5d6d;
     const v_f582ff = v_a2349e.timing(v_4a1c36, {
-      toValue: Math.max(0, Math.min(1, v_a63fde)),
+      toValue: v_5f5d6d,
       duration: v_a712cf,
       easing: v_cdbae1.out(v_cdbae1.quad), 
       useNativeDriver: false, 
     });
     v_f582ff.start();
     return () => v_f582ff.stop();
-  }, [v_a63fde, v_a712cf, v_4a1c36, v_d472c7]);
+  }, [v_a63fde, v_a712cf, v_4a1c36, v_d472c7, v_9c58a3]);
 
   const v_8e4fb6 = v_4a1c36.interpolate({ inputRange: [0, 1], outputRange: ["0%", "100%"] });
 
