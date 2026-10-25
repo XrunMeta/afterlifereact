@@ -95,11 +95,9 @@ export default function v_7d236a() {
           </View>
         )}
         <View style={{ flex: 1 }}>
+          {}
           <Text style={v_fd5f43.name} numberOfLines={1}>
             {v_8c0b26.name ?? v_8c0b26.email}
-          </Text>
-          <Text style={v_fd5f43.email} numberOfLines={1}>
-            {v_8c0b26.email}
           </Text>
         </View>
         {}
@@ -184,7 +182,6 @@ const v_fd5f43 = v_472849.create({
     justifyContent: "center",
   },
   name: { fontSize: 14, fontWeight: "600", color: v_1bfbd0.zinc900 },
-  email: { fontSize: 12, color: v_1bfbd0.zinc500, marginTop: 2 },
   followBtn: {
     paddingHorizontal: 14,
     paddingVertical: 6,

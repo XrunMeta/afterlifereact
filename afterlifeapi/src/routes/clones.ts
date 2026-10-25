@@ -37,7 +37,7 @@ import { v_70b594 } from "../lib/knowledgeQuestions";
 import { v_038cdc } from "../lib/knowledgeStore";
 import { v_71b908, v_cba618 } from "../lib/knowledgeBlacklist";
 import { v_041f8e, v_4b949c, v_5193f8, v_f64843, v_689a90 } from "../lib/assetJobs";
-import { v_5acfc3 } from "../lib/utils";
+import { v_8cf86b, v_5acfc3 } from "../lib/utils";
 import { v_67dc73 } from "../lib/prebuildClient";
 import { v_842ce7 } from "../lib/guideJob";
 import { v_4c5429 } from "../lib/cloneFaceScope";
@@ -557,7 +557,7 @@ v_f891e6.post(
           .bind(v_43e90c)
           .first<{ name: string | null; email: string | null }>();
         const v_6dd0ab =
-          v_380fb2?.name || v_380fb2?.email?.split("@")[0] || "누군가";
+          v_380fb2?.name || v_8cf86b(v_380fb2?.email) || "누군가";
         const v_823f08 = await v_a1651b
           .prepare(`SELECT follower_id FROM user_follows WHERE followee_id = ?`)
           .bind(v_43e90c)
@@ -1838,7 +1838,7 @@ v_f891e6.get("/:id/followers", async (v_3f4e2e) => {
       followId: v_cb35cb.followId,
       userId: v_cb35cb.userId,
       name: v_cb35cb.userName,
-      email: v_cb35cb.userEmail,
+      email: v_8cf86b(v_cb35cb.userEmail),
       avatarUrl: v_cb35cb.userAvatarUrl,
       createdAt: v_cb35cb.createdAt,
     })),
