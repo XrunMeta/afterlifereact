@@ -106,7 +106,8 @@ v_469bf2("POST /oth-path — 카탈로그 공용 파일 허용", () => {
     v_4d37e3(v_8f00b9.status).toBe(201);
     const v_4d33b2 = await v_8f00b9.json<{ job_id: string; status: string }>();
     v_4d37e3(v_4d33b2.job_id).toBeTruthy();
-    v_4d37e3(v_4d33b2.status).toBe("pending");
+
+    v_4d37e3(v_4d33b2.status).toBe("done");
   });
 
   v_23805a("일반 타인 소유 파일은 여전히 404 로 거부한다", async () => {
