@@ -697,7 +697,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
     }
 
     v_4b9b17(false);
-    v_8943dd(null);
+
     v_7a77e1();
     if (!v_80a1e3) return;
 
