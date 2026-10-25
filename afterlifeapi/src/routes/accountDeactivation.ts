@@ -51,6 +51,7 @@ v_344cd4.post("/me/deactivate", v_6690d9, async (v_3f4e2e) => {
     await v_656e8b(v_3f4e2e.env, v_b32680.email, v_4d33b2.verificationCode!);
   }
 
+  await v_1186b8(v_3f4e2e.env, v_43e90c);
   if (!v_b32680.deactivated_at) {
     await v_3f4e2e.env.DB.batch([
       v_3f4e2e.env.DB.prepare(`UPDATE users SET deactivated_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = ?`).bind(v_43e90c),
@@ -58,8 +59,6 @@ v_344cd4.post("/me/deactivate", v_6690d9, async (v_3f4e2e) => {
       v_3f4e2e.env.DB.prepare(`UPDATE user_devices SET is_active = 0, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?`).bind(v_43e90c),
     ]);
   }
-
-  await v_1186b8(v_3f4e2e.env, v_43e90c);
   await v_74defc(v_3f4e2e, { userId: v_43e90c, action: "account.deactivate", details: { via: v_4d33b2.password ? "password" : "email_code" } });
   return v_3f4e2e.json({ ok: true });
 });

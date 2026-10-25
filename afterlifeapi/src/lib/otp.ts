@@ -9,11 +9,14 @@ const v_7dab9c = 5 * 60;
 const v_bb4ed0 = 60 * 1000;
 const v_138a00 = 5;
 
+export type OtpPurpose = "signup" | "login" | "password_reset";
+
 interface OtpRecord {
   codeHash: string;
   expiresAt: number;
   attempts: number;
   sentAt: number;
+  purpose?: OtpPurpose;
 }
 
 function v_b24339(v_e0c7e8): string {
@@ -35,17 +38,34 @@ async function v_921b04(v_fd5f43): Promise<string> {
     .join("");
 }
 
-function v_742487(v_c99bd2): string {
+function v_742487(v_c99bd2, v_fa63e0): string {
+  const v_66b19f =
+    v_fa63e0 === "password_reset" ? "AfterLife 비밀번호 재설정" : "AfterLife 이메일 인증";
+  const v_4d33b2 =
+    v_fa63e0 === "password_reset"
+      ? "아래 6자리 인증 코드를 비밀번호 재설정 화면에 입력하세요."
+      : v_fa63e0 === "login"
+        ? "아래 6자리 인증 코드를 로그인 화면에 입력하세요."
+        : "아래 6자리 인증 코드를 가입 화면에 입력하세요.";
   return `<!DOCTYPE html><html><body style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;background:#f6f6f6;padding:24px">
   <div style="max-width:480px;margin:0 auto;background:#fff;border-radius:12px;padding:32px;box-shadow:0 2px 8px rgba(0,0,0,.06)">
-    <h2 style="margin:0 0 16px;color:#222">AfterLife 이메일 인증</h2>
-    <p style="color:#555;line-height:1.6">아래 6자리 인증 코드를 가입 화면에 입력하세요.</p>
+    <h2 style="margin:0 0 16px;color:#222">${v_66b19f}</h2>
+    <p style="color:#555;line-height:1.6">${v_4d33b2}</p>
     <div style="font-size:32px;font-weight:700;letter-spacing:8px;text-align:center;background:#f0f4ff;color:#1a4cff;padding:20px;border-radius:8px;margin:24px 0">${v_c99bd2}</div>
     <p style="color:#888;font-size:13px;line-height:1.6">이 코드는 발송 후 5분간 유효합니다. 본인이 요청하지 않았다면 이 메일을 무시하세요.</p>
   </div></body></html>`;
 }
 
-export async function v_b78f7e(env: v_273a0c, v_e0c7e8): Promise<void> {
+function v_0abb3f(v_fa63e0): string {
+  if (v_fa63e0 === "password_reset") return "[AfterLife] 비밀번호 재설정 인증 코드";
+  return "[AfterLife] 이메일 인증 코드";
+}
+
+export async function v_b78f7e(
+  env: v_273a0c,
+  v_e0c7e8,
+  v_fa63e0 = "signup",
+): Promise<void> {
   const v_0eb677 = v_b24339(v_e0c7e8);
   const v_3c8572 = await v_c9c489.KV_AUTH.get<OtpRecord>(v_0eb677, "json");
   if (v_3c8572 && Date.now() - v_3c8572.sentAt < v_bb4ed0) {
@@ -56,7 +76,7 @@ export async function v_b78f7e(env: v_273a0c, v_e0c7e8): Promise<void> {
   const v_c99bd2 = v_ef6e02();
 
   if (v_c9c489.ENVIRONMENT !== "production") {
-    console.log(`[OTP] email=${v_e0c7e8} code=${v_c99bd2} expiresInSec=${v_7dab9c}`);
+    console.log(`[OTP] purpose=${v_fa63e0} email=${v_e0c7e8} code=${v_c99bd2} expiresInSec=${v_7dab9c}`);
   }
   const v_fe2fc4 = await v_921b04(v_c99bd2);
   const v_5c2f9f = Date.now();
@@ -65,6 +85,7 @@ export async function v_b78f7e(env: v_273a0c, v_e0c7e8): Promise<void> {
     expiresAt: v_5c2f9f + v_7dab9c * 1000,
     attempts: 0,
     sentAt: v_5c2f9f,
+    purpose: v_fa63e0,
   };
 
   await v_c9c489.KV_AUTH.put(v_0eb677, JSON.stringify(v_cbbd71), { expirationTtl: v_7dab9c });
@@ -92,16 +113,26 @@ export async function v_b78f7e(env: v_273a0c, v_e0c7e8): Promise<void> {
 
   await v_a71d8b(v_c9c489, {
     to: v_e0c7e8,
-    subject: "[AfterLife] 이메일 인증 코드",
-    html: v_742487(v_c99bd2),
+    subject: v_0abb3f(v_fa63e0),
+    html: v_742487(v_c99bd2, v_fa63e0),
+    fromName: "AfterLife",
   });
 }
 
-export async function v_656e8b(env: v_273a0c, v_e0c7e8, v_c99bd2): Promise<void> {
+export async function v_c272bc(env: v_273a0c, v_e0c7e8): Promise<void> {
+  await v_b78f7e(v_c9c489, v_e0c7e8, "password_reset");
+}
+
+export async function v_656e8b(
+  env: v_273a0c,
+  v_e0c7e8,
+  v_c99bd2,
+  v_38472a,
+): Promise<void> {
   const v_0eb677 = v_b24339(v_e0c7e8);
   const v_94a7a9 = await v_c9c489.KV_AUTH.get<OtpRecord>(v_0eb677, "json");
   const v_bb4bfd = v_e0c7e8.trim().toLowerCase();
-  if (!v_94a7a9) {
+  if (!v_94a7a9 || (v_38472a && v_94a7a9.purpose !== v_38472a)) {
     throw new v_3ebe58("OTP_REQUIRED", "No verification code in progress. Request one first.");
   }
   if (Date.now() > v_94a7a9.expiresAt) {
@@ -165,3 +196,5 @@ async function v_470581(
     console.warn("[otp] d1 log update failed:", (v_49263d as Error).message);
   }
 }
+
+export const v_09cc91 = v_7dab9c;

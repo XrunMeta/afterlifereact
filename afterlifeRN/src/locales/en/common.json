@@ -348,9 +348,11 @@
     "sort": "Sort",
     "sortRecent": "Recent chats",
     "sortIntimacy": "Highest intimacy",
+    "sortIntimacyAsc": "Lowest intimacy",
     "sortName": "Name",
     "adBannerFallback": "Ad banner",
     "deleteMessageTitle": "Delete message",
+    "copy": "Copy",
     "notifyOff": "Mute notifications",
     "notifyOn": "Unmute notifications",
     "callAction": "Call",
@@ -1294,6 +1296,9 @@
       "warnTooLargeMsg": "The selected file is too long. Please trim it to 30 seconds to 1 minute and upload again.",
       "toastSilence": "It's too quiet. Please speak a little louder.",
       "toastNoise": "It's noisy around you. Please record in a quiet place.",
+      "toastClipping": "Your voice is too loud and distorting. Please move a little away from the mic.",
+      "recordAbortedTitle": "Recording stopped",
+      "recordAbortedMsg": "You left the app while recording, so the recording was stopped. Please record again from the start.",
       "recordQualityTitle": "Recording quality",
       "recordQualitySilenceMsg": "The recording has a lot of silence. Please re-record the whole sentence clearly in a quiet place.",
       "recordQualityNoiseMsg": "Background noise got into the recording. Re-recording in a quiet place will make the voice sound much more natural.",
@@ -2435,7 +2440,7 @@
     "confirmTitle": "Deactivate your account?",
     "confirmBody": "You'll be logged out on all devices right away.",
     "effect": {
-      "hide": "Your profile and AI clones are hidden from home, explore and search, and others can't chat or call them.",
+      "hide": "Your profile and AI clones are hidden from home, explore and search, and no one except co-admins can chat or call them.",
       "posts": "Your posts and comments are hidden.",
       "interaction": "Others can't send you gifts or shares.",
       "notify": "All notifications stop.",
@@ -2443,5 +2448,21 @@
     },
     "verifyPassword": "Verify · Password",
     "verifyEmail": "Verify · Email code"
+  },
+  "partner": {
+    "appsCaption": "Related apps",
+    "open": "Open",
+    "xrunTitle": "XRUN",
+    "xrunEyebrow": "REWARD APP",
+    "xrunSlide1": "Earn rewards",
+    "xrunSlide2": "Wallet",
+    "xrunSlide3": "Rewards",
+    "xrunSlide4": "Linked login",
+    "clubxTitle": "ClubX",
+    "clubxEyebrow": "METAVERSE CLUB",
+    "clubxSlide1": "Virtual club",
+    "clubxSlide2": "Party · social",
+    "clubxSlide3": "Dance · items",
+    "clubxIosSoon": "App Store coming soon. Please try on Android first."
   }
 }

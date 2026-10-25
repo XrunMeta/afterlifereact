@@ -115,9 +115,19 @@ export default function v_51ae06({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     if (v_7b301e || (!v_3b9363 && !v_6a109b)) {
       return <View style={v_fd5f43.notFound} />;
     }
+
     return (
       <View style={v_fd5f43.notFound}>
         <Text style={v_fd5f43.notFoundText}>{v_8d41d7("detail.notFound")}</Text>
+        <TouchableOpacity
+          style={v_fd5f43.notFoundBackBtn}
+          onPress={() => v_c65f5d.navigate("Dashboard")}
+          activeOpacity={0.8}
+        >
+          <Text style={v_fd5f43.notFoundBackText}>
+            {v_8d41d7("detail.backToDashboard", { defaultValue: "마이페이지로" })}
+          </Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -464,6 +474,16 @@ const v_fd5f43 = v_472849.create({
     backgroundColor: v_1bfbd0.white,
     alignItems: "center",
     justifyContent: "center",
+    paddingHorizontal: 24,
+    gap: 16,
   },
   notFoundText: { fontSize: 14, color: v_1bfbd0.zinc500 },
+  notFoundBackBtn: {
+    marginTop: 4,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: v_8b0c90.lg,
+    backgroundColor: v_1bfbd0.zinc900,
+  },
+  notFoundBackText: { fontSize: 14, fontWeight: "600", color: v_1bfbd0.white },
 });

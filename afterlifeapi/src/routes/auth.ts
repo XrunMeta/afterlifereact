@@ -1,7 +1,7 @@
 import { v_b7c41b, type v_437670 } from "zmui";
-import type { v_de0a25 } from "../lib/env";
+import type { v_de0a25, v_273a0c } from "../lib/env";
 import { v_3ebe58 } from "../lib/errors";
-import { v_4c95c2, v_1f4ea7 } from "../lib/validate";
+import { v_ae1ce0, v_4c95c2, v_1f4ea7 } from "../lib/validate";
 import { v_54846c, v_1000e8, v_96aa7f } from "../lib/password";
 import { v_85de88, v_a8614b } from "../lib/ale";
 import { v_2ffe8e } from "../lib/hibp";
@@ -18,7 +18,12 @@ import { v_7b7f5b, v_94117c } from "../lib/deactivation";
 import { v_6690d9 } from "../middleware/auth";
 import { v_f8ffae } from "../lib/penaltyGate";
 import { v_74defc } from "../lib/logger";
-import { v_b78f7e, v_656e8b } from "../lib/otp";
+import {
+  v_b78f7e,
+  v_c272bc,
+  v_656e8b,
+  v_09cc91,
+} from "../lib/otp";
 
 import { v_a32f1d } from "../lib/googleAuth";
 import { v_bb3c56 } from "../lib/appleAuth";
@@ -29,6 +34,7 @@ import {
   v_937e23,
   v_3326b4,
   v_f748f8,
+  v_77a220,
 } from "../lib/xrun";
 
 import { v_31fb59 } from "./users";
@@ -43,7 +49,7 @@ function v_e8cd3d(v_3a5fef): number {
 v_68f0aa.get("/health", (v_3f4e2e) => v_3f4e2e.json({ ok: true, module: "auth" }));
 
 const v_7b8b17 = v_1f4ea7.object({
-  email: v_1f4ea7.email().max(200),
+  email: v_ae1ce0(),
 
   password: v_1f4ea7.string().min(7).max(200).regex(
     /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{7,}$/,
@@ -68,7 +74,7 @@ const v_7b8b17 = v_1f4ea7.object({
 });
 
 const v_192e7b = v_1f4ea7.object({
-  email: v_1f4ea7.email().max(200),
+  email: v_ae1ce0(),
 });
 
 v_68f0aa.post("/email/request-code", async (v_3f4e2e) => {
@@ -77,7 +83,7 @@ v_68f0aa.post("/email/request-code", async (v_3f4e2e) => {
   return v_3f4e2e.json({ ok: true, expiresInSec: 300 });
 });
 
-const v_0666ec = v_1f4ea7.object({ email: v_1f4ea7.email().max(200) });
+const v_0666ec = v_1f4ea7.object({ email: v_ae1ce0() });
 v_68f0aa.post("/email/check-xrun", async (v_3f4e2e) => {
   const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_0666ec);
   const [v_ed2073, v_76be17] = await Promise.all([
@@ -763,7 +769,7 @@ v_68f0aa.post("/signup", async (v_3f4e2e) => {
 });
 
 const v_5460cc = v_1f4ea7.object({
-  email: v_1f4ea7.email(),
+  email: v_ae1ce0(),
   password: v_1f4ea7.string().min(1),
   deviceId: v_1f4ea7.string().min(1).max(200).optional(),
   pushToken: v_1f4ea7.string().min(1).max(500).optional(),
@@ -1077,30 +1083,26 @@ v_68f0aa.post("/logout", v_6690d9, async (v_3f4e2e) => {
 v_68f0aa.post("/password/request-reset", async (v_3f4e2e) => {
   const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_192e7b);
   const v_e0c7e8 = v_4d33b2.email.trim().toLowerCase();
-  let v_e2f7d0 = false;
-  try {
-    const v_8f00b9 = await fetch(`${v_3f4e2e.env.XRUN_API_URL}/oth-path`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Internal-Secret": v_3f4e2e.env.XRUN_INTERNAL_SECRET ?? "",
-      },
-      body: JSON.stringify({ email: v_e0c7e8 }),
-    });
-    const v_7ecfd1 = (await v_8f00b9.json().catch(() => ({}))) as { code?: number; message?: string };
-    console.log(`[auth.password.request-reset] xrun code=${v_7ecfd1.code ?? v_8f00b9.status}`);
-    v_e2f7d0 = v_7ecfd1.code === 404 || v_8f00b9.status === 404;
-  } catch (v_49263d) {
-    console.warn("[auth.password.request-reset] xrun fetch failed:", (v_49263d as Error).message);
+
+  const v_c67510 = await v_3f4e2e.env.DB
+    .prepare(`SELECT id FROM users WHERE email = ? AND deleted_at IS NULL`)
+    .bind(v_e0c7e8)
+    .first<{ id: number }>();
+  let v_adedee = !!v_c67510;
+  if (!v_adedee) {
+    const v_534695 = await v_a0ec33(v_3f4e2e.env, v_e0c7e8);
+    v_adedee = v_534695.found;
   }
-  if (v_e2f7d0) {
+  if (!v_adedee) {
     throw new v_3ebe58("NOT_FOUND", "가입된 이메일이 아닙니다.");
   }
-  return v_3f4e2e.json({ ok: true, expiresInSec: 600 });
+
+  await v_c272bc(v_3f4e2e.env, v_e0c7e8);
+  return v_3f4e2e.json({ ok: true, expiresInSec: v_09cc91 });
 });
 
 const v_18702b = v_1f4ea7.object({
-  email: v_1f4ea7.email().max(200),
+  email: v_ae1ce0(),
   verificationCode: v_1f4ea7.string().regex(/^\d{6}$/),
 
   newPassword: v_1f4ea7
@@ -1115,35 +1117,20 @@ v_68f0aa.post("/password/reset", async (v_3f4e2e) => {
   const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_18702b);
   const v_bb4bfd = v_4d33b2.email.trim().toLowerCase();
 
-  let v_69261d;
-  try {
-    const v_8f00b9 = await fetch(`${v_3f4e2e.env.XRUN_API_URL}/oth-path`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Internal-Secret": v_3f4e2e.env.XRUN_INTERNAL_SECRET ?? "",
-      },
-      body: JSON.stringify({ email: v_bb4bfd, code: v_4d33b2.verificationCode, newPin: v_4d33b2.newPassword }),
-    });
-    const v_7ecfd1 = (await v_8f00b9.json().catch(() => ({}))) as { code?: number; message?: string; status?: string };
-    v_69261d = v_7ecfd1.code ?? v_8f00b9.status;
-    console.log(`[auth.password.reset] xrun code=${v_69261d} msg=${v_7ecfd1.message ?? ""}`);
-    if (v_69261d === 410) throw new v_3ebe58("OTP_EXPIRED", "코드가 만료되었거나 발급된 적이 없습니다.");
-    if (v_69261d === 401) throw new v_3ebe58("OTP_INVALID", "코드가 올바르지 않습니다.");
-    if (v_69261d === 404) throw new v_3ebe58("NOT_FOUND", "가입된 이메일이 아닙니다.");
-    if (v_69261d !== 200 || v_7ecfd1.status !== "success") {
-      throw new v_3ebe58("INTERNAL_ERROR", `XRUN 비밀번호 재설정 실패 (code=${v_69261d})`);
-    }
-  } catch (v_49263d) {
-    if (v_49263d instanceof v_3ebe58) throw v_49263d;
-    console.warn("[auth.password.reset] xrun fetch failed:", (v_49263d as Error).message);
-    throw new v_3ebe58("INTERNAL_ERROR", `XRUN 네트워크 오류: ${(v_49263d as Error).message}`);
-  }
+  await v_656e8b(v_3f4e2e.env, v_bb4bfd, v_4d33b2.verificationCode, "password_reset");
 
   const v_d1b635 = await v_3f4e2e.env.DB
     .prepare(`SELECT id FROM users WHERE email = ? AND deleted_at IS NULL`)
     .bind(v_bb4bfd)
     .first<{ id: number }>();
+
+  const v_29f7c7 = await v_77a220(v_3f4e2e.env, v_bb4bfd, v_4d33b2.newPassword);
+  if (!v_29f7c7.ok && !(v_29f7c7.notFound && v_d1b635)) {
+    console.warn(`[auth.password.reset] xrun pin reset failed: ${v_29f7c7.notFound ? "not found" : v_29f7c7.reason}`);
+    if (v_29f7c7.notFound) throw new v_3ebe58("NOT_FOUND", "가입된 이메일이 아닙니다.");
+    throw new v_3ebe58("UPSTREAM_FAILURE", "비밀번호를 변경하지 못했어요. 잠시 후 다시 시도해 주세요.");
+  }
+
   if (v_d1b635) {
     const v_df7439 = await v_54846c(v_4d33b2.newPassword);
     await v_3f4e2e.env.DB
@@ -1162,20 +1149,37 @@ v_68f0aa.post("/password/reset", async (v_3f4e2e) => {
   return v_3f4e2e.json({ ok: true });
 });
 
+async function v_573853(
+  env: v_273a0c,
+  v_bb4bfd,
+): Promise<{ member: number; guid: string | null; wallet: string | null } | null> {
+  const v_715f8e = await v_c9c489.DB
+    .prepare(`SELECT id FROM users WHERE email = ? LIMIT 1`)
+    .bind(v_bb4bfd)
+    .first<{ id: number }>();
+  if (v_715f8e) return null;
+  const v_534695 = await v_a0ec33(v_c9c489, v_bb4bfd);
+  if (!v_534695.found || !v_534695.member) return null;
+  return { member: v_534695.member, guid: v_534695.guid ?? null, wallet: v_534695.wallet ?? null };
+}
+
 v_68f0aa.post("/email/login-code", async (v_3f4e2e) => {
   const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_192e7b);
+  const v_bb4bfd = v_4d33b2.email.trim().toLowerCase();
   const v_d1b635 = await v_3f4e2e.env.DB
     .prepare(`SELECT id, deletion_state FROM users WHERE email = ? AND deleted_at IS NULL`)
-    .bind(v_4d33b2.email.trim().toLowerCase())
+    .bind(v_bb4bfd)
     .first<{ id: number; deletion_state: string }>();
   if (v_d1b635 && v_d1b635.deletion_state === "active") {
-    await v_b78f7e(v_3f4e2e.env, v_4d33b2.email);
+    await v_b78f7e(v_3f4e2e.env, v_4d33b2.email, "login");
+  } else if (!v_d1b635 && (await v_573853(v_3f4e2e.env, v_bb4bfd))) {
+    await v_b78f7e(v_3f4e2e.env, v_4d33b2.email, "login");
   }
-  return v_3f4e2e.json({ ok: true, expiresInSec: 300 });
+  return v_3f4e2e.json({ ok: true, expiresInSec: v_09cc91 });
 });
 
 const v_a3bb20 = v_1f4ea7.object({
-  email: v_1f4ea7.email().max(200),
+  email: v_ae1ce0(),
   verificationCode: v_1f4ea7.string().regex(/^\d{6}$/),
   deviceId: v_1f4ea7.string().max(200).optional(),
   pushToken: v_1f4ea7.string().max(500).optional(),
@@ -1189,11 +1193,50 @@ v_68f0aa.post("/email/login", async (v_3f4e2e) => {
 
   await v_656e8b(v_3f4e2e.env, v_4d33b2.email, v_4d33b2.verificationCode);
 
-  const v_625c74 = await v_3f4e2e.env.DB
+  let v_625c74 = await v_3f4e2e.env.DB
     .prepare(`SELECT id, deletion_state, banned_until FROM users WHERE email = ? AND deleted_at IS NULL LIMIT 1`)
     .bind(v_bb4bfd)
     .first<{ id: number; deletion_state: string; banned_until: string | null }>();
-  if (!v_625c74) throw new v_3ebe58("NOT_FOUND", "가입된 이메일이 아닙니다.");
+
+  let v_1329db = false;
+  if (!v_625c74) {
+    const v_fac65e = await v_573853(v_3f4e2e.env, v_bb4bfd);
+    if (!v_fac65e) throw new v_3ebe58("NOT_FOUND", "가입된 이메일이 아닙니다.");
+    const v_c4820c = Array.from(crypto.getRandomValues(new Uint8Array(32)), (v_148ff6) =>
+      v_148ff6.toString(16).padStart(2, "0"),
+    ).join("");
+    const v_81161e = await v_3f4e2e.env.DB
+      .prepare(
+        `INSERT INTO users (name, email, password_hash, xrun_member_id, xrun_guid, xrun_wallet, xrun_linked_at,
+                            sso_consent_version, sso_consent_at)
+         VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?, CURRENT_TIMESTAMP)
+         RETURNING id, deletion_state, banned_until`,
+      )
+      .bind(
+        v_bb4bfd.split("@")[0] || "user",
+        v_bb4bfd,
+        await v_1000e8(v_c4820c),
+        v_fac65e.member,
+        v_fac65e.guid,
+        v_fac65e.wallet,
+        v_31fb59,
+      )
+      .first<{ id: number; deletion_state: string; banned_until: string | null }>();
+    if (!v_81161e) throw new v_3ebe58("INTERNAL_ERROR", "Failed to create user from xrun link.");
+    v_625c74 = v_81161e;
+    v_1329db = true;
+    try {
+      await v_4960d7(v_3f4e2e, v_81161e.id);
+    } catch (v_49263d) {
+      console.error(`[AUTH/email.login.xrun_link] credit grant failed user_id=${v_81161e.id} err=${(v_49263d as Error).message}`);
+    }
+
+    v_3f4e2e.executionCtx.waitUntil(
+      v_3326b4(v_3f4e2e.env, v_fac65e.member, { service: true, location: true, privacy: true })
+        .then((v_cb35cb) => { if (!v_cb35cb.ok) console.warn(`[auth.email.login.xrun] syncTermsToXrun failed: ${v_cb35cb.reason}`); }),
+    );
+    await v_74defc(v_3f4e2e, { userId: v_81161e.id, action: "auth.login.xrun_link" });
+  }
   if (v_625c74.deletion_state !== "active") {
     throw new v_3ebe58("ACCOUNT_DELETED", "이미 탈퇴한 계정이에요.");
   }
@@ -1240,5 +1283,5 @@ v_68f0aa.post("/email/login", async (v_3f4e2e) => {
   const { accessToken: v_2ca7e0, refreshToken: v_dfaee3, accessExpiresIn: v_ff8c95 } = await v_8ab5ff(v_3f4e2e, v_625c74.id, v_4d33b2.deviceId);
   v_56035d(v_3f4e2e, v_dfaee3);
   await v_74defc(v_3f4e2e, { userId: v_625c74.id, action: "auth.login.otp" });
-  return v_3f4e2e.json({ accessToken: v_2ca7e0, refreshToken: v_dfaee3, accessExpiresIn: v_ff8c95 });
+  return v_3f4e2e.json({ accessToken: v_2ca7e0, refreshToken: v_dfaee3, accessExpiresIn: v_ff8c95, linkedFromXrun: v_1329db });
 });

@@ -3,7 +3,7 @@ import type { v_de0a25 } from "./env";
 import { v_3ebe58 } from "./errors";
 import { v_b64d29, v_72ca53, v_2703c5, v_806b99 } from "./jwt";
 
-function v_e8cd3d(v_3a5fef): number {
+export function v_e8cd3d(v_3a5fef): number {
   if (v_3a5fef.includes("T")) return new Date(v_3a5fef).getTime();
   return new Date(v_3a5fef.replace(" ", "T") + "Z").getTime();
 }

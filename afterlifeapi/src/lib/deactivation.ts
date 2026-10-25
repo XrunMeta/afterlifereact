@@ -4,6 +4,7 @@ import type { v_437670 } from "zmui";
 import type { v_de0a25, v_273a0c } from "./env";
 import { v_3ebe58 } from "./errors";
 import { v_b2eae5, v_2703c5 } from "./jwt";
+import { v_d81306, v_e8cd3d } from "./session";
 
 const v_389130 = "uepoch:";
 
@@ -29,12 +30,13 @@ export async function v_d5996b(env: v_273a0c, v_43e90c, v_781c97): Promise<boole
 
 export async function v_7b7f5b(c: v_437670<v_de0a25>, v_43e90c): Promise<void> {
   const v_3ac7e7 = await v_3f4e2e.env.DB
-    .prepare(`SELECT deactivated_at FROM users WHERE id = ?`)
+    .prepare(`SELECT deactivated_at, COALESCE(session_epoch, 0) AS ep FROM users WHERE id = ?`)
     .bind(v_43e90c)
-    .first<{ deactivated_at: string | null }>();
+    .first<{ deactivated_at: string | null; ep: number }>();
   if (!v_3ac7e7?.deactivated_at) return;
+
   const v_801c01 = await v_b2eae5(
-    { sub: v_43e90c, kind: v_4af39b },
+    { sub: v_43e90c, kind: v_4af39b, ep: v_3ac7e7.ep },
     v_3f4e2e.env.JWT_ACCESS_SECRET,
     v_f1d02b,
   );
@@ -42,14 +44,28 @@ export async function v_7b7f5b(c: v_437670<v_de0a25>, v_43e90c): Promise<void> {
 }
 
 export async function v_94117c(env: v_273a0c, v_21cc31): Promise<number> {
-  const v_e2a85c = await v_2703c5<{ sub: number | string; kind?: string }>(v_21cc31, v_c9c489.JWT_ACCESS_SECRET);
+  const v_e2a85c = await v_2703c5<{ sub: number | string; kind?: string; ep?: number }>(v_21cc31, v_c9c489.JWT_ACCESS_SECRET);
   if (v_e2a85c.kind !== v_4af39b) throw new v_3ebe58("UNAUTHENTICATED", "Wrong token kind.");
   const v_43e90c = typeof v_e2a85c.sub === "string" ? Number(v_e2a85c.sub) : v_e2a85c.sub;
   if (!Number.isInteger(v_43e90c) || v_43e90c <= 0) throw new v_3ebe58("UNAUTHENTICATED", "Malformed sub claim.");
-  await v_c9c489.DB
-    .prepare(`UPDATE users SET deactivated_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?`)
+  if (typeof v_e2a85c.ep !== "number" || !Number.isInteger(v_e2a85c.ep)) throw new v_3ebe58("UNAUTHENTICATED", "Malformed reactivate token.");
+
+  const v_2759d0 = await v_c9c489.DB
+    .prepare(`SELECT banned_until FROM users WHERE id = ?`)
     .bind(v_43e90c)
+    .first<{ banned_until: string | null }>();
+  if (v_2759d0?.banned_until && v_e8cd3d(v_2759d0.banned_until) > Date.now()) {
+    throw new v_3ebe58("ACCOUNT_SUSPENDED", v_d81306, { bannedUntil: v_2759d0.banned_until });
+  }
+
+  const v_8f00b9 = await v_c9c489.DB
+    .prepare(
+      `UPDATE users SET deactivated_at = NULL, updated_at = CURRENT_TIMESTAMP
+       WHERE id = ? AND deactivated_at IS NOT NULL AND COALESCE(session_epoch, 0) = ? AND deleted_at IS NULL`,
+    )
+    .bind(v_43e90c, v_e2a85c.ep)
     .run();
+  if (!v_8f00b9.meta.changes) throw new v_3ebe58("UNAUTHENTICATED", "Reactivate token is no longer valid.");
   return v_43e90c;
 }
 

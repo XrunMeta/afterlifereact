@@ -33,7 +33,7 @@ export default function v_f0969e() {
   const [v_3f8465, v_b4f1d2] = v_5ab095(false);
 
   const v_27ef63 = [
-    v_8d41d7("deactivate.effect.hide", { defaultValue: "내 프로필과 내가 만든 AI 클론이 홈피드·탐색·검색에서 숨겨지고, 다른 사람이 대화·통화할 수 없어요." }),
+    v_8d41d7("deactivate.effect.hide", { defaultValue: "내 프로필과 내가 만든 AI 클론이 홈피드·탐색·검색에서 숨겨지고, 공동관리자 말고는 대화·통화할 수 없어요." }),
     v_8d41d7("deactivate.effect.posts", { defaultValue: "내가 쓴 글과 댓글이 보이지 않아요." }),
     v_8d41d7("deactivate.effect.interaction", { defaultValue: "다른 사람이 선물·공유를 보낼 수 없어요." }),
     v_8d41d7("deactivate.effect.notify", { defaultValue: "모든 알림이 중단돼요." }),
