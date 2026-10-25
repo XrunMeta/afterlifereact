@@ -571,6 +571,13 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
   const v_854831 =
     v_805753 || (v_af4871 == null && v_3029e7 == null && !v_5e9bfe && !v_e03d51 && !v_c3de9c);
 
+  const v_25357c = v_5e9bfe
+    ? "error"
+    : v_3029e7 ?? (v_854831 ? "creating" : v_82d07a === "done" ? "done" : v_c3de9c ? "posting" : "ready");
+  v_c4deb2(() => {
+    console.log(`[CLONE-CREATE][btn] ${v_25357c}`);
+  }, [v_25357c]);
+
   const v_d01790 = async () => {
     if (v_805753 || v_c3de9c) return;
 
