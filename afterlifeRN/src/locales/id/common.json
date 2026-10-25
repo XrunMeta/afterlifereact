@@ -354,7 +354,7 @@
     "deleteMessageTitle": "Hapus pesan",
     "copy": "Salin",
     "selectCopy": "Pilih teks",
-    "selectCopyTitle": "Pilih bagian yang ingin disalin",
+    "selectCopyHint": "Tekan lama untuk mengatur bagian dan menyalin",
     "reply": "Balas",
     "replyingTo": "Membalas {{name}}",
     "replyDeleted": "Pesan dihapus",
