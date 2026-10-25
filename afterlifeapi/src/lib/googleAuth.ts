@@ -56,7 +56,8 @@ export async function v_a32f1d(
   }
   return {
     sub: v_931bf0.sub,
-    email: v_931bf0.email,
+
+    email: v_931bf0.email.trim().toLowerCase(),
     email_verified: true,
     name: v_931bf0.name,
     given_name: v_931bf0.given_name,
