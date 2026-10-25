@@ -282,7 +282,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
 
   const [v_c3de9c, v_4b9b17] = v_5ab095(false);
 
-  const [v_82d07a, v_8943dd] = v_5ab095<"creating" | "feed" | null>(null);
+  const [v_82d07a, v_8943dd] = v_5ab095<"creating" | "feed" | "done" | null>(null);
 
   const v_85b5be = v_e662ae(false);
   const v_39a044 = v_e662ae<string | null>(null);
@@ -649,6 +649,9 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
         ...(v_1458b7 ? { mediaUrl: v_1458b7, mediaType: "image" } : {}),
       });
       console.log("[CLONE-CREATE] feed created.");
+
+      v_8943dd("done");
+      await new Promise((v_cb35cb) => setTimeout(v_cb35cb, 600));
     } catch (v_49263d) {
       console.warn("[CLONE-CREATE] share post failed:", v_49263d);
       v_c7169b(false);
@@ -834,15 +837,31 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
                 ? v_8d41d7("create.step7.progressReupload", { defaultValue: "사진을 다시 올려 주세요" })
                 : v_82d07a === "creating" || v_805753
                 ? v_8d41d7("create.step7.progressCreating", { defaultValue: "클론 만드는 중..." })
+                : v_82d07a === "done"
+                ? v_8d41d7("create.step7.progressDone", { defaultValue: "게시 완료" })
                 : v_82d07a === "feed" || v_c3de9c
                 ? v_8d41d7("create.step7.progressPosting", { defaultValue: "게시물 올리는 중..." })
                 : v_8d41d7("create.step7.postButton", { defaultValue: "게시" })
             }
             progress={
-              v_5e9bfe ? 1 : v_3029e7 === "video" ? 0.7 : v_3029e7 === "reupload" ? 0 : v_805753 ? 0.92 : 1
+              v_5e9bfe
+                ? 1
+                : v_3029e7 === "video"
+                ? 0.7
+                : v_3029e7 === "reupload"
+                ? 0
+                : v_805753
+                ? 0.92
+                : v_82d07a === "feed"
+                ? 0.9
+                : 1
             }
-            duration={v_3029e7 === "video" ? 150000 : v_805753 ? 8000 : 600}
-            busy={!v_5e9bfe && (v_c3de9c || v_805753 || v_3029e7 === "video")}
+            duration={
+              v_3029e7 === "video" ? 150000 : v_805753 ? 8000 : v_82d07a === "feed" ? 3000 : v_82d07a === "done" ? 300 : 600
+            }
+
+            restartKey={v_82d07a === "feed" || v_82d07a === "done" ? "post" : "prepare"}
+            busy={!v_5e9bfe && v_82d07a !== "done" && (v_c3de9c || v_805753 || v_3029e7 === "video")}
             muted={!v_5e9bfe && v_3029e7 === "reupload"}
             onPress={
               v_5e9bfe

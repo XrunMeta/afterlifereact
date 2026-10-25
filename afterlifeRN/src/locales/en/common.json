@@ -1440,6 +1440,7 @@
       "photoUploading": "Uploading photo...",
       "progressCreating": "Creating your clone...",
       "progressPosting": "Posting...",
+      "progressDone": "Posted",
       "progressVideo": "Waiting for your video...",
       "progressReupload": "Please upload the photo again",
       "postButton": "Post",

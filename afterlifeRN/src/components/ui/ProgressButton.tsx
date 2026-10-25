@@ -14,6 +14,8 @@ interface ProgressButtonProps {
   busy?: boolean;
 
   muted?: boolean;
+
+  restartKey?: string;
   testID?: string;
 }
 
@@ -25,13 +27,19 @@ const ProgressButton: v_a3453e.FC<ProgressButtonProps> = ({
   disabled: v_4a6533 = false,
   busy: v_3f8465 = false,
   muted: v_9c58a3 = false,
+  restartKey: v_d472c7,
   testID: v_681472,
 }) => {
   const v_05b441 = v_7fd157.lg;
 
   const v_4a1c36 = v_e662ae(new v_a2349e.Value(0)).current;
+  const v_1b0266 = v_e662ae(v_d472c7);
 
   v_c4deb2(() => {
+    if (v_d472c7 !== v_1b0266.current) {
+      v_1b0266.current = v_d472c7;
+      v_4a1c36.setValue(0);
+    }
     const v_f582ff = v_a2349e.timing(v_4a1c36, {
       toValue: Math.max(0, Math.min(1, v_a63fde)),
       duration: v_a712cf,
@@ -40,7 +48,7 @@ const ProgressButton: v_a3453e.FC<ProgressButtonProps> = ({
     });
     v_f582ff.start();
     return () => v_f582ff.stop();
-  }, [v_a63fde, v_a712cf, v_4a1c36]);
+  }, [v_a63fde, v_a712cf, v_4a1c36, v_d472c7]);
 
   const v_8e4fb6 = v_4a1c36.interpolate({ inputRange: [0, 1], outputRange: ["0%", "100%"] });
 
