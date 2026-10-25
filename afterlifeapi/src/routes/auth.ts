@@ -1117,12 +1117,20 @@ v_68f0aa.post("/password/reset", async (v_3f4e2e) => {
   const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_18702b);
   const v_bb4bfd = v_4d33b2.email.trim().toLowerCase();
 
-  await v_656e8b(v_3f4e2e.env, v_bb4bfd, v_4d33b2.verificationCode);
+  await v_656e8b(v_3f4e2e.env, v_bb4bfd, v_4d33b2.verificationCode, "password_reset");
 
   const v_d1b635 = await v_3f4e2e.env.DB
     .prepare(`SELECT id FROM users WHERE email = ? AND deleted_at IS NULL`)
     .bind(v_bb4bfd)
     .first<{ id: number }>();
+
+  const v_29f7c7 = await v_77a220(v_3f4e2e.env, v_bb4bfd, v_4d33b2.newPassword);
+  if (!v_29f7c7.ok && !(v_29f7c7.notFound && v_d1b635)) {
+    console.warn(`[auth.password.reset] xrun pin reset failed: ${v_29f7c7.notFound ? "not found" : v_29f7c7.reason}`);
+    if (v_29f7c7.notFound) throw new v_3ebe58("NOT_FOUND", "가입된 이메일이 아닙니다.");
+    throw new v_3ebe58("UPSTREAM_FAILURE", "비밀번호를 변경하지 못했어요. 잠시 후 다시 시도해 주세요.");
+  }
+
   if (v_d1b635) {
     const v_df7439 = await v_54846c(v_4d33b2.newPassword);
     await v_3f4e2e.env.DB
@@ -1137,11 +1145,6 @@ v_68f0aa.post("/password/reset", async (v_3f4e2e) => {
       .bind(v_df7439, v_d1b635.id)
       .run();
     await v_74defc(v_3f4e2e, { userId: v_d1b635.id, action: "auth.password.reset" });
-  }
-
-  const v_29f7c7 = await v_77a220(v_3f4e2e.env, v_bb4bfd, v_4d33b2.newPassword);
-  if (!v_29f7c7.ok) {
-    console.warn(`[auth.password.reset] xrun pin sync skipped: ${v_29f7c7.reason}`);
   }
   return v_3f4e2e.json({ ok: true });
 });
