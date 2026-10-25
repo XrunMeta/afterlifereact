@@ -44,6 +44,8 @@ import {
   v_3ce9ef,
   v_9adabd,
   v_1c758d,
+  v_e37b6d,
+  v_5bba7d,
   v_9cb700,
   type v_29686e,
   type v_f19942,
@@ -113,9 +115,20 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const [v_842b8b, v_0f6477] = v_5ab095(true);
   const [v_f61bef, v_ceec45] = v_5ab095(false);
 
-  const [v_fd08c6, v_2c320e] = v_5ab095<{ title?: string; actions: ActionItem[] } | null>(null);
-  const v_cafc04 = (v_9f1622, v_dd943a) =>
-    v_2c320e({ title: v_9f1622, actions: v_dd943a });
+  const [v_fd08c6, v_2c320e] = v_5ab095<{
+    title?: string;
+    actions: ActionItem[];
+    reactionFor?: v_f19942;
+  } | null>(null);
+  const v_cafc04 = (
+    v_9f1622,
+    v_dd943a,
+    reactionFor?: v_f19942,
+  ) => v_2c320e({ title: v_9f1622, actions: v_dd943a, reactionFor: v_af296f });
+
+  const [v_998f5d, v_adcdfc] = v_5ab095<v_f19942 | null>(null);
+  const [v_04798a, v_887561] = v_5ab095<string | null>(null);
+  const v_32f473 = v_e662ae<v_79c4f2>(null);
 
   const [v_25cd2f, v_9e2d74] = v_5ab095(false);
 
@@ -250,7 +263,9 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   }, [v_2ca7e0, v_6e0fd3]);
 
   const v_9a66df = (msg: v_f19942) => {
-    const v_c6815a = (v_badeaf.content ?? "").trim() || v_8d41d7("chat.imagePlaceholder", { defaultValue: "[사진]" });
+    const v_27e1a6 = v_badeaf.kind === "image" || !!v_49c1e3(v_badeaf.id);
+    const v_9b6134 = (v_badeaf.content ?? "").trim();
+    const v_c6815a = v_27e1a6 || !v_9b6134 ? v_8d41d7("chat.imagePlaceholder", { defaultValue: "[사진]" }) : v_9b6134;
     const v_dd943a = [
       {
         label: v_8d41d7("chat.copy", { defaultValue: "복사" }),
@@ -263,29 +278,78 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         },
       },
     ];
-    if (v_badeaf.role === "user") {
+    if (!v_27e1a6 && v_9b6134) {
       v_dd943a.push({
-        label: v_8d41d7("common.delete", { defaultValue: "삭제" }),
-        destructive: true,
-        onPress: async () => {
-          if (!v_2ca7e0) return;
-          v_7f73ef((v_ba2215) =>
-            v_ba2215 ? v_ba2215.filter((v_23805a) => !(v_23805a.type === "chat" && v_23805a.id === v_badeaf.id)) : v_ba2215,
-          );
-          try {
-            await v_1c758d(v_badeaf.id, v_2ca7e0);
-          } catch (v_49263d) {
-            console.warn("[Chat] delete failed:", (v_49263d as Error)?.message ?? v_49263d);
-            const v_8f00b9 = await v_22ca9b(v_6e0fd3, v_2ca7e0, { limit: 30 });
-            if (v_8f00b9) {
-              v_7f73ef(v_8f00b9.items);
-              v_94405c(v_8f00b9.nextCursor);
-            }
-          }
+        label: v_8d41d7("chat.selectCopy", { defaultValue: "선택 복사" }),
+        onPress: () => v_887561(v_9b6134),
+      });
+    }
+    if (v_badeaf.role === "clone" && v_badeaf.id > 0) {
+      v_dd943a.push({
+        label: v_8d41d7("chat.reply", { defaultValue: "답장" }),
+        onPress: () => {
+          v_adcdfc(v_badeaf);
+          setTimeout(() => v_32f473.current?.focus(), 250);
         },
       });
     }
-    v_cafc04(undefined, v_dd943a);
+    if (v_badeaf.id > 0) {
+      v_dd943a.push({
+        label: v_8d41d7("common.delete", { defaultValue: "삭제" }),
+        destructive: true,
+        onPress: () => void v_9dedab(v_badeaf),
+      });
+    }
+    v_cafc04(undefined, v_dd943a, v_badeaf.role === "clone" && v_badeaf.id > 0 ? v_badeaf : undefined);
+  };
+
+  const v_cfdfab = async () => {
+    if (!v_2ca7e0) return;
+    const v_8f00b9 = await v_22ca9b(v_6e0fd3, v_2ca7e0, { limit: 30 });
+    if (v_8f00b9) {
+      v_7f73ef(v_8f00b9.items);
+      v_94405c(v_8f00b9.nextCursor);
+    }
+  };
+
+  const v_9dedab = async (msg: v_f19942) => {
+    if (!v_2ca7e0) return;
+    if (v_998f5d?.id === v_badeaf.id) v_adcdfc(null);
+    v_7f73ef((v_ba2215) =>
+      v_ba2215
+        ? v_ba2215
+            .filter((v_23805a) => !(v_23805a.type === "chat" && v_23805a.id === v_badeaf.id))
+            .map((v_23805a) =>
+              v_23805a.type === "chat" && v_23805a.replyTo?.id === v_badeaf.id
+                ? { ...v_23805a, replyTo: { id: v_badeaf.id, content: null } }
+                : v_23805a,
+            )
+        : v_ba2215,
+    );
+    try {
+      await v_1c758d(v_badeaf.id, v_2ca7e0);
+    } catch (v_49263d) {
+      console.warn("[Chat] delete failed:", (v_49263d as Error)?.message ?? v_49263d);
+      await v_cfdfab();
+    }
+  };
+
+  const v_19d863 = async (msg: v_f19942, v_03a50c) => {
+    if (!v_2ca7e0) return;
+    const v_a448ad = v_badeaf.reaction === v_03a50c ? null : v_03a50c;
+    v_7f73ef((v_ba2215) =>
+      v_ba2215
+        ? v_ba2215.map((v_23805a) =>
+            v_23805a.type === "chat" && v_23805a.id === v_badeaf.id ? { ...v_23805a, reaction: v_a448ad ?? undefined } : v_23805a,
+          )
+        : v_ba2215,
+    );
+    try {
+      await v_e37b6d(v_badeaf.id, v_a448ad, v_2ca7e0);
+    } catch (v_49263d) {
+      console.warn("[Chat] reaction failed:", (v_49263d as Error)?.message ?? v_49263d);
+      await v_cfdfab();
+    }
   };
 
   const v_747b23 = async () => {
@@ -346,6 +410,8 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
     const v_2413d4 = -Date.now(); 
     const v_5c2f9f = Date.now();
+
+    const v_5f5d6d = v_998f5d;
     const optimisticUser: v_f19942 = {
       type: "chat",
       id: v_2413d4,
@@ -353,15 +419,18 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       content: v_2f361a,
       at: v_5c2f9f,
       sessionId: v_c5607b ?? "pending",
+      ...(v_5f5d6d ? { replyTo: { id: v_5f5d6d.id, content: v_5f5d6d.content } } : {}),
     };
 
     v_7f73ef((v_ba2215) => [v_fa1cce, ...(v_ba2215 ?? [])]);
     v_10837f(true);
     v_c31db7("");
+    v_adcdfc(null);
     v_0e1f26.dismiss();
     try {
       const v_8f00b9 = await v_dd96e7(v_6e0fd3, v_2f361a, v_2ca7e0, {
         sessionId: v_c5607b ?? undefined,
+        replyToMessageId: v_5f5d6d?.id,
       });
       if (!v_c5607b) v_1e756c(v_8f00b9.sessionId);
       const realUser: v_f19942 = {
@@ -371,6 +440,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         content: v_8f00b9.userMessage.content,
         at: v_8f00b9.userMessage.at ?? v_5c2f9f,
         sessionId: v_8f00b9.sessionId,
+        ...(v_8f00b9.userMessage.replyTo ? { replyTo: v_8f00b9.userMessage.replyTo } : {}),
       };
       const cloneItem: v_f19942 = {
         type: "chat",
@@ -401,6 +471,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         v_ba2215 ? v_ba2215.filter((v_23805a) => !(v_23805a.type === "chat" && v_23805a.id === v_2413d4)) : v_ba2215,
       );
       v_c31db7(v_2f361a);
+      if (v_5f5d6d) v_adcdfc(v_5f5d6d);
     } finally {
       v_10837f(false);
     }
@@ -783,13 +854,26 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                     </View>
                   )
                 ) : (
-                  <Text
-                    style={
-                      v_ca7346 ? v_d81136.userBubbleText : v_d81136.personaOutsideBubbleText
-                    }
-                  >
-                    {v_23805a.content}
-                  </Text>
+                  <>
+                    {}
+                    {v_ca7346 && v_23805a.replyTo && (
+                      <View style={v_d81136.replyQuote}>
+                        <Text style={v_d81136.replyQuoteName} numberOfLines={1}>
+                          {v_8d41d7("chat.replyingTo", { defaultValue: "{{name}}에게 답장", name: v_dfb220 })}
+                        </Text>
+                        <Text style={v_d81136.replyQuoteText} numberOfLines={2}>
+                          {v_23805a.replyTo.content ?? v_8d41d7("chat.replyDeleted", { defaultValue: "삭제된 메시지" })}
+                        </Text>
+                      </View>
+                    )}
+                    <Text
+                      style={
+                        v_ca7346 ? v_d81136.userBubbleText : v_d81136.personaOutsideBubbleText
+                      }
+                    >
+                      {v_23805a.content}
+                    </Text>
+                  </>
                 );
                 return (
                   <React.Fragment key={`api-chat-${v_23805a.id}`}>
@@ -823,6 +907,20 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                           ]}
                         >
                           {v_782a23}
+                        </TouchableOpacity>
+                      )}
+                      {}
+                      {!v_ca7346 && !!v_23805a.reaction && (
+                        <TouchableOpacity
+                          style={v_d81136.reactionBadge}
+                          onPress={() => v_9a66df(v_23805a)}
+                          hitSlop={6}
+                          accessibilityLabel={v_8d41d7("chat.reactionA11y", {
+                            defaultValue: "{{emoji}} 반응",
+                            emoji: v_23805a.reaction,
+                          })}
+                        >
+                          <Text style={v_d81136.reactionBadgeText}>{v_23805a.reaction}</Text>
                         </TouchableOpacity>
                       )}
                       {!v_ca7346 && v_d2b3ec && (
@@ -905,6 +1003,27 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
       {}
       <View style={v_d81136.inputBar}>
+        {}
+        {v_998f5d && (
+          <View style={v_d81136.replyBar}>
+            <Feather name="corner-up-left" size={14} color={v_1bfbd0.primary} />
+            <View style={v_d81136.replyBarBody}>
+              <Text style={v_d81136.replyBarName} numberOfLines={1}>
+                {v_8d41d7("chat.replyingTo", { defaultValue: "{{name}}에게 답장", name: v_dfb220 })}
+              </Text>
+              <Text style={v_d81136.replyBarText} numberOfLines={1}>
+                {v_998f5d.content}
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => v_adcdfc(null)}
+              hitSlop={8}
+              accessibilityLabel={v_8d41d7("chat.replyCancelA11y", { defaultValue: "답장 취소" })}
+            >
+              <Feather name="x" size={16} color={v_1bfbd0.zinc500} />
+            </TouchableOpacity>
+          </View>
+        )}
         <View style={v_d81136.inputPill}>
           <TouchableOpacity
             style={[v_d81136.imageBtn, v_5e23ec && v_d81136.imageBtnDisabled]}
@@ -920,6 +1039,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
             />
           </TouchableOpacity>
           <TextInput
+            ref={v_32f473}
             style={v_d81136.inputField}
             value={v_bbda62}
             onChangeText={v_c31db7}
@@ -988,6 +1108,28 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           >
             <View style={v_d81136.sheetHandle} />
             {v_fd08c6?.title ? <Text style={v_d81136.sheetTitle}>{v_fd08c6.title}</Text> : null}
+            {v_fd08c6?.reactionFor && (
+              <View style={v_d81136.reactionRow}>
+                {v_5bba7d.map((v_03a50c) => {
+                  const v_5f5d6d = v_fd08c6.reactionFor!;
+                  const v_587413 = v_5f5d6d.reaction === v_03a50c;
+                  return (
+                    <TouchableOpacity
+                      key={v_03a50c}
+                      style={[v_d81136.reactionChoice, v_587413 && v_d81136.reactionChoiceSelected]}
+                      activeOpacity={0.7}
+                      accessibilityLabel={v_8d41d7("chat.reactionA11y", { defaultValue: "{{emoji}} 반응", emoji: v_03a50c })}
+                      onPress={() => {
+                        v_2c320e(null);
+                        void v_19d863(v_5f5d6d, v_03a50c);
+                      }}
+                    >
+                      <Text style={v_d81136.reactionChoiceText}>{v_03a50c}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
             {v_fd08c6?.actions.map((v_779914, v_ebec57) => (
               <TouchableOpacity
                 key={`${v_779914.label}-${v_ebec57}`}
@@ -1010,6 +1152,49 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                 </Text>
               </TouchableOpacity>
             ))}
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {
+}
+      <Modal
+        visible={v_04798a !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => v_887561(null)}
+      >
+        <Pressable style={v_d81136.sheetOverlay} onPress={() => v_887561(null)}>
+          <Pressable
+            style={[v_d81136.actionSheet, { paddingBottom: 24 + v_2b650d }]}
+            onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}
+          >
+            <View style={v_d81136.sheetHandle} />
+            <Text style={v_d81136.sheetTitle}>
+              {v_8d41d7("chat.selectCopyTitle", { defaultValue: "복사할 부분을 골라 주세요" })}
+            </Text>
+            <ScrollView style={v_d81136.selectCopyBox}>
+              {v_326be8.OS === "ios" ? (
+                <TextInput
+                  value={v_04798a ?? ""}
+                  editable={false}
+                  multiline
+                  scrollEnabled={false}
+                  style={v_d81136.selectCopyText}
+                />
+              ) : (
+                <Text selectable style={v_d81136.selectCopyText}>
+                  {v_04798a}
+                </Text>
+              )}
+            </ScrollView>
+            <TouchableOpacity
+              style={v_d81136.sheetCancel}
+              activeOpacity={0.7}
+              onPress={() => v_887561(null)}
+            >
+              <Text style={v_d81136.sheetActionText}>{v_8d41d7("common.close", { defaultValue: "닫기" })}</Text>
+            </TouchableOpacity>
           </Pressable>
         </Pressable>
       </Modal>
@@ -1361,6 +1546,28 @@ const v_d81136 = v_472849.create({
     marginBottom: 8,
   },
   bubbleInRow: { flexShrink: 1 },
+
+  replyQuote: {
+    borderLeftWidth: 2,
+    borderLeftColor: "rgba(255,255,255,0.6)",
+    paddingLeft: 8,
+    marginBottom: 6,
+  },
+  replyQuoteName: { color: "rgba(255,255,255,0.85)", fontSize: 12, fontWeight: "600" },
+  replyQuoteText: { color: "rgba(255,255,255,0.75)", fontSize: 13, lineHeight: 18 },
+  reactionBadge: {
+    alignSelf: "flex-end",
+    minWidth: 28,
+    height: 24,
+    paddingHorizontal: 5,
+    borderRadius: 12,
+    backgroundColor: v_1bfbd0.white,
+    borderWidth: 1,
+    borderColor: v_1bfbd0.zinc200,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  reactionBadgeText: { fontSize: 14 },
   bubbleTimeText: { color: v_1bfbd0.zinc400, fontSize: 11, marginBottom: 2 },
 
   typingBubble: {
@@ -1549,6 +1756,42 @@ const v_d81136 = v_472849.create({
   },
   sheetActionText: { fontSize: 15, color: v_1bfbd0.zinc900, fontWeight: "500" },
   sheetActionDestructive: { color: "#DC2626", fontWeight: "600" },
+
+  reactionRow: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    paddingVertical: 8,
+    marginBottom: 4,
+  },
+  reactionChoice: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  reactionChoiceSelected: { backgroundColor: v_1bfbd0.zinc100 },
+  reactionChoiceText: { fontSize: 26 },
+  replyBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginBottom: 6,
+    borderRadius: 12,
+    backgroundColor: v_1bfbd0.white,
+  },
+  replyBarBody: { flex: 1 },
+  replyBarName: { fontSize: 12, fontWeight: "600", color: v_1bfbd0.primary },
+  replyBarText: { fontSize: 13, color: v_1bfbd0.zinc600 },
+  selectCopyBox: { maxHeight: 320, marginBottom: 4 },
+  selectCopyText: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: v_1bfbd0.zinc900,
+    padding: 0,
+  },
   sheetCancel: {
     marginTop: 10,
     paddingVertical: 14,
