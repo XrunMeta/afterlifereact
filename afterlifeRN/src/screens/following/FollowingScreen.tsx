@@ -30,7 +30,7 @@ import v_556baf from "../../components/ui/SafeView";
 import v_1a40c4 from "../../components/ui/Button";
 import v_258c1c from "../../components/common/PageHeader";
 import v_0e981f from "../../components/common/NotificationBell";
-import v_f9a626, { v_08c06d } from "../../components/common/PartnerAppBanners";
+import v_f9a626, { v_ae4cf5 } from "../../components/common/PartnerAppBanners";
 import { v_772971 } from "jmpfvteuuztnp";
 import { v_c64cf7 } from "../../lib/chatSystemText";
 import { v_1bfbd0, v_9b1a04, v_8b0c90, v_8f28b1, v_7c5e29 } from "../../components/constants";
@@ -148,7 +148,7 @@ export default function v_14b43e() {
   const [v_648441, v_d39e16] = v_5ab095(0);
 
   const v_936ba7 =
-    v_08c06d + (v_648441 > 0 ? Math.max(0, v_700696.get("window").height - v_648441) : 0);
+    v_ae4cf5 + (v_648441 > 0 ? Math.max(0, v_700696.get("window").height - v_648441) : 0);
   const v_0cde43 = async () => {
     if (!v_2ca7e0) return;
     v_575aad(true);
