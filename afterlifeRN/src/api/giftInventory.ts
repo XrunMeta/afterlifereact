@@ -60,11 +60,14 @@ export interface GiftActivityItem {
 
 export async function v_bf9881(
   v_2ca7e0,
+
   v_24baff,
 ): Promise<{
   items: GiftActivityItem[];
   total: number;
   totalReceived: number;
+
+  totalSent?: number;
   currentOwned: number;
   limit: number;
   offset: number;
@@ -72,6 +75,7 @@ export async function v_bf9881(
   const v_212049 = new URLSearchParams();
   if (v_24baff?.limit) v_212049.set("limit", String(v_24baff.limit));
   if (v_24baff?.offset) v_212049.set("offset", String(v_24baff.offset));
+  if (v_24baff?.kind) v_212049.set("kind", v_24baff.kind);
   const v_25c4f7 = v_212049.toString();
   return v_04b58a(
     `/oth-path${v_25c4f7 ? `?${v_25c4f7}` : ""}`,
