@@ -203,6 +203,9 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
     ? v_7f3fda?.status === 'failed'
     : true;
 
+  const v_3029e7 =
+    v_af4871 != null ? null : v_4d3a74 ? "video" : v_798360 ? "reupload" : null;
+
   const v_a3d9bc = v_de06a3(async () => {
     if (v_f6dbfe) return;
 
@@ -458,6 +461,8 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
 
   const v_d01790 = async () => {
     if (v_805753 || v_c3de9c) return;
+
+    if (v_3029e7 != null) return;
 
     const v_2f361a = v_6044a8.trim();
 
@@ -764,16 +769,20 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
             title={
               v_5e9bfe
                 ? v_8d41d7("common.retry", { defaultValue: "다시 시도" })
+                : v_3029e7 === "video"
+                ? v_8d41d7("create.step7.progressVideo", { defaultValue: "영상 만드는 중..." })
+                : v_3029e7 === "reupload"
+                ? v_8d41d7("create.step7.progressReupload", { defaultValue: "사진을 다시 올려 주세요" })
                 : v_82d07a === "creating"
                 ? v_8d41d7("create.step7.progressCreating", { defaultValue: "클론 만드는 중..." })
                 : v_82d07a === "feed"
                 ? v_8d41d7("create.step7.progressPosting", { defaultValue: "게시물 올리는 중..." })
                 : v_c3de9c || v_805753
                 ? v_8d41d7("create.submitting", { defaultValue: "잠시만요..." })
-                : v_8d41d7("create.step7.next", { defaultValue: "다음" })
+                : v_8d41d7("create.step7.postButton", { defaultValue: "게시" })
             }
             leftIcon={
-              v_c3de9c && !v_5e9bfe ? (
+              (v_c3de9c || v_3029e7 === "video") && !v_5e9bfe ? (
                 <ActivityIndicator size="small" color={v_1bfbd0.white} style={{ marginRight: 8 }} />
               ) : undefined
             }
@@ -787,7 +796,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
                 : v_d01790
             }
             variant="accent"
-            disabled={v_c3de9c || (v_805753 && v_af4871 == null && !v_5e9bfe)}
+            disabled={v_c3de9c || v_3029e7 != null || (v_805753 && v_af4871 == null && !v_5e9bfe)}
           />
         </View>
       </KeyboardAvoidingView>
