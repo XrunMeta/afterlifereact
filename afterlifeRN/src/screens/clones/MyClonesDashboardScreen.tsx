@@ -2401,11 +2401,10 @@ const v_fd5f43 = v_472849.create({
     paddingVertical: 8,
   },
   giftDashMetricLabel: { flex: 1, fontSize: 14, color: v_1bfbd0.zinc600 },
-  giftDashMetricLabelAccent: { color: v_1bfbd0.primary, fontWeight: "600" },
+  giftDashMetricLabelAccent: { color: v_1bfbd0.primary },
 
   giftDashMetricValue: {
-    fontSize: 18,
-    fontWeight: "700",
+    fontSize: 15,
     color: v_1bfbd0.zinc900,
     textAlign: "right",
     fontVariant: ["tabular-nums"],
