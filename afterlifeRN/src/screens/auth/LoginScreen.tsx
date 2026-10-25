@@ -441,6 +441,10 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
                 onChangeText={v_52b279}
                 placeholder={v_8d41d7("auth.login.passwordLabel")}
                 secureTextEntry={!v_b5ab16}
+                autoCapitalize="none"
+                autoCorrect={false}
+                textContentType="password"
+                autoComplete="password"
                 leftIcon={<Feather name="lock" size={20} color={v_1bfbd0.zinc900} />}
                 rightIcon={
                   <TouchableOpacity onPress={() => v_b7733b(!v_b5ab16)}>
