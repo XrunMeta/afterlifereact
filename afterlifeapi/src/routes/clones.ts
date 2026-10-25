@@ -449,6 +449,8 @@ v_f891e6.post(
         await v_3f4e2e.env.DB.prepare(`UPDATE clones SET ${v_c8b83f} = ? WHERE id = ?`)
           .bind(v_d5ec97.out_url, v_6e0fd3)
           .run();
+
+        await v_f64843(v_3f4e2e.env.DB, v_04211c, v_6e0fd3);
       } else {
 
         await v_f64843(v_3f4e2e.env.DB, v_04211c, v_6e0fd3);
