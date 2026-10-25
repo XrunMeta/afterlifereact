@@ -1283,12 +1283,12 @@
       "pickFile": "Choose voice file",
       "filePickedUploadFailed": "File selected (job registration failed — retrying)",
       "scripts": {
-        "s1Title": "Everyday greeting",
-        "s1Text": "Hello. Today has been such a lovely day. The sun was warm and the breeze was gentle, perfect for a walk. Peaceful times like this feel truly precious. I hope you enjoy your day too.",
-        "s2Title": "Talking about food",
-        "s2Text": "What's your favorite food these days? I really love kimchi jjigae. That deep spicy flavor and a hot spoonful of broth wash away the day's fatigue. It tastes even better on a rainy day.",
-        "s3Title": "Recalling memories",
-        "s3Text": "The most memorable moment from my childhood is a beach trip with my family. The sound of the waves, the salty breeze, and running around on the sand — all of it is still vivid. That happy feeling comes back to me again."
+        "s1Title": "My day",
+        "s1Text": "The weather was so nice today. I stepped out for a bit after lunch, and the sun felt so warm that my mood just lifted. So I took the long way back on purpose. On days like this, just walking around without thinking about anything feels great, right? I'm already wondering what to have for dinner.",
+        "s2Title": "Favorite food",
+        "s2Text": "I really love a good bowl of hot soup. It tastes even better on a rainy day. One spoonful of that warm broth, and all the tiredness from the day just melts away. What have you been eating a lot lately? If you know a good place, let me know too.",
+        "s3Title": "A trip I remember",
+        "s3Text": "I still clearly remember going to the beach with my family when I was little. We ran around on the sand all day, listening to the waves. In the evening we all had grilled seafood together, and it was so good. It still makes me smile when I think about it. I'd love to go back to that day, just once."
       },
       "warnTooShortTitle": "File is too short",
       "warnTooShortMsg": "The selected file is very short. Voice training needs a quiet 30-second to 1-minute recording. Please pick another file and upload again.",
@@ -1438,6 +1438,8 @@
       "videoPending": "Video is being prepared",
       "reuploadPhoto": "Re-upload photo",
       "photoUploading": "Uploading photo...",
+      "progressCreating": "Creating your clone...",
+      "progressPosting": "Posting...",
       "photoRequired": "Please add a photo first",
       "captionPlaceholder": "Write a caption (e.g. #daily #infp love K-pop)",
       "loginNeeded": "No sign-in info found. Please sign in again.",
