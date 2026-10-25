@@ -71,14 +71,18 @@ export interface SendMailOptions {
   to: string;
   subject: string;
   html: string;
+
+  fromName?: string;
 }
 
 export async function v_a71d8b(env: v_273a0c, v_328259): Promise<void> {
-  console.log(`[sendMail] start to=${v_328259.to} subject=${v_328259.subject} from=${v_c9c489.GMAIL_SENDER}`);
+  const v_33c3a8 = v_c9c489.GMAIL_SENDER;
+  const v_a13c2e = v_328259.fromName ? `${v_328259.fromName} <${v_33c3a8}>` : v_33c3a8;
+  console.log(`[sendMail] start to=${v_328259.to} subject=${v_328259.subject} from=${v_a13c2e}`);
   const v_2ca7e0 = await v_9790e6(v_c9c489);
   console.log(`[sendMail] accessToken ok (len=${v_2ca7e0.length})`);
   const v_479f05 = v_75e309(
-    v_a122f8({ from: v_c9c489.GMAIL_SENDER, to: v_328259.to, subject: v_328259.subject, html: v_328259.html }),
+    v_a122f8({ from: v_a13c2e, to: v_328259.to, subject: v_328259.subject, html: v_328259.html }),
   );
 
   let v_d8479a = null;

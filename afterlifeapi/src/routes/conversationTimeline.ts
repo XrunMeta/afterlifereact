@@ -292,7 +292,7 @@ v_72aaee.get("/", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
   const v_a1651b = v_3f4e2e.env.DB;
 
-  const [v_2461e1, v_7e4351, v_20e160, v_7fe886, v_bf9904] = await Promise.all([
+  const [v_2461e1, v_7e4351, v_20e160, v_7fe886, v_bf9904, v_fbaa5f] = await Promise.all([
     v_a1651b.prepare(
       `SELECT id, created_at FROM clones WHERE owner_id = ? AND deleted_at IS NULL AND deletion_state = 'active'`,
     ).bind(v_43e90c).all<{ id: number; created_at: string }>(),
@@ -329,10 +329,18 @@ v_72aaee.get("/", v_6690d9, async (v_3f4e2e) => {
            FROM conversation_events WHERE user_id = ?
        ) WHERE rn = 1`,
     ).bind(v_43e90c).all<{ clone_id: number; kind: string; payload: string | null; created_at: number }>(),
+
+    v_a1651b.prepare(
+      `SELECT clone_id, intimacy_score FROM user_clone_interactions WHERE user_id = ?`,
+    ).bind(v_43e90c).all<{ clone_id: number; intimacy_score: number }>(),
   ]);
   const v_2a4227 = new Map<number, number>();
   for (const v_cb35cb of v_7fe886.results ?? []) {
     v_2a4227.set(v_cb35cb.clone_id, v_15ea73(v_cb35cb.last_read_at));
+  }
+  const v_0ea68b = new Map<number, number>();
+  for (const v_cb35cb of v_fbaa5f.results ?? []) {
+    v_0ea68b.set(v_cb35cb.clone_id, Math.min(100, Math.max(0, Number(v_cb35cb.intimacy_score) || 0)));
   }
 
   type Last = {
@@ -453,6 +461,8 @@ v_72aaee.get("/", v_6690d9, async (v_3f4e2e) => {
       isMine: v_eb25ce.owner_id === v_43e90c,
       last: v_2f7952,
       unreadCount: v_8a6db3,
+
+      intimacy: v_0ea68b.get(v_389afb) ?? 0,
       sortAt: v_2f7952?.at ?? null,
 
       createdAt: v_45c785.get(v_389afb) ?? v_b482e3.get(v_389afb) ?? 0,

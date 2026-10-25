@@ -348,9 +348,11 @@
     "sort": "Sort",
     "sortRecent": "Recent chats",
     "sortIntimacy": "Highest intimacy",
+    "sortIntimacyAsc": "Lowest intimacy",
     "sortName": "Name",
     "adBannerFallback": "Ad banner",
     "deleteMessageTitle": "Delete message",
+    "copy": "Copy",
     "notifyOff": "Mute notifications",
     "notifyOn": "Unmute notifications",
     "callAction": "Call",
@@ -2443,5 +2445,21 @@
     },
     "verifyPassword": "Verify · Password",
     "verifyEmail": "Verify · Email code"
+  },
+  "partner": {
+    "appsCaption": "Related apps",
+    "open": "Open",
+    "xrunTitle": "XRUN",
+    "xrunEyebrow": "REWARD APP",
+    "xrunSlide1": "Earn rewards",
+    "xrunSlide2": "Wallet",
+    "xrunSlide3": "Rewards",
+    "xrunSlide4": "Linked login",
+    "clubxTitle": "ClubX",
+    "clubxEyebrow": "METAVERSE CLUB",
+    "clubxSlide1": "Virtual club",
+    "clubxSlide2": "Party · social",
+    "clubxSlide3": "Dance · items",
+    "clubxIosSoon": "App Store coming soon. Please try on Android first."
   }
 }

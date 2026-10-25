@@ -23,6 +23,8 @@ interface CloneState {
 
   pruneOwnedLocalClones: (ownerId: number, keepIds: Set<number>) => void;
 
+  resetForLogout: () => void;
+
   addedAt: Record<number, number>;
 }
 
@@ -45,6 +47,14 @@ export const v_194498 = v_a7c0d4<CloneState>((v_bb8024, v_38715b) => ({
             v_5c2f9f - (v_b6e533.addedAt[v_3f4e2e.id] ?? 0) < v_cf3bd3,
         ),
       };
+    }),
+
+  resetForLogout: () =>
+    v_bb8024({
+      localClones: [],
+      currentClone: null,
+      creationDraft: { ...v_6f599b },
+      addedAt: {},
     }),
 
   setCurrentClone: (v_eb25ce) => v_bb8024({ currentClone: v_eb25ce }),

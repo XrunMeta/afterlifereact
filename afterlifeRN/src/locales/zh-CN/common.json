@@ -348,9 +348,11 @@
     "sort": "排序",
     "sortRecent": "最近对话",
     "sortIntimacy": "亲密度从高到低",
+    "sortIntimacyAsc": "亲密度从低到高",
     "sortName": "按名称",
     "adBannerFallback": "横幅广告",
     "deleteMessageTitle": "删除消息",
+    "copy": "复制",
     "notifyOff": "关闭通知",
     "notifyOn": "开启通知",
     "callAction": "通话",
@@ -2436,5 +2438,12 @@
     },
     "verifyPassword": "身份验证 · 密码",
     "verifyEmail": "身份验证 · 邮箱验证码"
+  },
+  "partner": {
+    "appsCaption": "相关应用",
+    "xrunTitle": "XRUN",
+    "xrunSub": "钱包 · 奖励 · 登录联动",
+    "clubxTitle": "ClubX",
+    "clubxSub": "俱乐部 · 道具"
   }
 }
