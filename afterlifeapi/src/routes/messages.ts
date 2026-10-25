@@ -12,7 +12,8 @@ import { v_a8614b, v_034656, v_137694, v_f7e14c } from "../lib/ale";
 import { v_e44d97 } from "../lib/kekProvider";
 import { v_295cc5 } from "../lib/ai";
 import { v_663c07, v_70ddfa, v_4dc423 } from "../lib/chatReply";
-import { v_2f0299, v_386d00, v_f500c0 } from "../lib/conversationMemory";
+import { v_2f0299, v_c56968, v_386d00, v_f500c0 } from "../lib/conversationMemory";
+import { v_10ee58, v_ea6521, v_888068 } from "../lib/chatReplyTo";
 import { v_74c502, v_7a9d93, v_5d4a51, v_09d461 } from "../lib/cloneAccess";
 import { v_e86502, v_fda4d7, v_3821c0 } from "../lib/memoryStore";
 import { v_dd9d7c, v_721d54, v_cf0463 } from "../lib/interactions";
@@ -55,6 +56,23 @@ v_fa56e0.delete("/:id", v_6690d9, async (v_3f4e2e) => {
   return v_3f4e2e.json({ ok: true });
 });
 
+const v_2a73ea = v_1f4ea7.object({ emoji: v_1f4ea7.string().max(16).nullable() });
+v_fa56e0.put("/:id/reaction", v_6690d9, async (v_3f4e2e) => {
+  const v_73ad51 = v_2ab119(v_3f4e2e);
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const { emoji: v_03a50c } = await v_4c95c2(v_3f4e2e, v_2a73ea);
+  if (v_03a50c !== null && !v_888068(v_03a50c)) throw new v_3ebe58("VALIDATION_FAILED", "Unsupported reaction.");
+  const v_3ac7e7 = await v_3f4e2e.env.DB
+    .prepare(`SELECT user_id, role, deletion_state FROM messages WHERE id = ?`)
+    .bind(v_73ad51)
+    .first<{ user_id: number; role: string; deletion_state: string }>();
+  if (!v_3ac7e7 || v_3ac7e7.deletion_state !== "active") throw new v_3ebe58("NOT_FOUND", "Message not found.");
+  if (v_3ac7e7.user_id !== v_43e90c) throw new v_3ebe58("FORBIDDEN", "Not your message.");
+  if (v_3ac7e7.role !== "clone") throw new v_3ebe58("VALIDATION_FAILED", "Reactions are only for clone messages.");
+  await v_3f4e2e.env.DB.prepare(`UPDATE messages SET reaction = ? WHERE id = ?`).bind(v_03a50c, v_73ad51).run();
+  return v_3f4e2e.json({ ok: true, reaction: v_03a50c });
+});
+
 function v_31113b(v_3f4e2e): number {
   const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
   if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
@@ -75,6 +93,8 @@ const v_7c582e = v_1f4ea7.object({
   content: v_1f4ea7.string().min(1).max(4000),
 
   locale: v_1f4ea7.string().min(2).max(16).optional(),
+
+  reply_to_message_id: v_1f4ea7.number().int().positive().optional(),
 });
 
 async function v_c5d920(
@@ -96,11 +116,30 @@ async function v_c5d920(
     throw new v_3ebe58("FORBIDDEN", "This clone is currently suspended.");
   }
 
-  const { key: v_169842 } = await v_386d00(v_3f4e2e.env, v_43e90c, v_6e0fd3);
+  const { key: v_169842, provider: v_93bc27 } = await v_386d00(v_3f4e2e.env, v_43e90c, v_6e0fd3);
   if (v_169842.kind === "shredded") {
     throw new v_3ebe58("FORBIDDEN", "This conversation is no longer available.");
   }
   await v_70ddfa(v_3f4e2e.env, v_43e90c);
+
+  let v_d5c3bc = v_e5af65 ?? v_4d33b2.content;
+  let v_a714e9 = null;
+  if (v_4d33b2.reply_to_message_id !== undefined) {
+    const v_ab6401 = await v_a1651b
+      .prepare(
+        `SELECT role, content FROM messages
+          WHERE id = ? AND user_id = ? AND clone_id = ?
+            AND status = 'active' AND deletion_state = 'active' AND content IS NOT NULL`,
+      )
+      .bind(v_4d33b2.reply_to_message_id, v_43e90c, v_6e0fd3)
+      .first<{ role: string; content: string }>();
+    const v_418ed5 = v_ab6401 && v_ab6401.role === "clone"
+      ? await v_c56968(v_3f4e2e.env, v_169842, v_93bc27, v_a8614b(v_3f4e2e.env.ALE_KEK), v_6e0fd3, "clone", v_ab6401.content)
+      : null;
+    if (v_418ed5 === null) throw new v_3ebe58("VALIDATION_FAILED", "Reply target is not available.");
+    v_d5c3bc = v_ea6521(v_418ed5, v_d5c3bc);
+    v_a714e9 = { id: v_4d33b2.reply_to_message_id, content: v_10ee58(v_418ed5) };
+  }
 
   const v_c5607b = v_4d33b2.session_id ?? crypto.randomUUID();
 
@@ -112,7 +151,7 @@ async function v_c5d920(
     const v_16e2dd = await v_663c07(v_3f4e2e.env, v_43e90c, v_6e0fd3);
     const v_4eca64 = (v_3f4e2e.req.header("Authorization") ?? "").replace(/^Bearer\s+/i, "");
     const v_cb35cb = await v_4dc423(v_3f4e2e.env, {
-      cloneId: v_6e0fd3, userToken: v_4eca64, text: v_e5af65 ?? v_4d33b2.content, prior: v_16e2dd.prior, recent: v_16e2dd.recent, userLang: v_5f37ae,
+      cloneId: v_6e0fd3, userToken: v_4eca64, text: v_d5c3bc, prior: v_16e2dd.prior, recent: v_16e2dd.recent, userLang: v_5f37ae,
     });
     v_b4c4d3 = v_cb35cb.reply;
     v_b29561 = v_cb35cb.lang;
@@ -122,7 +161,7 @@ async function v_c5d920(
       v_fda4d7(v_3f4e2e.env, v_6e0fd3),
       v_3821c0(v_3f4e2e.env, v_6e0fd3, v_43e90c),
     ]);
-    const v_677216 = await v_295cc5(v_e5af65 ?? v_4d33b2.content, {
+    const v_677216 = await v_295cc5(v_d5c3bc, {
       cloneName: v_eb25ce.name,
       cloneType: v_eb25ce.clone_type,
       persona: (v_991acb(v_19fdaa)?.persona as Record<string, unknown>) ?? {},
@@ -138,16 +177,16 @@ async function v_c5d920(
     throw new v_3ebe58("FORBIDDEN", "This conversation is no longer available.");
   }
 
-  const v_d70f86 = (v_cb35cb, v_b43b74, v_5254bf) =>
+  const v_d70f86 = (v_cb35cb, v_b43b74, v_5254bf, v_55f737 = null) =>
     v_a1651b
       .prepare(
-        `INSERT INTO messages (clone_id, user_id, session_id, role, content, status, reconciliation_status, lang)
-         VALUES (?, ?, ?, ?, ?, 'active', 'pending', ?)
+        `INSERT INTO messages (clone_id, user_id, session_id, role, content, status, reconciliation_status, lang, reply_to_message_id)
+         VALUES (?, ?, ?, ?, ?, 'active', 'pending', ?, ?)
          RETURNING id, created_at`,
       )
-      .bind(v_6e0fd3, v_43e90c, v_c5607b, v_cb35cb, v_b43b74, v_5254bf)
+      .bind(v_6e0fd3, v_43e90c, v_c5607b, v_cb35cb, v_b43b74, v_5254bf, v_55f737)
       .first<{ id: number; created_at: string }>();
-  const v_43f890 = await v_d70f86("user", v_369293, null);
+  const v_43f890 = await v_d70f86("user", v_369293, null, v_a714e9?.id ?? null);
   if (!v_43f890) throw new v_3ebe58("INTERNAL_ERROR", "Failed to persist user message.");
   const v_56871e = await v_d70f86("clone", v_09f707, v_b29561);
   if (!v_56871e) throw new v_3ebe58("INTERNAL_ERROR", "Failed to persist clone reply.");
@@ -175,7 +214,7 @@ async function v_c5d920(
     .run()
     .catch((v_49263d) => console.error(`[STATS_UPDATE_FAIL] clone=${v_6e0fd3} ${v_49263d.message}`));
 
-  return { sessionId: v_c5607b, userMsg: v_43f890, cloneMsg: v_56871e, replyText: v_b4c4d3, replyLang: v_b29561 };
+  return { sessionId: v_c5607b, userMsg: v_43f890, cloneMsg: v_56871e, replyText: v_b4c4d3, replyLang: v_b29561, replyTo: v_a714e9 };
 }
 
 v_19e2a3.post(
@@ -185,7 +224,7 @@ v_19e2a3.post(
   async (v_3f4e2e) => {
     const v_6e0fd3 = v_31113b(v_3f4e2e);
     const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_7c582e);
-    const { sessionId: v_c5607b, userMsg: v_43f890, cloneMsg: v_56871e, replyText: v_b4c4d3, replyLang: v_b29561 } = await v_c5d920(v_3f4e2e, v_6e0fd3, v_4d33b2);
+    const { sessionId: v_c5607b, userMsg: v_43f890, cloneMsg: v_56871e, replyText: v_b4c4d3, replyLang: v_b29561, replyTo: v_a714e9 } = await v_c5d920(v_3f4e2e, v_6e0fd3, v_4d33b2);
 
     await v_74defc(v_3f4e2e, {
       userId: v_3f4e2e.get("userId")!,
@@ -198,6 +237,7 @@ v_19e2a3.post(
       userMessage: {
         id: v_43f890.id, content: v_4d33b2.content,
         at: v_15ea73(v_43f890.created_at), createdAt: v_43f890.created_at,
+        ...(v_a714e9 ? { replyTo: v_a714e9 } : {}),
       },
       cloneReply: {
         id: v_56871e.id, content: v_b4c4d3, tokens: 0, lang: v_b29561,

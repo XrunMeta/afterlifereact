@@ -30,7 +30,7 @@ import v_556baf from "../../components/ui/SafeView";
 import v_1a40c4 from "../../components/ui/Button";
 import v_258c1c from "../../components/common/PageHeader";
 import v_0e981f from "../../components/common/NotificationBell";
-import v_f9a626 from "../../components/common/PartnerAppBanners";
+import v_f9a626, { v_db1b12, v_ba6725 } from "../../components/common/PartnerAppBanners";
 import { v_772971 } from "jmpfvteuuztnp";
 import { v_c64cf7 } from "../../lib/chatSystemText";
 import { v_1bfbd0, v_9b1a04, v_8b0c90, v_8f28b1, v_7c5e29 } from "../../components/constants";
@@ -145,6 +145,7 @@ export default function v_14b43e() {
   const [v_002f27, v_ff797f] = v_5ab095<v_17d27f[] | null>(null);
 
   const [v_612e9f, v_575aad] = v_5ab095(false);
+  const { onLayout: v_e8db2a, listBottomPad: v_936ba7 } = v_ba6725();
   const v_0cde43 = async () => {
     if (!v_2ca7e0) return;
     v_575aad(true);
@@ -1035,6 +1036,8 @@ export default function v_14b43e() {
   };
 
   return (
+
+    <View style={v_fd5f43.screen} onLayout={v_e8db2a}>
     <SafeView backgroundColor={v_1bfbd0.white} showBottomBackground={false}>
       <PageHeader
         title={v_8d41d7("chat.listTitle", { defaultValue: "대화목록" })}
@@ -1048,7 +1051,7 @@ export default function v_14b43e() {
         data={v_066fa2}
         keyExtractor={(v_8c0b26) => String(v_8c0b26.persona.id)}
         renderItem={v_4a5736}
-        contentContainerStyle={v_fd5f43.msgListContent}
+        contentContainerStyle={[v_fd5f43.msgListContent, { paddingBottom: v_936ba7 }]}
 
         removeClippedSubviews={false}
         showsVerticalScrollIndicator={false}
@@ -1103,13 +1106,20 @@ export default function v_14b43e() {
           </View>
         }
         ListEmptyComponent={
-          <View style={v_fd5f43.emptyWrap}>
-            <Feather name="message-circle" size={48} color={v_1bfbd0.zinc300} />
-            <Text style={v_fd5f43.emptyTitle}>{v_8d41d7("feed.followingEmpty")}</Text>
-            <Text style={v_fd5f43.emptyDesc}>{v_8d41d7("feed.followingEmptyHint")}</Text>
-          </View>
+
+          (v_7aa778 ? v_002f27 === null : !!v_2ca7e0 && v_d92a4c === null) ? (
+            <View style={v_fd5f43.emptyWrap}>
+              <ActivityIndicator color={v_1bfbd0.zinc400} />
+              <Text style={v_fd5f43.emptyDesc}>{v_8d41d7("common.loading", { defaultValue: "불러오는 중..." })}</Text>
+            </View>
+          ) : (
+            <View style={v_fd5f43.emptyWrap}>
+              <Feather name="message-circle" size={48} color={v_1bfbd0.zinc300} />
+              <Text style={v_fd5f43.emptyTitle}>{v_8d41d7("feed.followingEmpty")}</Text>
+              <Text style={v_fd5f43.emptyDesc}>{v_8d41d7("feed.followingEmptyHint")}</Text>
+            </View>
+          )
         }
-        ListFooterComponent={<PartnerAppBanners />}
       />
 
       {
@@ -1483,6 +1493,10 @@ export default function v_14b43e() {
         </Pressable>
       </Modal>
     </SafeView>
+
+    {}
+    <PartnerAppBanners variant="docked" style={v_db1b12} />
+    </View>
   );
 }
 
@@ -1498,6 +1512,9 @@ const v_fd5f43 = v_472849.create({
   feed: { padding: 16, gap: 16 },
   postWrap: { marginBottom: 8 },
 
+  screen: {
+    flex: 1,
+  },
   msgListContent: {
     paddingHorizontal: 20,
     paddingBottom: 0,

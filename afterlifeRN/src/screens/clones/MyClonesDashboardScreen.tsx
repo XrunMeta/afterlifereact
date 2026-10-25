@@ -31,7 +31,7 @@ import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import v_556baf from "../../components/ui/SafeView";
 import v_1a40c4 from "../../components/ui/Button";
 import v_258c1c from "../../components/common/PageHeader";
-import v_f9a626 from "../../components/common/PartnerAppBanners";
+import v_f9a626, { v_db1b12, v_ba6725 } from "../../components/common/PartnerAppBanners";
 import v_5778ce from "../../components/common/HashtagText";
 import v_4c2648 from "./components/FriendPickerModal";
 import v_92380d from "./components/VisibilityPickerModal";
@@ -94,6 +94,7 @@ export default function v_def15b() {
   const [v_8a7926, v_d42991] = v_5ab095<v_affcc0[] | null>(null);
 
   const [v_612e9f, v_575aad] = v_5ab095(false);
+  const { onLayout: v_e8db2a, listBottomPad: v_936ba7 } = v_ba6725();
 
   const [v_959d04, v_fd8761] = v_5ab095<v_a9d96d[]>([]);
 
@@ -765,6 +766,8 @@ export default function v_def15b() {
   };
 
   return (
+
+    <View style={v_fd5f43.screen} onLayout={v_e8db2a}>
     <SafeView backgroundColor={v_1bfbd0.white} showBottomBackground={false}>
       <PageHeader
         title={v_8d41d7("dashboard.title")}
@@ -802,7 +805,7 @@ export default function v_def15b() {
         data={v_fc7f92}
         keyExtractor={(v_8c0b26) => String(v_8c0b26.id)}
         renderItem={v_b80d74}
-        contentContainerStyle={v_fd5f43.listContent}
+        contentContainerStyle={[v_fd5f43.listContent, { paddingBottom: 24 + v_936ba7 }]}
         showsVerticalScrollIndicator={false}
         extraData={v_fc7f92}
         refreshControl={
@@ -1049,10 +1052,6 @@ export default function v_def15b() {
                 ))}
               </View>
             ) : null}
-            {}
-            <View style={v_fd5f43.partnerAppsSection}>
-              <PartnerAppBanners />
-            </View>
           </View>
         }
       />
@@ -1396,7 +1395,6 @@ export default function v_def15b() {
                         )}
                         <View style={v_fd5f43.accountInfo}>
                           <Text style={v_fd5f43.accountName}>{v_ceb55a.name ?? v_ceb55a.email}</Text>
-                          <Text style={v_fd5f43.accountSub}>{v_ceb55a.email}</Text>
                         </View>
                       </View>
                     ))
@@ -1425,7 +1423,6 @@ export default function v_def15b() {
                         )}
                         <View style={v_fd5f43.accountInfo}>
                           <Text style={v_fd5f43.accountName}>{v_ceb55a.name ?? v_ceb55a.email}</Text>
-                          <Text style={v_fd5f43.accountSub}>{v_ceb55a.email}</Text>
                         </View>
                       </View>
                     ))
@@ -1574,6 +1571,10 @@ export default function v_def15b() {
 
       {}
     </SafeView>
+
+    {}
+    <PartnerAppBanners variant="docked" style={v_db1b12} />
+    </View>
   );
 }
 
@@ -2162,7 +2163,6 @@ const v_fd5f43 = v_472849.create({
   },
   accountInfo: { flex: 1 },
   accountName: { fontSize: 15, fontWeight: "600", color: v_1bfbd0.zinc900 },
-  accountSub: { fontSize: 13, color: v_1bfbd0.zinc500, marginTop: 2 },
 
   commentRow: {
     paddingVertical: 12,
@@ -2368,7 +2368,7 @@ const v_fd5f43 = v_472849.create({
   intimacyInfoOkBtn: { marginTop: 16, paddingVertical: 12, borderRadius: v_8b0c90.full, backgroundColor: v_1bfbd0.primary, alignItems: "center" },
   intimacyInfoOkText: { fontSize: 14, fontWeight: "700", color: v_1bfbd0.white },
 
-  partnerAppsSection: { marginTop: 8, paddingHorizontal: 4 },
+  screen: { flex: 1 },
 
   giftDashSection: { marginTop: 16, marginBottom: 16, paddingHorizontal: 4 },
   giftDashCard: {

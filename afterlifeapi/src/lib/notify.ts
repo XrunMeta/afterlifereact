@@ -5,6 +5,7 @@ import { v_a71d8b } from "./gmail";
 import { v_51b1f7 } from "./expoPush";
 import { v_74c502 } from "./cloneAccess";
 import { v_3f8b7c } from "./deactivation";
+import { v_8cf86b } from "./utils";
 
 export type NotificationType =
   | "invite_received"
@@ -203,7 +204,7 @@ export async function v_80a022(
       .prepare(`SELECT name, email FROM users WHERE id = ?`)
       .bind(v_4317d1.actorId)
       .first<{ name: string | null; email: string | null }>();
-    const v_6dd0ab = v_380fb2?.name || v_380fb2?.email?.split("@")[0] || "누군가";
+    const v_6dd0ab = v_380fb2?.name || v_8cf86b(v_380fb2?.email) || "누군가";
 
     let v_9f1622 = "";
     let v_4d33b2 = "";
