@@ -2,6 +2,7 @@ import { v_1186b8 } from "../lib/deactivation";
 import { v_b7c41b, type v_437670 } from "zmui";
 import type { v_de0a25 } from "../lib/env";
 import { v_3ebe58 } from "../lib/errors";
+import { v_74defc } from "../lib/logger";
 import { v_09b071 } from "../scheduled/cleanup";
 import { v_c0a297, v_b09138 } from "../middleware/auth";
 import { v_4c95c2, v_1f4ea7 } from "../lib/validate";
@@ -1004,9 +1005,9 @@ v_b7f2b4.delete("/oth-path", v_c0a297, async (v_3f4e2e) => {
     }
   } catch {  }
   const v_3c8572 = await v_3f4e2e.env.DB
-    .prepare(`SELECT id, deletion_state FROM clones WHERE id = ?`)
+    .prepare(`SELECT id, owner_id, deletion_state FROM clones WHERE id = ?`)
     .bind(v_6e0fd3)
-    .first<{ id: number; deletion_state: string }>();
+    .first<{ id: number; owner_id: number; deletion_state: string }>();
   if (!v_3c8572) throw new v_3ebe58("NOT_FOUND", "Clone not found.");
   if (v_3c8572.deletion_state !== "active") {
     return v_3f4e2e.json({ ok: true, alreadyDeleted: true, deletionState: v_3c8572.deletion_state });
@@ -1028,6 +1029,12 @@ v_b7f2b4.delete("/oth-path", v_c0a297, async (v_3f4e2e) => {
     resourceType: "clone",
     resourceId: v_6e0fd3,
     reason: v_58ca36,
+  });
+
+  await v_74defc(v_3f4e2e, {
+    userId: v_3c8572.owner_id,
+    action: "clone.delete",
+    details: { cloneId: v_6e0fd3, state: "soft_deleted", by: "admin", adminUserId: v_105fc4, reason: v_58ca36 },
   });
   return v_3f4e2e.json({ ok: true, deletedId: v_6e0fd3, deletionState: "soft_deleted" });
 });
