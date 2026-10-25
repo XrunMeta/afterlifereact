@@ -25,6 +25,58 @@ function v_b85b5c(v_f71b56): string | null {
   }
 }
 
+const v_60db77 = /(?:^|\/)api\/files\/(\d+)(?:[?#].*)?$/;
+
+function v_fe8749(v_f71b56): number | null {
+  if (!v_f71b56) return null;
+  const v_35f85c = v_60db77.exec(v_f71b56.trim());
+  return v_35f85c ? Number(v_35f85c[1]) : null;
+}
+
+const v_7b2645 = (v_c8b83f) => `(${v_c8b83f} LIKE ?1 OR ${v_c8b83f} LIKE ?2)`;
+const v_caf51a = `SELECT
+  EXISTS (SELECT 1 FROM clones WHERE id != ?3 AND deletion_state = 'active' AND (
+    ${v_7b2645("avatar_url")} OR ${v_7b2645("cover_image_url")} OR ${v_7b2645("idle_video_url")} OR
+    ${v_7b2645("voice_se_url")} OR ${v_7b2645("filler_video_urls")} OR ${v_7b2645("guide_video_urls")} OR
+    ${v_7b2645("bridge_video_urls")}))
+  OR EXISTS (SELECT 1 FROM clone_photos WHERE clone_id != ?3 AND ${v_7b2645("photo_url")})
+  OR EXISTS (SELECT 1 FROM users WHERE ${v_7b2645("avatar_url")})
+  OR EXISTS (SELECT 1 FROM feeds WHERE clone_id != ?3 AND ${v_7b2645("media_url")})
+  OR EXISTS (SELECT 1 FROM clone_shorts WHERE clone_id != ?3 AND ${v_7b2645("media_url")})
+  OR EXISTS (SELECT 1 FROM voice_presets WHERE ${v_7b2645("sample_url")})
+  OR EXISTS (SELECT 1 FROM gift_inventory_events WHERE ${v_7b2645("gift_image_url_snapshot")})
+  OR EXISTS (SELECT 1 FROM inheritance_release_logs WHERE ${v_7b2645("evidence_url")}) AS shared`;
+
+async function v_4944e0(
+  env: v_273a0c,
+  v_6e0fd3,
+  v_a750e4,
+): Promise<{ ok: number; errors: number }> {
+  let v_3ed4c3 = 0;
+  let v_9de4ac = 0;
+  for (const v_433c46 of v_a750e4) {
+    try {
+      const v_b1c995 = await v_c9c489.DB
+        .prepare(v_caf51a)
+        .bind(`%/oth-path${v_433c46}`, `%/oth-path${v_433c46}"%`, v_6e0fd3)
+        .first<{ shared: number }>();
+      if (v_b1c995?.shared !== 0) continue;
+      const v_3ac7e7 = await v_c9c489.DB
+        .prepare(`SELECT r2_key FROM files WHERE id = ?`)
+        .bind(v_433c46)
+        .first<{ r2_key: string }>();
+      if (!v_3ac7e7) continue;
+      await v_c9c489.R2_ARCHIVE.delete(v_3ac7e7.r2_key);
+      await v_c9c489.DB.prepare(`DELETE FROM files WHERE id = ?`).bind(v_433c46).run();
+      v_3ed4c3++;
+    } catch (v_49263d) {
+      console.warn(`[purgeAiAssets] file ${v_433c46} purge failed:`, (v_49263d as Error).message);
+      v_9de4ac++;
+    }
+  }
+  return { ok: v_3ed4c3, errors: v_9de4ac };
+}
+
 function v_1fc684(v_81e2ef): string[] {
   if (!v_81e2ef) return [];
   try {
@@ -71,7 +123,13 @@ export async function v_ed063f(env: v_273a0c, v_6e0fd3): Promise<R2PurgeResult> 
   if (!v_eb25ce) return { mediaKeys: 0, archiveKeys: 0, errors: 0 };
 
   const v_cf2c85 = [];
+  const v_a750e4 = new Set<number>();
   const v_0faf90 = (v_ceb55a) => {
+    const v_433c46 = v_fe8749(v_ceb55a);
+    if (v_433c46 !== null) {
+      v_a750e4.add(v_433c46);
+      return;
+    }
     const v_0eb677 = v_b85b5c(v_ceb55a);
     if (v_0eb677) v_cf2c85.push(v_0eb677);
   };
@@ -107,11 +165,12 @@ export async function v_ed063f(env: v_273a0c, v_6e0fd3): Promise<R2PurgeResult> 
   }
 
   const v_2d1eeb = await v_fd967d(v_c9c489.R2_MEDIA, [...v_cf2c85, ...v_73a3bf]);
+  const v_b96973 = await v_4944e0(v_c9c489, v_6e0fd3, [...v_a750e4]);
 
   return {
     mediaKeys: v_2d1eeb.ok,
-    archiveKeys: 0, 
-    errors: v_2d1eeb.errors,
+    archiveKeys: v_b96973.ok,
+    errors: v_2d1eeb.errors + v_b96973.errors,
   };
 }
 
