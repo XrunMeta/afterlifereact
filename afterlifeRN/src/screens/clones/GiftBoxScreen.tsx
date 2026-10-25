@@ -48,9 +48,6 @@ function v_6cfd25(v_94302c) {
 function v_9f8b94(v_94302c) {
   return v_94302c === "sent";
 }
-function v_a18e68(v_94302c) {
-  return v_94302c === "exchanged" || v_94302c === "swapped";
-}
 
 const v_30b99a = [
   "giftBox.weekdayShortSun",
@@ -87,10 +84,13 @@ function v_e4bf58(v_6fc191, t: v_75de9d): string {
   return `${v_5e39a0} ${v_02de88}:${String(v_35f85c).padStart(2, "0")}`;
 }
 
-function v_aaa53b(v_6fc191, v_5c2f9f = new Date()): boolean {
-  const v_d5dda0 = new Date(v_6fc191);
-  return v_d5dda0.getFullYear() === v_5c2f9f.getFullYear() && v_d5dda0.getMonth() === v_5c2f9f.getMonth();
-}
+const v_951062 = 15;
+
+const v_ca9d61 = false;
+
+type PagedKind = "received" | "sent";
+type Paged = { items: v_407a6d[]; offset: number; done: boolean };
+const v_459174 = { items: [], offset: 0, done: false };
 
 export default function v_8869a8() {
   const { t: v_8d41d7 } = v_772971();
@@ -102,9 +102,15 @@ export default function v_8869a8() {
   const [v_11083e, v_94ee83] = v_5ab095<TabKey>(v_24baff?.initialTab ?? "received");
   const [v_683210, v_34a50a] = v_5ab095(true);
   const [v_612e9f, v_575aad] = v_5ab095(false);
-  const [v_3e58a1, v_8ea37b] = v_5ab095<v_407a6d[]>([]);
+  const [v_79f454, v_588ee6] = v_5ab095<Paged>(v_459174);
+  const [v_f966e3, v_835446] = v_5ab095<Paged>(v_459174);
+  const [v_f34bc3, v_23061f] = v_5ab095<PagedKind | null>(null);
+  const v_6f0b49 = v_a3453e.useRef(false);
+
+  const v_8e5767 = v_a3453e.useRef(0);
   const [v_fa2885, v_83b7f7] = v_5ab095<v_ccbfb2[]>([]);
   const [v_5da798, v_19e9c0] = v_5ab095(0);
+  const [v_fcc796, v_0cc282] = v_5ab095<number | null>(null);
 
   const v_3b7876 = v_df9f57(() => {
     const v_b16994 = [...v_fa2885].filter((v_206b88) => v_206b88.count > 0).sort((v_779914, v_148ff6) => v_148ff6.count - v_779914.count);
@@ -117,24 +123,67 @@ export default function v_8869a8() {
     }, [v_24baff?.initialTab]),
   );
 
+  const v_088028 = v_de06a3(
+    async (v_94302c, v_a13c2e) => {
+      const v_554070 = v_94302c === "received" ? v_6cfd25 : v_9f8b94;
+      let v_3bbadf = v_a13c2e.offset;
+      let v_2fb8cc = false;
+      const rows: v_407a6d[] = [];
+      let last: Awaited<ReturnType<typeof v_bf9881>> | null = null;
+      for (let v_ebec57 = 0; v_ebec57 < 10 && !v_2fb8cc && v_18b8bf.length === 0; v_ebec57++) {
+        v_506e86 = await v_bf9881(v_2ca7e0!, { limit: v_951062, offset: v_3bbadf, kind: v_94302c });
+        v_18b8bf.push(...v_506e86.items.filter((v_206b88) => v_554070(v_206b88.kind)));
+        v_3bbadf += v_506e86.items.length;
+        v_2fb8cc = v_506e86.items.length < v_951062;
+      }
+      return { paged: { items: [...v_a13c2e.items, ...v_18b8bf], offset: v_3bbadf, done: v_2fb8cc }, last: v_506e86 };
+    },
+    [v_2ca7e0],
+  );
+
+  const v_132dae = v_de06a3(
+    async (v_94302c) => {
+      const v_c3bc75 = v_94302c === "received" ? v_79f454 : v_f966e3;
+      if (!v_2ca7e0 || v_c3bc75.done || v_6f0b49.current) return;
+      v_6f0b49.current = true;
+      v_23061f(v_94302c);
+      const v_a936b7 = v_8e5767.current;
+      try {
+        const { paged: v_b2d23f } = await v_088028(v_94302c, v_c3bc75);
+        if (v_a936b7 === v_8e5767.current) (v_94302c === "received" ? v_588ee6 : v_835446)(v_b2d23f);
+      } catch (v_49263d) {
+        console.warn("[GiftBox] load more fail:", v_49263d);
+      } finally {
+        v_6f0b49.current = false;
+        v_23061f(null);
+      }
+    },
+    [v_2ca7e0, v_79f454, v_f966e3, v_088028],
+  );
+
   const v_92fdf2 = v_de06a3(
     async (v_cc88f5 = false) => {
       if (!v_2ca7e0) {
-        v_8ea37b([]);
+        v_588ee6(v_459174);
+        v_835446(v_459174);
         v_83b7f7([]);
         v_34a50a(false);
         v_575aad(false);
         return;
       }
+      v_8e5767.current += 1;
       if (v_cc88f5) v_575aad(true);
       else v_34a50a(true);
       try {
-        const [v_be73a0, v_f0104f] = await Promise.all([
-          v_bf9881(v_2ca7e0, { limit: 100 }),
+        const [v_ed7fe5, v_204494, v_f0104f] = await Promise.all([
+          v_088028("received", v_459174),
+          v_088028("sent", v_459174),
           v_83b207(v_2ca7e0),
         ]);
-        v_8ea37b(v_be73a0.items);
-        v_19e9c0(v_be73a0.totalReceived);
+        v_588ee6(v_ed7fe5.paged);
+        v_835446(v_204494.paged);
+        v_19e9c0(v_ed7fe5.last?.totalReceived ?? 0);
+        v_0cc282(v_204494.last?.totalSent ?? null);
         v_83b7f7(v_f0104f.items.filter((v_23805a) => (v_23805a.count ?? 0) > 0));
         await v_308dd7();
       } catch (v_49263d) {
@@ -409,18 +458,8 @@ export default function v_8869a8() {
   };
   void v_77fd21;
 
-  const v_8af8a0 = v_df9f57(() => v_3e58a1.filter((v_206b88) => v_6cfd25(v_206b88.kind)), [v_3e58a1]);
-  const v_ccaf2e = v_df9f57(() => v_3e58a1.filter((v_206b88) => v_9f8b94(v_206b88.kind)), [v_3e58a1]);
-  const v_a717df = v_df9f57(() => v_3e58a1.filter((v_206b88) => v_a18e68(v_206b88.kind)), [v_3e58a1]);
-
-  const v_809fd7 = v_df9f57(() => {
-    const v_c4417c = v_ccaf2e.filter((v_206b88) => v_aaa53b(v_206b88.createdAt));
-    const v_02cfa2 = v_c4417c.reduce((v_f4e98d, v_206b88) => v_f4e98d + (v_206b88.count || 1), 0);
-    const v_fdd5c7 = new Set(
-      v_c4417c.map((v_206b88) => v_206b88.counterpartId ?? v_206b88.counterpartEmail ?? v_206b88.counterpartName).filter(Boolean),
-    );
-    return { flowerSum: v_02cfa2, people: v_fdd5c7.size };
-  }, [v_ccaf2e]);
+  const v_8af8a0 = v_79f454.items;
+  const v_ccaf2e = v_f966e3.items;
 
   const v_bc3259 = v_df9f57(() => {
     const v_8dcb51 = new Map<string, v_407a6d[]>();
@@ -447,7 +486,7 @@ export default function v_8869a8() {
     {
       key: "sent",
       label: v_8d41d7("giftBox.tabSent", { defaultValue: "보낸 선물" }),
-      count: v_ccaf2e.length > 0 ? v_ccaf2e.reduce((v_f4e98d, v_206b88) => v_f4e98d + (v_206b88.count || 1), 0) : undefined,
+      count: (v_fcc796 ?? v_ccaf2e.reduce((v_f4e98d, v_206b88) => v_f4e98d + (v_206b88.count || 1), 0)) || undefined,
     },
     { key: "exchange", label: v_8d41d7("giftBox.tabExchange", { defaultValue: "교환" }) },
   ];
@@ -472,7 +511,7 @@ export default function v_8869a8() {
             >
               <Text style={[v_d81136.tabText, v_f8b770 && v_d81136.tabTextActive]}>
                 {v_c3c9ed.label}
-                {v_c3c9ed.count != null ? (
+                {v_ca9d61 && v_c3c9ed.count != null ? (
                   <Text style={v_d81136.tabCount}> {v_c3c9ed.count}</Text>
                 ) : null}
               </Text>
@@ -493,10 +532,18 @@ export default function v_8869a8() {
             <RefreshControl refreshing={v_612e9f} onRefresh={() => void v_92fdf2(true)} />
           }
           showsVerticalScrollIndicator={false}
+          scrollEventThrottle={200}
+          onScroll={({ nativeEvent: v_9e86fd }) => {
+            if (v_11083e === "exchange") return;
+            if (v_9e86fd.layoutMeasurement.height + v_9e86fd.contentOffset.y >= v_9e86fd.contentSize.height - 240) {
+              void v_132dae(v_11083e);
+            }
+          }}
         >
           {v_11083e === "received" && (
             <ReceivedTab
               items={v_8af8a0}
+              loadingMore={v_f34bc3 === "received"}
               ownedGift={v_3b7876}
               t={v_8d41d7}
               onExchange={() => v_94ee83("exchange")}
@@ -505,7 +552,7 @@ export default function v_8869a8() {
           {v_11083e === "sent" && (
             <SentTab
               grouped={v_bc3259}
-              monthStats={v_809fd7}
+              loadingMore={v_f34bc3 === "sent"}
               t={v_8d41d7}
               onBrowseClones={() => {
                 v_f4c991.dispatch(
@@ -538,10 +585,6 @@ export default function v_8869a8() {
     </SafeView>
   );
 }
-
-const v_61d6aa = 10;
-const v_526d27 = "__all__";
-const v_8156fe = "__anon__";
 
 function v_8e47b4(v_6fc191, t: v_75de9d): string {
   const v_d5dda0 = new Date(v_6fc191);
@@ -587,53 +630,27 @@ function v_8345ff(v_1833e7): string {
 
 function v_6da59e({
   items: v_4622b9,
+  loadingMore: v_f34bc3,
   ownedGift: v_9eb4d1,
   t: v_8d41d7,
   onExchange: v_5be83c,
 }: {
   items: v_407a6d[];
+  loadingMore: boolean;
   ownedGift: v_ccbfb2 | null;
   t: v_75de9d;
   onExchange: () => void;
 }) {
-  const [v_f21110, v_d217e7] = v_5ab095<string>(v_526d27);
-  const [v_64bcd4, v_b53914] = v_5ab095(v_61d6aa);
-
-  const v_863e6c = v_df9f57(() => {
-    const v_77b1ac = [];
-    const v_110a8b = new Set<string>();
-    for (const v_206b88 of v_4622b9) {
-      const v_f4e98d = v_206b88.cloneName?.trim();
-      if (!v_f4e98d || v_110a8b.has(v_f4e98d)) continue;
-      v_110a8b.add(v_f4e98d);
-      v_77b1ac.push(v_f4e98d);
-    }
-    return v_77b1ac;
-  }, [v_4622b9]);
-
-  const v_e4cf17 = v_df9f57(() => {
-    if (v_f21110 === v_526d27) return v_4622b9;
-    if (v_f21110 === v_8156fe) return v_4622b9.filter(v_0f11bb);
-    return v_4622b9.filter((v_206b88) => v_206b88.cloneName === v_f21110);
-  }, [v_4622b9, v_f21110]);
-
-  v_a3453e.useEffect(() => {
-    v_b53914(v_61d6aa);
-  }, [v_4622b9, v_f21110]);
-
-  const v_cf55be = v_e4cf17.slice(0, v_64bcd4);
-  const v_6bbe19 = v_64bcd4 < v_e4cf17.length;
-
   const v_4d79ca = v_df9f57(() => {
     const v_8dcb51 = new Map<string, v_407a6d[]>();
-    for (const v_8c0b26 of v_cf55be) {
+    for (const v_8c0b26 of v_4622b9) {
       const v_b24339 = v_8e47b4(v_8c0b26.createdAt, v_8d41d7);
       const v_d0c056 = v_8dcb51.get(v_b24339) ?? [];
       v_d0c056.push(v_8c0b26);
       v_8dcb51.set(v_b24339, v_d0c056);
     }
     return Array.from(v_8dcb51.entries());
-  }, [v_cf55be, v_8d41d7]);
+  }, [v_4622b9, v_8d41d7]);
 
   return (
     <View>
@@ -666,49 +683,7 @@ function v_6da59e({
         </TouchableOpacity>
       </View>
 
-      {}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={v_d81136.filterRow}
-        style={{ marginBottom: 16 }}
-      >
-        <TouchableOpacity
-          style={[v_d81136.filterChip, v_f21110 === v_526d27 && v_d81136.filterChipActive]}
-          onPress={() => v_d217e7(v_526d27)}
-          activeOpacity={0.8}
-        >
-          <Text style={[v_d81136.filterChipText, v_f21110 === v_526d27 && v_d81136.filterChipTextActive]}>
-            {v_8d41d7("giftBox.filterAll", { defaultValue: "전체" })}
-          </Text>
-        </TouchableOpacity>
-        {v_863e6c.map((v_1833e7) => {
-          const v_f8b770 = v_f21110 === v_1833e7;
-          return (
-            <TouchableOpacity
-              key={v_1833e7}
-              style={[v_d81136.filterChip, v_f8b770 && v_d81136.filterChipActive]}
-              onPress={() => v_d217e7(v_1833e7)}
-              activeOpacity={0.8}
-            >
-              <Text style={[v_d81136.filterChipText, v_f8b770 && v_d81136.filterChipTextActive]}>
-                {v_1833e7}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-        <TouchableOpacity
-          style={[v_d81136.filterChip, v_f21110 === v_8156fe && v_d81136.filterChipActive]}
-          onPress={() => v_d217e7(v_8156fe)}
-          activeOpacity={0.8}
-        >
-          <Text style={[v_d81136.filterChipText, v_f21110 === v_8156fe && v_d81136.filterChipTextActive]}>
-            {v_8d41d7("giftBox.filterAnon", { defaultValue: "익명만" })}
-          </Text>
-        </TouchableOpacity>
-      </ScrollView>
-
-      {v_e4cf17.length === 0 ? (
+      {v_4622b9.length === 0 ? (
         <View style={v_d81136.emptyBox}>
           <Text style={v_d81136.emptyText}>
             {v_8d41d7("dashboard.emptyGift", { defaultValue: "아직 받은 선물이 없어요" })}
@@ -731,22 +706,7 @@ function v_6da59e({
               </View>
             </View>
           ))}
-          {v_6bbe19 && (
-            <TouchableOpacity
-              style={v_d81136.moreBtn}
-              activeOpacity={0.7}
-              onPress={() =>
-                v_b53914((v_f4e98d) => Math.min(v_f4e98d + v_61d6aa, v_e4cf17.length))
-              }
-            >
-              <Text style={v_d81136.moreBtnText}>
-                {v_8d41d7("giftBox.loadMore", {
-                  defaultValue: "더보기 ({{n}})",
-                  n: v_e4cf17.length - v_64bcd4,
-                })}
-              </Text>
-            </TouchableOpacity>
-          )}
+          {v_f34bc3 && <ActivityIndicator style={v_d81136.pageSpinner} color={v_1bfbd0.zinc500} />}
         </>
       )}
     </View>
@@ -803,38 +763,17 @@ function v_223c52({
 
 function v_950e4a({
   grouped: v_4d79ca,
-  monthStats: v_cfb8ec,
+  loadingMore: v_f34bc3,
   t: v_8d41d7,
   onBrowseClones: v_9cb927,
 }: {
   grouped: [string, v_407a6d[]][];
-  monthStats: { flowerSum: number; people: number };
+  loadingMore: boolean;
   t: v_75de9d;
   onBrowseClones: () => void;
 }) {
   return (
     <View>
-      <View style={v_d81136.summaryCard}>
-        <View style={v_d81136.summaryCol}>
-          <Text style={v_d81136.metricLabel}>
-            {v_8d41d7("giftBox.sentThisMonth", { defaultValue: "이번 달 보낸 선물" })}
-          </Text>
-          <Text style={v_d81136.metricValue}>
-            {v_cfb8ec.flowerSum}
-            {v_8d41d7("giftBox.flowerUnit", { defaultValue: "송이" })}
-          </Text>
-        </View>
-        <View style={v_d81136.summaryCol}>
-          <Text style={v_d81136.metricLabel}>
-            {v_8d41d7("giftBox.sentPeople", { defaultValue: "받은 사람" })}
-          </Text>
-          <Text style={v_d81136.metricValue}>
-            {v_cfb8ec.people}
-            {v_8d41d7("giftBox.peopleUnit", { defaultValue: "명" })}
-          </Text>
-        </View>
-      </View>
-
       {v_4d79ca.length === 0 ? (
         <View style={v_d81136.emptyBox}>
           <Text style={v_d81136.emptyText}>
@@ -880,6 +819,7 @@ function v_950e4a({
           </View>
         ))
       )}
+      {v_f34bc3 && <ActivityIndicator style={v_d81136.pageSpinner} color={v_1bfbd0.zinc500} />}
 
       <View style={v_d81136.browseCta}>
         <Text style={v_d81136.browseHint}>
@@ -1172,21 +1112,6 @@ const v_d81136 = v_472849.create({
     minWidth: 72,
   },
   ownedExchangeBtnText: { ...v_c10a43.sm, color: v_1bfbd0.white },
-  filterRow: { flexDirection: "row", alignItems: "center", gap: 8, paddingRight: 8 },
-  filterChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: v_1bfbd0.white,
-    borderWidth: 1,
-    borderColor: v_1bfbd0.zinc200,
-  },
-  filterChipActive: {
-    backgroundColor: v_1bfbd0.zinc900,
-    borderColor: v_1bfbd0.zinc900,
-  },
-  filterChipText: { fontSize: 13, fontWeight: "600", color: v_1bfbd0.zinc700 },
-  filterChipTextActive: { color: v_1bfbd0.white },
   recvGroup: { marginBottom: 16 },
   recvDateHeader: {
     fontSize: 13,
@@ -1250,17 +1175,6 @@ const v_d81136 = v_472849.create({
   giftEmoji: { fontSize: 14 },
   giftName: { fontSize: 14, fontWeight: "600", color: v_1bfbd0.zinc900, flexShrink: 1 },
   meta: { fontSize: 12, color: v_1bfbd0.zinc500, marginTop: 2 },
-  summaryCard: {
-    flexDirection: "row",
-    backgroundColor: v_1bfbd0.white,
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 20,
-    gap: 12,
-  },
-  summaryCol: { flex: 1 },
-  metricLabel: { fontSize: 12, color: v_1bfbd0.zinc500, marginBottom: 6 },
-  metricValue: { fontSize: 22, fontWeight: "700", color: v_1bfbd0.zinc900 },
   dateHeader: { fontSize: 13, color: v_1bfbd0.zinc500, marginBottom: 8, marginLeft: 2 },
   sentCard: {
     flexDirection: "row",
@@ -1314,12 +1228,7 @@ const v_d81136 = v_472849.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
-  moreBtn: {
-    paddingVertical: 12,
-    alignItems: "center",
-    marginTop: 4,
-  },
-  moreBtnText: { fontSize: 13, fontWeight: "600", color: v_1bfbd0.zinc900 },
+  pageSpinner: { paddingVertical: 16 },
   historyViewAll: { fontSize: 13, color: v_1bfbd0.zinc400 },
   stepper: {
     flexDirection: "row",
