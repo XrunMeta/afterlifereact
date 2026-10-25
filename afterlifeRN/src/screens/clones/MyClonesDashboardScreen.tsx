@@ -967,7 +967,7 @@ export default function v_def15b() {
                     activeOpacity={0.8}
                     onPress={() => v_c65f5d.navigate("GiftBox", { initialTab: "received" })}
                   >
-                    <Text style={v_fd5f43.giftDashMetricLabel} numberOfLines={2}>
+                    <Text style={v_fd5f43.giftDashMetricLabel} numberOfLines={1}>
                       {v_8d41d7("giftBox.tabReceived", { defaultValue: "받은 선물" })}
                     </Text>
                     <Text style={v_fd5f43.giftDashMetricValue}>{v_489044}</Text>
@@ -977,17 +977,17 @@ export default function v_def15b() {
                     activeOpacity={0.8}
                     onPress={() => v_c65f5d.navigate("GiftBox", { initialTab: "sent" })}
                   >
-                    <Text style={v_fd5f43.giftDashMetricLabel} numberOfLines={2}>
+                    <Text style={v_fd5f43.giftDashMetricLabel} numberOfLines={1}>
                       {v_8d41d7("giftBox.tabSent", { defaultValue: "보낸 선물" })}
                     </Text>
                     <Text style={v_fd5f43.giftDashMetricValue}>{v_deb5c7}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[v_fd5f43.giftDashMetric, v_fd5f43.giftDashMetricAccent]}
+                    style={v_fd5f43.giftDashMetric}
                     activeOpacity={0.8}
                     onPress={() => v_c65f5d.navigate("GiftBox", { initialTab: "exchange" })}
                   >
-                    <Text style={[v_fd5f43.giftDashMetricLabel, v_fd5f43.giftDashMetricLabelAccent]} numberOfLines={2}>
+                    <Text style={[v_fd5f43.giftDashMetricLabel, v_fd5f43.giftDashMetricLabelAccent]} numberOfLines={1}>
                       {v_8d41d7("giftBox.exchangeable", { defaultValue: "교환 가능" })}
                     </Text>
                     <Text style={[v_fd5f43.giftDashMetricValue, v_fd5f43.giftDashMetricValueAccent]}>
@@ -2392,21 +2392,25 @@ const v_fd5f43 = v_472849.create({
     gap: 2,
   },
   giftDashViewAll: { fontSize: 13, color: v_1bfbd0.zinc500 },
-  giftDashMetrics: { flexDirection: "row", alignItems: "stretch", gap: 8, marginBottom: 14 },
-  giftDashMetric: {
-    flex: 1,
-    backgroundColor: v_1bfbd0.zinc100,
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 10,
 
+  giftDashMetrics: { marginBottom: 14 },
+  giftDashMetric: {
+    flexDirection: "row",
+    alignItems: "center",
     justifyContent: "space-between",
-    minHeight: 72,
+    paddingVertical: 8,
   },
-  giftDashMetricAccent: { backgroundColor: "#eff6ff" },
-  giftDashMetricLabel: { fontSize: 11, lineHeight: 15, color: v_1bfbd0.zinc500 },
-  giftDashMetricLabelAccent: { color: v_1bfbd0.primary },
-  giftDashMetricValue: { fontSize: 22, fontWeight: "700", color: v_1bfbd0.zinc900, marginTop: 6 },
+  giftDashMetricLabel: { flex: 1, fontSize: 14, color: v_1bfbd0.zinc600 },
+  giftDashMetricLabelAccent: { color: v_1bfbd0.primary, fontWeight: "600" },
+
+  giftDashMetricValue: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: v_1bfbd0.zinc900,
+    textAlign: "right",
+    fontVariant: ["tabular-nums"],
+    marginLeft: 12,
+  },
   giftDashMetricValueAccent: { color: v_1bfbd0.primary },
   giftDashExchangeBtn: {
     ...v_d43669.md,
