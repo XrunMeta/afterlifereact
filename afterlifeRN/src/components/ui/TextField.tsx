@@ -35,6 +35,9 @@ const v_e775af = v_a3453e.forwardRef<v_79c4f2, TextFieldProps>(
       onFocus: v_cd3cee,
       multiline: v_577bb3,
       textAlignVertical: v_bba290,
+      secureTextEntry: v_458725,
+      autoCapitalize: v_7cdc04,
+      autoCorrect: v_dfd8c4,
       ...v_83bbcd
     },
     v_6d4ed3,
@@ -75,6 +78,12 @@ const v_e775af = v_a3453e.forwardRef<v_79c4f2, TextFieldProps>(
                 : (v_bba290 ?? v_8f28b1.textAlignVertical)
             }
             {...v_83bbcd}
+            secureTextEntry={v_458725}
+
+            autoCapitalize={
+              v_7cdc04 ?? (v_458725 ? "none" : undefined)
+            }
+            autoCorrect={v_dfd8c4 ?? (v_458725 ? false : undefined)}
           />
           {v_ca3ded ? <View style={v_d81136.rightIcon}>{v_ca3ded}</View> : null}
         </View>

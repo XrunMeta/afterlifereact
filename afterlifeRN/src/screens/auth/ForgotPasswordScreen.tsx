@@ -282,6 +282,10 @@ export default function v_040c8f() {
                 placeholder={v_8d41d7("auth.forgot.newPasswordPlaceholder")}
                 placeholderTextColor={v_1bfbd0.placeholder}
                 secureTextEntry={!v_b5ab16}
+                autoCapitalize="none"
+                autoCorrect={false}
+                textContentType="newPassword"
+                autoComplete="password-new"
                 autoFocus
               />
               {v_adc076 ? (
@@ -314,6 +318,10 @@ export default function v_040c8f() {
                 placeholder={v_8d41d7("auth.forgot.confirmPasswordPlaceholder")}
                 placeholderTextColor={v_1bfbd0.placeholder}
                 secureTextEntry={!v_e7340a}
+                autoCapitalize="none"
+                autoCorrect={false}
+                textContentType="newPassword"
+                autoComplete="password-new"
               />
               {v_a41c7b !== "idle" ? (
                 <Feather
