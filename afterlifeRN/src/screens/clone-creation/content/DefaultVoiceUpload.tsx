@@ -2,7 +2,7 @@
 
 import { v_889fad } from "../../../stores/dialogStore";
 import v_a3453e, { v_c4deb2, v_e662ae, v_5ab095 } from "bapkr";
-import { v_3094a2, v_19b633, v_4623af, v_472849, v_39a996, v_326be8, v_405151 } from "rcmrninabrnb";
+import { v_3094a2, v_19b633, v_4623af, v_472849, v_39a996, v_326be8, v_405151, v_6b5698 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import * as v_c95b2c from "gketqwckyalygtuqsawm";
 import {
@@ -24,7 +24,7 @@ import { v_7d2692 } from "../../../api/files";
 import { v_1ed7d9 } from "../../../stores/authStore";
 import { v_d7b329 } from "../../../lib/voicePresetName";
 import { v_6c761f } from "../../../lib/audioFileCheck";
-import { v_184958, v_dac67e, type v_b161c8 } from "../../../lib/audioQualityGate";
+import { v_184958, v_dac67e, v_44adb0 } from "../../../lib/audioQualityGate";
 
 export const v_e79da6 = [
   { id: "v1", name: "Nova" },
@@ -281,10 +281,8 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
   const v_b599c8 = v_b3e89c(v_5ebce3, 200);
 
   const v_89619a = v_e662ae<number[]>([]);
-  const v_cc5fba = v_e662ae<Record<v_b161c8, number>>({ ok: 0, silence: 0, noise: 0 });
-  const v_ceb0fd = v_e662ae<{ silence: number; noise: number; total: number }>({
-    silence: 0, noise: 0, total: 0,
-  });
+  const v_e5c412 = v_e662ae(false);
+  const v_ceb0fd = v_e662ae<{ silence: number; total: number }>({ silence: 0, total: 0 });
 
   const v_5cdd15 = v_a3453e.useCallback((v_badeaf) => {
     if (v_326be8.OS === "android") {
@@ -305,27 +303,16 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
 
     v_89619a.current = v_184958(v_89619a.current, v_35f85c);
     v_ceb0fd.current.total += 1;
-    if (v_89619a.current.length < 15) return; 
 
-    const v_8f00b9 = v_dac67e(v_89619a.current);
-    if (v_8f00b9.verdict === "ok") return;
-
-    if (v_8f00b9.verdict === "silence") v_ceb0fd.current.silence += 1;
-    if (v_8f00b9.verdict === "noise") v_ceb0fd.current.noise += 1;
-
-    const v_5c2f9f = Date.now();
-    if (v_5c2f9f - v_cc5fba.current[v_8f00b9.verdict] < 5000) return;
-    v_cc5fba.current[v_8f00b9.verdict] = v_5c2f9f;
-
-    if (v_8f00b9.verdict === "silence") {
-      v_5cdd15(v_8d41d7("create.voice.toastSilence", {
-        defaultValue: "너무 조용해요. 좀 더 크게 말씀해 주세요.",
-      }));
-    } else if (v_8f00b9.verdict === "noise") {
-      v_5cdd15(v_8d41d7("create.voice.toastNoise", {
-        defaultValue: "주변이 시끄러워요. 조용한 곳에서 녹음해 주세요.",
+    if (v_44adb0(v_35f85c) && !v_e5c412.current) {
+      v_e5c412.current = true;
+      v_5cdd15(v_8d41d7("create.voice.toastClipping", {
+        defaultValue: "소리가 너무 커서 깨져요. 마이크에서 조금 떨어져서 말씀해 주세요.",
       }));
     }
+
+    if (v_89619a.current.length < 15) return; 
+    if (v_dac67e(v_89619a.current).verdict === "silence") v_ceb0fd.current.silence += 1;
 
   }, [v_b599c8.isRecording, (v_b599c8 as unknown as { metering?: number }).metering]);
 
@@ -349,6 +336,39 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
 
   }, []);
 
+  const v_08e4cb = v_a3453e.useCallback((v_58ca36) => {
+    const v_cb35cb = v_504bbe.current;
+    let v_5fba7b = false;
+    try {
+      v_5fba7b = Boolean(v_cb35cb.isRecording);
+    } catch {
+
+    }
+    if (!v_5fba7b) return;
+    try {
+      void v_cb35cb.stop().catch(() => {});
+    } catch {
+
+    }
+    void v_0e491a({ allowsRecording: false }).catch(() => {});
+    v_ceb0fd.current = { silence: 0, total: 0 };
+    if (v_58ca36 === "background") {
+      v_889fad(
+        v_8d41d7("create.voice.recordAbortedTitle", { defaultValue: "녹음이 중단됐어요" }),
+        v_8d41d7("create.voice.recordAbortedMsg", {
+          defaultValue: "녹음 중에 앱을 벗어나서 녹음을 멈췄어요. 처음부터 다시 녹음해 주세요.",
+        }),
+      );
+    }
+  }, [v_8d41d7]);
+
+  v_c4deb2(() => {
+    const v_1ae212 = v_6b5698.addEventListener("change", (v_fd5f43) => {
+      if (v_fd5f43 === "background") v_08e4cb("background");
+    });
+    return () => v_1ae212.remove();
+  }, [v_08e4cb]);
+
   v_cf763b(
     v_a3453e.useCallback(() => {
       return () => {
@@ -358,6 +378,7 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
 
         }
         v_a4d7cc(null);
+        v_08e4cb("blur");
       };
 
     }, []),
@@ -475,6 +496,11 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
       await v_0e491a({ allowsRecording: true, playsInSilentMode: true });
 
       await v_5ebce3.prepareToRecordAsync();
+
+      v_4a4814("record", v_884e4d);
+      v_2941d3((v_ba2215) => ({ ...v_ba2215, record: false }));
+      v_e5c412.current = false;
+      v_ceb0fd.current = { silence: 0, total: 0 };
       await v_5ebce3.record();
     } catch (v_49263d) {
       console.warn("[DefaultVoice] 녹음 시작 실패:", String(v_49263d));
@@ -495,24 +521,15 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
     if (!v_cd1446) return;
 
     const v_fd5f43 = v_ceb0fd.current;
-    v_ceb0fd.current = { silence: 0, noise: 0, total: 0 };
-    if (v_fd5f43.total >= 15) { 
-      const v_a7bb65 = v_fd5f43.silence / v_fd5f43.total;
-      const v_576a95 = v_fd5f43.noise / v_fd5f43.total;
-      if (v_a7bb65 > 0.3 || v_576a95 > 0.3) {
-        const primary: v_b161c8 = v_a7bb65 >= v_576a95 ? "silence" : "noise";
-        v_889fad(
-          v_8d41d7("create.voice.recordQualityTitle", { defaultValue: "녹음 품질 확인" }),
-          v_127e92 === "silence"
-            ? v_8d41d7("create.voice.recordQualitySilenceMsg", {
-                defaultValue: "녹음에 무음 구간이 많아요. 조용한 곳에서 문장 전체를 또렷하게 다시 녹음해 주세요.",
-              })
-            : v_8d41d7("create.voice.recordQualityNoiseMsg", {
-                defaultValue: "녹음에 주변 소음이 섞였어요. 조용한 곳에서 다시 녹음해 주시면 클론 목소리가 훨씬 자연스러워집니다.",
-              }),
-        );
+    v_ceb0fd.current = { silence: 0, total: 0 };
+    if (v_fd5f43.total >= 15 && v_fd5f43.silence / v_fd5f43.total > 0.3) { 
+      v_889fad(
+        v_8d41d7("create.voice.recordQualityTitle", { defaultValue: "녹음 품질 확인" }),
+        v_8d41d7("create.voice.recordQualitySilenceMsg", {
+          defaultValue: "녹음에 무음 구간이 많아요. 조용한 곳에서 문장 전체를 또렷하게 다시 녹음해 주세요.",
+        }),
+      );
 
-      }
     }
 
     await v_a9e8f0("record", {
