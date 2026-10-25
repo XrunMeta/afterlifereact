@@ -863,6 +863,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
             restartKey={v_82d07a === "feed" || v_82d07a === "done" ? "post" : "prepare"}
             busy={!v_5e9bfe && v_82d07a !== "done" && (v_c3de9c || v_805753 || v_3029e7 === "video")}
             muted={!v_5e9bfe && v_3029e7 === "reupload"}
+            waiting={!v_5e9bfe && (v_3029e7 === "video" || v_805753)}
             onPress={
               v_5e9bfe
                 ? () => {
