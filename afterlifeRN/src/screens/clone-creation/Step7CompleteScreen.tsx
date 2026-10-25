@@ -285,6 +285,8 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
   const [v_82d07a, v_8943dd] = v_5ab095<"creating" | "feed" | "done" | null>(null);
 
   const v_85b5be = v_e662ae(false);
+
+  const [v_e03d51, v_6504c2] = v_5ab095(false);
   const v_39a044 = v_e662ae<string | null>(null);
 
   const v_140aea = v_de06a3(
@@ -537,7 +539,10 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
     if (v_85b5be.current) return;
     v_85b5be.current = true;
     void (async () => {
-      if (!(await v_1482fc())) return;
+      if (!(await v_1482fc())) {
+        v_6504c2(true);
+        return;
+      }
       const v_41b99d = v_6044a8.trim();
       if (v_41b99d && v_194498.getState().creationDraft.description !== v_41b99d) {
         v_194498.getState().setCreationDraft({ description: v_41b99d });
@@ -562,6 +567,16 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
     })();
 
   }, [v_3029e7, v_af4871, v_805753, v_c3de9c, v_5e9bfe]);
+
+  const v_854831 =
+    v_805753 || (v_af4871 == null && v_3029e7 == null && !v_5e9bfe && !v_e03d51 && !v_c3de9c);
+
+  const v_25357c = v_5e9bfe
+    ? "error"
+    : v_3029e7 ?? (v_854831 ? "creating" : v_82d07a === "done" ? "done" : v_c3de9c ? "posting" : "ready");
+  v_c4deb2(() => {
+    console.log(`[CLONE-CREATE][btn] ${v_25357c}`);
+  }, [v_25357c]);
 
   const v_d01790 = async () => {
     if (v_805753 || v_c3de9c) return;
@@ -682,7 +697,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
     }
 
     v_4b9b17(false);
-    v_8943dd(null);
+
     v_7a77e1();
     if (!v_80a1e3) return;
 
@@ -835,7 +850,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
                 ? v_8d41d7("create.step7.progressVideo", { defaultValue: "영상 생성 대기중..." })
                 : v_3029e7 === "reupload"
                 ? v_8d41d7("create.step7.progressReupload", { defaultValue: "사진을 다시 올려 주세요" })
-                : v_82d07a === "creating" || v_805753
+                : v_82d07a === "creating" || v_854831
                 ? v_8d41d7("create.step7.progressCreating", { defaultValue: "클론 만드는 중..." })
                 : v_82d07a === "done"
                 ? v_8d41d7("create.step7.progressDone", { defaultValue: "게시 완료" })
@@ -850,19 +865,20 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
                 ? 0.7
                 : v_3029e7 === "reupload"
                 ? 0
-                : v_805753
+                : v_854831
                 ? 0.92
                 : v_82d07a === "feed"
                 ? 0.9
                 : 1
             }
             duration={
-              v_3029e7 === "video" ? 150000 : v_805753 ? 8000 : v_82d07a === "feed" ? 3000 : v_82d07a === "done" ? 300 : 600
+              v_3029e7 === "video" ? 150000 : v_854831 ? 8000 : v_82d07a === "feed" ? 3000 : v_82d07a === "done" ? 300 : 600
             }
 
             restartKey={v_82d07a === "feed" || v_82d07a === "done" ? "post" : "prepare"}
-            busy={!v_5e9bfe && v_82d07a !== "done" && (v_c3de9c || v_805753 || v_3029e7 === "video")}
+            busy={!v_5e9bfe && v_82d07a !== "done" && (v_c3de9c || v_854831 || v_3029e7 === "video")}
             muted={!v_5e9bfe && v_3029e7 === "reupload"}
+            waiting={!v_5e9bfe && (v_3029e7 === "video" || v_854831)}
             onPress={
               v_5e9bfe
                 ? () => {
@@ -872,7 +888,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
                   }
                 : v_d01790
             }
-            disabled={v_c3de9c || v_805753 || v_3029e7 != null}
+            disabled={v_c3de9c || v_854831 || v_3029e7 != null}
           />
         </View>
       </KeyboardAvoidingView>
