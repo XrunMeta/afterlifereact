@@ -98,8 +98,7 @@ function v_1d1af8(v_8d41d7, v_1833e7, v_dd8af0): string {
   return `${v_aa444d} ${v_ba70d8}`;
 }
 
-function v_78ed2a({ uri: v_cd1446 }: { uri: string }) {
-  const { t: v_8d41d7 } = v_772971();
+function v_78ed2a({ uri: v_cd1446, onShown: v_92dfb5 }: { uri: string; onShown?: () => void }) {
   const v_86394a = v_110960(v_cd1446, (v_e2a85c) => {
     v_e2a85c.loop = true;
     v_e2a85c.muted = true;
@@ -112,6 +111,8 @@ function v_78ed2a({ uri: v_cd1446 }: { uri: string }) {
         style={v_472849.absoluteFillObject}
         contentFit="cover"
         nativeControls={false}
+
+        onFirstFrameRender={v_92dfb5}
       />
       {}
     </View>
@@ -137,6 +138,21 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
 
   const [v_7f3fda, v_3773cd] = v_5ab095<v_e5d62a | null>(null);
   const v_835261 = v_e662ae<ReturnType<typeof setInterval> | null>(null);
+
+  const [v_9dae59, v_cffac6] = v_5ab095(false);
+  const v_1accc1 = v_7f3fda?.status === 'done' && !!v_7f3fda.out_url;
+
+  v_c4deb2(() => {
+    v_cffac6(false);
+  }, [v_f04727.idleVideoJobId]);
+  v_c4deb2(() => {
+    if (!v_1accc1 || v_9dae59) return;
+    const v_cb36b1 = setTimeout(() => {
+      console.warn("[CLONE-CREATE] idle preview first frame 20s timeout → proceed");
+      v_cffac6(true);
+    }, 20000);
+    return () => clearTimeout(v_cb36b1);
+  }, [v_1accc1, v_9dae59]);
 
   const v_1c6048 = v_e662ae(false);
   const [v_6044a8, v_1d6b6a] = v_5ab095(() => {
@@ -200,7 +216,13 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
     : true;
 
   const v_3029e7 =
-    v_af4871 != null ? null : v_4d3a74 ? "video" : v_798360 ? "reupload" : null;
+    v_af4871 != null
+      ? null
+      : v_4d3a74 || (v_1accc1 && !v_9dae59)
+      ? "video"
+      : v_798360
+      ? "reupload"
+      : null;
 
   const v_a3d9bc = v_de06a3(async () => {
     if (v_f6dbfe) return;
@@ -727,7 +749,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
 }
           {v_7f3fda?.status === 'done' && v_7f3fda.out_url ? (
 
-            <IdleVideoPreview uri={v_7f3fda.out_url} />
+            <IdleVideoPreview uri={v_7f3fda.out_url} onShown={() => v_cffac6(true)} />
           ) : (v_7f3fda?.status === 'failed' || (!v_f04727.idleVideoJobId && !!v_f04727.imageFile)) ? (
 
             <TouchableOpacity
@@ -819,7 +841,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
             progress={
               v_5e9bfe ? 1 : v_3029e7 === "video" ? 0.7 : v_3029e7 === "reupload" ? 0 : v_805753 ? 0.92 : 1
             }
-            duration={v_3029e7 === "video" ? 90000 : v_805753 ? 4000 : 400}
+            duration={v_3029e7 === "video" ? 150000 : v_805753 ? 8000 : 600}
             busy={!v_5e9bfe && (v_c3de9c || v_805753 || v_3029e7 === "video")}
             muted={!v_5e9bfe && v_3029e7 === "reupload"}
             onPress={
