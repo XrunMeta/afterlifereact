@@ -42,7 +42,8 @@ const v_1d54af = 4;
 const v_66f2f8 = 10;
 const v_1c7901 = 28;
 const v_5ac224 = 120;
-export const v_08c06d = v_5ac224;
+
+export const v_ae4cf5 = 60;
 const v_6c015b = 2800;
 const v_c124a6 = 280;
 
@@ -93,10 +94,10 @@ function v_e99974(v_724489) {
   return { index: v_a56041, opacity: v_df9f11 };
 }
 
-function v_223478({ slides: v_f81d0e }: { slides: string[] }) {
+function v_223478({ slides: v_f81d0e, docked: v_60cf9e }: { slides: string[]; docked?: boolean }) {
   const { index: v_a56041, opacity: v_df9f11 } = v_e99974(v_f81d0e.length);
   return (
-    <Animated.Text style={[v_fd5f43.line2, { opacity: v_df9f11 }]} numberOfLines={2}>
+    <Animated.Text style={[v_fd5f43.line2, v_60cf9e && v_fd5f43.line2Docked, { opacity: v_df9f11 }]} numberOfLines={v_60cf9e ? 1 : 2}>
       {v_f81d0e[v_a56041]}
     </Animated.Text>
   );
@@ -197,14 +198,19 @@ export default function v_f9a626({ style: v_7fa4e4, variant: v_46e192 = "carouse
         imageStyle={v_60cf9e ? undefined : v_fd5f43.cardImg}
         resizeMode="cover"
       >
-        <LinearGradient colors={v_8c0b26.wash} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={v_fd5f43.wash}>
-          <View style={v_fd5f43.textCol}>
-            <Text style={v_fd5f43.line1} numberOfLines={1}>
+        <LinearGradient
+          colors={v_8c0b26.wash}
+          start={{ x: 0, y: 0.5 }}
+          end={{ x: 1, y: 0.5 }}
+          style={[v_fd5f43.wash, v_60cf9e && v_fd5f43.washDocked]}
+        >
+          <View style={[v_fd5f43.textCol, v_60cf9e && v_fd5f43.textColDocked]}>
+            <Text style={[v_fd5f43.line1, v_60cf9e && v_fd5f43.line1Docked]} numberOfLines={1}>
               {v_8c0b26.brand}
             </Text>
-            <CardSlideTitle slides={v_8c0b26.slides} />
+            <CardSlideTitle slides={v_8c0b26.slides} docked={v_60cf9e} />
           </View>
-          <View style={[v_fd5f43.visual, { backgroundColor: v_8c0b26.logoBoxBg }]}>
+          <View style={[v_fd5f43.visual, v_60cf9e && v_fd5f43.visualDocked, { backgroundColor: v_8c0b26.logoBoxBg }]}>
             <Image source={v_8c0b26.logo} style={v_fd5f43.logo} resizeMode="contain" />
           </View>
         </LinearGradient>
@@ -282,6 +288,7 @@ const v_fd5f43 = v_472849.create({
     elevation: 4,
   },
   cardWrapDocked: {
+    height: v_ae4cf5,
     marginRight: 0,
     borderRadius: 0,
     borderWidth: 0,
@@ -304,12 +311,20 @@ const v_fd5f43 = v_472849.create({
     paddingRight: 10,
     paddingVertical: 14,
   },
+  washDocked: {
+    paddingLeft: 16,
+    paddingRight: 8,
+    paddingVertical: 6,
+  },
   textCol: {
     flex: 1,
     gap: 6,
     paddingRight: 8,
     minWidth: 0,
     justifyContent: "center",
+  },
+  textColDocked: {
+    gap: 1,
   },
   line1: {
     fontSize: 12,
@@ -328,6 +343,14 @@ const v_fd5f43 = v_472849.create({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
   },
+  line1Docked: {
+    fontSize: 10,
+    letterSpacing: 1.2,
+  },
+  line2Docked: {
+    fontSize: 17,
+    lineHeight: 22,
+  },
   visual: {
     width: 84,
     height: 84,
@@ -337,6 +360,11 @@ const v_fd5f43 = v_472849.create({
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
+  },
+  visualDocked: {
+    width: 64,
+    height: 44,
+    borderRadius: 10,
   },
   logo: {
     width: "88%",
