@@ -2437,7 +2437,7 @@
     "confirmTitle": "Deactivate your account?",
     "confirmBody": "You'll be logged out on all devices right away.",
     "effect": {
-      "hide": "Your profile and AI clones are hidden from home, explore and search, and others can't chat or call them.",
+      "hide": "Your profile and AI clones are hidden from home, explore and search, and no one except co-admins can chat or call them.",
       "posts": "Your posts and comments are hidden.",
       "interaction": "Others can't send you gifts or shares.",
       "notify": "All notifications stop.",

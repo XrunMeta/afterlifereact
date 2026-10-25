@@ -2434,7 +2434,7 @@
     "confirmTitle": "Nonaktifkan akun?",
     "confirmBody": "Anda akan langsung keluar dari semua perangkat.",
     "effect": {
-      "hide": "Profil dan klon AI Anda disembunyikan dari beranda, jelajah, dan pencarian, dan orang lain tidak bisa mengobrol atau menelepon.",
+      "hide": "Profil dan klon AI Anda disembunyikan dari beranda, jelajah, dan pencarian, dan selain Ko-Admin tidak ada yang bisa mengobrol atau menelepon.",
       "posts": "Postingan dan komentar Anda disembunyikan.",
       "interaction": "Orang lain tidak bisa mengirim hadiah atau berbagi.",
       "notify": "Semua notifikasi berhenti.",
