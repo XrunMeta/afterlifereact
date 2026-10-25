@@ -107,4 +107,38 @@ v_469bf2("클론 삭제 — /oth-path 원본 실제 삭제", () => {
     v_4d37e3((await v_d0ca5b(v_6e0fd3, await v_38cec9(v_257b90))).status).toBe(200);
     v_4d37e3(await v_097362(v_1c1268, "uploadedfiles/purge-d-mine.jpg")).toBe(true);
   });
+
+  v_23805a("생성 작업 기록(clone_asset_jobs)이 붙잡은 원본·중간 결과물도 지우고, 이 클론의 작업 기록을 정리한다", async () => {
+    const v_257b90 = await v_bfb240("purge-e@test.local");
+    const v_2a5a61 = await v_c808bd(v_257b90, "uploadedfiles/purge-e-photo.jpg");
+    const v_89ebdc = await v_c808bd(v_257b90, "assets/idle_video/purge-e-mid.mp4");
+    const v_6e0fd3 = await v_4d24a9(v_257b90, "purge_e", { avatar: v_4a1fb4(v_2a5a61) });
+    await v_a1651b()
+      .prepare(
+        `INSERT INTO clone_asset_jobs (id, user_id, kind, src_file_id, out_file_id, status, clone_id) VALUES (?,?,'idle_video',?,?,'done',?)`,
+      )
+      .bind("purge-e-job", v_257b90, v_2a5a61, v_89ebdc, v_6e0fd3)
+      .run();
+
+    v_4d37e3((await v_d0ca5b(v_6e0fd3, await v_38cec9(v_257b90))).status).toBe(200);
+
+    v_4d37e3(await v_097362(v_2a5a61, "uploadedfiles/purge-e-photo.jpg")).toBe(true);
+
+    v_4d37e3(await v_097362(v_89ebdc, "assets/idle_video/purge-e-mid.mp4")).toBe(true);
+    const v_e3d2a2 = await v_a1651b().prepare("SELECT COUNT(*) AS n FROM clone_asset_jobs WHERE clone_id = ?").bind(v_6e0fd3).first<{ n: number }>();
+    v_4d37e3(v_e3d2a2?.n).toBe(0);
+  });
+
+  v_23805a("다른 클론(또는 아직 연결 전) 작업 기록이 같은 원본을 쓰면 지우지 않는다", async () => {
+    const v_257b90 = await v_bfb240("purge-f@test.local");
+    const v_2a5a61 = await v_c808bd(v_257b90, "uploadedfiles/purge-f-photo.jpg");
+    const v_6e0fd3 = await v_4d24a9(v_257b90, "purge_f", { avatar: v_4a1fb4(v_2a5a61) });
+    await v_a1651b()
+      .prepare(`INSERT INTO clone_asset_jobs (id, user_id, kind, src_file_id, status, clone_id) VALUES (?,?,'idle_video',?,'running',NULL)`)
+      .bind("purge-f-pending", v_257b90, v_2a5a61)
+      .run();
+
+    v_4d37e3((await v_d0ca5b(v_6e0fd3, await v_38cec9(v_257b90))).status).toBe(200);
+    v_4d37e3(await v_df2a0c(v_2a5a61, "uploadedfiles/purge-f-photo.jpg")).toBe(true);
+  });
 });
