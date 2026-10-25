@@ -1,5 +1,5 @@
 import { v_b7c41b, type v_437670 } from "zmui";
-import type { v_de0a25 } from "../lib/env";
+import type { v_de0a25, v_273a0c } from "../lib/env";
 import { v_3ebe58 } from "../lib/errors";
 import { v_4c95c2, v_1f4ea7 } from "../lib/validate";
 import { v_54846c, v_1000e8, v_96aa7f } from "../lib/password";
@@ -1149,13 +1149,30 @@ v_68f0aa.post("/password/reset", async (v_3f4e2e) => {
   return v_3f4e2e.json({ ok: true });
 });
 
+async function v_573853(
+  env: v_273a0c,
+  v_bb4bfd,
+): Promise<{ member: number; guid: string | null; wallet: string | null } | null> {
+  const v_715f8e = await v_c9c489.DB
+    .prepare(`SELECT id FROM users WHERE email = ? LIMIT 1`)
+    .bind(v_bb4bfd)
+    .first<{ id: number }>();
+  if (v_715f8e) return null;
+  const v_534695 = await v_a0ec33(v_c9c489, v_bb4bfd);
+  if (!v_534695.found || !v_534695.member) return null;
+  return { member: v_534695.member, guid: v_534695.guid ?? null, wallet: v_534695.wallet ?? null };
+}
+
 v_68f0aa.post("/email/login-code", async (v_3f4e2e) => {
   const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_192e7b);
+  const v_bb4bfd = v_4d33b2.email.trim().toLowerCase();
   const v_d1b635 = await v_3f4e2e.env.DB
     .prepare(`SELECT id, deletion_state FROM users WHERE email = ? AND deleted_at IS NULL`)
-    .bind(v_4d33b2.email.trim().toLowerCase())
+    .bind(v_bb4bfd)
     .first<{ id: number; deletion_state: string }>();
   if (v_d1b635 && v_d1b635.deletion_state === "active") {
+    await v_b78f7e(v_3f4e2e.env, v_4d33b2.email, "login");
+  } else if (!v_d1b635 && (await v_573853(v_3f4e2e.env, v_bb4bfd))) {
     await v_b78f7e(v_3f4e2e.env, v_4d33b2.email, "login");
   }
   return v_3f4e2e.json({ ok: true, expiresInSec: v_09cc91 });
@@ -1176,11 +1193,50 @@ v_68f0aa.post("/email/login", async (v_3f4e2e) => {
 
   await v_656e8b(v_3f4e2e.env, v_4d33b2.email, v_4d33b2.verificationCode);
 
-  const v_625c74 = await v_3f4e2e.env.DB
+  let v_625c74 = await v_3f4e2e.env.DB
     .prepare(`SELECT id, deletion_state, banned_until FROM users WHERE email = ? AND deleted_at IS NULL LIMIT 1`)
     .bind(v_bb4bfd)
     .first<{ id: number; deletion_state: string; banned_until: string | null }>();
-  if (!v_625c74) throw new v_3ebe58("NOT_FOUND", "가입된 이메일이 아닙니다.");
+
+  let v_1329db = false;
+  if (!v_625c74) {
+    const v_fac65e = await v_573853(v_3f4e2e.env, v_bb4bfd);
+    if (!v_fac65e) throw new v_3ebe58("NOT_FOUND", "가입된 이메일이 아닙니다.");
+    const v_c4820c = Array.from(crypto.getRandomValues(new Uint8Array(32)), (v_148ff6) =>
+      v_148ff6.toString(16).padStart(2, "0"),
+    ).join("");
+    const v_81161e = await v_3f4e2e.env.DB
+      .prepare(
+        `INSERT INTO users (name, email, password_hash, xrun_member_id, xrun_guid, xrun_wallet, xrun_linked_at,
+                            sso_consent_version, sso_consent_at)
+         VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?, CURRENT_TIMESTAMP)
+         RETURNING id, deletion_state, banned_until`,
+      )
+      .bind(
+        v_bb4bfd.split("@")[0] || "user",
+        v_bb4bfd,
+        await v_1000e8(v_c4820c),
+        v_fac65e.member,
+        v_fac65e.guid,
+        v_fac65e.wallet,
+        v_31fb59,
+      )
+      .first<{ id: number; deletion_state: string; banned_until: string | null }>();
+    if (!v_81161e) throw new v_3ebe58("INTERNAL_ERROR", "Failed to create user from xrun link.");
+    v_625c74 = v_81161e;
+    v_1329db = true;
+    try {
+      await v_4960d7(v_3f4e2e, v_81161e.id);
+    } catch (v_49263d) {
+      console.error(`[AUTH/email.login.xrun_link] credit grant failed user_id=${v_81161e.id} err=${(v_49263d as Error).message}`);
+    }
+
+    v_3f4e2e.executionCtx.waitUntil(
+      v_3326b4(v_3f4e2e.env, v_fac65e.member, { service: true, location: true, privacy: true })
+        .then((v_cb35cb) => { if (!v_cb35cb.ok) console.warn(`[auth.email.login.xrun] syncTermsToXrun failed: ${v_cb35cb.reason}`); }),
+    );
+    await v_74defc(v_3f4e2e, { userId: v_81161e.id, action: "auth.login.xrun_link" });
+  }
   if (v_625c74.deletion_state !== "active") {
     throw new v_3ebe58("ACCOUNT_DELETED", "이미 탈퇴한 계정이에요.");
   }
@@ -1227,5 +1283,5 @@ v_68f0aa.post("/email/login", async (v_3f4e2e) => {
   const { accessToken: v_2ca7e0, refreshToken: v_dfaee3, accessExpiresIn: v_ff8c95 } = await v_8ab5ff(v_3f4e2e, v_625c74.id, v_4d33b2.deviceId);
   v_56035d(v_3f4e2e, v_dfaee3);
   await v_74defc(v_3f4e2e, { userId: v_625c74.id, action: "auth.login.otp" });
-  return v_3f4e2e.json({ accessToken: v_2ca7e0, refreshToken: v_dfaee3, accessExpiresIn: v_ff8c95 });
+  return v_3f4e2e.json({ accessToken: v_2ca7e0, refreshToken: v_dfaee3, accessExpiresIn: v_ff8c95, linkedFromXrun: v_1329db });
 });
