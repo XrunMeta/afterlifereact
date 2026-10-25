@@ -16,6 +16,7 @@ import {
   v_c0f252,
 } from "../lib/xrun";
 import { v_74c502 } from "../lib/cloneAccess";
+import { v_3ca92e } from "../lib/deactivation";
 import { v_991113 } from "../lib/conversationLeave";
 
 export const v_de7ba7 = new v_b7c41b<v_de0a25>();
@@ -1025,6 +1026,8 @@ v_de7ba7.get("/:id/followed-clones", v_6690d9, async (v_3f4e2e) => {
            LEFT JOIN user_clone_interactions uci
                   ON uci.user_id = ? AND uci.clone_id = c.id
           WHERE ${v_74c502("c")}
+            -- 2026-10-25: 소유자가 계정 비활성화한 클론은 팔로잉 탭에서 숨김(공동관리자 예외 없음).
+            AND ${v_3ca92e("c.owner_id")}
             -- 소유자가 삭제(soft_deleted)한 페르소나는 즉시 구독 목록에서 제외.
             --   검색/피드와 동일 정책(active 만) — T-201: 술어를 cloneActiveSql() 로 통일.
             AND c.id NOT IN (SELECT clone_id FROM clone_blocks WHERE user_id = ?)
@@ -1466,9 +1469,19 @@ v_de7ba7.delete("/:id/follow", v_6690d9, async (v_3f4e2e) => {
   return v_3f4e2e.json({ ok: true });
 });
 
+async function v_98e5f0(v_a1651b, v_b1de41, v_013af2): Promise<void> {
+  if (v_b1de41 === v_013af2) return;
+  const v_3ac7e7 = await v_a1651b
+    .prepare(`SELECT 1 AS x FROM users WHERE id = ? AND deleted_at IS NULL AND deactivated_at IS NULL`)
+    .bind(v_b1de41)
+    .first<{ x: number }>();
+  if (!v_3ac7e7) throw new v_3ebe58("NOT_FOUND", "User not found.");
+}
+
 v_de7ba7.get("/:id/followers", v_6690d9, async (v_3f4e2e) => {
   const v_b1de41 = v_586d97(v_3f4e2e);
   const v_013af2 = v_3f4e2e.get("userId")!;
+  await v_98e5f0(v_3f4e2e.env.DB, v_b1de41, v_013af2);
   const v_f71b56 = new URL(v_3f4e2e.req.url);
   const v_cf2260 = Number(v_f71b56.searchParams.get("limit") ?? 50);
   const v_02be30 = Math.max(1, Math.min(200, Number.isFinite(v_cf2260) ? v_cf2260 : 50));
@@ -1486,6 +1499,7 @@ v_de7ba7.get("/:id/followers", v_6690d9, async (v_3f4e2e) => {
           WHERE uf.followee_id = ?
             AND u.deletion_state = 'active'
             AND u.deleted_at IS NULL
+            AND ${v_3ca92e("u.id")}
             AND uf.follower_id NOT IN (SELECT blocked_id FROM user_blocks WHERE blocker_id = ?)
           ORDER BY uf.id DESC
           LIMIT ?`,
@@ -1515,6 +1529,7 @@ v_de7ba7.get("/:id/followers", v_6690d9, async (v_3f4e2e) => {
 v_de7ba7.get("/:id/following", v_6690d9, async (v_3f4e2e) => {
   const v_b1de41 = v_586d97(v_3f4e2e);
   const v_013af2 = v_3f4e2e.get("userId")!;
+  await v_98e5f0(v_3f4e2e.env.DB, v_b1de41, v_013af2);
   const v_f71b56 = new URL(v_3f4e2e.req.url);
   const v_cf2260 = Number(v_f71b56.searchParams.get("limit") ?? 50);
   const v_02be30 = Math.max(1, Math.min(200, Number.isFinite(v_cf2260) ? v_cf2260 : 50));
@@ -1532,6 +1547,7 @@ v_de7ba7.get("/:id/following", v_6690d9, async (v_3f4e2e) => {
           WHERE uf.follower_id = ?
             AND u.deletion_state = 'active'
             AND u.deleted_at IS NULL
+            AND ${v_3ca92e("u.id")}
             AND uf.followee_id NOT IN (SELECT blocked_id FROM user_blocks WHERE blocker_id = ?)
           ORDER BY uf.id DESC
           LIMIT ?`,
@@ -1586,12 +1602,14 @@ v_de7ba7.get("/:id", v_6690d9, async (v_3f4e2e) => {
             JOIN users u ON u.id = uf.follower_id
            WHERE uf.followee_id = ?
              AND u.deletion_state = 'active'
-             AND u.deleted_at IS NULL) AS followersCount,
+             AND u.deleted_at IS NULL
+             AND ${v_3ca92e("u.id")}) AS followersCount,
          (SELECT COUNT(*) FROM user_follows uf
             JOIN users u ON u.id = uf.followee_id
            WHERE uf.follower_id = ?
              AND u.deletion_state = 'active'
-             AND u.deleted_at IS NULL) AS followingCount`,
+             AND u.deleted_at IS NULL
+             AND ${v_3ca92e("u.id")}) AS followingCount`,
     )
     .bind(v_b1de41, v_b1de41)
     .first<{ followersCount: number; followingCount: number }>();
