@@ -27,7 +27,18 @@ export interface TimelineChatItem {
   caption?: string | null;
 
   lang?: string;
+
+  replyTo?: ChatReplyTo;
+
+  reaction?: string;
 }
+
+export interface ChatReplyTo {
+  id: number;
+  content: string | null;
+}
+
+export const v_5bba7d = ["❤️", "😂", "😮", "😢", "👍", "🙏"] as const;
 export interface TimelineCallItem {
   type: "call";
   callId: string;
@@ -100,6 +111,7 @@ export interface PostMessageResponse {
     createdAt: string;
     kind?: "image" | "text";
     caption?: string | null;
+    replyTo?: ChatReplyTo;
   };
 
   cloneReply: { id: number; content: string; tokens: number; at?: number; createdAt: string; lang?: string };
@@ -167,8 +179,12 @@ export async function v_dd96e7(
 
   const v_6f448e = `chat-${v_6e0fd3}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 
-  const v_4d33b2 = { content: v_b43b74, locale: v_9c213b.language };
+  const v_4d33b2 = {
+    content: v_b43b74,
+    locale: v_9c213b.language,
+  };
   if (v_328259.sessionId) v_4d33b2.session_id = v_328259.sessionId;
+  if (v_328259.replyToMessageId) v_4d33b2.reply_to_message_id = v_328259.replyToMessageId;
   return v_04b58a<PostMessageResponse>(
     `/oth-path${v_6e0fd3}/messages`,
     v_2ca7e0,
@@ -274,6 +290,17 @@ export async function v_1c758d(
 ): Promise<void> {
   await v_04b58a<{ ok: boolean }>(`/oth-path${v_7f4466}`, v_2ca7e0, {
     method: "DELETE",
+  });
+}
+
+export async function v_e37b6d(
+  v_7f4466,
+  v_03a50c,
+  v_2ca7e0,
+): Promise<void> {
+  await v_04b58a<{ ok: boolean }>(`/oth-path${v_7f4466}/reaction`, v_2ca7e0, {
+    method: "PUT",
+    body: JSON.stringify({ emoji: v_03a50c }),
   });
 }
 
