@@ -3,6 +3,7 @@
 import { v_b7c41b, type v_437670 } from "zmui";
 import type { v_de0a25 } from "../lib/env";
 import { v_3ebe58 } from "../lib/errors";
+import { v_8cf86b } from "../lib/utils";
 import { v_4c95c2, v_1f4ea7 } from "../lib/validate";
 import { v_6690d9 } from "../middleware/auth";
 import { v_80a022 } from "../lib/notify";
@@ -531,7 +532,7 @@ v_f1d06f.get("/:id/likes", async (v_3f4e2e) => {
       likeId: v_cb35cb.likeId,
       userId: v_cb35cb.userId,
       name: v_cb35cb.userName,
-      email: v_cb35cb.userEmail,
+      email: v_8cf86b(v_cb35cb.userEmail),
       avatarUrl: v_cb35cb.userAvatarUrl,
       createdAt: v_cb35cb.createdAt,
     })),
@@ -857,7 +858,7 @@ v_f1d06f.get("/:id/comments", async (v_3f4e2e) => {
       user: {
         id: v_cb35cb.userId,
         name: v_cb35cb.userName,
-        email: v_cb35cb.userEmail,
+        email: v_8cf86b(v_cb35cb.userEmail),
         avatarUrl: v_cb35cb.userAvatarUrl,
       },
     })),
@@ -934,7 +935,7 @@ v_f1d06f.get("/:id/comments/:cid/replies", async (v_3f4e2e) => {
       user: {
         id: v_cb35cb.userId,
         name: v_cb35cb.userName,
-        email: v_cb35cb.userEmail,
+        email: v_8cf86b(v_cb35cb.userEmail),
         avatarUrl: v_cb35cb.userAvatarUrl,
       },
     })),
@@ -1126,7 +1127,7 @@ v_96e8d7.get("/:id/comments", async (v_3f4e2e) => {
       user: {
         id: v_cb35cb.userId,
         name: v_cb35cb.userName,
-        email: v_cb35cb.userEmail,
+        email: v_8cf86b(v_cb35cb.userEmail),
         avatarUrl: v_cb35cb.userAvatarUrl,
       },
     })),
@@ -1176,7 +1177,7 @@ v_96e8d7.get("/:id/likes", async (v_3f4e2e) => {
       likeId: v_cb35cb.likeId,
       userId: v_cb35cb.userId,
       name: v_cb35cb.userName,
-      email: v_cb35cb.userEmail,
+      email: v_8cf86b(v_cb35cb.userEmail),
       avatarUrl: v_cb35cb.userAvatarUrl,
       createdAt: v_cb35cb.createdAt,
     })),
