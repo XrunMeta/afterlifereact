@@ -94,6 +94,10 @@ v_469bf2("AFL-1017: createClone prebuild 트리거 (raw 음성 기반)", () => {
     const v_a1651b = v_c9c489.DB as unknown as D1Database;
     const v_3ac7e7 = await v_a1651b.prepare(`SELECT voice_se_url FROM clones WHERE id=?`).bind(v_6e0fd3).first<{ voice_se_url: string | null }>();
     v_4d37e3(v_3ac7e7!.voice_se_url).toBe(`http://localhost/oth-path${v_d7fa74}`);
+
+    const v_d5ec97 = await v_a1651b.prepare(`SELECT clone_id, status FROM clone_asset_jobs WHERE id=?`).bind(v_04211c).first<{ clone_id: number | null; status: string }>();
+    v_4d37e3(v_d5ec97!.status).toBe("done");
+    v_4d37e3(v_d5ec97!.clone_id).toBe(v_6e0fd3);
     v_4d37e3(v_df0713).toBeTruthy();
     v_4d37e3(v_df0713!.auth).toBe("Bearer test-secret");
     const v_8decf8 = JSON.parse(v_df0713!.body);
