@@ -1,6 +1,6 @@
 
 
-import { v_b7c41b } from "zmui";
+import { v_b7c41b, type v_437670 } from "zmui";
 import type { v_de0a25 } from "../lib/env";
 import { v_3ebe58 } from "../lib/errors";
 import { v_4c95c2, v_1f4ea7 } from "../lib/validate";
@@ -17,6 +17,7 @@ import {
   v_a697ec,
   v_5d4a51,
   v_efcb2d,
+  type v_b107dc,
 } from "../lib/cloneAccess";
 
 export const v_96e8d7 = new v_b7c41b<v_de0a25>();
@@ -61,18 +62,14 @@ const v_722b6d = v_1f4ea7
     message: "content 또는 mediaUrl 중 하나는 필수.",
   });
 
-v_96e8d7.get("/:id/feeds", async (v_3f4e2e) => {
-  const v_6e0fd3 = v_31113b(v_3f4e2e);
-  const v_eb25ce = await v_5d4a51(v_3f4e2e.env.DB, v_6e0fd3);
-  if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "페르소나를 찾을 수 없어요.");
-
+async function v_295b28(c: v_437670<v_de0a25>, clone: v_b107dc): Promise<void> {
   const v_43e90c = await v_efcb2d(v_3f4e2e);
   let v_22da99 = null;
   if (v_43e90c) {
     if (v_43e90c === v_eb25ce.owner_id) v_22da99 = "owner";
-    else if ((await v_7adf64(v_3f4e2e.env.DB, v_6e0fd3, v_43e90c)) !== null) {
+    else if ((await v_7adf64(v_3f4e2e.env.DB, v_eb25ce.id, v_43e90c)) !== null) {
       v_22da99 = "coowner";
-    } else if (await v_ab84f6(v_3f4e2e.env.DB, v_6e0fd3, v_43e90c)) {
+    } else if (await v_ab84f6(v_3f4e2e.env.DB, v_eb25ce.id, v_43e90c)) {
       v_22da99 = "follower";
     }
   }
@@ -87,6 +84,24 @@ v_96e8d7.get("/:id/feeds", async (v_3f4e2e) => {
   if (v_a697ec(v_eb25ce, v_22da99)) {
     throw new v_3ebe58("FORBIDDEN", "이 페르소나는 현재 일시 중지 상태예요.");
   }
+}
+
+async function v_4d505f(c: v_437670<v_de0a25>, v_c09aa8): Promise<void> {
+  const v_3ac7e7 = await v_3f4e2e.env.DB
+    .prepare(`SELECT clone_id AS cloneId FROM feeds WHERE id = ?`)
+    .bind(v_c09aa8)
+    .first<{ cloneId: number }>();
+  const v_eb25ce = v_3ac7e7 ? await v_5d4a51(v_3f4e2e.env.DB, v_3ac7e7.cloneId) : null;
+  if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "피드를 찾을 수 없어요.");
+  await v_295b28(v_3f4e2e, v_eb25ce);
+}
+
+v_96e8d7.get("/:id/feeds", async (v_3f4e2e) => {
+  const v_6e0fd3 = v_31113b(v_3f4e2e);
+  const v_eb25ce = await v_5d4a51(v_3f4e2e.env.DB, v_6e0fd3);
+  if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "페르소나를 찾을 수 없어요.");
+
+  await v_295b28(v_3f4e2e, v_eb25ce);
 
   const v_f71b56 = new URL(v_3f4e2e.req.url);
   const v_15c8c5 = v_f71b56.searchParams.get("cursor");
@@ -462,6 +477,7 @@ v_f1d06f.get("/:id/likes", async (v_3f4e2e) => {
   if (!Number.isInteger(v_c09aa8) || v_c09aa8 <= 0) {
     throw new v_3ebe58("VALIDATION_FAILED", "잘못된 피드 ID 에요.");
   }
+  await v_4d505f(v_3f4e2e, v_c09aa8);
   const v_f71b56 = new URL(v_3f4e2e.req.url);
   const v_15c8c5 = v_f71b56.searchParams.get("cursor");
   const v_75cbf4 = v_15c8c5 ? Number(v_15c8c5) : null;
@@ -761,6 +777,7 @@ v_f1d06f.get("/:id/comments", async (v_3f4e2e) => {
   if (!Number.isInteger(v_c09aa8) || v_c09aa8 <= 0) {
     throw new v_3ebe58("VALIDATION_FAILED", "잘못된 피드 ID 에요.");
   }
+  await v_4d505f(v_3f4e2e, v_c09aa8);
   const v_f71b56 = new URL(v_3f4e2e.req.url);
   const v_15c8c5 = v_f71b56.searchParams.get("cursor");
   const v_75cbf4 = v_15c8c5 ? Number(v_15c8c5) : null;
@@ -854,6 +871,7 @@ v_f1d06f.get("/:id/comments/:cid/replies", async (v_3f4e2e) => {
   if (!Number.isInteger(v_c09aa8) || v_c09aa8 <= 0 || !Number.isInteger(v_062ae9) || v_062ae9 <= 0) {
     throw new v_3ebe58("VALIDATION_FAILED", "잘못된 ID 에요.");
   }
+  await v_4d505f(v_3f4e2e, v_c09aa8);
   const v_f71b56 = new URL(v_3f4e2e.req.url);
   const v_cf2260 = Number(v_f71b56.searchParams.get("limit") ?? 50);
   const v_02be30 = Math.max(1, Math.min(200, Number.isFinite(v_cf2260) ? v_cf2260 : 50));
@@ -1036,6 +1054,9 @@ v_96e8d7.post("/:id/comments", v_6690d9, async (v_3f4e2e) => {
 
 v_96e8d7.get("/:id/comments", async (v_3f4e2e) => {
   const v_6e0fd3 = v_31113b(v_3f4e2e);
+  const v_eb25ce = await v_5d4a51(v_3f4e2e.env.DB, v_6e0fd3);
+  if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "페르소나를 찾을 수 없어요.");
+  await v_295b28(v_3f4e2e, v_eb25ce);
   const v_f71b56 = new URL(v_3f4e2e.req.url);
   const v_cf2260 = Number(v_f71b56.searchParams.get("limit") ?? 50);
   const v_02be30 = Math.max(1, Math.min(200, Number.isFinite(v_cf2260) ? v_cf2260 : 50));
@@ -1115,6 +1136,9 @@ v_96e8d7.get("/:id/comments", async (v_3f4e2e) => {
 
 v_96e8d7.get("/:id/likes", async (v_3f4e2e) => {
   const v_6e0fd3 = v_31113b(v_3f4e2e);
+  const v_eb25ce = await v_5d4a51(v_3f4e2e.env.DB, v_6e0fd3);
+  if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "페르소나를 찾을 수 없어요.");
+  await v_295b28(v_3f4e2e, v_eb25ce);
   const v_f71b56 = new URL(v_3f4e2e.req.url);
   const v_cf2260 = Number(v_f71b56.searchParams.get("limit") ?? 50);
   const v_02be30 = Math.max(1, Math.min(200, Number.isFinite(v_cf2260) ? v_cf2260 : 50));
