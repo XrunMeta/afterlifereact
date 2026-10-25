@@ -1109,11 +1109,19 @@ export default function v_14b43e() {
           </View>
         }
         ListEmptyComponent={
-          <View style={v_fd5f43.emptyWrap}>
-            <Feather name="message-circle" size={48} color={v_1bfbd0.zinc300} />
-            <Text style={v_fd5f43.emptyTitle}>{v_8d41d7("feed.followingEmpty")}</Text>
-            <Text style={v_fd5f43.emptyDesc}>{v_8d41d7("feed.followingEmptyHint")}</Text>
-          </View>
+
+          (v_7aa778 ? v_002f27 === null : !!v_2ca7e0 && v_d92a4c === null) ? (
+            <View style={v_fd5f43.emptyWrap}>
+              <ActivityIndicator color={v_1bfbd0.zinc400} />
+              <Text style={v_fd5f43.emptyDesc}>{v_8d41d7("common.loading", { defaultValue: "불러오는 중..." })}</Text>
+            </View>
+          ) : (
+            <View style={v_fd5f43.emptyWrap}>
+              <Feather name="message-circle" size={48} color={v_1bfbd0.zinc300} />
+              <Text style={v_fd5f43.emptyTitle}>{v_8d41d7("feed.followingEmpty")}</Text>
+              <Text style={v_fd5f43.emptyDesc}>{v_8d41d7("feed.followingEmptyHint")}</Text>
+            </View>
+          )
         }
       />
 

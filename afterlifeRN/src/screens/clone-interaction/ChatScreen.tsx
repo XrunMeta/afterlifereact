@@ -15,6 +15,8 @@ import {
   v_0e1f26,
   v_e767d1,
   v_6b5698,
+  type v_961e77,
+  type v_5e8657,
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_772971 } from "jmpfvteuuztnp";
@@ -115,19 +117,14 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const [v_842b8b, v_0f6477] = v_5ab095(true);
   const [v_f61bef, v_ceec45] = v_5ab095(false);
 
-  const [v_fd08c6, v_2c320e] = v_5ab095<{
-    title?: string;
-    actions: ActionItem[];
-    reactionFor?: v_f19942;
-  } | null>(null);
-  const v_cafc04 = (
-    v_9f1622,
-    v_dd943a,
-    reactionFor?: v_f19942,
-  ) => v_2c320e({ title: v_9f1622, actions: v_dd943a, reactionFor: v_af296f });
+  const [v_fd08c6, v_2c320e] = v_5ab095<{ title?: string; actions: ActionItem[] } | null>(null);
+  const v_cafc04 = (v_9f1622, v_dd943a) =>
+    v_2c320e({ title: v_9f1622, actions: v_dd943a });
+
+  const [v_21342a, v_32d3af] = v_5ab095<{ msg: v_f19942; actions: ActionItem[] } | null>(null);
 
   const [v_998f5d, v_adcdfc] = v_5ab095<v_f19942 | null>(null);
-  const [v_04798a, v_887561] = v_5ab095<string | null>(null);
+  const [v_52adf4, v_665f03] = v_5ab095<number | null>(null);
   const v_32f473 = v_e662ae<v_79c4f2>(null);
 
   const [v_25cd2f, v_9e2d74] = v_5ab095(false);
@@ -281,7 +278,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     if (!v_27e1a6 && v_9b6134) {
       v_dd943a.push({
         label: v_8d41d7("chat.selectCopy", { defaultValue: "선택 복사" }),
-        onPress: () => v_887561(v_9b6134),
+        onPress: () => v_665f03(v_badeaf.id),
       });
     }
     if (v_badeaf.role === "clone" && v_badeaf.id > 0) {
@@ -300,7 +297,8 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         onPress: () => void v_9dedab(v_badeaf),
       });
     }
-    v_cafc04(undefined, v_dd943a, v_badeaf.role === "clone" && v_badeaf.id > 0 ? v_badeaf : undefined);
+    v_665f03(null);
+    v_32d3af({ msg: v_badeaf, actions: v_dd943a });
   };
 
   const v_cfdfab = async () => {
@@ -866,13 +864,23 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                         </Text>
                       </View>
                     )}
-                    <Text
-                      style={
-                        v_ca7346 ? v_d81136.userBubbleText : v_d81136.personaOutsideBubbleText
-                      }
-                    >
-                      {v_23805a.content}
-                    </Text>
+                    {v_52adf4 === v_23805a.id ? (
+                      <InlineSelectText
+                        text={v_23805a.content}
+                        style={v_ca7346 ? v_d81136.userBubbleText : v_d81136.personaOutsideBubbleText}
+                        hint={v_8d41d7("chat.selectCopyHint", { defaultValue: "길게 누르면 범위를 조절해 복사할 수 있어요" })}
+                        hintStyle={[v_d81136.selectCopyHint, v_ca7346 && v_d81136.selectCopyHintOnUser]}
+                        onDone={() => v_665f03(null)}
+                      />
+                    ) : (
+                      <Text
+                        style={
+                          v_ca7346 ? v_d81136.userBubbleText : v_d81136.personaOutsideBubbleText
+                        }
+                      >
+                        {v_23805a.content}
+                      </Text>
+                    )}
                   </>
                 );
                 return (
@@ -1108,28 +1116,6 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           >
             <View style={v_d81136.sheetHandle} />
             {v_fd08c6?.title ? <Text style={v_d81136.sheetTitle}>{v_fd08c6.title}</Text> : null}
-            {v_fd08c6?.reactionFor && (
-              <View style={v_d81136.reactionRow}>
-                {v_5bba7d.map((v_03a50c) => {
-                  const v_5f5d6d = v_fd08c6.reactionFor!;
-                  const v_587413 = v_5f5d6d.reaction === v_03a50c;
-                  return (
-                    <TouchableOpacity
-                      key={v_03a50c}
-                      style={[v_d81136.reactionChoice, v_587413 && v_d81136.reactionChoiceSelected]}
-                      activeOpacity={0.7}
-                      accessibilityLabel={v_8d41d7("chat.reactionA11y", { defaultValue: "{{emoji}} 반응", emoji: v_03a50c })}
-                      onPress={() => {
-                        v_2c320e(null);
-                        void v_19d863(v_5f5d6d, v_03a50c);
-                      }}
-                    >
-                      <Text style={v_d81136.reactionChoiceText}>{v_03a50c}</Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            )}
             {v_fd08c6?.actions.map((v_779914, v_ebec57) => (
               <TouchableOpacity
                 key={`${v_779914.label}-${v_ebec57}`}
@@ -1156,45 +1142,52 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         </Pressable>
       </Modal>
 
-      {
-}
+      {}
       <Modal
-        visible={v_04798a !== null}
+        visible={!!v_21342a}
         transparent
         animationType="fade"
-        onRequestClose={() => v_887561(null)}
+        onRequestClose={() => v_32d3af(null)}
       >
-        <Pressable style={v_d81136.sheetOverlay} onPress={() => v_887561(null)}>
-          <Pressable
-            style={[v_d81136.actionSheet, { paddingBottom: 24 + v_2b650d }]}
-            onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}
-          >
-            <View style={v_d81136.sheetHandle} />
-            <Text style={v_d81136.sheetTitle}>
-              {v_8d41d7("chat.selectCopyTitle", { defaultValue: "복사할 부분을 골라 주세요" })}
-            </Text>
-            <ScrollView style={v_d81136.selectCopyBox}>
-              {v_326be8.OS === "ios" ? (
-                <TextInput
-                  value={v_04798a ?? ""}
-                  editable={false}
-                  multiline
-                  scrollEnabled={false}
-                  style={v_d81136.selectCopyText}
-                />
-              ) : (
-                <Text selectable style={v_d81136.selectCopyText}>
-                  {v_04798a}
+        <Pressable style={v_d81136.msgMenuOverlay} onPress={() => v_32d3af(null)}>
+          <Pressable style={v_d81136.msgMenuCard} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
+            {v_21342a && v_21342a.msg.role === "clone" && v_21342a.msg.id > 0 && (
+              <View style={v_d81136.reactionRow}>
+                {v_5bba7d.map((v_03a50c) => {
+                  const v_5f5d6d = v_21342a.msg;
+                  const v_587413 = v_5f5d6d.reaction === v_03a50c;
+                  return (
+                    <TouchableOpacity
+                      key={v_03a50c}
+                      style={[v_d81136.reactionChoice, v_587413 && v_d81136.reactionChoiceSelected]}
+                      activeOpacity={0.7}
+                      accessibilityLabel={v_8d41d7("chat.reactionA11y", { defaultValue: "{{emoji}} 반응", emoji: v_03a50c })}
+                      onPress={() => {
+                        v_32d3af(null);
+                        void v_19d863(v_5f5d6d, v_03a50c);
+                      }}
+                    >
+                      <Text style={v_d81136.reactionChoiceText}>{v_03a50c}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
+            {v_21342a?.actions.map((v_779914, v_ebec57) => (
+              <TouchableOpacity
+                key={`${v_779914.label}-${v_ebec57}`}
+                style={[v_d81136.msgMenuItem, v_ebec57 > 0 && v_d81136.msgMenuItemBorder]}
+                activeOpacity={0.7}
+                onPress={() => {
+                  v_32d3af(null);
+                  v_779914.onPress?.();
+                }}
+              >
+                <Text style={[v_d81136.msgMenuItemText, v_779914.destructive && v_d81136.sheetActionDestructive]}>
+                  {v_779914.label}
                 </Text>
-              )}
-            </ScrollView>
-            <TouchableOpacity
-              style={v_d81136.sheetCancel}
-              activeOpacity={0.7}
-              onPress={() => v_887561(null)}
-            >
-              <Text style={v_d81136.sheetActionText}>{v_8d41d7("common.close", { defaultValue: "닫기" })}</Text>
-            </TouchableOpacity>
+              </TouchableOpacity>
+            ))}
           </Pressable>
         </Pressable>
       </Modal>
@@ -1760,18 +1753,20 @@ const v_d81136 = v_472849.create({
   reactionRow: {
     flexDirection: "row",
     justifyContent: "space-around",
-    paddingVertical: 8,
-    marginBottom: 4,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderBottomWidth: v_472849.hairlineWidth,
+    borderBottomColor: v_1bfbd0.zinc100,
   },
   reactionChoice: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: "center",
     justifyContent: "center",
   },
   reactionChoiceSelected: { backgroundColor: v_1bfbd0.zinc100 },
-  reactionChoiceText: { fontSize: 26 },
+  reactionChoiceText: { fontSize: 24 },
   replyBar: {
     flexDirection: "row",
     alignItems: "center",
@@ -1785,13 +1780,28 @@ const v_d81136 = v_472849.create({
   replyBarBody: { flex: 1 },
   replyBarName: { fontSize: 12, fontWeight: "600", color: v_1bfbd0.primary },
   replyBarText: { fontSize: 13, color: v_1bfbd0.zinc600 },
-  selectCopyBox: { maxHeight: 320, marginBottom: 4 },
-  selectCopyText: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: v_1bfbd0.zinc900,
-    padding: 0,
+  msgMenuOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 40,
   },
+  msgMenuCard: {
+    width: "100%",
+    maxWidth: 300,
+    backgroundColor: v_1bfbd0.white,
+    borderRadius: 16,
+    paddingVertical: 4,
+    overflow: "hidden",
+  },
+  msgMenuItem: { paddingVertical: 15, paddingHorizontal: 20 },
+  msgMenuItemBorder: { borderTopWidth: v_472849.hairlineWidth, borderTopColor: v_1bfbd0.zinc100 },
+  msgMenuItemText: { fontSize: 15, color: v_1bfbd0.zinc900 },
+
+  inlineSelectInput: { padding: 0, margin: 0, borderWidth: 0, backgroundColor: "transparent" },
+  selectCopyHint: { marginTop: 6, fontSize: 11, color: v_1bfbd0.zinc500 },
+  selectCopyHintOnUser: { color: "rgba(255,255,255,0.75)" },
   sheetCancel: {
     marginTop: 10,
     paddingVertical: 14,
@@ -1800,3 +1810,46 @@ const v_d81136 = v_472849.create({
     alignItems: "center",
   },
 });
+
+function v_97934a({
+  text: v_9b6134,
+  style: v_7fa4e4,
+  hint: v_9ecdb9,
+  hintStyle: v_ee6059,
+  onDone: v_7b5712,
+}: {
+  text: string;
+  style: v_961e77<v_5e8657>;
+  hint: string;
+  hintStyle: v_961e77<v_5e8657>;
+  onDone: () => void;
+}) {
+  const [v_b130ec, v_97a702] = v_5ab095(0);
+  const [v_7504dc, v_c0d68d] = v_5ab095({ start: 0, end: v_9b6134.length });
+  const v_d2d3fb = () => {
+    v_c0d68d({ start: 0, end: v_9b6134.length });
+    v_97a702((v_0eb677) => v_0eb677 + 1);
+  };
+  return (
+    <>
+      <TextInput
+        key={v_b130ec}
+        value={v_9b6134}
+        onChangeText={(v_81e2ef) => {
+          if (v_81e2ef !== v_9b6134) v_d2d3fb();
+        }}
+        selection={v_7504dc}
+        onSelectionChange={(v_9e86fd) => v_c0d68d(v_9e86fd.nativeEvent.selection)}
+        autoFocus
+        multiline
+        scrollEnabled={false}
+        editable={v_326be8.OS === "android"}
+        showSoftInputOnFocus={false}
+        caretHidden
+        onBlur={v_7b5712}
+        style={[v_7fa4e4, v_d81136.inlineSelectInput]}
+      />
+      <Text style={v_ee6059}>{v_9ecdb9}</Text>
+    </>
+  );
+}

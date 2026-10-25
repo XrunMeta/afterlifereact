@@ -354,7 +354,7 @@
     "deleteMessageTitle": "删除消息",
     "copy": "复制",
     "selectCopy": "选择复制",
-    "selectCopyTitle": "请选择要复制的部分",
+    "selectCopyHint": "长按可调整范围并复制",
     "reply": "回复",
     "replyingTo": "回复 {{name}}",
     "replyDeleted": "已删除的消息",

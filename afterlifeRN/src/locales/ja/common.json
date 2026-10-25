@@ -354,7 +354,7 @@
     "deleteMessageTitle": "メッセージを削除",
     "copy": "コピー",
     "selectCopy": "選択してコピー",
-    "selectCopyTitle": "コピーする部分を選んでください",
+    "selectCopyHint": "長押しで範囲を調整してコピーできます",
     "reply": "返信",
     "replyingTo": "{{name}}に返信",
     "replyDeleted": "削除されたメッセージ",
