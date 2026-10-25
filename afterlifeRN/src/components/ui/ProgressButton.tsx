@@ -28,13 +28,14 @@ const ProgressButton: v_a3453e.FC<ProgressButtonProps> = ({
   testID: v_681472,
 }) => {
   const v_05b441 = v_7fd157.lg;
-  const v_4a1c36 = v_e662ae(new v_a2349e.Value(Math.max(0, Math.min(1, v_a63fde)))).current;
+
+  const v_4a1c36 = v_e662ae(new v_a2349e.Value(0)).current;
 
   v_c4deb2(() => {
     const v_f582ff = v_a2349e.timing(v_4a1c36, {
       toValue: Math.max(0, Math.min(1, v_a63fde)),
       duration: v_a712cf,
-      easing: v_cdbae1.out(v_cdbae1.cubic),
+      easing: v_cdbae1.out(v_cdbae1.quad), 
       useNativeDriver: false, 
     });
     v_f582ff.start();
