@@ -282,6 +282,8 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
 
   const v_89619a = v_e662ae<number[]>([]);
   const v_e5c412 = v_e662ae(false);
+
+  const v_595f6c = v_e662ae(false);
   const v_ceb0fd = v_e662ae<{ silence: number; total: number }>({ silence: 0, total: 0 });
 
   const v_5cdd15 = v_a3453e.useCallback((v_badeaf) => {
@@ -338,13 +340,9 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
 
   const v_08e4cb = v_a3453e.useCallback((v_58ca36) => {
     const v_cb35cb = v_504bbe.current;
-    let v_5fba7b = false;
-    try {
-      v_5fba7b = Boolean(v_cb35cb.isRecording);
-    } catch {
-
-    }
-    if (!v_5fba7b) return;
+    console.log(`[DefaultVoice][abort] reason=${v_58ca36} active=${v_595f6c.current}`);
+    if (!v_595f6c.current) return;
+    v_595f6c.current = false;
     try {
       void v_cb35cb.stop().catch(() => {});
     } catch {
@@ -502,6 +500,8 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
       v_e5c412.current = false;
       v_ceb0fd.current = { silence: 0, total: 0 };
       await v_5ebce3.record();
+      v_595f6c.current = true;
+      console.log(`[DefaultVoice][record] started native.isRecording=${v_5ebce3.isRecording}`);
     } catch (v_49263d) {
       console.warn("[DefaultVoice] 녹음 시작 실패:", String(v_49263d));
       v_889fad(
@@ -514,6 +514,7 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
   };
 
   const v_f30df7 = async () => {
+    v_595f6c.current = false;
     await v_5ebce3.stop();
 
     await v_0e491a({ allowsRecording: false });
