@@ -354,7 +354,7 @@
     "deleteMessageTitle": "Delete message",
     "copy": "Copy",
     "selectCopy": "Select text",
-    "selectCopyTitle": "Select the part to copy",
+    "selectCopyHint": "Long-press to adjust the range and copy",
     "reply": "Reply",
     "replyingTo": "Replying to {{name}}",
     "replyDeleted": "Deleted message",
