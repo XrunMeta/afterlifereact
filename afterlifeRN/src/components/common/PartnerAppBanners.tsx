@@ -13,6 +13,8 @@ import {
   v_9cabcb,
   v_e45a99,
   v_a2349e,
+  v_700696,
+  type v_e99fe0,
   type v_da479e,
   type v_bd64bf,
   type v_961e77,
@@ -44,6 +46,15 @@ const v_1c7901 = 28;
 const v_5ac224 = 120;
 
 export const v_ae4cf5 = 60;
+
+export function v_ba6725() {
+  const [v_648441, v_d39e16] = v_5ab095(0);
+  const v_a273bf = v_de06a3((e: v_e99fe0) => v_d39e16(v_9e86fd.nativeEvent.layout.height), []);
+  const v_9590aa = v_648441 > 0 ? Math.max(0, v_700696.get("window").height - v_648441) : 0;
+  return { onLayout: v_a273bf, listBottomPad: v_ae4cf5 + v_9590aa };
+}
+
+export const dockedBannerStyle: v_7e4944 = { position: "absolute", left: 0, right: 0, bottom: 0 };
 const v_6c015b = 2800;
 const v_c124a6 = 280;
 
