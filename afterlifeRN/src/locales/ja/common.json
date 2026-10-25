@@ -1440,7 +1440,7 @@
       "photoUploading": "写真をアップロード中...",
       "progressCreating": "クローンを作成中...",
       "progressPosting": "投稿中...",
-      "progressVideo": "動画を作成中...",
+      "progressVideo": "動画の生成を待っています...",
       "progressReupload": "写真をもう一度アップロードしてください",
       "postButton": "投稿",
       "photoRequired": "先に写真を登録してください",
