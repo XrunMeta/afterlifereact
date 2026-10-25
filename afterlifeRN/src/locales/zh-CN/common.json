@@ -1440,6 +1440,7 @@
       "photoUploading": "照片上传中...",
       "progressCreating": "正在创建克隆...",
       "progressPosting": "正在发布...",
+      "progressDone": "发布完成",
       "progressVideo": "等待视频生成...",
       "progressReupload": "请重新上传照片",
       "postButton": "发布",
