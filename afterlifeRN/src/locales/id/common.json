@@ -1283,12 +1283,12 @@
       "pickFile": "Pilih File Suara",
       "filePickedUploadFailed": "File dipilih (pendaftaran tugas gagal — mencoba ulang)",
       "scripts": {
-        "s1Title": "Sapaan Sehari-hari",
-        "s1Text": "Halo. Hari ini benar-benar hari yang menyenangkan. Sinar matahari hangat dan angin lembut, sangat cocok untuk berjalan-jalan. Waktu yang damai seperti ini terasa begitu berharga. Semoga Anda juga menikmati hari ini dengan baik.",
-        "s2Title": "Cerita Makanan",
-        "s2Text": "Makanan favorit Anda saat ini apa? Saya sangat suka sup kimchi. Rasanya pedas yang kuat, dan menyendok kuah hangatnya membuat semua lelah hari itu hilang. Apalagi jika dimakan saat hujan, lebih lezat lagi.",
-        "s3Title": "Kenangan Masa Kecil",
-        "s3Text": "Kenangan masa kecil yang paling berkesan bagi saya adalah liburan ke pantai bersama keluarga. Suara ombak, angin asin, dan momen bermain di pasir masih terasa hidup hingga sekarang. Perasaan bahagia saat itu kembali muncul."
+        "s1Title": "Hariku",
+        "s1Text": "Cuaca hari ini enak banget. Habis makan siang aku keluar sebentar, mataharinya hangat, jadi langsung senang rasanya. Makanya aku sengaja jalan agak memutar pulangnya. Hari kayak gini, jalan-jalan aja tanpa mikirin apa-apa udah enak, kan? Aku udah mikirin mau makan apa nanti malam.",
+        "s2Title": "Makanan favorit",
+        "s2Text": "Aku suka banget makanan berkuah yang hangat. Apalagi kalau dimakan pas hujan, rasanya makin enak. Satu sendok kuah hangat aja, capek seharian langsung hilang. Kamu lagi sering makan apa akhir-akhir ini? Kalau tahu tempat yang enak, kasih tahu aku juga ya.",
+        "s3Title": "Perjalanan yang berkesan",
+        "s3Text": "Aku masih ingat jelas waktu kecil pergi ke pantai sama keluarga. Kami main di pasir seharian sambil dengar suara ombak. Malamnya kami makan seafood bakar bareng-bareng, dan itu enak banget. Sampai sekarang kalau ingat, aku masih senyum-senyum sendiri. Pengin banget balik ke hari itu, sekali aja."
       },
       "warnTooShortTitle": "File terlalu pendek",
       "warnTooShortMsg": "File yang dipilih sangat pendek. Pelatihan suara memerlukan rekaman tenang berdurasi 30 detik hingga 1 menit. Pilih file lain dan unggah lagi.",
@@ -1438,6 +1438,8 @@
       "videoPending": "Video sedang dipersiapkan",
       "reuploadPhoto": "Unggah ulang foto",
       "photoUploading": "Mengunggah foto...",
+      "progressCreating": "Membuat klon...",
+      "progressPosting": "Mengunggah postingan...",
       "photoRequired": "Silakan daftarkan foto terlebih dahulu",
       "captionPlaceholder": "Tulis perkenalan (contoh: #keseharian #infp suka lagu K-pop)",
       "loginNeeded": "Informasi login tidak ada. Silakan login kembali.",

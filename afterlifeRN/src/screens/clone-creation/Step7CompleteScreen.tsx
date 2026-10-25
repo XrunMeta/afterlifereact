@@ -261,11 +261,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
 
   const [v_c3de9c, v_4b9b17] = v_5ab095(false);
 
-  const [v_473be5, v_8761d5] = v_5ab095(false);
-  v_c4deb2(() => {
-    const v_cb36b1 = setTimeout(() => v_8761d5(true), 10000);
-    return () => clearTimeout(v_cb36b1);
-  }, []);
+  const [v_82d07a, v_8943dd] = v_5ab095<"creating" | "feed" | null>(null);
 
   const v_140aea = v_de06a3(
     async (): Promise<number> => {
@@ -561,6 +557,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
 
       if (v_80a1e3 == null) {
         v_c7169b(true);
+        v_8943dd("creating");
         v_80a1e3 = await v_140aea();
         v_c7169b(false);
         console.log("[CLONE-CREATE] new cloneId=", v_80a1e3);
@@ -572,6 +569,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
 
       const v_1458b7 = v_6de415.current ?? null;
       console.log("[CLONE-CREATE] createCloneFeed →", { cloneId: v_80a1e3, hasMedia: !!v_1458b7 });
+      v_8943dd("feed");
       await v_5e388b(v_2ca7e0, v_80a1e3, {
         content: v_2f361a,
         ...(v_1458b7 ? { mediaUrl: v_1458b7, mediaType: "image" } : {}),
@@ -580,6 +578,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
     } catch (v_49263d) {
       console.warn("[CLONE-CREATE] share post failed:", v_49263d);
       v_c7169b(false);
+      v_8943dd(null);
       if (v_49263d instanceof v_84a859) {
 
         if (v_49263d.code === "CONFLICT" && v_49263d.message.includes("아이디")) {
@@ -606,6 +605,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
     }
 
     v_4b9b17(false);
+    v_8943dd(null);
     v_7a77e1();
     if (!v_80a1e3) return;
 
@@ -764,11 +764,18 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
             title={
               v_5e9bfe
                 ? v_8d41d7("common.retry", { defaultValue: "다시 시도" })
-                : v_af4871 != null
-                ? v_8d41d7("create.step7.next", { defaultValue: "다음" })
+                : v_82d07a === "creating"
+                ? v_8d41d7("create.step7.progressCreating", { defaultValue: "클론 만드는 중..." })
+                : v_82d07a === "feed"
+                ? v_8d41d7("create.step7.progressPosting", { defaultValue: "게시물 올리는 중..." })
                 : v_c3de9c || v_805753
                 ? v_8d41d7("create.submitting", { defaultValue: "잠시만요..." })
                 : v_8d41d7("create.step7.next", { defaultValue: "다음" })
+            }
+            leftIcon={
+              v_c3de9c && !v_5e9bfe ? (
+                <ActivityIndicator size="small" color={v_1bfbd0.white} style={{ marginRight: 8 }} />
+              ) : undefined
             }
             onPress={
               v_5e9bfe
@@ -780,7 +787,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
                 : v_d01790
             }
             variant="accent"
-            disabled={!v_473be5 || v_c3de9c || (v_805753 && v_af4871 == null && !v_5e9bfe)}
+            disabled={v_c3de9c || (v_805753 && v_af4871 == null && !v_5e9bfe)}
           />
         </View>
       </KeyboardAvoidingView>
