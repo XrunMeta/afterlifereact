@@ -107,13 +107,8 @@ export default function v_def15b() {
   const [v_b1118a, v_6edbbc] = v_5ab095(v_ebad5a);
   const [v_489044, v_9500c7] = v_5ab095(0);
   const [v_cfa43b, v_ed9bd4] = v_5ab095(0);
-  const v_deb5c7 = v_df9f57(
-    () =>
-      v_c9ba75
-        .filter((v_206b88) => v_206b88.kind === "sent")
-        .reduce((v_f4e98d, v_206b88) => v_f4e98d + (v_206b88.count || 1), 0),
-    [v_c9ba75],
-  );
+
+  const [v_deb5c7, v_9093a8] = v_5ab095(0);
 
   const v_8e46f5 = v_de06a3(async (v_cc88f5 = false) => {
     if (!v_2ca7e0) {
@@ -177,6 +172,11 @@ export default function v_def15b() {
           .then((v_cb35cb) => {
             v_4b3c02(v_cb35cb.items);
             v_9500c7(v_cb35cb.totalReceived);
+
+            v_9093a8(
+              v_cb35cb.totalSent ??
+                v_cb35cb.items.filter((v_206b88) => v_206b88.kind === "sent").reduce((v_f4e98d, v_206b88) => v_f4e98d + (v_206b88.count || 1), 0),
+            );
             v_ed9bd4(v_cb35cb.currentOwned);
           })
           .catch((v_49263d) => console.warn("[MyClonesDashboard] giftActivity fail:", v_49263d));
