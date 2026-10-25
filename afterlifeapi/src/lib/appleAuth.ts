@@ -148,7 +148,8 @@ export async function v_bb3c56(
   const v_cb8915 = v_12e423 === true || v_12e423 === "true";
   return {
     sub: v_931bf0.sub,
-    email: v_931bf0.email,
+
+    email: v_931bf0.email.trim().toLowerCase(),
     email_verified: true,
     is_private_email: v_cb8915,
   };

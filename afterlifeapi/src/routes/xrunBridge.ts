@@ -2,7 +2,7 @@
 
 import { v_b7c41b } from "zmui";
 import type { v_de0a25 } from "../lib/env";
-import { v_4c95c2, v_1f4ea7 } from "../lib/validate";
+import { v_ae1ce0, v_4c95c2, v_1f4ea7 } from "../lib/validate";
 import { v_3ebe58 } from "../lib/errors";
 import { v_0edc13 } from "../lib/appConfig";
 import { v_74defc } from "../lib/logger";
@@ -131,7 +131,7 @@ const v_567ea6 = v_520523 - 1;
 const v_cd14b0 = 0.01; 
 
 const v_597473 = v_1f4ea7.object({
-  email: v_1f4ea7.string().email(),
+  email: v_ae1ce0(),
   giftId: v_1f4ea7.string().min(1).max(80),
   adToken: v_1f4ea7.string().max(2048).optional(),
 });
