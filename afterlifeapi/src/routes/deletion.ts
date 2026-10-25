@@ -335,7 +335,7 @@ v_dda4b9.delete("/oth-path", v_6690d9, async (v_3f4e2e) => {
       const { purgeCloneAiAssets: v_ed063f } = await import("../lib/purgeAiAssets");
       const v_cb35cb = await v_ed063f(v_3f4e2e.env, v_6e0fd3);
       console.log(
-        `[deletion.clone] R2 AI assets purged clone=${v_6e0fd3}: media=${v_cb35cb.mediaKeys} errors=${v_cb35cb.errors}`,
+        `[deletion.clone] R2 AI assets purged clone=${v_6e0fd3}: media=${v_cb35cb.mediaKeys} files=${v_cb35cb.archiveKeys} errors=${v_cb35cb.errors}`,
       );
     } catch (v_49263d) {
       console.error(

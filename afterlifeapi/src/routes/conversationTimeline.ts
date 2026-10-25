@@ -17,6 +17,7 @@ import { v_b09c2e } from "../lib/conversationEvents";
 import { v_19b1f0, v_3205df, v_8be472, type v_1b5c7a } from "../lib/conversationLeave";
 import { v_74defc } from "../lib/logger";
 import { v_a52bdd, v_d4d906 } from "../lib/chatImage";
+import { v_10ee58 } from "../lib/chatReplyTo";
 
 export const v_1172ea = new v_b7c41b<v_de0a25>();
 
@@ -25,6 +26,10 @@ type ChatItem = {
   kind?: "image"; caption?: string;
 
   lang?: string;
+
+  replyTo?: { id: number; content: string | null };
+
+  reaction?: string;
 };
 
 type CallItem = { type: "call"; callId: string; startedAt: number; durationSec: number | null; turnCount: number };
@@ -41,6 +46,35 @@ function v_2c3bd9(v_8c0b26): SortKey {
 }
 
 const v_2a15a0 = ["k", "c", "s"] as const;
+
+type ChatRow = {
+  id: number; session_id: string; role: string; content: string; created_at: string; lang: string | null;
+  reply_to_message_id: number | null; reaction: string | null;
+};
+
+async function v_c271d5(
+  env: v_de0a25["Bindings"],
+  key: Awaited<ReturnType<typeof v_386d00>>["key"],
+  provider: Awaited<ReturnType<typeof v_386d00>>["provider"],
+  legacy: ReturnType<typeof v_a8614b>,
+  v_43e90c,
+  v_6e0fd3,
+  v_52e08b,
+): Promise<Map<number, string>> {
+  const v_8d4337 = new Map<number, string>();
+  const v_300473 = [...new Set(v_52e08b)];
+  if (!v_300473.length) return v_8d4337;
+  const v_18b8bf = (await v_c9c489.DB.prepare(
+    `SELECT id, role, content FROM messages
+      WHERE id IN (${v_300473.map(() => "?").join(",")}) AND user_id = ? AND clone_id = ?
+        AND role = 'clone' AND status = 'active' AND deletion_state = 'active' AND content IS NOT NULL`,
+  ).bind(...v_300473, v_43e90c, v_6e0fd3).all<{ id: number; role: string; content: string }>()).results ?? [];
+  for (const v_cb35cb of v_18b8bf) {
+    const v_9b6134 = await v_c56968(v_c9c489, v_b24339, v_e38ca2, v_66ed66, v_6e0fd3, v_cb35cb.role, v_cb35cb.content);
+    if (v_9b6134 !== null) v_8d4337.set(v_cb35cb.id, v_10ee58(v_9b6134));
+  }
+  return v_8d4337;
+}
 
 function v_d1d076(v_479f05): Record<string, unknown> {
   if (!v_479f05) return {};
@@ -125,7 +159,7 @@ v_1172ea.get("/:id/timeline", v_6690d9, async (v_3f4e2e) => {
 
   const [v_7e4351, v_20e160, v_bf9904] = await Promise.all([
     v_3f4e2e.env.DB.prepare(
-      `SELECT id, session_id, role, content, created_at, lang FROM messages
+      `SELECT id, session_id, role, content, created_at, lang, reply_to_message_id, reaction FROM messages
         WHERE user_id = ? AND clone_id = ?
           AND status = 'active' AND deletion_state = 'active' AND content IS NOT NULL
           AND datetime(created_at) <= datetime(?, 'unixepoch')
@@ -133,7 +167,7 @@ v_1172ea.get("/:id/timeline", v_6690d9, async (v_3f4e2e) => {
         ORDER BY datetime(created_at) DESC, id DESC
         LIMIT ?`,
     ).bind(v_43e90c, v_6e0fd3, v_5b31c3, v_17e322, v_02be30 + v_de3072)
-      .all<{ id: number; session_id: string; role: string; content: string; created_at: string; lang: string | null }>(),
+      .all<ChatRow>(),
     v_3f4e2e.env.DB.prepare(
       `SELECT s.call_id, s.started_at, s.duration_sec,
               (SELECT COUNT(*) FROM call_turns t WHERE t.call_id = s.call_id) AS turn_count
@@ -153,7 +187,7 @@ v_1172ea.get("/:id/timeline", v_6690d9, async (v_3f4e2e) => {
   ]);
 
   type Pending =
-    | { k: SortKey; chat: { id: number; session_id: string; role: string; content: string; at: number; lang: string | null } }
+    | { k: SortKey; chat: ChatRow & { at: number } }
     | { k: SortKey; call: CallItem }
     | { k: SortKey; system: SystemItem };
   const v_483de2 = [];
@@ -181,6 +215,8 @@ v_1172ea.get("/:id/timeline", v_6690d9, async (v_3f4e2e) => {
   const v_6bbe19 = v_33efc5.length > v_02be30;
 
   const v_66ed66 = v_a8614b(v_3f4e2e.env.ALE_KEK);
+  const v_66fe2a = await v_c271d5(v_3f4e2e.env, v_b24339, v_e38ca2, v_66ed66, v_43e90c, v_6e0fd3, v_2365e9.flatMap((v_e2a85c) =>
+    "chat" in v_e2a85c && v_e2a85c.chat.reply_to_message_id ? [v_e2a85c.chat.reply_to_message_id] : []));
   const v_4622b9 = [];
   for (const v_e2a85c of v_2365e9) {
     if ("system" in v_e2a85c) {
@@ -197,6 +233,10 @@ v_1172ea.get("/:id/timeline", v_6690d9, async (v_3f4e2e) => {
     v_4622b9.push({
       type: "chat", id: v_e2a85c.chat.id, role: v_e2a85c.chat.role, at: v_e2a85c.chat.at, sessionId: v_e2a85c.chat.session_id,
       ...(v_e2a85c.chat.lang ? { lang: v_e2a85c.chat.lang } : {}),
+      ...(v_e2a85c.chat.reply_to_message_id
+        ? { replyTo: { id: v_e2a85c.chat.reply_to_message_id, content: v_66fe2a.get(v_e2a85c.chat.reply_to_message_id) ?? null } }
+        : {}),
+      ...(v_e2a85c.chat.reaction ? { reaction: v_e2a85c.chat.reaction } : {}),
       ...(v_a9330b !== null
         ? { content: v_a52bdd, kind: "image" as const, caption: v_a9330b }
         : { content: v_9b6134 }),

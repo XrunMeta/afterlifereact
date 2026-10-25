@@ -2,6 +2,7 @@ import { v_b7c41b } from "zmui";
 import type { v_de0a25 } from "../lib/env";
 import { v_6690d9 } from "../middleware/auth";
 import { v_3ebe58 } from "../lib/errors";
+import { v_8cf86b } from "../lib/utils";
 import { v_5bb199 } from "../lib/penaltyGate";
 import { v_4c95c2, v_1f4ea7 } from "../lib/validate";
 import { v_137694, v_85de88, v_a8614b, v_8ea38c, v_b31343 } from "../lib/ale";
@@ -16,6 +17,7 @@ import {
   v_c0f252,
 } from "../lib/xrun";
 import { v_74c502 } from "../lib/cloneAccess";
+import { v_3ca92e } from "../lib/deactivation";
 import { v_991113 } from "../lib/conversationLeave";
 
 export const v_de7ba7 = new v_b7c41b<v_de0a25>();
@@ -88,7 +90,8 @@ v_de7ba7.get("/search", v_6690d9, async (v_3f4e2e) => {
     .filter((v_62c214) => v_62c214.score >= v_cfdcb0)
     .sort((v_779914, v_148ff6) => v_148ff6.score - v_779914.score || v_148ff6.u.id - v_779914.u.id)
     .slice(0, 20)
-    .map((v_62c214) => v_62c214.u);
+
+    .map((v_62c214) => ({ ...v_62c214.u, email: v_62c214.u.email.toLowerCase() === v_ab6401.toLowerCase() ? v_62c214.u.email : v_8cf86b(v_62c214.u.email) }));
   return v_3f4e2e.json({ items: v_4622b9 });
 });
 
@@ -1025,6 +1028,8 @@ v_de7ba7.get("/:id/followed-clones", v_6690d9, async (v_3f4e2e) => {
            LEFT JOIN user_clone_interactions uci
                   ON uci.user_id = ? AND uci.clone_id = c.id
           WHERE ${v_74c502("c")}
+            -- 2026-10-25: 소유자가 계정 비활성화한 클론은 팔로잉 탭에서 숨김(공동관리자 예외 없음).
+            AND ${v_3ca92e("c.owner_id")}
             -- 소유자가 삭제(soft_deleted)한 페르소나는 즉시 구독 목록에서 제외.
             --   검색/피드와 동일 정책(active 만) — T-201: 술어를 cloneActiveSql() 로 통일.
             AND c.id NOT IN (SELECT clone_id FROM clone_blocks WHERE user_id = ?)
@@ -1221,7 +1226,7 @@ v_de7ba7.get("/me/blocks", v_6690d9, async (v_3f4e2e) => {
     user: {
       id: v_cb35cb.uId,
       name: v_cb35cb.uName,
-      email: v_cb35cb.uEmail,
+      email: v_8cf86b(v_cb35cb.uEmail),
       avatarUrl: v_cb35cb.uAvatarUrl,
     },
   }));
@@ -1437,7 +1442,7 @@ v_de7ba7.post("/:id/follow", v_6690d9, async (v_3f4e2e) => {
         .bind(v_43e90c)
         .first<{ name: string | null; email: string | null }>();
       const v_6dd0ab =
-        v_380fb2?.name || v_380fb2?.email?.split("@")[0] || "누군가";
+        v_380fb2?.name || v_8cf86b(v_380fb2?.email) || "누군가";
       await v_c226a5(v_3f4e2e.env, {
         userId: v_b1de41,
         type: "user_follow",
@@ -1466,9 +1471,19 @@ v_de7ba7.delete("/:id/follow", v_6690d9, async (v_3f4e2e) => {
   return v_3f4e2e.json({ ok: true });
 });
 
+async function v_98e5f0(v_a1651b, v_b1de41, v_013af2): Promise<void> {
+  if (v_b1de41 === v_013af2) return;
+  const v_3ac7e7 = await v_a1651b
+    .prepare(`SELECT 1 AS x FROM users WHERE id = ? AND deleted_at IS NULL AND deactivated_at IS NULL`)
+    .bind(v_b1de41)
+    .first<{ x: number }>();
+  if (!v_3ac7e7) throw new v_3ebe58("NOT_FOUND", "User not found.");
+}
+
 v_de7ba7.get("/:id/followers", v_6690d9, async (v_3f4e2e) => {
   const v_b1de41 = v_586d97(v_3f4e2e);
   const v_013af2 = v_3f4e2e.get("userId")!;
+  await v_98e5f0(v_3f4e2e.env.DB, v_b1de41, v_013af2);
   const v_f71b56 = new URL(v_3f4e2e.req.url);
   const v_cf2260 = Number(v_f71b56.searchParams.get("limit") ?? 50);
   const v_02be30 = Math.max(1, Math.min(200, Number.isFinite(v_cf2260) ? v_cf2260 : 50));
@@ -1486,6 +1501,7 @@ v_de7ba7.get("/:id/followers", v_6690d9, async (v_3f4e2e) => {
           WHERE uf.followee_id = ?
             AND u.deletion_state = 'active'
             AND u.deleted_at IS NULL
+            AND ${v_3ca92e("u.id")}
             AND uf.follower_id NOT IN (SELECT blocked_id FROM user_blocks WHERE blocker_id = ?)
           ORDER BY uf.id DESC
           LIMIT ?`,
@@ -1505,7 +1521,7 @@ v_de7ba7.get("/:id/followers", v_6690d9, async (v_3f4e2e) => {
       followId: v_cb35cb.followId,
       userId: v_cb35cb.userId,
       name: v_cb35cb.name,
-      email: v_cb35cb.email,
+      email: v_8cf86b(v_cb35cb.email),
       avatarUrl: v_cb35cb.avatarUrl,
       createdAt: v_cb35cb.createdAt,
     })),
@@ -1515,6 +1531,7 @@ v_de7ba7.get("/:id/followers", v_6690d9, async (v_3f4e2e) => {
 v_de7ba7.get("/:id/following", v_6690d9, async (v_3f4e2e) => {
   const v_b1de41 = v_586d97(v_3f4e2e);
   const v_013af2 = v_3f4e2e.get("userId")!;
+  await v_98e5f0(v_3f4e2e.env.DB, v_b1de41, v_013af2);
   const v_f71b56 = new URL(v_3f4e2e.req.url);
   const v_cf2260 = Number(v_f71b56.searchParams.get("limit") ?? 50);
   const v_02be30 = Math.max(1, Math.min(200, Number.isFinite(v_cf2260) ? v_cf2260 : 50));
@@ -1532,6 +1549,7 @@ v_de7ba7.get("/:id/following", v_6690d9, async (v_3f4e2e) => {
           WHERE uf.follower_id = ?
             AND u.deletion_state = 'active'
             AND u.deleted_at IS NULL
+            AND ${v_3ca92e("u.id")}
             AND uf.followee_id NOT IN (SELECT blocked_id FROM user_blocks WHERE blocker_id = ?)
           ORDER BY uf.id DESC
           LIMIT ?`,
@@ -1551,7 +1569,7 @@ v_de7ba7.get("/:id/following", v_6690d9, async (v_3f4e2e) => {
       followId: v_cb35cb.followId,
       userId: v_cb35cb.userId,
       name: v_cb35cb.name,
-      email: v_cb35cb.email,
+      email: v_8cf86b(v_cb35cb.email),
       avatarUrl: v_cb35cb.avatarUrl,
       createdAt: v_cb35cb.createdAt,
     })),
@@ -1586,12 +1604,14 @@ v_de7ba7.get("/:id", v_6690d9, async (v_3f4e2e) => {
             JOIN users u ON u.id = uf.follower_id
            WHERE uf.followee_id = ?
              AND u.deletion_state = 'active'
-             AND u.deleted_at IS NULL) AS followersCount,
+             AND u.deleted_at IS NULL
+             AND ${v_3ca92e("u.id")}) AS followersCount,
          (SELECT COUNT(*) FROM user_follows uf
             JOIN users u ON u.id = uf.followee_id
            WHERE uf.follower_id = ?
              AND u.deletion_state = 'active'
-             AND u.deleted_at IS NULL) AS followingCount`,
+             AND u.deleted_at IS NULL
+             AND ${v_3ca92e("u.id")}) AS followingCount`,
     )
     .bind(v_b1de41, v_b1de41)
     .first<{ followersCount: number; followingCount: number }>();
@@ -1665,7 +1685,8 @@ v_de7ba7.get("/:id", v_6690d9, async (v_3f4e2e) => {
     user: {
       id: v_3ac7e7.id,
       name: v_3ac7e7.name,
-      email: v_3ac7e7.email,
+
+      email: v_013af2 === v_b1de41 ? v_3ac7e7.email : v_8cf86b(v_3ac7e7.email),
       avatarUrl: v_3ac7e7.avatarUrl,
       createdAt: v_3ac7e7.createdAt,
       followersCount: v_62676b?.followersCount ?? 0,

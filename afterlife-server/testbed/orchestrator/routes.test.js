@@ -536,6 +536,47 @@ v_2a805f('POST /oth-path — filler kind 허용 (face_url + clone_id + voice_raw
   v_88781f.close();
 });
 
+v_2a805f('POST /oth-path — persona_videos 는 voice_raw_url 없이 202 + enqueue', async () => {
+  const v_48cb8e = [];
+  const v_436905 = { enqueue(v_d5ec97) { v_48cb8e.push(v_d5ec97); } };
+  const { server: v_88781f, base: v_694b25 } = await v_0b4d00(v_f8ce16(), 'sek', null, { assetJobRunner: v_436905 });
+  const v_cb35cb = await fetch(`${v_694b25}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({
+      job_id: 'pv_no_voice',
+      kind: 'persona_videos',
+      face_url: 'https://oth-path.example.com/oth-path',
+      clone_id: '9216',
+      callback_token: 'tok_pv',
+    }),
+  });
+  v_ce93bd.equal(v_cb35cb.status, 202);
+  v_ce93bd.equal(v_48cb8e.length, 1);
+  v_ce93bd.equal(v_48cb8e[0].kind, 'persona_videos');
+  v_ce93bd.ok(!v_48cb8e[0].voice_raw_url);
+  v_88781f.close();
+});
+
+v_2a805f('POST /oth-path — filler·guide 는 여전히 voice_raw_url 필수 → 400', async () => {
+  const { server: v_88781f, base: v_694b25 } = await v_0b4d00(v_f8ce16(), 'sek', null, { assetJobRunner: { enqueue() {} } });
+  for (const v_94302c of ['filler', 'guide']) {
+    const v_cb35cb = await fetch(`${v_694b25}/oth-path`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+      body: JSON.stringify({
+        job_id: `nv_${v_94302c}`,
+        kind: v_94302c,
+        face_url: 'https://oth-path.example.com/oth-path',
+        clone_id: '9216',
+        callback_token: 'tok_nv',
+      }),
+    });
+    v_ce93bd.equal(v_cb35cb.status, 400, v_94302c);
+  }
+  v_88781f.close();
+});
+
 v_2a805f('POST /oth-path — guide kind 허용 (face_url + clone_id + voice_raw_url + persona → 202 + enqueue)', async () => {
   const v_48cb8e = [];
   const v_436905 = { enqueue(v_d5ec97) { v_48cb8e.push(v_d5ec97); } };
