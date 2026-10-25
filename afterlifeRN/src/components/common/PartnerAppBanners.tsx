@@ -28,6 +28,8 @@ const v_024b5e =
   "https://apps.apple.com/kr/app/xrun-%EC%95%B1%ED%85%8C%ED%81%AC-%EB%8F%88%EB%B2%84%EB%8A%94%EC%95%B1-%EC%BA%90%EC%8B%9C/id6502924173";
 const v_b0adfa =
   "https://play.google.com/store/apps/details?id=run.xrun.xrunapp";
+
+const v_04628d = v_326be8.OS === "ios" ? "xrungoApp://" : "xrun://";
 const v_736ebf =
   "https://play.google.com/store/apps/details?id=run.xrun.clubx&hl=en";
 
@@ -40,6 +42,7 @@ const v_1d54af = 4;
 const v_66f2f8 = 10;
 const v_1c7901 = 28;
 const v_5ac224 = 120;
+export const v_08c06d = v_5ac224;
 const v_6c015b = 2800;
 const v_c124a6 = 280;
 
@@ -60,6 +63,7 @@ type BannerCard = {
 
 type Props = {
   style?: v_961e77<v_7e4944>;
+  variant?: "carousel" | "docked";
 };
 
 function v_e99974(v_724489) {
@@ -98,12 +102,14 @@ function v_223478({ slides: v_f81d0e }: { slides: string[] }) {
   );
 }
 
-export default function v_f9a626({ style: v_7fa4e4 }: Props) {
+export default function v_f9a626({ style: v_7fa4e4, variant: v_46e192 = "carousel" }: Props) {
   const { t: v_8d41d7 } = v_772971();
   const { width: v_a4b8ea } = v_e45a99();
   const [v_2365e9, v_bf9d67] = v_5ab095(0);
 
-  const v_eca921 = Math.max(240, v_a4b8ea - 40 - v_1d54af * 2 - v_1c7901);
+  const v_60cf9e = v_46e192 === "docked";
+  const v_eca921 = v_60cf9e ? v_a4b8ea : Math.max(240, v_a4b8ea - 40 - v_1d54af * 2 - v_1c7901);
+  const v_729796 = v_60cf9e ? v_eca921 : v_eca921 + v_66f2f8;
 
   const v_4552ca = v_df9f57<BannerCard[]>(
     () => [
@@ -153,7 +159,8 @@ export default function v_f9a626({ style: v_7fa4e4 }: Props) {
   const v_0d0a3b = v_de06a3(
     (v_466992) => {
       if (v_466992 === "xrun") {
-        void v_34c671(v_326be8.OS === "ios" ? v_024b5e : v_b0adfa);
+        const v_a73fa2 = v_326be8.OS === "ios" ? v_024b5e : v_b0adfa;
+        v_f2c756.openURL(v_04628d).catch(() => void v_34c671(v_a73fa2));
         return;
       }
       if (v_326be8.OS === "ios") {
@@ -172,7 +179,7 @@ export default function v_f9a626({ style: v_7fa4e4 }: Props) {
 
   const v_60260f = (e: v_bd64bf<v_da479e>) => {
     const v_62c214 = v_9e86fd.nativeEvent.contentOffset.x;
-    const v_a448ad = Math.round(v_62c214 / (v_eca921 + v_66f2f8));
+    const v_a448ad = Math.round(v_62c214 / v_729796);
     v_bf9d67(Math.max(0, Math.min(v_4552ca.length - 1, v_a448ad)));
   };
 
@@ -182,9 +189,14 @@ export default function v_f9a626({ style: v_7fa4e4 }: Props) {
       onPress={() => v_0d0a3b(v_8c0b26.app)}
       accessibilityRole="button"
       accessibilityLabel={v_8c0b26.brand}
-      style={[v_fd5f43.cardWrap, { width: v_eca921 }]}
+      style={[v_fd5f43.cardWrap, v_60cf9e && v_fd5f43.cardWrapDocked, { width: v_eca921 }]}
     >
-      <ImageBackground source={v_8c0b26.bg} style={v_fd5f43.cardBg} imageStyle={v_fd5f43.cardImg} resizeMode="cover">
+      <ImageBackground
+        source={v_8c0b26.bg}
+        style={v_fd5f43.cardBg}
+        imageStyle={v_60cf9e ? undefined : v_fd5f43.cardImg}
+        resizeMode="cover"
+      >
         <LinearGradient colors={v_8c0b26.wash} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={v_fd5f43.wash}>
           <View style={v_fd5f43.textCol}>
             <Text style={v_fd5f43.line1} numberOfLines={1}>
@@ -201,10 +213,12 @@ export default function v_f9a626({ style: v_7fa4e4 }: Props) {
   );
 
   return (
-    <View style={[v_fd5f43.wrap, v_7fa4e4]}>
-      <Text style={v_fd5f43.caption}>
-        {v_8d41d7("partner.appsCaption", { defaultValue: "함께 쓰는 앱" })}
-      </Text>
+    <View style={[v_60cf9e ? v_fd5f43.wrapDocked : v_fd5f43.wrap, v_7fa4e4]}>
+      {!v_60cf9e && (
+        <Text style={v_fd5f43.caption}>
+          {v_8d41d7("partner.appsCaption", { defaultValue: "함께 쓰는 앱" })}
+        </Text>
+      )}
       <FlatList
         data={v_4552ca}
         keyExtractor={(v_23805a) => v_23805a.id}
@@ -212,22 +226,24 @@ export default function v_f9a626({ style: v_7fa4e4 }: Props) {
         horizontal
         showsHorizontalScrollIndicator={false}
         decelerationRate="fast"
-        snapToInterval={v_eca921 + v_66f2f8}
+        snapToInterval={v_729796}
         snapToAlignment="start"
         disableIntervalMomentum
-        contentContainerStyle={v_fd5f43.listContent}
+        contentContainerStyle={v_60cf9e ? undefined : v_fd5f43.listContent}
         onMomentumScrollEnd={v_60260f}
         getItemLayout={(v_37eab7, v_a56041) => ({
-          length: v_eca921 + v_66f2f8,
-          offset: (v_eca921 + v_66f2f8) * v_a56041,
+          length: v_729796,
+          offset: v_729796 * v_a56041,
           index: v_a56041,
         })}
       />
-      <View style={v_fd5f43.dots}>
-        {v_4552ca.map((v_3f4e2e, v_ebec57) => (
-          <View key={v_3f4e2e.id} style={[v_fd5f43.dot, v_ebec57 === v_2365e9 && v_fd5f43.dotActive]} />
-        ))}
-      </View>
+      {!v_60cf9e && (
+        <View style={v_fd5f43.dots}>
+          {v_4552ca.map((v_3f4e2e, v_ebec57) => (
+            <View key={v_3f4e2e.id} style={[v_fd5f43.dot, v_ebec57 === v_2365e9 && v_fd5f43.dotActive]} />
+          ))}
+        </View>
+      )}
     </View>
   );
 }
@@ -236,6 +252,9 @@ const v_fd5f43 = v_472849.create({
   wrap: {
     marginTop: 8,
     marginBottom: 20,
+    alignSelf: "stretch",
+  },
+  wrapDocked: {
     alignSelf: "stretch",
   },
   caption: {
@@ -261,6 +280,13 @@ const v_fd5f43 = v_472849.create({
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 5 },
     elevation: 4,
+  },
+  cardWrapDocked: {
+    marginRight: 0,
+    borderRadius: 0,
+    borderWidth: 0,
+    shadowOpacity: 0,
+    elevation: 0,
   },
   cardBg: {
     flex: 1,
