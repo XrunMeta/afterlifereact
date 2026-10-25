@@ -168,11 +168,14 @@ export function v_306c75(v_38a552, { secret: v_43fd42, cfg: v_01dcf5 = {}, deps:
     const v_966ea0 = v_94302c === 'persona_videos'; 
     const v_c5037d = v_c8813c || v_927a9c || v_966ea0; 
     const v_e1287a = v_94302c === 'idle_video' || v_94302c === 'voice_clone';
+
+    const v_5fda03 = v_c8813c || v_927a9c;
     if (
       !v_b0d200 ||
       (!v_c5037d && !v_e1287a) ||
       (!v_c5037d && !v_b0c618) ||
-      (v_c5037d && (!v_1ba158 || !v_fccde8 || !v_49ec2c)) ||
+      (v_c5037d && (!v_1ba158 || !v_fccde8)) ||
+      (v_5fda03 && !v_49ec2c) ||
       !v_85f723
     ) {
       return v_8f00b9.status(400).json({ error: 'bad_request' });
