@@ -354,7 +354,7 @@
     "deleteMessageTitle": "메시지 삭제",
     "copy": "복사",
     "selectCopy": "선택 복사",
-    "selectCopyTitle": "복사할 부분을 골라 주세요",
+    "selectCopyHint": "길게 누르면 범위를 조절해 복사할 수 있어요",
     "reply": "답장",
     "replyingTo": "{{name}}에게 답장",
     "replyDeleted": "삭제된 메시지",
