@@ -50,6 +50,22 @@ const v_caf51a = `SELECT
   OR EXISTS (SELECT 1 FROM clone_asset_jobs WHERE (clone_id IS NULL OR clone_id != ?3)
              AND (src_file_id = ?4 OR out_file_id = ?4)) AS shared`;
 
+const v_6df056 = (v_c8b83f) => `${v_c8b83f} IN (SELECT id FROM clones WHERE deletion_state = 'active')`;
+const v_b8fdaf = `SELECT
+  EXISTS (SELECT 1 FROM clones WHERE deletion_state = 'active' AND (
+    ${v_7b2645("avatar_url")} OR ${v_7b2645("cover_image_url")} OR ${v_7b2645("idle_video_url")} OR
+    ${v_7b2645("voice_se_url")} OR ${v_7b2645("filler_video_urls")} OR ${v_7b2645("guide_video_urls")} OR
+    ${v_7b2645("bridge_video_urls")}))
+  OR EXISTS (SELECT 1 FROM clone_photos WHERE ${v_6df056("clone_id")} AND ${v_7b2645("photo_url")})
+  OR EXISTS (SELECT 1 FROM users WHERE id != ?3 AND ${v_7b2645("avatar_url")})
+  OR EXISTS (SELECT 1 FROM feeds WHERE ${v_6df056("clone_id")} AND ${v_7b2645("media_url")})
+  OR EXISTS (SELECT 1 FROM clone_shorts WHERE ${v_6df056("clone_id")} AND ${v_7b2645("media_url")})
+  OR EXISTS (SELECT 1 FROM voice_presets WHERE ${v_7b2645("sample_url")})
+  OR EXISTS (SELECT 1 FROM gift_inventory_events WHERE ${v_7b2645("gift_image_url_snapshot")})
+  OR EXISTS (SELECT 1 FROM inheritance_release_logs WHERE ${v_7b2645("evidence_url")})
+  OR EXISTS (SELECT 1 FROM clone_asset_jobs WHERE (src_file_id = ?4 OR out_file_id = ?4)
+             AND (${v_6df056("clone_id")} OR (clone_id IS NULL AND user_id != ?3))) AS shared`;
+
 async function v_4944e0(
   env: v_273a0c,
   v_6e0fd3,
@@ -216,19 +232,27 @@ export async function v_fb2d8f(env: v_273a0c, v_43e90c): Promise<R2PurgeResult> 
 
   try {
     const v_ff9685 = await v_c9c489.DB
-      .prepare(`SELECT r2_key FROM files WHERE owner_user_id = ?`)
+      .prepare(`SELECT id, r2_key FROM files WHERE owner_user_id = ?`)
       .bind(v_43e90c)
-      .all<{ r2_key: string }>();
-    const v_fa53ec = (v_ff9685.results ?? []).map((v_8b5cd8) => v_8b5cd8.r2_key).filter(Boolean);
-    const v_cb35cb = await v_fd967d(v_c9c489.R2_ARCHIVE, v_fa53ec);
-    v_a4fd7e += v_cb35cb.ok;
-    v_9de4ac += v_cb35cb.errors;
+      .all<{ id: number; r2_key: string }>();
+    for (const v_8b5cd8 of v_ff9685.results ?? []) {
+      try {
+        const v_b1c995 = await v_c9c489.DB
+          .prepare(v_b8fdaf)
+          .bind(`%/oth-path${v_8b5cd8.id}`, `%/oth-path${v_8b5cd8.id}"%`, v_43e90c, v_8b5cd8.id)
+          .first<{ shared: number }>();
+        if (v_b1c995?.shared !== 0) continue;
+        if (v_8b5cd8.r2_key) await v_c9c489.R2_ARCHIVE.delete(v_8b5cd8.r2_key);
 
-    if (v_fa53ec.length > 0) {
-      await v_c9c489.DB
-        .prepare(`DELETE FROM files WHERE owner_user_id = ?`)
-        .bind(v_43e90c)
-        .run();
+        await v_c9c489.DB.batch([
+          v_c9c489.DB.prepare(`DELETE FROM clone_asset_jobs WHERE src_file_id = ?`).bind(v_8b5cd8.id),
+          v_c9c489.DB.prepare(`DELETE FROM files WHERE id = ?`).bind(v_8b5cd8.id),
+        ]);
+        v_a4fd7e++;
+      } catch (v_49263d) {
+        console.warn(`[purgeAiAssets] user file ${v_8b5cd8.id} purge failed:`, (v_49263d as Error).message);
+        v_9de4ac++;
+      }
     }
   } catch (v_49263d) {
     console.error(`[purgeAiAssets] user files purge failed:`, (v_49263d as Error).message);
