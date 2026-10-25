@@ -348,9 +348,11 @@
     "sort": "並び替え",
     "sortRecent": "最近の会話順",
     "sortIntimacy": "親密度が高い順",
+    "sortIntimacyAsc": "親密度が低い順",
     "sortName": "名前順",
     "adBannerFallback": "バナー広告",
     "deleteMessageTitle": "メッセージを削除",
+    "copy": "コピー",
     "notifyOff": "通知をオフ",
     "notifyOn": "通知をオン",
     "callAction": "通話",
@@ -1294,6 +1296,9 @@
       "warnTooLargeMsg": "選択したファイルが長すぎます。30秒〜1分に切り取って再度アップロードしてください。",
       "toastSilence": "声が小さすぎます。もう少し大きな声で話してください。",
       "toastNoise": "周りがうるさいです。静かな場所で録音してください。",
+      "toastClipping": "音が大きすぎて割れています。マイクから少し離れて話してください。",
+      "recordAbortedTitle": "録音が中断されました",
+      "recordAbortedMsg": "録音中にアプリを離れたため、録音を停止しました。最初から録音し直してください。",
       "recordQualityTitle": "録音品質の確認",
       "recordQualitySilenceMsg": "録音に無音部分が多くあります。静かな場所で文全体をはっきりと録り直してください。",
       "recordQualityNoiseMsg": "録音に周囲の雑音が入っています。静かな場所で録り直すと、声がずっと自然になります。",
@@ -2435,7 +2440,7 @@
     "confirmTitle": "アカウントを無効化しますか？",
     "confirmBody": "すべての端末ですぐにログアウトされます。",
     "effect": {
-      "hide": "プロフィールと作成したAIクローンがホーム・探索・検索から非表示になり、他の人は会話・通話できません。",
+      "hide": "プロフィールと作成したAIクローンがホーム・探索・検索から非表示になり、共同管理者以外は会話・通話できません。",
       "posts": "投稿とコメントが非表示になります。",
       "interaction": "他の人からギフト・共有を受け取れません。",
       "notify": "すべての通知が止まります。",
@@ -2443,5 +2448,12 @@
     },
     "verifyPassword": "本人確認 · パスワード",
     "verifyEmail": "本人確認 · メール認証コード"
+  },
+  "partner": {
+    "appsCaption": "関連アプリ",
+    "xrunTitle": "XRUN",
+    "xrunSub": "ウォレット · 報酬 · ログイン連携",
+    "clubxTitle": "ClubX",
+    "clubxSub": "クラブ · アイテム"
   }
 }

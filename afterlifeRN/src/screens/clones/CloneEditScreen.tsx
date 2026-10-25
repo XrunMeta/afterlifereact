@@ -139,9 +139,21 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         {v_43fc49 ? (
           <ActivityIndicator testID={v_5401ae.cloneEdit.loading} color={v_1bfbd0.zinc400} />
         ) : (
-          <Text testID={v_5401ae.cloneEdit.notFound} style={v_fd5f43.notFoundText}>
-            {v_8d41d7("edit.notFound")}
-          </Text>
+          <>
+            <Text testID={v_5401ae.cloneEdit.notFound} style={v_fd5f43.notFoundText}>
+              {v_8d41d7("edit.notFound")}
+            </Text>
+            {}
+            <TouchableOpacity
+              style={v_fd5f43.notFoundBackBtn}
+              onPress={() => v_c65f5d.navigate("Dashboard")}
+              activeOpacity={0.8}
+            >
+              <Text style={v_fd5f43.notFoundBackText}>
+                {v_8d41d7("detail.backToDashboard", { defaultValue: "마이페이지로" })}
+              </Text>
+            </TouchableOpacity>
+          </>
         )}
       </View>
     );
@@ -306,7 +318,15 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 }
 
 const v_fd5f43 = v_472849.create({
-  notFound: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
+  notFound: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24, gap: 16 },
+  notFoundBackBtn: {
+    marginTop: 4,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: v_1bfbd0.zinc900,
+  },
+  notFoundBackText: { fontSize: 14, fontWeight: "600", color: v_1bfbd0.white },
   notFoundText: { fontSize: 15, color: v_1bfbd0.zinc500 },
   content: {
     paddingHorizontal: v_9b1a04.large,

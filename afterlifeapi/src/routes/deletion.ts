@@ -4,6 +4,7 @@ import { v_b7c41b } from "zmui";
 import type { v_de0a25 } from "../lib/env";
 import { v_3ebe58 } from "../lib/errors";
 import { v_6690d9 } from "../middleware/auth";
+import { v_74defc } from "../lib/logger";
 import type { v_d33606 } from "../lib/coldStorage";
 import { v_344b9e } from "../lib/memoryStore";
 
@@ -328,6 +329,8 @@ v_dda4b9.delete("/oth-path", v_6690d9, async (v_3f4e2e) => {
       .bind(v_6e0fd3)
       .run();
 
+    await v_74defc(v_3f4e2e, { userId: v_43e90c, action: "clone.delete", details: { cloneId: v_6e0fd3, state: "soft_deleted" } });
+
     try {
       const { purgeCloneAiAssets: v_ed063f } = await import("../lib/purgeAiAssets");
       const v_cb35cb = await v_ed063f(v_3f4e2e.env, v_6e0fd3);
@@ -360,6 +363,11 @@ v_dda4b9.delete("/oth-path", v_6690d9, async (v_3f4e2e) => {
       .bind(v_820a60.target_user_id, v_6e0fd3, v_43e90c),
     v_a1651b.prepare("DELETE FROM clone_shares WHERE id = ?").bind(v_820a60.id),
   ]);
+  await v_74defc(v_3f4e2e, {
+    userId: v_43e90c,
+    action: "clone.delete",
+    details: { cloneId: v_6e0fd3, state: "transferred", newOwnerId: v_820a60.target_user_id },
+  });
 
   return v_3f4e2e.json({
     ok: true,
@@ -376,6 +384,7 @@ v_dda4b9.post("/oth-path", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
   const v_43c42e = await v_c8311e(v_3f4e2e.env.DB, "clone", v_6e0fd3, "owner_id", v_43e90c);
   v_7b6df3(v_43c42e);
+  await v_74defc(v_3f4e2e, { userId: v_43e90c, action: "clone.restore", details: { cloneId: v_6e0fd3 } });
   return v_3f4e2e.json({ ok: true, state: "active" });
 });
 

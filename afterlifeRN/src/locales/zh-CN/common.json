@@ -348,9 +348,11 @@
     "sort": "排序",
     "sortRecent": "最近对话",
     "sortIntimacy": "亲密度从高到低",
+    "sortIntimacyAsc": "亲密度从低到高",
     "sortName": "按名称",
     "adBannerFallback": "横幅广告",
     "deleteMessageTitle": "删除消息",
+    "copy": "复制",
     "notifyOff": "关闭通知",
     "notifyOn": "开启通知",
     "callAction": "通话",
@@ -1294,6 +1296,9 @@
       "warnTooLargeMsg": "所选文件太长。请剪辑为 30 秒至 1 分钟后重新上传。",
       "toastSilence": "声音太小，请大声一点。",
       "toastNoise": "周围太吵，请在安静的地方录音。",
+      "toastClipping": "声音太大，已经失真。请离麦克风稍远一点说话。",
+      "recordAbortedTitle": "录音已中断",
+      "recordAbortedMsg": "录音时离开了应用，录音已停止。请从头重新录音。",
       "recordQualityTitle": "录音质量检查",
       "recordQualitySilenceMsg": "录音中静音部分较多。请在安静的地方清晰地重新录制整句话。",
       "recordQualityNoiseMsg": "录音中混入了环境噪音。在安静的地方重新录制，声音会自然得多。",
@@ -2428,7 +2433,7 @@
     "confirmTitle": "要停用账号吗？",
     "confirmBody": "所有设备将立即退出登录。",
     "effect": {
-      "hide": "你的资料和创建的 AI 克隆将从首页、探索和搜索中隐藏，其他人无法对话或通话。",
+      "hide": "你的资料和创建的 AI 克隆将从首页、探索和搜索中隐藏，除共同管理员外其他人无法对话或通话。",
       "posts": "你的帖子和评论将被隐藏。",
       "interaction": "其他人无法向你发送礼物或分享。",
       "notify": "所有通知将停止。",
@@ -2436,5 +2441,12 @@
     },
     "verifyPassword": "身份验证 · 密码",
     "verifyEmail": "身份验证 · 邮箱验证码"
+  },
+  "partner": {
+    "appsCaption": "相关应用",
+    "xrunTitle": "XRUN",
+    "xrunSub": "钱包 · 奖励 · 登录联动",
+    "clubxTitle": "ClubX",
+    "clubxSub": "俱乐部 · 道具"
   }
 }

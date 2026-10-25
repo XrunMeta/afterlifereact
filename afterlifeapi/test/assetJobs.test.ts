@@ -1,6 +1,6 @@
 
 
-import { v_469bf2, v_23805a, v_4d37e3 } from "xualxe";
+import { v_469bf2, v_23805a, v_4d37e3, v_3889c0 } from "xualxe";
 import { v_1df298, v_c9c489 } from "lwkoweqmjbnvjqw";
 import { v_12ade7 } from "../src/lib/assetJobs";
 
@@ -119,6 +119,32 @@ v_469bf2("asset-job 생성/상태", () => {
       .bind(v_b0d200)
       .first<{ kind: string }>();
     v_4d37e3(v_3ac7e7!.kind).toBe("filler");
+  });
+
+  v_23805a("kind='voice_clone' — 즉시 done + out_url 원본 + 가비아 미중계", async () => {
+    const v_0c8987 = await v_bfb240("aj_voice_done@test.com");
+    const v_8d41d7 = await v_21cc31(v_0c8987);
+    const v_8e2335 = await v_c808bd(v_0c8987, "ajvoicedone");
+    const v_980ff2 = v_3889c0.spyOn(globalThis, "fetch");
+    const v_8f00b9 = await v_1df298.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_8d41d7}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ kind: "voice_clone", src_file_id: v_8e2335 }),
+    });
+    const v_aee0b9 = v_980ff2.mock.calls.some((v_779914) => String(v_779914[0]).includes("/oth-path"));
+    v_980ff2.mockRestore();
+    v_4d37e3(v_8f00b9.status).toBe(201);
+    const v_4d33b2 = await v_8f00b9.json<{ job_id: string; status: string }>();
+    v_4d37e3(v_4d33b2.status).toBe("done");
+    v_4d37e3(v_aee0b9).toBe(false);
+    const v_a1651b = v_c9c489.DB as unknown as D1Database;
+    const v_3ac7e7 = await v_a1651b
+      .prepare(`SELECT status, out_url, out_file_id FROM clone_asset_jobs WHERE id=?`)
+      .bind(v_4d33b2.job_id)
+      .first<{ status: string; out_url: string | null; out_file_id: number | null }>();
+    v_4d37e3(v_3ac7e7!.status).toBe("done");
+    v_4d37e3(v_3ac7e7!.out_url).toBe(`http://localhost/oth-path${v_8e2335}`);
+    v_4d37e3(v_3ac7e7!.out_file_id).toBeNull();
   });
 
   v_23805a("idle_video engine='sadtalker_anim' — 화이트리스트 사용자는 201", async () => {

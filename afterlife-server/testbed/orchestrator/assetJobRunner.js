@@ -371,10 +371,20 @@ export function v_47bade({
 
   meloTtsUrl: v_3dfceb = process.env.MELO_TTS_URL ?? 'http://127.0.0.1:8200',
   _meloTtsFn: v_8bb67e = null, 
+
+  extraApiBaseUrls: v_02be38 = (process.env.AFTERLIFE_API_EXTRA_URLS ?? '').split(','),
 } = {}) {
 
   const v_e45ed0 = [];
   let v_ea9258 = false;
+
+  const v_b7d569 = [v_e9a15d, ...v_02be38]
+    .map((v_148ff6) => (v_148ff6 ?? '').trim())
+    .filter(Boolean)
+    .map((v_148ff6) => (v_148ff6.endsWith('/') ? v_148ff6 : v_148ff6 + '/'));
+  const v_d062ef = v_b7d569.join(', ');
+  const v_5fc3e3 = (v_f71b56) =>
+    typeof v_f71b56 === 'string' && v_b7d569.some((v_e2a85c) => v_f71b56.startsWith(v_e2a85c));
 
   const v_690443 = v_6b1168 ?? ((v_9b6134, v_6e0fd3, v_f71b56, v_9718cb) => v_36d0cf(v_9b6134, v_6e0fd3, v_f71b56, v_9718cb));
   const v_dc2910 = v_5a5306 ?? ((v_f2bb81, v_f37742, v_f71b56, v_55d114) => v_15296d(v_f2bb81, v_f37742, v_f71b56, v_55d114));
@@ -439,8 +449,8 @@ export function v_47bade({
     const v_b7cff2 = await v_f4ad91(v_9fe22d.join(v_171b31(), 'asset-'));
     try {
 
-      if (!v_d5ec97.src_url.startsWith(v_e9a15d)) {
-        throw new Error(`src_url not allowed: must start with apiBaseUrl (${v_e9a15d})`);
+      if (v_e9a15d && !v_5fc3e3(v_d5ec97.src_url)) {
+        throw new Error(`src_url not allowed: must start with an allowed API base (${v_d062ef})`);
       }
       const v_cb35cb = await v_d10060(v_d5ec97.src_url);
       if (!v_cb35cb.ok) throw new Error(`src fetch failed: ${v_cb35cb.status}`);
@@ -475,11 +485,9 @@ export function v_47bade({
       throw new Error('apiBaseUrl 미설정 — SSRF 방어 무력화 방지: filler 잡 거부 (H-1)');
     }
 
-    const v_5bf8fd = v_e9a15d.endsWith('/') ? v_e9a15d : v_e9a15d + '/';
-
-    if (!v_d5ec97.face_url || !v_d5ec97.face_url.startsWith(v_5bf8fd)) {
+    if (!v_d5ec97.face_url || !v_5fc3e3(v_d5ec97.face_url)) {
       throw new Error(
-        `face_url not allowed or missing: must start with apiBaseUrl prefix (${v_5bf8fd})`
+        `face_url not allowed or missing: must start with an allowed API base (${v_d062ef})`
       );
     }
 
@@ -487,9 +495,9 @@ export function v_47bade({
       throw new Error('filler job requires clone_id');
     }
 
-    if (!v_d5ec97.voice_raw_url || !v_d5ec97.voice_raw_url.startsWith(v_5bf8fd)) {
+    if (!v_d5ec97.voice_raw_url || !v_5fc3e3(v_d5ec97.voice_raw_url)) {
       throw new Error(
-        `voice_raw_url not allowed or missing: must start with apiBaseUrl prefix (${v_5bf8fd})`
+        `voice_raw_url not allowed or missing: must start with an allowed API base (${v_d062ef})`
       );
     }
     await v_9920b6(v_d5ec97.clone_id, v_d5ec97.voice_raw_url, v_4ed329, v_d10060, v_b1d1a2);
@@ -547,11 +555,9 @@ export function v_47bade({
       throw new Error('apiBaseUrl 미설정 — SSRF 방어 무력화 방지: guide 잡 거부 (H-1)');
     }
 
-    const v_5bf8fd = v_e9a15d.endsWith('/') ? v_e9a15d : v_e9a15d + '/';
-
-    if (!v_d5ec97.face_url || !v_d5ec97.face_url.startsWith(v_5bf8fd)) {
+    if (!v_d5ec97.face_url || !v_5fc3e3(v_d5ec97.face_url)) {
       throw new Error(
-        `face_url not allowed or missing: must start with apiBaseUrl prefix (${v_5bf8fd})`
+        `face_url not allowed or missing: must start with an allowed API base (${v_d062ef})`
       );
     }
 
@@ -559,9 +565,9 @@ export function v_47bade({
       throw new Error('guide job requires clone_id');
     }
 
-    if (!v_d5ec97.voice_raw_url || !v_d5ec97.voice_raw_url.startsWith(v_5bf8fd)) {
+    if (!v_d5ec97.voice_raw_url || !v_5fc3e3(v_d5ec97.voice_raw_url)) {
       throw new Error(
-        `voice_raw_url not allowed or missing: must start with apiBaseUrl prefix (${v_5bf8fd})`
+        `voice_raw_url not allowed or missing: must start with an allowed API base (${v_d062ef})`
       );
     }
     await v_9920b6(v_d5ec97.clone_id, v_d5ec97.voice_raw_url, v_4ed329, v_d10060, v_b1d1a2);
@@ -612,11 +618,10 @@ export function v_47bade({
     if (!v_e9a15d) {
       throw new Error('apiBaseUrl 미설정 — SSRF 방어 무력화 방지: persona_videos 잡 거부');
     }
-    const v_5bf8fd = v_e9a15d.endsWith('/') ? v_e9a15d : v_e9a15d + '/';
 
-    if (!v_d5ec97.face_url || !v_d5ec97.face_url.startsWith(v_5bf8fd)) {
+    if (!v_d5ec97.face_url || !v_5fc3e3(v_d5ec97.face_url)) {
       throw new Error(
-        `face_url not allowed or missing: must start with apiBaseUrl prefix (${v_5bf8fd})`,
+        `face_url not allowed or missing: must start with an allowed API base (${v_d062ef})`,
       );
     }
     if (!v_d5ec97.clone_id) {
@@ -625,9 +630,9 @@ export function v_47bade({
 
     const v_f9c770 = !!v_d5ec97.voice_raw_url;
     if (v_f9c770) {
-      if (!v_d5ec97.voice_raw_url.startsWith(v_5bf8fd)) {
+      if (!v_5fc3e3(v_d5ec97.voice_raw_url)) {
         throw new Error(
-          `voice_raw_url not allowed: must start with apiBaseUrl prefix (${v_5bf8fd})`,
+          `voice_raw_url not allowed: must start with an allowed API base (${v_d062ef})`,
         );
       }
       await v_9920b6(v_d5ec97.clone_id, v_d5ec97.voice_raw_url, v_4ed329, v_d10060, v_b1d1a2);

@@ -16,14 +16,14 @@ import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_772971 } from "jmpfvteuuztnp";
 import { v_1bfbd0, v_843035, v_9b1a04, v_8b0c90, v_8f28b1 } from "../constants";
 
-export interface SelectOption<T extends string = string> {
+export interface SelectOption<T extends string | number = string> {
   value: T;
   label: string;
 }
 
-export interface SelectFieldProps<T extends string = string> {
+export interface SelectFieldProps<T extends string | number = string> {
   options: SelectOption<T>[];
-  value: T | "";
+  value: T | "" | null;
   onChange: (value: T) => void;
   placeholder?: string;
   label?: string;
@@ -35,7 +35,16 @@ export interface SelectFieldProps<T extends string = string> {
   dropdownMaxHeight?: number;
 }
 
-export default function v_d56c0a<T extends string = string>({
+function v_c44bac<T extends string | number>(v_68b2be, v_3b402b): boolean {
+  if (v_3b402b === "" || v_3b402b == null) return false;
+  if (v_68b2be === v_3b402b) return true;
+  if (typeof v_68b2be === "number" || typeof v_3b402b === "number") {
+    return Number(v_68b2be) === Number(v_3b402b) && Number.isFinite(Number(v_68b2be));
+  }
+  return false;
+}
+
+export default function v_d56c0a<T extends string | number = string>({
   options: v_b36f96,
   value: v_3b402b,
   onChange: v_b187d9,
@@ -50,7 +59,7 @@ export default function v_d56c0a<T extends string = string>({
   const { t: v_8d41d7 } = v_772971();
   const v_2f4805 = v_c6baea ?? v_8d41d7("field.selectPlaceholder", { defaultValue: "선택" });
   const [v_207c31, v_3cc8fd] = v_5ab095(false);
-  const v_587413 = v_b36f96.find((v_b6c474) => v_b6c474.value === v_3b402b);
+  const v_587413 = v_b36f96.find((v_b6c474) => v_c44bac(v_b6c474.value, v_3b402b));
 
   return (
     <View style={[v_d81136.container, v_4affe9]}>
@@ -86,10 +95,10 @@ export default function v_d56c0a<T extends string = string>({
             >
               {v_b36f96.map((v_68b2be, v_e86ad8) => (
                 <TouchableOpacity
-                  key={v_68b2be.value}
+                  key={String(v_68b2be.value)}
                   style={[
                     v_d81136.item,
-                    v_3b402b === v_68b2be.value && v_d81136.itemActive,
+                    v_c44bac(v_68b2be.value, v_3b402b) && v_d81136.itemActive,
                     v_e86ad8 === v_b36f96.length - 1 && v_d81136.itemLast,
                   ]}
                   onPress={() => {
@@ -100,12 +109,12 @@ export default function v_d56c0a<T extends string = string>({
                   <Text
                     style={[
                       v_d81136.itemText,
-                      v_3b402b === v_68b2be.value && v_d81136.itemTextActive,
+                      v_c44bac(v_68b2be.value, v_3b402b) && v_d81136.itemTextActive,
                     ]}
                   >
                     {v_68b2be.label}
                   </Text>
-                  {v_3b402b === v_68b2be.value && (
+                  {v_c44bac(v_68b2be.value, v_3b402b) && (
                     <Feather name="check" size={16} color={v_1bfbd0.zinc900} />
                   )}
                 </TouchableOpacity>

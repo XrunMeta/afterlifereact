@@ -36,6 +36,9 @@ export function v_a1c15b<T extends v_db633a>(c: v_437670, v_1833e7, v_aa4de6): v
   return v_43c42e.data;
 }
 
+export const v_ae1ce0 = (v_d2c6bf = 200) =>
+  v_1f4ea7.preprocess((v_81e2ef) => (typeof v_81e2ef === "string" ? v_81e2ef.trim().toLowerCase() : v_81e2ef), v_1f4ea7.email().max(v_d2c6bf));
+
 export const v_7bbc0f = v_1f4ea7.coerce.number().int().positive();
 export const v_be4380 = v_1f4ea7.object({
   cursor: v_1f4ea7.string().optional(),

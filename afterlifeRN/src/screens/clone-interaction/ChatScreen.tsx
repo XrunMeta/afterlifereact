@@ -59,6 +59,7 @@ import {
   v_daaf83,
 } from "../../lib/chatLocalImages";
 import * as v_3c288d from "bxoplsnixpmvnirxbbkstg";
+import * as v_fba5a0 from "hfxxehldoiokdq";
 
 type ActionItem = {
   label: string;
@@ -248,14 +249,26 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     };
   }, [v_2ca7e0, v_6e0fd3]);
 
-  const v_00fc5a = (msg: v_f19942) => {
-    v_cafc04(v_8d41d7("chat.deleteMessageTitle", { defaultValue: "메시지 삭제" }), [
+  const v_9a66df = (msg: v_f19942) => {
+    const v_c6815a = (v_badeaf.content ?? "").trim() || v_8d41d7("chat.imagePlaceholder", { defaultValue: "[사진]" });
+    const v_dd943a = [
       {
+        label: v_8d41d7("chat.copy", { defaultValue: "복사" }),
+        onPress: async () => {
+          try {
+            await v_fba5a0.setStringAsync(v_c6815a);
+          } catch (v_49263d) {
+            console.warn("[Chat] copy failed:", (v_49263d as Error)?.message ?? v_49263d);
+          }
+        },
+      },
+    ];
+    if (v_badeaf.role === "user") {
+      v_dd943a.push({
         label: v_8d41d7("common.delete", { defaultValue: "삭제" }),
         destructive: true,
         onPress: async () => {
           if (!v_2ca7e0) return;
-
           v_7f73ef((v_ba2215) =>
             v_ba2215 ? v_ba2215.filter((v_23805a) => !(v_23805a.type === "chat" && v_23805a.id === v_badeaf.id)) : v_ba2215,
           );
@@ -263,7 +276,6 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
             await v_1c758d(v_badeaf.id, v_2ca7e0);
           } catch (v_49263d) {
             console.warn("[Chat] delete failed:", (v_49263d as Error)?.message ?? v_49263d);
-
             const v_8f00b9 = await v_22ca9b(v_6e0fd3, v_2ca7e0, { limit: 30 });
             if (v_8f00b9) {
               v_7f73ef(v_8f00b9.items);
@@ -271,8 +283,9 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
             }
           }
         },
-      },
-    ]);
+      });
+    }
+    v_cafc04(undefined, v_dd943a);
   };
 
   const v_747b23 = async () => {
@@ -788,7 +801,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                       {v_ca7346 ? (
                         <TouchableOpacity
                           activeOpacity={0.85}
-                          onLongPress={() => v_00fc5a(v_23805a)}
+                          onLongPress={() => v_9a66df(v_23805a)}
                           delayLongPress={350}
                           style={[
                             v_d81136.userBubble,
@@ -801,7 +814,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                       ) : (
                         <TouchableOpacity
                           activeOpacity={0.85}
-                          onLongPress={() => v_00fc5a(v_23805a)}
+                          onLongPress={() => v_9a66df(v_23805a)}
                           delayLongPress={350}
                           style={[
                             v_d81136.personaOutsideBubble,

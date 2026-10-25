@@ -348,9 +348,11 @@
     "sort": "Urutkan",
     "sortRecent": "Obrolan terbaru",
     "sortIntimacy": "Keintiman tertinggi",
+    "sortIntimacyAsc": "Keintiman terendah",
     "sortName": "Nama",
     "adBannerFallback": "Spanduk iklan",
     "deleteMessageTitle": "Hapus pesan",
+    "copy": "Salin",
     "notifyOff": "Matikan notifikasi",
     "notifyOn": "Nyalakan notifikasi",
     "callAction": "Panggil",
@@ -1294,6 +1296,9 @@
       "warnTooLargeMsg": "File yang dipilih terlalu panjang. Potong menjadi 30 detik hingga 1 menit lalu unggah lagi.",
       "toastSilence": "Terlalu pelan. Mohon bicara sedikit lebih keras.",
       "toastNoise": "Sekitar Anda bising. Mohon rekam di tempat yang tenang.",
+      "toastClipping": "Suara terlalu keras dan pecah. Mohon bicara sedikit lebih jauh dari mikrofon.",
+      "recordAbortedTitle": "Rekaman dihentikan",
+      "recordAbortedMsg": "Anda keluar dari aplikasi saat merekam, jadi rekaman dihentikan. Silakan rekam ulang dari awal.",
       "recordQualityTitle": "Periksa kualitas rekaman",
       "recordQualitySilenceMsg": "Rekaman memiliki banyak bagian hening. Mohon rekam ulang seluruh kalimat dengan jelas di tempat yang tenang.",
       "recordQualityNoiseMsg": "Rekaman tercampur suara bising. Merekam ulang di tempat yang tenang akan membuat suara jauh lebih alami.",
@@ -2432,7 +2437,7 @@
     "confirmTitle": "Nonaktifkan akun?",
     "confirmBody": "Anda akan langsung keluar dari semua perangkat.",
     "effect": {
-      "hide": "Profil dan klon AI Anda disembunyikan dari beranda, jelajah, dan pencarian, dan orang lain tidak bisa mengobrol atau menelepon.",
+      "hide": "Profil dan klon AI Anda disembunyikan dari beranda, jelajah, dan pencarian, dan selain Ko-Admin tidak ada yang bisa mengobrol atau menelepon.",
       "posts": "Postingan dan komentar Anda disembunyikan.",
       "interaction": "Orang lain tidak bisa mengirim hadiah atau berbagi.",
       "notify": "Semua notifikasi berhenti.",
@@ -2440,5 +2445,12 @@
     },
     "verifyPassword": "Verifikasi · Kata sandi",
     "verifyEmail": "Verifikasi · Kode email"
+  },
+  "partner": {
+    "appsCaption": "Aplikasi terkait",
+    "xrunTitle": "XRUN",
+    "xrunSub": "Dompet · hadiah · login",
+    "clubxTitle": "ClubX",
+    "clubxSub": "Klub · item"
   }
 }

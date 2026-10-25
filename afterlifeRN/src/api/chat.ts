@@ -83,6 +83,8 @@ export interface ConversationListItem {
     | null;
 
   unreadCount: number;
+
+  intimacy?: number;
 }
 export interface ConversationListResponse {
   items: ConversationListItem[];

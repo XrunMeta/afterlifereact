@@ -104,6 +104,13 @@ export default function v_415807({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
           await v_31080f(v_fd5f43.accessToken, v_9ec4c0.user, { persist: v_f53eaa, refreshToken: v_fd5f43.refreshToken ?? null });
           v_e41029("email_otp");
           await v_232d52();
+
+          try {
+            const { resetToMyClonesDashboard: v_a3ff58 } = await import("../../lib/resetToMyClonesDashboard");
+            await v_a3ff58();
+          } catch (v_9e86fd) {
+            console.warn("[AUTH/otp-reactivate] nav reset failed:", v_9e86fd);
+          }
         },
       });
       if (v_c5c078) return;

@@ -348,22 +348,44 @@ export interface XrunProfilePatch {
   region?: number | null;
 }
 
+function v_60a45b(v_81e2ef): number | null {
+  if (v_81e2ef == null || v_81e2ef === "") return null;
+  const v_f4e98d = typeof v_81e2ef === "number" ? v_81e2ef : Number(v_81e2ef);
+  return Number.isFinite(v_f4e98d) ? v_f4e98d : null;
+}
+
+function v_95137b(v_e2a85c): XrunProfile {
+  return {
+    ...v_e2a85c,
+    member: v_60a45b(v_e2a85c.member) ?? v_e2a85c.member,
+    gender: v_60a45b(v_e2a85c.gender),
+    ages: v_60a45b(v_e2a85c.ages),
+    age: v_60a45b(v_e2a85c.age),
+    country: v_60a45b(v_e2a85c.country),
+    region: v_60a45b(v_e2a85c.region),
+  };
+}
+
 export async function v_2c296e(v_2ca7e0): Promise<XrunProfile> {
   const v_8f00b9 = await v_9b97b4<{ profile: XrunProfile }>(
     "/oth-path",
     v_2ca7e0,
     { method: "GET" },
   );
-  return v_8f00b9.profile;
+  return v_95137b(v_8f00b9.profile);
 }
 
 export async function v_ad7aba(
   v_2ca7e0,
   v_931bf0,
 ): Promise<{ ok: true; updated: number; profile: XrunProfile | null }> {
-  return v_9b97b4<{ ok: true; updated: number; profile: XrunProfile | null }>(
+  const v_8f00b9 = await v_9b97b4<{ ok: true; updated: number; profile: XrunProfile | null }>(
     "/oth-path",
     v_2ca7e0,
     { method: "PATCH", body: JSON.stringify(v_931bf0) },
   );
+  return {
+    ...v_8f00b9,
+    profile: v_8f00b9.profile ? v_95137b(v_8f00b9.profile) : null,
+  };
 }

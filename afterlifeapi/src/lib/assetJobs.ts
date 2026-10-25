@@ -113,6 +113,15 @@ export async function v_2fb81a(
   }
 }
 
+export async function v_689a90(v_a1651b, v_389afb, v_d1a0d1): Promise<void> {
+  await v_a1651b
+    .prepare(
+      `UPDATE clone_asset_jobs SET status='done', out_url=?, updated_at=datetime('now') WHERE id=? AND kind='voice_clone' AND status='pending'`,
+    )
+    .bind(v_d1a0d1, v_389afb)
+    .run();
+}
+
 export async function v_7a6ff6(v_a1651b, v_389afb, v_5e9bfe): Promise<void> {
   await v_a1651b
     .prepare(

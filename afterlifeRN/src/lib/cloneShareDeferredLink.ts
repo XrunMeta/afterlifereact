@@ -11,6 +11,14 @@ const v_c467bf = "processed_install_referrer_clone";
 const v_55c9cc = "processed_clipboard_clone";
 const v_bd631f = "pendingCloneShareId";
 
+export async function v_f18f70(): Promise<void> {
+  try {
+    await v_e84827.removeItem(v_bd631f);
+  } catch (v_49263d) {
+    console.warn("[CloneShareDDL] clear pending 실패:", v_49263d);
+  }
+}
+
 export async function v_1d7e9a(): Promise<void> {
   try {
     const v_479f05 = await v_e84827.getItem(v_bd631f);

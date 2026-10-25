@@ -198,6 +198,13 @@ v_0bc486.get("/inventory", v_6690d9, async (v_3f4e2e) => {
   return v_3f4e2e.json({ items: v_4622b9 });
 });
 
+const v_9a7b9d = ["received", "ad_reward", "sent", "exchanged"];
+function v_bf1264(v_94302c): string[] {
+  if (v_94302c === "received") return ["received", "ad_reward"];
+  if (v_94302c === "sent") return ["sent"];
+  return v_9a7b9d;
+}
+
 v_0bc486.get("/activity-log", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
   const v_f71b56 = new URL(v_3f4e2e.req.url);
@@ -205,6 +212,8 @@ v_0bc486.get("/activity-log", v_6690d9, async (v_3f4e2e) => {
   const v_02be30 = Math.max(1, Math.min(200, Number.isFinite(v_cf2260) ? v_cf2260 : 50));
   const v_40e259 = Number(v_f71b56.searchParams.get("offset") ?? 0);
   const v_3bbadf = Math.max(0, Number.isFinite(v_40e259) ? v_40e259 : 0);
+  const v_28c2de = v_bf1264(v_f71b56.searchParams.get("kind"));
+  const v_8b630e = v_28c2de.map(() => "?").join(", ");
 
   const v_18b8bf = await v_3f4e2e.env.DB
     .prepare(
@@ -228,11 +237,11 @@ v_0bc486.get("/activity-log", v_6690d9, async (v_3f4e2e) => {
          FROM gift_inventory_events e
          LEFT JOIN users  cp ON cp.id = e.counterpart_user_id
          LEFT JOIN clones c  ON c.id  = e.clone_id
-        WHERE e.user_id = ? AND e.kind IN ('received', 'ad_reward', 'sent', 'exchanged')
-        ORDER BY e.created_at DESC
+        WHERE e.user_id = ? AND e.kind IN (${v_8b630e})
+        ORDER BY e.created_at DESC, e.id DESC
         LIMIT ? OFFSET ?`,
     )
-    .bind(v_43e90c, v_02be30, v_3bbadf)
+    .bind(v_43e90c, ...v_28c2de, v_02be30, v_3bbadf)
     .all<{
       id: number;
       kind: string;
@@ -256,10 +265,18 @@ v_0bc486.get("/activity-log", v_6690d9, async (v_3f4e2e) => {
   const v_679404 = await v_3f4e2e.env.DB
     .prepare(
       `SELECT COUNT(*) AS n FROM gift_inventory_events
-        WHERE user_id = ? AND kind IN ('received', 'ad_reward', 'sent', 'exchanged')`,
+        WHERE user_id = ? AND kind IN (${v_8b630e})`,
+    )
+    .bind(v_43e90c, ...v_28c2de)
+    .first<{ n: number }>();
+
+  const v_e52c8b = await v_3f4e2e.env.DB
+    .prepare(
+      `SELECT COALESCE(SUM(count), 0) AS totalSent FROM gift_inventory_events
+        WHERE user_id = ? AND kind = 'sent'`,
     )
     .bind(v_43e90c)
-    .first<{ n: number }>();
+    .first<{ totalSent: number }>();
 
   const v_9ba17d = await v_3f4e2e.env.DB
     .prepare(`SELECT COALESCE(SUM(total_received), 0) AS totalReceived FROM user_gift_inventory WHERE user_id = ?`)
@@ -301,6 +318,7 @@ v_0bc486.get("/activity-log", v_6690d9, async (v_3f4e2e) => {
     items: v_4622b9,
     total: v_679404?.n ?? 0,
     totalReceived: v_9ba17d?.totalReceived ?? 0,
+    totalSent: v_e52c8b?.totalSent ?? 0,
     currentOwned: v_b5069d?.currentOwned ?? 0,
     limit: v_02be30,
     offset: v_3bbadf,
