@@ -123,11 +123,16 @@ export async function v_c272bc(env: v_273a0c, v_e0c7e8): Promise<void> {
   await v_b78f7e(v_c9c489, v_e0c7e8, "password_reset");
 }
 
-export async function v_656e8b(env: v_273a0c, v_e0c7e8, v_c99bd2): Promise<void> {
+export async function v_656e8b(
+  env: v_273a0c,
+  v_e0c7e8,
+  v_c99bd2,
+  v_38472a,
+): Promise<void> {
   const v_0eb677 = v_b24339(v_e0c7e8);
   const v_94a7a9 = await v_c9c489.KV_AUTH.get<OtpRecord>(v_0eb677, "json");
   const v_bb4bfd = v_e0c7e8.trim().toLowerCase();
-  if (!v_94a7a9) {
+  if (!v_94a7a9 || (v_38472a && v_94a7a9.purpose !== v_38472a)) {
     throw new v_3ebe58("OTP_REQUIRED", "No verification code in progress. Request one first.");
   }
   if (Date.now() > v_94a7a9.expiresAt) {
