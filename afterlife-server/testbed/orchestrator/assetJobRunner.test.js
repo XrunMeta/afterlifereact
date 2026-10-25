@@ -344,6 +344,53 @@ v_2a805f('src_url이 apiBaseUrl prefix 아니면 failed 콜백', async () => {
   v_ce93bd.match(v_23563e.get('error') ?? '', /not allowed/);
 });
 
+const v_bf466e = 'https://oth-path-prod.example.com';
+
+async function v_0192a6(v_0ad77a, v_02be38) {
+  const v_0a664b = [];
+  const v_694b25 = v_4de825({ callbackCalls: v_0a664b });
+  const v_cee2c7 = [];
+  const v_d10060 = async (v_f71b56, v_328259) => {
+    if (v_f71b56.startsWith(`${v_bf466e}/oth-path`)) {
+      v_cee2c7.push(v_f71b56);
+      return { ok: true, status: 200, arrayBuffer: async () => new Uint8Array(10).buffer };
+    }
+    return v_694b25(v_f71b56, v_328259);
+  };
+  const v_eedf31 = v_47bade({
+    apiBaseUrl: v_cc9198,
+    extraApiBaseUrls: v_02be38,
+    genIdleCmd: (v_38d084, v_8d4337) => ({ bin: 'echo', args: [v_38d084, v_8d4337] }),
+    extractSeCmd: (v_38d084, v_8d4337) => ({ bin: 'echo', args: [v_38d084, v_8d4337] }),
+    fetchImpl: v_d10060,
+    spawnImpl: v_142ee6(0),
+  });
+  v_eedf31.enqueue({ job_id: 'job_x', kind: 'idle_video', src_url: v_0ad77a, callback_token: 'tok_x' });
+  await v_26eff3(v_eedf31);
+  return { callbackCalls: v_0a664b, fetched: v_cee2c7 };
+}
+
+v_2a805f('extraApiBaseUrls 에 있는 API 주소의 src_url 은 처리하고 콜백은 apiBaseUrl 로', async () => {
+  const { callbackCalls: v_0a664b, fetched: v_cee2c7 } = await v_0192a6(`${v_bf466e}/oth-path`, [v_bf466e]);
+  v_ce93bd.deepEqual(v_cee2c7, [`${v_bf466e}/oth-path`]);
+  v_ce93bd.equal(v_0a664b.length, 1);
+  v_ce93bd.equal(v_0a664b[0].url, `${v_cc9198}/oth-path`);
+  v_ce93bd.equal(v_0a664b[0].body.get('status'), 'done');
+});
+
+v_2a805f('extraApiBaseUrls 가 없으면 다른 API 주소는 거부', async () => {
+  const { callbackCalls: v_0a664b, fetched: v_cee2c7 } = await v_0192a6(`${v_bf466e}/oth-path`, []);
+  v_ce93bd.deepEqual(v_cee2c7, []);
+  v_ce93bd.equal(v_0a664b[0].body.get('status'), 'failed');
+  v_ce93bd.match(v_0a664b[0].body.get('error') ?? '', /not allowed/);
+});
+
+v_2a805f('허용 주소 뒤에 도메인을 붙인 우회 주소는 거부 (trailing slash 경계)', async () => {
+  const { callbackCalls: v_0a664b, fetched: v_cee2c7 } = await v_0192a6(`${v_bf466e}.evil.com/api/files/img9`, [v_bf466e]);
+  v_ce93bd.deepEqual(v_cee2c7, []);
+  v_ce93bd.equal(v_0a664b[0].body.get('status'), 'failed');
+});
+
 v_2a805f('filler 3종 모두 성공 → /oth-path 1회, file0/file1/file2 포함', async () => {
   const v_0a664b = [];
   const v_7eab3e = [];
