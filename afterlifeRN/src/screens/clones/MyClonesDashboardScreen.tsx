@@ -963,7 +963,10 @@ export default function v_def15b() {
               <View style={v_fd5f43.giftDashCard}>
                 <View style={v_fd5f43.giftDashHeader}>
                   <View style={v_fd5f43.giftDashTitleRow}>
-                    <Text style={v_fd5f43.giftDashRoseEmoji}>🌹</Text>
+                    <Image
+                      source={require("../../../assets/images/rose-icon.png")}
+                      style={v_fd5f43.giftDashRoseIcon}
+                    />
                     <Text style={v_fd5f43.giftDashTitle}>
                       {v_8d41d7("giftBox.myRoseTitle", { defaultValue: "내 ROSE" })}
                     </Text>
@@ -2451,7 +2454,7 @@ const v_fd5f43 = v_472849.create({
     marginBottom: 10,
   },
   giftDashTitleRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  giftDashRoseEmoji: { fontSize: 16 },
+  giftDashRoseIcon: { width: 22, height: 22, borderRadius: 11 },
   giftDashTitle: { fontSize: 16, fontWeight: "700", color: v_1bfbd0.zinc900 },
   giftDashViewAllBtn: {
     flexDirection: "row",
