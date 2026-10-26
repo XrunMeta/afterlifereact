@@ -2432,7 +2432,10 @@
     "totalDeduct": "Total dipotong",
     "toastSnapped": "Penukaran per {{step}} (disesuaikan ke {{qty}})",
     "notEnoughTitle": "Butuh minimal {{need}} untuk menukar",
-    "notEnoughBody": "Penukaran mulai {{need}} termasuk biaya. Anda punya {{owned}}."
+    "noGiftTitle": "Tidak ada hadiah untuk ditukar",
+    "noGiftBody": "Anda bisa mendapat hadiah dengan menelepon persona.\nMau menelepon sekarang?",
+    "goHome": "Buka",
+    "notEnoughBody": "Anda punya {{owned}}.\nKumpulkan lebih banyak hadiah lewat panggilan."
   },
   "sso": {
     "reconsent": {
