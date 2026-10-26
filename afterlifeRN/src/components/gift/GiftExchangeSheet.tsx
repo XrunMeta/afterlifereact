@@ -26,9 +26,11 @@ interface Props {
   onClose: () => void;
 
   onChanged?: () => void;
+
+  onGoHome?: () => void;
 }
 
-export default function v_177da7({ visible: v_cf55be, onClose: v_0890f8, onChanged: v_37c9f5 }: Props) {
+export default function v_177da7({ visible: v_cf55be, onClose: v_0890f8, onChanged: v_37c9f5, onGoHome: v_227c69 }: Props) {
   const { t: v_8d41d7 } = v_772971();
 
   const {
@@ -45,13 +47,20 @@ export default function v_177da7({ visible: v_cf55be, onClose: v_0890f8, onChang
   } = v_61fb8c({ onChanged: v_37c9f5, beforeConfirm: v_0890f8 });
 
   const [v_683210, v_34a50a] = v_5ab095(false);
+
+  const [v_d1b432, v_9998b9] = v_5ab095(false);
   const [v_9b6134, v_43d2ef] = v_5ab095("");
   v_c4deb2(() => v_43d2ef(v_eddb49 ? String(v_eddb49) : ""), [v_eddb49]);
 
   const v_3d268b = v_e662ae(v_0890f8);
   v_3d268b.current = v_0890f8;
+  const v_6dc421 = v_e662ae(v_227c69);
+  v_6dc421.current = v_227c69;
   v_c4deb2(() => {
-    if (!v_cf55be) return;
+    if (!v_cf55be) {
+      v_9998b9(false);
+      return;
+    }
     let v_759436 = true;
     v_34a50a(true);
     void v_308dd7()
@@ -80,21 +89,33 @@ export default function v_177da7({ visible: v_cf55be, onClose: v_0890f8, onChang
             v_9e86fd.maintenance?.message ?? v_8d41d7("giftBox.p8BodySoon", { defaultValue: "잠시 후 다시 시도해주세요." }),
             v_3ed4c3,
           );
-        } else if (!v_9e86fd.giftId) {
+        } else if (!v_9e86fd.giftId || v_9e86fd.ownedQty <= 0) {
+
           v_c78a36();
-          v_889fad(v_8d41d7("giftBox.emptyExchange", { defaultValue: "교환할 선물이 없어요" }), "", v_3ed4c3);
+          v_889fad(
+            v_8d41d7("giftBox.noGiftTitle", { defaultValue: "교환할 선물이 없어요" }),
+            v_8d41d7("giftBox.noGiftBody", { defaultValue: "페르소나와 통화하면 선물을 받을 수 있어요.\n지금 통화하러 가볼까요?" }),
+            [
+              { text: v_8d41d7("common.cancel", { defaultValue: "취소" }), style: "cancel" },
+              { text: v_8d41d7("giftBox.goHome", { defaultValue: "바로가기" }), onPress: () => v_6dc421.current?.() },
+            ],
+          );
         } else if (v_9e86fd.exchangeableQty < v_9e86fd.minQty) {
           v_c78a36();
           const v_565b1e = v_9e86fd.minQty + v_6f0728(v_9e86fd, v_9e86fd.minQty);
           v_889fad(
             v_8d41d7("giftBox.notEnoughTitle", { defaultValue: "교환하려면 {{need}}송이 이상 필요해요", need: v_565b1e }),
             v_8d41d7("giftBox.notEnoughBody", {
-              defaultValue: "수수료 포함 {{need}}송이부터 교환할 수 있어요. 지금 {{owned}}송이를 갖고 있어요.",
-              need: v_565b1e,
+              defaultValue: "지금 {{owned}}송이를 갖고 있어요.\n통화로 선물을 더 모아보세요.",
               owned: v_9e86fd.ownedQty,
             }),
-            v_3ed4c3,
+            [
+              { text: v_8d41d7("common.cancel", { defaultValue: "취소" }), style: "cancel" },
+              { text: v_8d41d7("giftBox.goHome", { defaultValue: "바로가기" }), onPress: () => v_6dc421.current?.() },
+            ],
           );
+        } else {
+          v_9998b9(true);
         }
       })
       .finally(() => v_759436 && v_34a50a(false));
@@ -119,7 +140,7 @@ export default function v_177da7({ visible: v_cf55be, onClose: v_0890f8, onChang
   const v_80cae9 = v_8d41d7("giftBox.flowerUnit", { defaultValue: "송이" });
 
   return (
-    <Modal visible={v_cf55be} transparent animationType="fade" onRequestClose={v_0890f8}>
+    <Modal visible={v_cf55be && v_d1b432} transparent animationType="fade" onRequestClose={v_0890f8}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={v_326be8.OS === "ios" ? "padding" : undefined}>
         <Pressable style={v_72c7a6.backdrop} onPress={v_0890f8}>
           <Pressable

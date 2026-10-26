@@ -2428,7 +2428,10 @@
     "totalDeduct": "共扣除",
     "toastSnapped": "需以{{step}}朵为单位兑换（已调整为{{qty}}朵）",
     "notEnoughTitle": "至少需要{{need}}朵才能兑换",
-    "notEnoughBody": "含手续费{{need}}朵起可兑换，您目前有{{owned}}朵。"
+    "noGiftTitle": "没有可兑换的礼物",
+    "noGiftBody": "与角色通话即可获得礼物。\n现在去通话吗？",
+    "goHome": "前往",
+    "notEnoughBody": "您目前有{{owned}}朵。\n通过通话收集更多礼物吧。"
   },
   "sso": {
     "reconsent": {

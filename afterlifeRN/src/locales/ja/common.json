@@ -2435,7 +2435,10 @@
     "totalDeduct": "合計差し引き",
     "toastSnapped": "{{step}}本単位で交換できます（{{qty}}本に合わせました）",
     "notEnoughTitle": "交換には{{need}}本以上必要です",
-    "notEnoughBody": "手数料込みで{{need}}本から交換できます。現在{{owned}}本お持ちです。"
+    "noGiftTitle": "交換できるギフトがありません",
+    "noGiftBody": "ペルソナと通話するとギフトがもらえます。\n今から通話してみますか？",
+    "goHome": "移動する",
+    "notEnoughBody": "現在{{owned}}本お持ちです。\n通話でギフトをもっと集めましょう。"
   },
   "sso": {
     "reconsent": {
