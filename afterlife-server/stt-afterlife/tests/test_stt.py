@@ -484,3 +484,33 @@ class TestTranscribeClip:
         with pytest.raises(HTTPException) as ei:
             srv._transcribe_wav("/fake/bad.wav")
         assert ei.value.status_code == 503
+
+
+class TestTranscribePathMaxSec:
+    """AFL-1059: 견본 쌍(voice_prompt.wav, 8~30초)은 통째로 전사해야 한다.
+
+    STT_MAX_SEC(10초) 물리 cut 은 voice.wav 앞 10초를 쓰는 ref_text.txt 용이다. 견본 쌍 전사에도
+    같은 cut 이 걸려 10초 넘는 견본의 뒷문장이 글에서 빠졌다(라이브 9223: "…좀 더 오라" 에서 끊김).
+    오디오·텍스트가 어긋난 견본은 엉뚱한 소리를 낸다.
+    """
+
+    def _post(self, ref_root, **extra):
+        wav = _make_voice_wav(ref_root, "zz-probe-1-0")
+        return client.post("/transcribe_path", json={"wav_path": wav, "out_clone_id": "zz-stt-sink", **extra})
+
+    def test_max_sec_지정하면_그만큼_전사(self, tmp_ref_root, monkeypatch):
+        monkeypatch.setattr(config, "STT_MAX_SEC", 10.0)
+        _FakeWhisperModel.decode_return = [0.0] * (20 * 16000)
+        res = self._post(tmp_ref_root, max_sec=30)
+        assert res.status_code == 200
+        assert len(_FakeWhisperModel.last_audio) == 20 * 16000
+
+    def test_max_sec_없으면_종전_10초(self, tmp_ref_root, monkeypatch):
+        monkeypatch.setattr(config, "STT_MAX_SEC", 10.0)
+        _FakeWhisperModel.decode_return = [0.0] * (20 * 16000)
+        assert self._post(tmp_ref_root).status_code == 200
+        assert len(_FakeWhisperModel.last_audio) == 10 * 16000
+
+    def test_max_sec_범위밖은_거부(self, tmp_ref_root):
+        assert self._post(tmp_ref_root, max_sec=31).status_code == 422
+        assert self._post(tmp_ref_root, max_sec=0).status_code == 422

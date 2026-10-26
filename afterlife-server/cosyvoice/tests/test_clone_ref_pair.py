@@ -201,3 +201,29 @@ def test_기본값은_결정된_규칙():
     assert REC == 15.0
     assert CUT == 8.0
     assert MAX == 30.0
+
+
+def test_견본_전사는_파일_전체를_요청(monkeypatch):
+    """AFL-1059: STT 는 기본 10초만 전사한다(ref_text.txt 용). 견본 쌍은 8~30초라 10초 뒤 문장이
+    글에서 빠졌다(라이브 9223). 견본 전사 요청에는 max_sec=MAX_PROMPT_SEC 를 싣는다."""
+    import json as _json
+    import urllib.request
+    seen = {}
+
+    class _Resp:
+        def read(self):
+            return _json.dumps({"ref_text": "안녕하세요."}).encode()
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+    def fake(req, timeout=None):
+        seen.update(_json.loads(req.data.decode()))
+        return _Resp()
+
+    monkeypatch.setattr(urllib.request, "urlopen", fake)
+    assert make_prompt_ref.transcribe("/x/voice_prompt.wav") == "안녕하세요."
+    assert seen["max_sec"] == MAX
