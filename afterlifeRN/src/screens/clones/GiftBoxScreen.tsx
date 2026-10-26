@@ -92,7 +92,17 @@ export default function v_8869a8() {
   const { params: v_24baff } = v_2d8264<Route>();
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
 
-  const [v_11083e, v_94ee83] = v_5ab095<TabKey>(v_24baff?.initialTab ?? "received");
+  const v_5cbc42 =
+    v_24baff?.view === "activity"
+      ? ["received", "sent"]
+      : v_24baff?.view === "exchange"
+        ? ["exchange"]
+        : ["received", "sent", "exchange"];
+  const v_7ab4ca =
+    v_24baff?.initialTab && v_5cbc42.includes(v_24baff.initialTab)
+      ? v_24baff.initialTab
+      : v_5cbc42[0];
+  const [v_11083e, v_94ee83] = v_5ab095<TabKey>(v_7ab4ca);
   const [v_683210, v_34a50a] = v_5ab095(true);
   const [v_612e9f, v_575aad] = v_5ab095(false);
   const [v_79f454, v_588ee6] = v_5ab095<Paged>(v_459174);
@@ -106,7 +116,10 @@ export default function v_8869a8() {
 
   v_cf763b(
     v_de06a3(() => {
-      if (v_24baff?.initialTab) v_94ee83(v_24baff.initialTab);
+      if (v_24baff?.initialTab && v_5cbc42.includes(v_24baff.initialTab)) {
+        v_94ee83(v_24baff.initialTab);
+      }
+
     }, [v_24baff?.initialTab]),
   );
 
@@ -211,7 +224,7 @@ export default function v_8869a8() {
     [v_8af8a0, v_5da798],
   );
 
-  const v_c6c04c = [
+  const v_22668d = [
     {
       key: "received",
       label: v_8d41d7("giftBox.tabReceived", { defaultValue: "받은 선물" }),
@@ -225,6 +238,8 @@ export default function v_8869a8() {
     { key: "exchange", label: v_8d41d7("giftBox.tabExchange", { defaultValue: "교환" }) },
   ];
 
+  const v_c6c04c = v_22668d.filter((v_c3c9ed) => v_5cbc42.includes(v_c3c9ed.key));
+
   return (
     <SafeView backgroundColor={v_1bfbd0.zinc50} showBottomBackground={false}>
       <PageHeader
@@ -233,6 +248,7 @@ export default function v_8869a8() {
         onBackPress={() => v_c65f5d.goBack()}
       />
 
+      {v_c6c04c.length > 1 ? (
       <View style={v_d81136.tabRow}>
         {v_c6c04c.map((v_c3c9ed) => {
           const v_f8b770 = v_11083e === v_c3c9ed.key;
@@ -253,6 +269,7 @@ export default function v_8869a8() {
           );
         })}
       </View>
+      ) : null}
 
       {v_683210 ? (
         <View style={v_d81136.center}>
