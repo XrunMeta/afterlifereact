@@ -58,6 +58,7 @@ import { v_48981e, type v_2b70d7 } from "../../api/credits";
 import { v_7d2692 } from "../../api/files";
 import { v_1bfbd0, v_9b1a04, v_8b0c90, v_a9d3e9, v_d43669, v_c10a43, v_119e65 } from "../../components/constants";
 import type { v_affcc0, v_b0b271 } from "../../types/clone";
+import v_177da7 from "../../components/gift/GiftExchangeSheet";
 import type { v_2d88fc } from "../../navigation/types";
 import type { v_8ad91b } from "../../navigation/types";
 
@@ -108,6 +109,18 @@ export default function v_def15b() {
   const [v_b1118a, v_6edbbc] = v_5ab095(v_ebad5a);
   const [v_489044, v_9500c7] = v_5ab095(0);
   const [v_cfa43b, v_ed9bd4] = v_5ab095(0);
+
+  const [v_0215b6, v_b30c04] = v_5ab095(false);
+  const v_fa991f = v_de06a3(() => {
+    if (!v_2ca7e0) return;
+    v_bf9881(v_2ca7e0, { limit: 50 })
+      .then((v_cb35cb) => {
+        v_4b3c02(v_cb35cb.items);
+        v_9500c7(v_cb35cb.totalReceived);
+        v_ed9bd4(v_cb35cb.currentOwned);
+      })
+      .catch((v_49263d) => console.warn("[MyClonesDashboard] giftActivity fail:", v_49263d));
+  }, [v_2ca7e0]);
 
   const [v_deb5c7, v_9093a8] = v_5ab095(0);
 
@@ -1001,7 +1014,7 @@ export default function v_def15b() {
                 <TouchableOpacity
                   style={v_fd5f43.giftDashExchangeBtn}
                   activeOpacity={0.85}
-                  onPress={() => v_c65f5d.navigate("GiftBox", { initialTab: "exchange" })}
+                  onPress={() => v_b30c04(true)}
                 >
                   <Text style={v_fd5f43.giftDashExchangeBtnText}>
                     {v_8d41d7("giftBox.exchangeAction", { defaultValue: "교환하기" })}
@@ -1231,6 +1244,13 @@ export default function v_def15b() {
 }
 
       {}
+
+      {}
+      <GiftExchangeSheet
+        visible={v_0215b6}
+        onClose={() => v_b30c04(false)}
+        onChanged={v_fa991f}
+      />
 
       {
 }
