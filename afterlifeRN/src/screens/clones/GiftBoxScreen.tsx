@@ -963,7 +963,7 @@ const v_d81136 = v_472849.create({
     borderBottomColor: v_1bfbd0.zinc200,
   },
 
-  recvRowClaimed: { backgroundColor: v_1bfbd0.zinc50 },
+  recvRowClaimed: { backgroundColor: v_1bfbd0.zinc100 },
   recvTitle: { fontSize: 14, fontWeight: "700", color: v_1bfbd0.zinc900 },
   recvCount: { fontSize: 15, fontWeight: "700", color: "#dc2626" },
 
