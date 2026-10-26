@@ -104,8 +104,22 @@ v_0bc486.post(
     const v_56896b = v_8c0b26.emoji ?? "🎁";
     const v_92e7a1 = v_8c0b26.imageUrl ?? null;
     const v_a97aa2 = v_4d33b2.cloneId ?? null;
-    await v_3f4e2e.env.DB.batch([
 
+    const v_f9c48b =
+      typeof (v_8c0b26 as any).xrunPrice === "number" && (v_8c0b26 as any).xrunPrice > 0
+        ? Number((v_8c0b26 as any).xrunPrice)
+        : 0.01;
+    await v_3f4e2e.env.DB.batch([
+      v_3f4e2e.env.DB
+        .prepare(
+          `INSERT INTO user_gift_inventory (user_id, gift_id, count, total_received, updated_at)
+             VALUES (?, ?, 1, 1, strftime('%s','now'))
+           ON CONFLICT(user_id, gift_id) DO UPDATE SET
+             count = count + 1,
+             total_received = total_received + 1,
+             updated_at = strftime('%s','now')`,
+        )
+        .bind(v_4d33b2.toUserId, v_4d33b2.giftId),
       v_3f4e2e.env.DB
         .prepare(
           `INSERT INTO gift_inventory_events (user_id, counterpart_user_id, gift_id, count, xrun_amount, kind, ref_id,
@@ -115,16 +129,21 @@ v_0bc486.post(
         )
         .bind(v_f7e120, v_4d33b2.toUserId, v_4d33b2.giftId, v_4547b1, v_62c866,
               v_a97aa2, v_5097fd, v_56896b, v_92e7a1),
-
       v_3f4e2e.env.DB
         .prepare(
           `INSERT INTO gift_inventory_events (user_id, counterpart_user_id, gift_id, count, xrun_amount, kind, ref_id,
                                                clone_id, gift_name_snapshot, gift_emoji_snapshot, gift_image_url_snapshot,
                                                claimed_at)
-             VALUES (?, ?, ?, 1, ?, 'received', ?, ?, ?, ?, ?, NULL)`,
+             VALUES (?, ?, ?, 1, ?, 'received', ?, ?, ?, ?, ?, strftime('%s','now'))`,
         )
         .bind(v_4d33b2.toUserId, v_f7e120, v_4d33b2.giftId, v_4547b1, v_62c866,
               v_a97aa2, v_5097fd, v_56896b, v_92e7a1),
+      v_3f4e2e.env.DB
+        .prepare(
+          `INSERT INTO user_gift_lots (user_id, gift_id, received_at, count_received, count_remaining, xrun_price_snapshot)
+             VALUES (?, ?, strftime('%s','now'), 1, 1, ?)`,
+        )
+        .bind(v_4d33b2.toUserId, v_4d33b2.giftId, v_f9c48b),
     ]);
 
     await v_74defc(v_3f4e2e, {
