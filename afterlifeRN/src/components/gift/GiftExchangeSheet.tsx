@@ -154,7 +154,6 @@ export default function v_177da7({ visible: v_cf55be, onClose: v_0890f8, onChang
               <>
                 {}
                 <View style={v_72c7a6.giftRow}>
-                  <Text style={{ fontSize: 22 }}>{v_ae840d.giftEmoji}</Text>
                   <Text style={v_72c7a6.owned}>
                     {v_8d41d7("giftBox.ownedLabel", { defaultValue: "보유 중" })} {v_ae840d.ownedQty}
                     {v_80cae9}
