@@ -24,11 +24,9 @@ import { v_1bfbd0, v_8b0c90, v_d43669, v_c10a43 } from "../../components/constan
 import { v_1ed7d9 } from "../../stores/authStore";
 import {
   v_bf9881,
-  v_83b207,
   v_c55c0b,
   v_6f0728,
   type v_407a6d,
-  type v_ccbfb2,
   type v_02ed3c,
   type v_867a79,
 } from "../../api/giftInventory";
@@ -104,14 +102,8 @@ export default function v_8869a8() {
   const v_6f0b49 = v_a3453e.useRef(false);
 
   const v_8e5767 = v_a3453e.useRef(0);
-  const [v_fa2885, v_83b7f7] = v_5ab095<v_ccbfb2[]>([]);
   const [v_5da798, v_19e9c0] = v_5ab095(0);
   const [v_fcc796, v_0cc282] = v_5ab095<number | null>(null);
-
-  const v_3b7876 = v_df9f57(() => {
-    const v_b16994 = [...v_fa2885].filter((v_206b88) => v_206b88.count > 0).sort((v_779914, v_148ff6) => v_148ff6.count - v_779914.count);
-    return v_b16994[0] ?? null;
-  }, [v_fa2885]);
 
   v_cf763b(
     v_de06a3(() => {
@@ -167,7 +159,6 @@ export default function v_8869a8() {
       if (!v_2ca7e0) {
         v_588ee6(v_459174);
         v_835446(v_459174);
-        v_83b7f7([]);
         v_34a50a(false);
         v_575aad(false);
         return;
@@ -176,16 +167,14 @@ export default function v_8869a8() {
       if (v_cc88f5) v_575aad(true);
       else v_34a50a(true);
       try {
-        const [v_ed7fe5, v_204494, v_f0104f] = await Promise.all([
+        const [v_ed7fe5, v_204494] = await Promise.all([
           v_088028("received", v_459174),
           v_088028("sent", v_459174),
-          v_83b207(v_2ca7e0),
         ]);
         v_588ee6(v_ed7fe5.paged);
         v_835446(v_204494.paged);
         v_19e9c0(v_ed7fe5.last?.totalReceived ?? 0);
         v_0cc282(v_204494.last?.totalSent ?? null);
-        v_83b7f7(v_f0104f.items.filter((v_23805a) => (v_23805a.count ?? 0) > 0));
         await v_308dd7();
       } catch (v_49263d) {
         console.warn("[GiftBox] load fail:", v_49263d);
@@ -290,9 +279,7 @@ export default function v_8869a8() {
             <ReceivedTab
               items={v_8af8a0}
               loadingMore={v_f34bc3 === "received"}
-              ownedGift={v_3b7876}
               t={v_8d41d7}
-              onExchange={() => v_94ee83("exchange")}
             />
           )}
           {v_11083e === "sent" && (
@@ -377,15 +364,11 @@ function v_8345ff(v_1833e7): string {
 function v_6da59e({
   items: v_4622b9,
   loadingMore: v_f34bc3,
-  ownedGift: v_9eb4d1,
   t: v_8d41d7,
-  onExchange: v_5be83c,
 }: {
   items: v_407a6d[];
   loadingMore: boolean;
-  ownedGift: v_ccbfb2 | null;
   t: v_75de9d;
-  onExchange: () => void;
 }) {
   const v_4d79ca = v_df9f57(() => {
     const v_8dcb51 = new Map<string, v_407a6d[]>();
@@ -400,35 +383,6 @@ function v_6da59e({
 
   return (
     <View>
-      {}
-      <View style={v_d81136.ownedCard}>
-        <View style={v_d81136.ownedLeft}>
-          <View style={v_d81136.ownedIconWrap}>
-            <Text style={{ fontSize: 22 }}>{v_9eb4d1?.emoji ?? "🌹"}</Text>
-          </View>
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Text style={v_d81136.ownedLabel}>
-              {v_8d41d7("giftBox.ownedLabel", { defaultValue: "보유 중" })}
-            </Text>
-            <Text style={v_d81136.ownedTitle} numberOfLines={1}>
-              {v_9eb4d1
-                ? `${v_561bb6(v_9eb4d1.name)} ${v_9eb4d1.count}${v_8d41d7("giftBox.flowerUnit", { defaultValue: "송이" })}`
-                : v_8d41d7("giftBox.ownedEmpty", { defaultValue: "보유 중인 선물이 없어요" })}
-            </Text>
-          </View>
-        </View>
-        <TouchableOpacity
-          style={[v_d81136.ownedExchangeBtn, !v_9eb4d1 && { opacity: 0.4 }]}
-          onPress={v_5be83c}
-          disabled={!v_9eb4d1}
-          activeOpacity={0.85}
-        >
-          <Text style={v_d81136.ownedExchangeBtnText}>
-            {v_8d41d7("giftBox.tabExchange", { defaultValue: "교환" })}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
       {v_4622b9.length === 0 ? (
         <View style={v_d81136.emptyBox}>
           <Text style={v_d81136.emptyText}>
@@ -829,35 +783,6 @@ const v_d81136 = v_472849.create({
   scroll: { flex: 1 },
   scrollContent: { padding: 16, paddingBottom: 40 },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
-  ownedCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-    backgroundColor: v_1bfbd0.white,
-    borderRadius: 16,
-    padding: 14,
-    marginBottom: 14,
-  },
-  ownedLeft: { flex: 1, flexDirection: "row", alignItems: "center", gap: 12, minWidth: 0 },
-  ownedIconWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: "#fce7f3",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  ownedLabel: { fontSize: 12, color: v_1bfbd0.zinc500, marginBottom: 2 },
-  ownedTitle: { fontSize: 15, fontWeight: "700", color: v_1bfbd0.zinc900 },
-  ownedExchangeBtn: {
-    ...v_d43669.sm,
-    backgroundColor: v_1bfbd0.zinc900,
-    alignItems: "center",
-    justifyContent: "center",
-    minWidth: 72,
-  },
-  ownedExchangeBtnText: { ...v_c10a43.sm, color: v_1bfbd0.white },
   recvGroup: { marginBottom: 16 },
   recvDateHeader: {
     fontSize: 13,
