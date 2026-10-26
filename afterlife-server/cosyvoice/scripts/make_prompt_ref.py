@@ -278,6 +278,73 @@ def clean_prompt_text(text: str) -> str | None:
     return text or None
 
 
+PROBE_CANDIDATES = int(os.environ.get("COSYVOICE_PROMPT_CANDIDATES", "3"))
+
+
+def _clear_probe(root: str, prefix: str) -> None:
+    """시험 견본 폴더와 엔진 prompt_cache 의 시험 파일을 지운다."""
+    import glob
+    import shutil
+
+    for d in glob.glob(os.path.join(root, prefix + "*")):
+        shutil.rmtree(d, ignore_errors=True)
+    for f in glob.glob(os.path.join(config.PROMPT_CACHE_DIR, prefix + "*_prompt.wav")):
+        try:
+            os.unlink(f)
+        except OSError:
+            pass
+
+
+def _build_with_probe(clone_id: str, ref_root: str | None, src: str,
+                      wins: list[tuple[float, float]]) -> bool:
+    """후보 창마다 시험 견본을 만들어 짧은 질문을 합성해 보고, 늘어짐이 가장 적은 것을 쓴다.
+
+    시험 합성이 전부 실패하면 전사된 첫 후보(지금 규칙의 창)를 쓴다. 전사가 전부 실패하면
+    종전처럼 견본 쌍을 만들지 않는다. 시험 폴더·캐시는 어떤 경우에도 지운다.
+    """
+    import shutil
+
+    root = ref_root if ref_root is not None else config.REF_ROOT
+    prefix = f"zz-probe-{clone_id}-"
+    _clear_probe(root, prefix)  # 같은 클론 prebuild 가 남긴 것
+    try:
+        texts: list[str | None] = []
+        durs: list[list[float] | None] = []
+        scores: list[float | None] = []
+        for i, (ws, we) in enumerate(wins):
+            pw, pt = prompt_pair_paths(f"{prefix}{i}", root)
+            os.makedirs(os.path.dirname(pw), exist_ok=True)
+            text = transcribe(pw) if cut(src, pw, ws, we - ws) else None
+            d = None
+            if text:
+                with open(pt, "w", encoding="utf-8") as f:
+                    f.write(text)
+                d = probe_durations(f"{prefix}{i}", PROBE_SENTENCES, PROBE_URL)
+            texts.append(text)
+            durs.append(d)
+            scores.append(probe_score(d, PROBE_SENTENCES) if d is not None else None)
+        pick = pick_best(scores)
+        if not texts[pick]:
+            pick = next((i for i, t in enumerate(texts) if t), None)
+            if pick is None:
+                print(f"[{clone_id}] 후보 전사 전부 실패 — 견본 쌍 안 만듦")
+                return False
+        wav_dst, txt_dst = prompt_pair_paths(clone_id, ref_root)
+        pw, _ = prompt_pair_paths(f"{prefix}{pick}", root)
+        shutil.copyfile(pw, wav_dst)
+        with open(txt_dst, "w", encoding="utf-8") as f:
+            f.write(texts[pick])
+        with open(os.path.join(os.path.dirname(wav_dst), "prompt_probe.json"), "w",
+                  encoding="utf-8") as f:
+            json.dump({"windows": [list(w) for w in wins], "texts": texts, "durations": durs,
+                       "scores": scores, "picked": pick, "sentences": PROBE_SENTENCES},
+                      f, ensure_ascii=False, indent=1)
+        print(f"[{clone_id}] probe scores={scores} pick={pick}  ⟪{texts[pick][:40]}⟫")
+        return True
+    finally:
+        _clear_probe(root, prefix)
+
+
 def build(clone_id: str, ref_root: str | None = None) -> bool:
     src = ref_audio_path(clone_id, ref_root)
     if not os.path.isfile(src):
@@ -287,6 +354,10 @@ def build(clone_id: str, ref_root: str | None = None) -> bool:
     wav_dst, txt_dst = prompt_pair_paths(clone_id, ref_root)
     start = speech_start(src)
     total = duration(src)
+    if os.environ.get("COSYVOICE_PROMPT_PROBE") == "1":
+        wins = candidate_windows(src, start, total, PROBE_CANDIDATES)
+        if len(wins) >= 2:
+            return _build_with_probe(clone_id, ref_root, src, wins)
     end, reason = pick_end(src, start, total)
     if end is None:
         print(f"[{clone_id}] 다듬기 실패({reason}) 발화 {total - start:.1f}s — 견본 쌍 안 만듦")
