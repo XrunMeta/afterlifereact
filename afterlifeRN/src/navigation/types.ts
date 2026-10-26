@@ -100,7 +100,12 @@ export type ClonesStackParamList = {
   CloneLearn: { cloneId: number };
   InviteStatus: undefined;
 
-  GiftBox: { initialTab?: "received" | "sent" | "exchange" } | undefined;
+  GiftBox:
+    | {
+        initialTab?: "received" | "sent" | "exchange";
+        view?: "activity" | "exchange";
+      }
+    | undefined;
 };
 
 export type ShareStackParamList = {

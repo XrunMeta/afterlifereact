@@ -955,8 +955,11 @@ export default function v_def15b() {
             {
 }
 
-            {}
+            {
+
+}
             <View style={v_fd5f43.giftDashSection}>
+              {}
               <View style={v_fd5f43.giftDashCard}>
                 <View style={v_fd5f43.giftDashHeader}>
                   <View style={v_fd5f43.giftDashTitleRow}>
@@ -967,12 +970,14 @@ export default function v_def15b() {
                   </View>
                   <TouchableOpacity
                     style={v_fd5f43.giftDashViewAllBtn}
-                    onPress={() => v_c65f5d.navigate("GiftBox", { initialTab: "received" })}
+                    onPress={() =>
+                      v_c65f5d.navigate("GiftBox", { view: "activity", initialTab: "received" })
+                    }
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                     activeOpacity={0.7}
                   >
                     <Text style={v_fd5f43.giftDashViewAll}>
-                      {v_8d41d7("giftBox.viewAll", { defaultValue: "전체보기" })}
+                      {v_8d41d7("giftBox.viewAll", { defaultValue: "전체 보기" })}
                     </Text>
                     <Feather name="chevron-right" size={16} color={v_1bfbd0.zinc400} />
                   </TouchableOpacity>
@@ -981,7 +986,9 @@ export default function v_def15b() {
                   <TouchableOpacity
                     style={v_fd5f43.giftDashMetric}
                     activeOpacity={0.8}
-                    onPress={() => v_c65f5d.navigate("GiftBox", { initialTab: "received" })}
+                    onPress={() =>
+                      v_c65f5d.navigate("GiftBox", { view: "activity", initialTab: "received" })
+                    }
                   >
                     <Text style={v_fd5f43.giftDashMetricLabel} numberOfLines={1}>
                       {v_8d41d7("giftBox.tabReceived", { defaultValue: "받은 선물" })}
@@ -991,20 +998,47 @@ export default function v_def15b() {
                   <TouchableOpacity
                     style={v_fd5f43.giftDashMetric}
                     activeOpacity={0.8}
-                    onPress={() => v_c65f5d.navigate("GiftBox", { initialTab: "sent" })}
+                    onPress={() =>
+                      v_c65f5d.navigate("GiftBox", { view: "activity", initialTab: "sent" })
+                    }
                   >
                     <Text style={v_fd5f43.giftDashMetricLabel} numberOfLines={1}>
                       {v_8d41d7("giftBox.tabSent", { defaultValue: "보낸 선물" })}
                     </Text>
                     <Text style={v_fd5f43.giftDashMetricValue}>{v_deb5c7}</Text>
                   </TouchableOpacity>
+                </View>
+              </View>
+
+              {}
+              <View style={[v_fd5f43.giftDashCard, v_fd5f43.giftDashCardOwned]}>
+                <View style={v_fd5f43.giftDashHeader}>
+                  <View style={v_fd5f43.giftDashTitleRow}>
+                    <Feather name="package" size={18} color={v_1bfbd0.primary} />
+                    <Text style={v_fd5f43.giftDashTitle}>
+                      {v_8d41d7("giftBox.ownedCountTitle", { defaultValue: "보유 수량" })}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={v_fd5f43.giftDashViewAllBtn}
+                    onPress={() => v_c65f5d.navigate("GiftBox", { view: "exchange" })}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={v_fd5f43.giftDashViewAll}>
+                      {v_8d41d7("giftBox.historyView", { defaultValue: "내역 보기" })}
+                    </Text>
+                    <Feather name="chevron-right" size={16} color={v_1bfbd0.zinc400} />
+                  </TouchableOpacity>
+                </View>
+                <View style={v_fd5f43.giftDashMetrics}>
                   <TouchableOpacity
                     style={v_fd5f43.giftDashMetric}
                     activeOpacity={0.8}
-                    onPress={() => v_c65f5d.navigate("GiftBox", { initialTab: "exchange" })}
+                    onPress={() => v_c65f5d.navigate("GiftBox", { view: "exchange" })}
                   >
                     <Text style={[v_fd5f43.giftDashMetricLabel, v_fd5f43.giftDashMetricLabelAccent]} numberOfLines={1}>
-                      {v_8d41d7("giftBox.exchangeable", { defaultValue: "교환 가능" })}
+                      {v_8d41d7("giftBox.ownedCountLabel", { defaultValue: "보유 수량" })}
                     </Text>
                     <Text style={[v_fd5f43.giftDashMetricValue, v_fd5f43.giftDashMetricValueAccent]}>
                       {v_cfa43b}
@@ -2391,7 +2425,7 @@ const v_fd5f43 = v_472849.create({
 
   screen: { flex: 1 },
 
-  giftDashSection: { marginTop: 16, marginBottom: 16, paddingHorizontal: 4 },
+  giftDashSection: { marginTop: 16, marginBottom: 16, paddingHorizontal: 4, gap: 12 },
   giftDashCard: {
     backgroundColor: v_1bfbd0.white,
     borderRadius: 16,
@@ -2399,6 +2433,8 @@ const v_fd5f43 = v_472849.create({
     borderColor: v_1bfbd0.zinc200,
     padding: 16,
   },
+
+  giftDashCardOwned: {},
   giftDashHeader: {
     flexDirection: "row",
     alignItems: "center",
