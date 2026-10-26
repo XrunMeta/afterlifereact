@@ -956,8 +956,9 @@ const v_d81136 = v_472849.create({
     paddingVertical: 14,
   },
   recvRowBorder: {
+
     borderBottomWidth: v_472849.hairlineWidth,
-    borderBottomColor: v_1bfbd0.zinc100,
+    borderBottomColor: v_1bfbd0.zinc200,
   },
 
   recvRowPending: { backgroundColor: "#fef3c7" },
