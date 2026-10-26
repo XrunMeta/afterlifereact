@@ -556,7 +556,7 @@ v_469bf2("채팅 목록 클론 정보 · 대화한 클론 목록", () => {
 
     const v_ef8ab1 = await v_fb3621<{ items: ConvItem[] }>(v_b32680, "/oth-path");
     v_4d37e3(v_ef8ab1.body.items).toEqual([
-      { clone: { id: v_1c1268, name: "CT", avatarUrl: null }, isMine: true, last: null, unreadCount: 0 },
+      { clone: { id: v_1c1268, name: "CT", avatarUrl: null }, isMine: true, last: null, unreadCount: 0, intimacy: 0 },
     ]);
     const v_fcb4e5 = await v_fb3621<{ items: unknown[] }>(v_b32680, `/oth-path${v_1c1268}/timeline`);
     v_4d37e3(v_fcb4e5.body.items).toEqual([]);
