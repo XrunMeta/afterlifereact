@@ -361,6 +361,8 @@ function v_8345ff(v_1833e7): string {
   return v_73a570[v_65a2cd];
 }
 
+type ReceivedSubTab = "user" | "clone";
+
 function v_6da59e({
   items: v_4622b9,
   loadingMore: v_f34bc3,
@@ -370,24 +372,84 @@ function v_6da59e({
   loadingMore: boolean;
   t: v_75de9d;
 }) {
+
+  const [v_4abce2, v_59fd10] = v_5ab095<ReceivedSubTab>("user");
+
+  const v_9f6088 = v_df9f57(
+    () => v_4622b9.filter((v_23805a) => v_23805a.kind === "received").length,
+    [v_4622b9],
+  );
+  const v_396c6c = v_df9f57(
+    () => v_4622b9.filter((v_23805a) => v_23805a.kind === "ad_reward").length,
+    [v_4622b9],
+  );
+
+  const v_e4cf17 = v_df9f57(
+    () =>
+      v_4622b9.filter((v_23805a) =>
+        v_4abce2 === "user" ? v_23805a.kind === "received" : v_23805a.kind === "ad_reward",
+      ),
+    [v_4622b9, v_4abce2],
+  );
+
   const v_4d79ca = v_df9f57(() => {
     const v_8dcb51 = new Map<string, v_407a6d[]>();
-    for (const v_8c0b26 of v_4622b9) {
+    for (const v_8c0b26 of v_e4cf17) {
       const v_b24339 = v_8e47b4(v_8c0b26.createdAt, v_8d41d7);
       const v_d0c056 = v_8dcb51.get(v_b24339) ?? [];
       v_d0c056.push(v_8c0b26);
       v_8dcb51.set(v_b24339, v_d0c056);
     }
     return Array.from(v_8dcb51.entries());
-  }, [v_4622b9, v_8d41d7]);
+  }, [v_e4cf17, v_8d41d7]);
+
+  const v_bd105c = [
+    {
+      key: "user",
+      label: v_8d41d7("giftBox.subTabUser", { defaultValue: "유저" }),
+      count: v_9f6088,
+    },
+    {
+      key: "clone",
+      label: v_8d41d7("giftBox.subTabClone", { defaultValue: "클론" }),
+      count: v_396c6c,
+    },
+  ];
+
+  const v_6e7fc2 =
+    v_4abce2 === "user"
+      ? v_8d41d7("giftBox.emptyUserGift", { defaultValue: "아직 유저가 보낸 선물이 없어요" })
+      : v_8d41d7("giftBox.emptyCloneGift", { defaultValue: "아직 클론한테 받은 보상이 없어요" });
 
   return (
     <View>
-      {v_4622b9.length === 0 ? (
+      <View style={v_d81136.subTabRow}>
+        {v_bd105c.map((v_c3c9ed) => {
+          const v_f8b770 = v_4abce2 === v_c3c9ed.key;
+          return (
+            <TouchableOpacity
+              key={v_c3c9ed.key}
+              style={[v_d81136.subTabItem, v_f8b770 && v_d81136.subTabItemActive]}
+              onPress={() => v_59fd10(v_c3c9ed.key)}
+              activeOpacity={0.75}
+            >
+              <Text style={[v_d81136.subTabText, v_f8b770 && v_d81136.subTabTextActive]}>
+                {v_c3c9ed.label}
+                {v_c3c9ed.count > 0 ? (
+                  <Text style={[v_d81136.subTabCount, v_f8b770 && v_d81136.subTabCountActive]}>
+                    {" "}
+                    {v_c3c9ed.count}
+                  </Text>
+                ) : null}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      {v_e4cf17.length === 0 ? (
         <View style={v_d81136.emptyBox}>
-          <Text style={v_d81136.emptyText}>
-            {v_8d41d7("dashboard.emptyGift", { defaultValue: "아직 받은 선물이 없어요" })}
-          </Text>
+          <Text style={v_d81136.emptyText}>{v_6e7fc2}</Text>
         </View>
       ) : (
         <>
@@ -783,6 +845,27 @@ const v_d81136 = v_472849.create({
   scroll: { flex: 1 },
   scrollContent: { padding: 16, paddingBottom: 40 },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
+  subTabRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 14,
+  },
+  subTabItem: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 999,
+    backgroundColor: v_1bfbd0.white,
+    borderWidth: 1,
+    borderColor: v_1bfbd0.zinc200,
+  },
+  subTabItemActive: {
+    backgroundColor: v_1bfbd0.zinc900,
+    borderColor: v_1bfbd0.zinc900,
+  },
+  subTabText: { fontSize: 13, fontWeight: "600", color: v_1bfbd0.zinc600 },
+  subTabTextActive: { color: v_1bfbd0.white },
+  subTabCount: { fontWeight: "700", color: v_1bfbd0.secondary },
+  subTabCountActive: { color: v_1bfbd0.white },
   recvGroup: { marginBottom: 16 },
   recvDateHeader: {
     fontSize: 13,
