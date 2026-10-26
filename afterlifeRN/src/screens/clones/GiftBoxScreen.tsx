@@ -11,6 +11,7 @@ import {
   v_cf9c33,
   v_39a996,
   v_6c4f62,
+  v_79c4f2,
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_cf763b, v_ada615, v_2d8264, type v_ee3714, v_650cfa } from "ixigazcpvfldbecwtbvavtbi";
@@ -240,10 +241,15 @@ export default function v_8869a8() {
 
   const v_c6c04c = v_22668d.filter((v_c3c9ed) => v_5cbc42.includes(v_c3c9ed.key));
 
+  const v_d0fd9b =
+    v_24baff?.view === "exchange"
+      ? v_8d41d7("giftBox.ownedCountTitle", { defaultValue: "보유 수량" })
+      : v_8d41d7("giftBox.title", { defaultValue: "선물함" });
+
   return (
     <SafeView backgroundColor={v_1bfbd0.zinc50} showBottomBackground={false}>
       <PageHeader
-        title={v_8d41d7("giftBox.title", { defaultValue: "선물함" })}
+        title={v_d0fd9b}
         showBackButton
         onBackPress={() => v_c65f5d.goBack()}
       />
@@ -322,6 +328,7 @@ export default function v_8869a8() {
               onSelectAll={() => v_ae840d && v_839e4f(v_ea7b1e)}
               maxQty={v_ea7b1e}
               onSubmit={() => void v_d037c4()}
+              historyOnly={v_24baff?.view === "exchange"}
             />
           )}
         </ScrollView>
@@ -377,7 +384,7 @@ function v_8345ff(v_1833e7): string {
   return v_73a570[v_65a2cd];
 }
 
-type ReceivedSubTab = "user" | "clone";
+type ReceivedSubTab = "all" | "user" | "clone";
 
 function v_6da59e({
   items: v_4622b9,
@@ -389,7 +396,7 @@ function v_6da59e({
   t: v_75de9d;
 }) {
 
-  const [v_4abce2, v_59fd10] = v_5ab095<ReceivedSubTab>("user");
+  const [v_4abce2, v_59fd10] = v_5ab095<ReceivedSubTab>("all");
 
   const v_9f6088 = v_df9f57(
     () => v_4622b9.filter((v_23805a) => v_23805a.kind === "received").length,
@@ -400,13 +407,11 @@ function v_6da59e({
     [v_4622b9],
   );
 
-  const v_e4cf17 = v_df9f57(
-    () =>
-      v_4622b9.filter((v_23805a) =>
-        v_4abce2 === "user" ? v_23805a.kind === "received" : v_23805a.kind === "ad_reward",
-      ),
-    [v_4622b9, v_4abce2],
-  );
+  const v_e4cf17 = v_df9f57(() => {
+    if (v_4abce2 === "all") return v_4622b9;
+    if (v_4abce2 === "user") return v_4622b9.filter((v_23805a) => v_23805a.kind === "received");
+    return v_4622b9.filter((v_23805a) => v_23805a.kind === "ad_reward");
+  }, [v_4622b9, v_4abce2]);
 
   const v_4d79ca = v_df9f57(() => {
     const v_8dcb51 = new Map<string, v_407a6d[]>();
@@ -421,6 +426,11 @@ function v_6da59e({
 
   const v_bd105c = [
     {
+      key: "all",
+      label: v_8d41d7("giftBox.subTabAll", { defaultValue: "전체" }),
+      count: v_9f6088 + v_396c6c,
+    },
+    {
       key: "user",
       label: v_8d41d7("giftBox.subTabUser", { defaultValue: "유저" }),
       count: v_9f6088,
@@ -433,9 +443,11 @@ function v_6da59e({
   ];
 
   const v_6e7fc2 =
-    v_4abce2 === "user"
-      ? v_8d41d7("giftBox.emptyUserGift", { defaultValue: "아직 유저가 보낸 선물이 없어요" })
-      : v_8d41d7("giftBox.emptyCloneGift", { defaultValue: "아직 클론한테 받은 보상이 없어요" });
+    v_4abce2 === "all"
+      ? v_8d41d7("dashboard.emptyGift", { defaultValue: "아직 받은 선물이 없어요" })
+      : v_4abce2 === "user"
+        ? v_8d41d7("giftBox.emptyUserGift", { defaultValue: "아직 유저가 보낸 선물이 없어요" })
+        : v_8d41d7("giftBox.emptyCloneGift", { defaultValue: "아직 클론한테 받은 보상이 없어요" });
 
   return (
     <View>
@@ -550,16 +562,54 @@ function v_950e4a({
   t: v_75de9d;
   onBrowseClones: () => void;
 }) {
+
+  const [v_9875a1, v_2e7fc1] = v_5ab095("");
+  const v_ab6401 = v_9875a1.trim().toLowerCase();
+  const v_47c5cb = v_df9f57(() => {
+    if (!v_ab6401) return v_4d79ca;
+    return v_4d79ca
+      .map(([v_8dffde, v_18b8bf]) => {
+        const v_4b037d = v_18b8bf.filter((v_23805a) => {
+          const v_1833e7 = (v_23805a.cloneName || "").toLowerCase();
+          const v_1ed516 = (v_23805a.cloneUsername || "").toLowerCase();
+          return v_1833e7.includes(v_ab6401) || v_1ed516.includes(v_ab6401);
+        });
+        return [v_8dffde, v_4b037d] as [string, v_407a6d[]];
+      })
+      .filter(([, v_18b8bf]) => v_18b8bf.length > 0);
+  }, [v_4d79ca, v_ab6401]);
+
   return (
     <View>
-      {v_4d79ca.length === 0 ? (
+      <View style={v_d81136.searchBar}>
+        <Feather name="search" size={14} color={v_1bfbd0.zinc400} />
+        <TextInput
+          style={v_d81136.searchInput}
+          value={v_9875a1}
+          onChangeText={v_2e7fc1}
+          placeholder={v_8d41d7("giftBox.sentSearchPlaceholder", { defaultValue: "클론 이름 검색" })}
+          placeholderTextColor={v_1bfbd0.zinc400}
+          returnKeyType="search"
+          autoCorrect={false}
+          autoCapitalize="none"
+        />
+        {v_9875a1.length > 0 ? (
+          <TouchableOpacity onPress={() => v_2e7fc1("")} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
+            <Feather name="x" size={14} color={v_1bfbd0.zinc400} />
+          </TouchableOpacity>
+        ) : null}
+      </View>
+
+      {v_47c5cb.length === 0 ? (
         <View style={v_d81136.emptyBox}>
           <Text style={v_d81136.emptyText}>
-            {v_8d41d7("giftBox.emptySent", { defaultValue: "아직 보낸 선물이 없어요" })}
+            {v_ab6401
+              ? v_8d41d7("giftBox.sentSearchNoMatch", { defaultValue: "검색 결과가 없어요" })
+              : v_8d41d7("giftBox.emptySent", { defaultValue: "아직 보낸 선물이 없어요" })}
           </Text>
         </View>
       ) : (
-        v_4d79ca.map(([v_dcea27, v_18b8bf]) => (
+        v_47c5cb.map(([v_dcea27, v_18b8bf]) => (
           <View key={v_dcea27} style={{ marginBottom: 16 }}>
             <Text style={v_d81136.dateHeader}>{v_dcea27}</Text>
             {v_18b8bf.map((v_8c0b26) => {
@@ -624,6 +674,7 @@ function v_1bc5d1({
   onSelectAll: v_e3f4f2,
   maxQty: v_063b5f,
   onSubmit: v_3bfe4c,
+  historyOnly: v_ec3c62,
 }: {
   elig: v_02ed3c | null;
   history: v_867a79[];
@@ -635,11 +686,27 @@ function v_1bc5d1({
   onSelectAll: () => void;
   maxQty: number;
   onSubmit: () => void;
+
+  historyOnly: boolean;
 }) {
   const [v_71921b, v_7ca8ec] = v_5ab095(false);
   v_a3453e.useEffect(() => {
     v_7ca8ec(false);
   }, [v_10740d]);
+
+  if (v_ec3c62) {
+    return (
+      <View>
+        <ExchangeHistory
+          history={v_10740d}
+          expanded={v_71921b}
+          onExpand={() => v_7ca8ec(true)}
+          t={v_8d41d7}
+          showFilter
+        />
+      </View>
+    );
+  }
 
   if (!v_ae840d || !v_ae840d.giftId) {
     return (
@@ -649,7 +716,13 @@ function v_1bc5d1({
             {v_8d41d7("giftBox.emptyExchange", { defaultValue: "교환할 선물이 없어요" })}
           </Text>
         </View>
-        <ExchangeHistory history={v_10740d} expanded={v_71921b} onExpand={() => v_7ca8ec(true)} t={v_8d41d7} />
+        <ExchangeHistory
+          history={v_10740d}
+          expanded={v_71921b}
+          onExpand={() => v_7ca8ec(true)}
+          t={v_8d41d7}
+          showFilter={false}
+        />
       </View>
     );
   }
@@ -731,7 +804,13 @@ function v_1bc5d1({
         </View>
       ) : null}
 
-      <ExchangeHistory history={v_10740d} expanded={v_71921b} onExpand={() => v_7ca8ec(true)} t={v_8d41d7} />
+      <ExchangeHistory
+        history={v_10740d}
+        expanded={v_71921b}
+        onExpand={() => v_7ca8ec(true)}
+        t={v_8d41d7}
+        showFilter={false}
+      />
 
       {v_4f2dac ? (
         <Text style={v_d81136.exchangeSummary}>
@@ -762,19 +841,31 @@ function v_1bc5d1({
   );
 }
 
+type ExchangeHistoryFilter = "all" | "claimed" | "pending";
+
 function v_36c8d0({
   history: v_10740d,
   expanded: v_ebda8f,
   onExpand: v_37d7de,
   t: v_8d41d7,
+  showFilter: v_a4bef1,
 }: {
   history: v_867a79[];
   expanded: boolean;
   onExpand: () => void;
   t: v_75de9d;
+
+  showFilter: boolean;
 }) {
+  const [v_f21110, v_d217e7] = v_5ab095<ExchangeHistoryFilter>("all");
   const v_986caa = 3;
-  const v_d1b432 = v_10740d.slice(0, v_ebda8f ? v_10740d.length : v_986caa);
+  const v_bc78c8 = v_df9f57(() => {
+    if (v_f21110 === "all") return v_10740d;
+    if (v_f21110 === "claimed") return v_10740d.filter((v_65a2cd) => v_65a2cd.rewardStatus === "claimed");
+    return v_10740d.filter((v_65a2cd) => v_65a2cd.rewardStatus === "pending_claim");
+  }, [v_10740d, v_f21110]);
+
+  const v_d1b432 = v_a4bef1 ? v_bc78c8 : v_bc78c8.slice(0, v_ebda8f ? v_bc78c8.length : v_986caa);
   const v_80cae9 = v_8d41d7("giftBox.flowerUnit", { defaultValue: "송이" });
   const v_c4180e = (s: v_867a79["rewardStatus"]) =>
     v_fd5f43 === "claimed"
@@ -782,20 +873,45 @@ function v_36c8d0({
       : v_fd5f43 === "failed"
         ? v_8d41d7("giftBox.statusFailed", { defaultValue: "실패 (선물 반환됨)" })
         : v_8d41d7("giftBox.statusPending", { defaultValue: "수령 대기" });
+  const v_14233c = [
+    { key: "all", label: v_8d41d7("giftBox.filterAll", { defaultValue: "전체" }) },
+    { key: "claimed", label: v_8d41d7("giftBox.filterClaimed", { defaultValue: "수령" }) },
+    { key: "pending", label: v_8d41d7("giftBox.filterPending", { defaultValue: "수령 대기" }) },
+  ];
   return (
     <>
-      <View style={v_d81136.historyHeader}>
-        <Text style={[v_d81136.sectionLabel, { marginBottom: 0 }]}>
-          {v_8d41d7("giftBox.recentExchange", { defaultValue: "최근 교환 내역" })}
-        </Text>
-        {v_10740d.length > v_986caa && !v_ebda8f ? (
-          <TouchableOpacity onPress={v_37d7de} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Text style={v_d81136.historyViewAll}>{v_8d41d7("giftBox.viewAll", { defaultValue: "전체보기" })}</Text>
-          </TouchableOpacity>
-        ) : null}
-      </View>
+      {v_a4bef1 ? (
+        <View style={v_d81136.subTabRow}>
+          {v_14233c.map((v_c3c9ed) => {
+            const v_f8b770 = v_f21110 === v_c3c9ed.key;
+            return (
+              <TouchableOpacity
+                key={v_c3c9ed.key}
+                style={[v_d81136.subTabItem, v_f8b770 && v_d81136.subTabItemActive]}
+                onPress={() => v_d217e7(v_c3c9ed.key)}
+                activeOpacity={0.75}
+              >
+                <Text style={[v_d81136.subTabText, v_f8b770 && v_d81136.subTabTextActive]}>
+                  {v_c3c9ed.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      ) : (
+        <View style={v_d81136.historyHeader}>
+          <Text style={[v_d81136.sectionLabel, { marginBottom: 0 }]}>
+            {v_8d41d7("giftBox.recentExchange", { defaultValue: "최근 교환 내역" })}
+          </Text>
+          {v_10740d.length > v_986caa && !v_ebda8f ? (
+            <TouchableOpacity onPress={v_37d7de} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Text style={v_d81136.historyViewAll}>{v_8d41d7("giftBox.viewAll", { defaultValue: "전체보기" })}</Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
+      )}
       <View style={v_d81136.historyCard}>
-        {v_10740d.length === 0 ? (
+        {v_d1b432.length === 0 ? (
           <Text style={[v_d81136.emptyText, { paddingVertical: 20 }]}>
             {v_8d41d7("giftBox.emptyExchangeHistory", { defaultValue: "최근 교환 내역이 없어요" })}
           </Text>
@@ -909,6 +1025,25 @@ const v_d81136 = v_472849.create({
   },
   recvTitle: { fontSize: 14, fontWeight: "700", color: v_1bfbd0.zinc900 },
   recvCount: { fontSize: 15, fontWeight: "700", color: "#dc2626" },
+
+  searchBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: v_1bfbd0.zinc200,
+    backgroundColor: v_1bfbd0.white,
+    marginBottom: 14,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: v_1bfbd0.zinc900,
+    padding: 0,
+  },
   summaryLine: { fontSize: 13, color: v_1bfbd0.zinc500, marginBottom: 12 },
   summaryNum: { fontWeight: "700", color: v_1bfbd0.zinc900 },
   emptyBox: {
