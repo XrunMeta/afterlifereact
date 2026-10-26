@@ -1625,14 +1625,22 @@ def _make_dc_handler(sess, channel):
                 sess.set_state("idle")
                 if turn is not None:
                     offer_ms = int((_t0 - _offer_t) * 1000) if _offer_t else None
-                    try:
-                        turn.finalize(
-                            mode=mode, seq=seq, se_present=_se_present,
-                            offer_to_say_ms=offer_ms,
-                            turn_ms=int((time.time() - _t0) * 1000),
-                        )
-                    except Exception as exc:
-                        log.warning("session %s finalize failed: %s", sess.session_id, exc)
+                    _meta = dict(
+                        mode=mode, seq=seq, se_present=_se_present,
+                        offer_to_say_ms=offer_ms,
+                        turn_ms=int((time.time() - _t0) * 1000),
+                    )
+
+                    def _finalize(turn=turn, meta=_meta):
+                        try:
+                            turn.finalize(**meta)
+                        except Exception as exc:
+                            log.warning("session %s finalize failed: %s", sess.session_id, exc)
+
+                    # answer.mp4 인코딩(ffmpeg 서브프로세스)이 루프 위에서 돌면 0.6초 동안
+                    # 소리·영상 송출이 함께 멈춘다(2026-10-26 실측, 두 문장 턴의 "말하다 멈춤").
+                    # 기다리지 않고 별도 스레드로 넘긴다.
+                    asyncio.get_running_loop().run_in_executor(None, _finalize)
                 if mode == "say" and not _recorded["v"]:
                     # 응답 직후 기록(on_reply_done)이 안 불린 턴 — 캐시 응답·응답 전 실패·
                     # on_reply_done 을 모르는 파이프라인. 기존처럼 여기서 한 번 기록한다.
