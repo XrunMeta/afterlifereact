@@ -19,7 +19,6 @@ import { v_1bfbd0 } from "../constants";
 import { v_889fad } from "../../stores/dialogStore";
 import { v_61fb8c } from "../../hooks/useGiftExchange";
 import { v_6f0728, v_c55c0b } from "../../api/giftInventory";
-import { v_561bb6 } from "../../api/gifts";
 
 interface Props {
   visible: boolean;
@@ -153,11 +152,9 @@ export default function v_177da7({ visible: v_cf55be, onClose: v_0890f8, onChang
               <ActivityIndicator style={{ marginVertical: 40 }} color={v_1bfbd0.primary} />
             ) : (
               <>
+                {}
                 <View style={v_72c7a6.giftRow}>
                   <Text style={{ fontSize: 22 }}>{v_ae840d.giftEmoji}</Text>
-                  <Text style={v_72c7a6.giftName} numberOfLines={1}>
-                    {v_561bb6(v_ae840d.giftName, v_ae840d.giftId)}
-                  </Text>
                   <Text style={v_72c7a6.owned}>
                     {v_8d41d7("giftBox.ownedLabel", { defaultValue: "보유 중" })} {v_ae840d.ownedQty}
                     {v_80cae9}
@@ -255,8 +252,7 @@ const v_72c7a6 = v_472849.create({
     paddingBottom: 20,
   },
   title: { fontSize: 18, fontWeight: "700", color: v_1bfbd0.zinc900, textAlign: "center", marginBottom: 16 },
-  giftRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 16 },
-  giftName: { flex: 1, fontSize: 15, fontWeight: "600", color: v_1bfbd0.zinc900 },
+  giftRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 16 },
   owned: { fontSize: 13, color: v_1bfbd0.zinc500 },
   stepper: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 16 },
   stepBtn: {
