@@ -24,6 +24,7 @@ import { v_1bfbd0, v_8b0c90, v_d43669, v_c10a43 } from "../../components/constan
 import { v_1ed7d9 } from "../../stores/authStore";
 import {
   v_bf9881,
+  v_0e29ae,
   v_c55c0b,
   v_6f0728,
   type v_407a6d,
@@ -31,6 +32,7 @@ import {
   type v_867a79,
 } from "../../api/giftInventory";
 import { v_61fb8c } from "../../hooks/useGiftExchange";
+import { v_18f201 } from "../../lib/pangle";
 import type { v_2d88fc, v_8ad91b } from "../../navigation/types";
 
 type TabKey = "received" | "sent" | "exchange";
@@ -280,6 +282,8 @@ export default function v_8869a8() {
               items={v_8af8a0}
               loadingMore={v_f34bc3 === "received"}
               t={v_8d41d7}
+              accessToken={v_2ca7e0}
+              onReload={() => void v_92fdf2(true)}
             />
           )}
           {v_11083e === "sent" && (
@@ -367,11 +371,43 @@ function v_6da59e({
   items: v_4622b9,
   loadingMore: v_f34bc3,
   t: v_8d41d7,
+  accessToken: v_2ca7e0,
+  onReload: v_561465,
 }: {
   items: v_407a6d[];
   loadingMore: boolean;
   t: v_75de9d;
+  accessToken: string | null;
+  onReload: () => void;
 }) {
+
+  const [v_56eae3, v_0141c0] = v_5ab095<number | null>(null);
+
+  const v_3249c2 = v_de06a3(
+    async (item: v_407a6d) => {
+      if (!v_2ca7e0 || v_56eae3 !== null) return;
+      v_0141c0(v_8c0b26.id);
+      try {
+
+        const v_cb35cb = await v_18f201();
+        if (v_cb35cb !== "closed") {
+          console.warn("[GiftBox] rewarded ad result:", v_cb35cb);
+          return;
+        }
+        await v_0e29ae(v_2ca7e0, v_8c0b26.id);
+        v_561465();
+      } catch (v_49263d) {
+        console.warn("[GiftBox] claim fail:", v_49263d?.message);
+        v_03e392.alert(
+          v_8d41d7("giftBox.claimFailTitle", { defaultValue: "받지 못했어요" }),
+          v_8d41d7("giftBox.claimFailMsg", { defaultValue: "잠시 후 다시 시도해주세요." }),
+        );
+      } finally {
+        v_0141c0(null);
+      }
+    },
+    [v_2ca7e0, v_56eae3, v_561465, v_8d41d7],
+  );
 
   const [v_4abce2, v_59fd10] = v_5ab095<ReceivedSubTab>("user");
 
@@ -463,6 +499,8 @@ function v_6da59e({
                     item={v_8c0b26}
                     t={v_8d41d7}
                     showBorder={v_e86ad8 < v_18b8bf.length - 1}
+                    claiming={v_56eae3 === v_8c0b26.id}
+                    onClaim={v_3249c2}
                   />
                 ))}
               </View>
@@ -479,10 +517,14 @@ function v_223c52({
   item: v_8c0b26,
   t: v_8d41d7,
   showBorder: v_ff995c,
+  claiming: v_5ba323,
+  onClaim: v_778217,
 }: {
   item: v_407a6d;
   t: v_75de9d;
   showBorder: boolean;
+  claiming: boolean;
+  onClaim: (item: v_407a6d) => void;
 }) {
   const v_1833e7 = v_44c2cb(v_8c0b26, v_8d41d7);
   const v_9f1622 = v_8d41d7("giftBox.receivedTitle", {
@@ -499,8 +541,22 @@ function v_223c52({
   const v_ab4c96 = `${v_609005} · ${v_e4bf58(v_8c0b26.createdAt, v_8d41d7)}`;
   const v_085ccc = v_8345ff(v_1833e7);
 
+  const v_6e3315 = v_8c0b26.kind === "received" && v_8c0b26.claimedAt == null;
+
+  const v_231753 = v_6e3315 ? v_4623af : v_3094a2;
+  const v_525b1e = v_6e3315
+    ? { activeOpacity: 0.75, onPress: () => v_778217(v_8c0b26), disabled: v_5ba323 }
+    : {};
+
   return (
-    <View style={[v_d81136.recvRow, v_ff995c && v_d81136.recvRowBorder]}>
+    <Container
+      {...v_525b1e}
+      style={[
+        v_d81136.recvRow,
+        v_ff995c && v_d81136.recvRowBorder,
+        v_6e3315 && v_d81136.recvRowPending,
+      ]}
+    >
       <View style={[v_d81136.avatar, { backgroundColor: v_085ccc }]}>
         {v_8c0b26.counterpartAvatarUrl ? (
           <Image source={{ uri: v_8c0b26.counterpartAvatarUrl }} style={v_d81136.avatarImg} />
@@ -518,8 +574,21 @@ function v_223c52({
           {v_ab4c96}
         </Text>
       </View>
-      <Text style={v_d81136.recvCount}>×{v_8c0b26.count || 1}</Text>
-    </View>
+      {v_6e3315 ? (
+        v_5ba323 ? (
+          <ActivityIndicator color={v_1bfbd0.zinc600} />
+        ) : (
+          <View style={v_d81136.claimBadge}>
+            <Feather name="play" size={11} color={v_1bfbd0.white} />
+            <Text style={v_d81136.claimBadgeText}>
+              {v_8d41d7("giftBox.watchAdClaim", { defaultValue: "광고 보고 받기" })}
+            </Text>
+          </View>
+        )
+      ) : (
+        <Text style={v_d81136.recvCount}>×{v_8c0b26.count || 1}</Text>
+      )}
+    </Container>
   );
 }
 
@@ -890,8 +959,21 @@ const v_d81136 = v_472849.create({
     borderBottomWidth: v_472849.hairlineWidth,
     borderBottomColor: v_1bfbd0.zinc100,
   },
+
+  recvRowPending: { backgroundColor: "#fef3c7" },
   recvTitle: { fontSize: 14, fontWeight: "700", color: v_1bfbd0.zinc900 },
   recvCount: { fontSize: 15, fontWeight: "700", color: "#dc2626" },
+
+  claimBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: v_1bfbd0.zinc900,
+  },
+  claimBadgeText: { fontSize: 11, fontWeight: "700", color: v_1bfbd0.white },
   summaryLine: { fontSize: 13, color: v_1bfbd0.zinc500, marginBottom: 12 },
   summaryNum: { fontWeight: "700", color: v_1bfbd0.zinc900 },
   emptyBox: {
