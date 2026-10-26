@@ -29,6 +29,7 @@ voice.wav 는 건드리지 않는다 — qwen3tts·openvoice 가 같은 파일�
 """
 from __future__ import annotations
 
+import fcntl
 import io
 import json
 import os
@@ -301,6 +302,22 @@ def _clear_probe(root: str, prefix: str) -> None:
 
 def _build_with_probe(clone_id: str, ref_root: str | None, src: str,
                       wins: list[tuple[float, float]]) -> bool:
+    """같은 클론의 동시 실행을 클론 폴더 잠금으로 막고 프로브를 돈다.
+
+    잠금이 없으면 두 prebuild 가 서로의 시험 폴더를 지우고, 진짜 견본이 "A 의 wav + B 의 txt"
+    로 섞일 수 있다(짝 어긋남 = 폭주 원인).
+    """
+    wav_dst, _ = prompt_pair_paths(clone_id, ref_root)
+    with open(os.path.join(os.path.dirname(wav_dst), ".prompt.lock"), "w") as lk:
+        fcntl.flock(lk.fileno(), fcntl.LOCK_EX)
+        try:
+            return _probe_and_install(clone_id, ref_root, src, wins)
+        finally:
+            fcntl.flock(lk.fileno(), fcntl.LOCK_UN)
+
+
+def _probe_and_install(clone_id: str, ref_root: str | None, src: str,
+                       wins: list[tuple[float, float]]) -> bool:
     """후보 창마다 시험 견본을 만들어 짧은 질문을 합성해 보고, 늘어짐이 가장 적은 것을 쓴다.
 
     시험 합성이 전부 실패하면 전사된 첫 후보(지금 규칙의 창)를 쓴다. 전사가 전부 실패하면
@@ -335,9 +352,13 @@ def _build_with_probe(clone_id: str, ref_root: str | None, src: str,
                 return False
         wav_dst, txt_dst = prompt_pair_paths(clone_id, ref_root)
         pw, _ = prompt_pair_paths(f"{prefix}{pick}", root)
-        shutil.copyfile(pw, wav_dst)
-        with open(txt_dst, "w", encoding="utf-8") as f:
+        # 진짜 쌍은 임시 파일에 다 써 둔 뒤 os.replace 로 바꾼다 — 제자리 복사는 엔진이 반쯤
+        # 쓴 wav 를 읽을 수 있고, 중간에 강제 종료되면 새 wav + 옛 txt 가 남는 창이 길어진다.
+        shutil.copyfile(pw, wav_dst + ".tmp")
+        with open(txt_dst + ".tmp", "w", encoding="utf-8") as f:
             f.write(texts[pick])
+        os.replace(wav_dst + ".tmp", wav_dst)
+        os.replace(txt_dst + ".tmp", txt_dst)
         with open(os.path.join(os.path.dirname(wav_dst), "prompt_probe.json"), "w",
                   encoding="utf-8") as f:
             json.dump({"windows": [list(w) for w in wins], "texts": texts, "durations": durs,

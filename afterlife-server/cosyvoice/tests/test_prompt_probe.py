@@ -173,3 +173,27 @@ def test_프로브_후보하나면_종전경로(probe_env, monkeypatch):
     monkeypatch.setattr(mpr, "pick_end", lambda p, s, t: (9.35, "ok"))
     assert mpr.build(CID, str(root)) is True
     assert calls == []
+
+def test_프로브_같은클론_잠금(probe_env, monkeypatch):
+    # 리뷰(2026-10-27): 같은 클론 prebuild 가 동시에 돌면 서로의 시험 폴더를 지우고
+    # 진짜 견본이 "A 의 wav + B 의 txt" 로 섞일 수 있다 → 클론 폴더 잠금 아래에서 돈다.
+    root, _, _ = probe_env
+    events = []
+    real_cut = mpr.cut
+    monkeypatch.setattr(mpr.fcntl, "flock", lambda fd, op: events.append(("flock", op)))
+    monkeypatch.setattr(mpr, "cut", lambda *a: events.append(("cut",)) or real_cut(*a))
+    assert mpr.build(CID, str(root)) is True
+    assert events[0] == ("flock", mpr.fcntl.LOCK_EX)
+    assert ("flock", mpr.fcntl.LOCK_UN) in events
+
+def test_프로브_진짜쌍은_통째로_교체(probe_env, monkeypatch):
+    # 리뷰(2026-10-27): 제자리 복사는 엔진이 반쯤 쓴 wav 를 읽을 수 있다 → 임시 파일 후 os.replace.
+    root, _, _ = probe_env
+    replaced = []
+    real_replace = mpr.os.replace
+    monkeypatch.setattr(mpr.os, "replace", lambda s, d: replaced.append(Path(d).name) or real_replace(s, d))
+    assert mpr.build(CID, str(root)) is True
+    assert replaced == ["voice_prompt.wav", "ref_prompt.txt"]
+    # 임시 파일이 남지 않는다.
+    assert sorted(p.name for p in (root / CID).iterdir()) == sorted([
+        ".prompt.lock", "prompt_probe.json", "ref_prompt.txt", "voice.wav", "voice_prompt.wav"])
