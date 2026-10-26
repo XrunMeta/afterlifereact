@@ -55,3 +55,17 @@ def test_기본_기준_특징_모양이_렌더러와_맞다():
     ref = torch.load(sm._DEFAULT_REF, weights_only=False)
     pad = 2  # musetalk_inproc audio_padding_length_left/right
     assert tuple(ref.shape) == (2 * (pad + pad + 1) * 5, 384)
+
+
+def test_전환_프레임_기본값은_8(monkeypatch):
+    # 2026-10-26: 기본 2(0.08초)면 말 끝에 입이 탁 닫혔다. 8(0.32초)로 실통화 확인(sungjius).
+    monkeypatch.delenv("PRETHIRD_SILENT_MOUTH_FADE", raising=False)
+    assert sm.fade_frames() == 8
+    monkeypatch.setenv("PRETHIRD_SILENT_MOUTH_FADE", "3")
+    assert sm.fade_frames() == 3
+
+
+def test_전환_8프레임이면_천천히_닫힌다():
+    al = sm.speech_alpha(_amp("s" * 20 + "." * 20), fade=8)
+    # 말 끝 판정 지점 앞뒤로 중간값(0~1 사이) 프레임이 여러 개 생긴다.
+    assert ((al > 0.05) & (al < 0.95)).sum() >= 5
