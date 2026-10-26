@@ -11,6 +11,7 @@ import numpy as np
 import soundfile as sf
 import config
 from clone_ref import load_ref_text, PROMPT_WAV
+from lead_trim import cap_lead_silence
 
 log = logging.getLogger("cosyvoice")
 
@@ -199,6 +200,10 @@ class CosyEngine:
                         clone_id, text[:30], dur, expected_max, attempt + 1, o["ramble_retries"])
             if best is None or len(audio) < len(best):
                 best = audio  # 모두 초과 시 가장 짧은 것
+        n0 = len(best)
+        best = cap_lead_silence(best, self.sr, config.LEAD_SILENCE_MAX_MS)
+        if len(best) < n0:
+            log.info("[lead-trim] clone=%s 앞 무음 %.2fs 잘라냄", clone_id, (n0 - len(best)) / self.sr)
         buf = io.BytesIO()
         sf.write(buf, best, self.sr, format="WAV", subtype="PCM_16")
         return buf.getvalue()
