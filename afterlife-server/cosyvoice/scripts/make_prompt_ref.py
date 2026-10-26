@@ -108,15 +108,44 @@ def pick_end(path: str, start: float, total: float) -> tuple[float | None, str]:
     """
     if total - start < RECORD_MIN_SEC:
         return None, "too_short"
-    lo, hi = start + CUT_AFTER_SEC, start + MAX_PROMPT_SEC
     starts, ends = silences(path)
+    end = _end_after(starts, ends, start, total)
+    return (end, "ok") if end is not None else (None, "no_pause")
+
+
+def _end_after(starts: list[float], ends: list[float], start: float, total: float) -> float | None:
+    """start 기준 CUT_AFTER_SEC 뒤 처음 나오는 쉼에서의 끝 시각(꼬리 무음 포함). 없으면 None."""
+    lo, hi = start + CUT_AFTER_SEC, start + MAX_PROMPT_SEC
     for i, s in enumerate(starts):
         if lo <= s <= hi:
             # 쉼이 끝나지 않은 채 파일이 끝나면 ffmpeg 가 silence_end 를 안 줄 수 있다.
             gap = (ends[i] if i < len(ends) else total) - s
             # 종결 신호가 되도록 쉼을 물고 가되, 쉼보다 길게 물면 다음 말 첫소리가 섞인다.
-            return s + min(TAIL_SILENCE_SEC, gap), "ok"
-    return None, "no_pause"
+            return s + min(TAIL_SILENCE_SEC, gap)
+    return None
+
+
+def candidate_windows(path: str, start: float, total: float, n: int) -> list[tuple[float, float]]:
+    """견본 후보 창 (시작, 끝) 최대 n 개 (AFL-1059).
+
+    첫 후보는 pick_end 와 같은 창(15초 검사 포함). 다음 후보는 이전 창 시작 뒤 처음 나오는
+    쉼의 끝(문장 경계)에서 시작하고 끝은 같은 규칙으로 정한다. 창 끝이 녹음을 넘으면 멈춘다.
+    """
+    first, _ = pick_end(path, start, total)
+    if first is None:
+        return []
+    starts, ends = silences(path)
+    wins = [(start, first)]
+    while len(wins) < n:
+        prev = wins[-1][0]
+        nxt = next((e for s, e in zip(starts, ends) if s > prev), None)
+        if nxt is None:
+            break
+        end = _end_after(starts, ends, nxt, total)
+        if end is None or end > total:
+            break
+        wins.append((nxt, end))
+    return wins
 
 
 def cut(src: str, dst: str, start: float, dur: float) -> bool:

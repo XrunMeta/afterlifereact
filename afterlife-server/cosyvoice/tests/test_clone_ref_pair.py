@@ -201,3 +201,24 @@ def test_기본값은_결정된_규칙():
     assert REC == 15.0
     assert CUT == 8.0
     assert MAX == 30.0
+
+
+# AFL-1059: 견본 후보 창 — 첫 후보는 지금 규칙 그대로, 다음 후보는 문장 경계(쉼 끝)에서 시작.
+_SIL5 = ([4.0, 9.0, 13.5, 18.0, 22.5], [4.4, 9.4, 13.9, 18.4, 22.9])
+
+
+def test_후보창_세개(monkeypatch):
+    monkeypatch.setattr(make_prompt_ref, "silences", lambda p: _SIL5)
+    assert make_prompt_ref.candidate_windows("x", 0.0, 30.0, 3) == [
+        (0.0, 9.0 + TAIL), (4.4, 13.5 + TAIL), (9.4, 18.0 + TAIL),
+    ]
+
+
+def test_후보창_짧은녹음은_하나(monkeypatch):
+    monkeypatch.setattr(make_prompt_ref, "silences", lambda p: ([4.0, 9.0], [4.4, 9.4]))
+    assert make_prompt_ref.candidate_windows("x", 0.0, 16.0, 3) == [(0.0, 9.0 + TAIL)]
+
+
+def test_후보창_첫창_실패면_빈목록(monkeypatch):
+    monkeypatch.setattr(make_prompt_ref, "silences", lambda p: _SIL5)
+    assert make_prompt_ref.candidate_windows("x", 0.0, 10.0, 3) == []
