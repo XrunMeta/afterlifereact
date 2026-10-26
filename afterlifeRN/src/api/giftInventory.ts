@@ -56,6 +56,17 @@ export interface GiftActivityItem {
   count: number;
   xrunAmount: number;
   createdAt: string; 
+
+  claimedAt: string | null;
+}
+
+export async function v_0e29ae(
+  v_2ca7e0,
+  v_389afb,
+): Promise<{ ok: true; id: number; claimedAt: string }> {
+  return v_04b58a(`/oth-path${v_389afb}/claim`, v_2ca7e0, {
+    method: "POST",
+  });
 }
 
 export async function v_bf9881(
