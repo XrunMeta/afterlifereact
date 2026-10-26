@@ -2429,7 +2429,13 @@
     "weekdayShortWed": "水",
     "weekdayShortThu": "木",
     "weekdayShortFri": "金",
-    "weekdayShortSat": "土"
+    "weekdayShortSat": "土",
+    "exchangeSheetTitle": "XRUNに交換します",
+    "feeRule": "{{unit}}本ごとに{{fee}}本 · {{total}}本",
+    "totalDeduct": "合計差し引き",
+    "toastSnapped": "{{step}}本単位で交換できます（{{qty}}本に合わせました）",
+    "notEnoughTitle": "交換には{{need}}本以上必要です",
+    "notEnoughBody": "手数料込みで{{need}}本から交換できます。現在{{owned}}本お持ちです。"
   },
   "sso": {
     "reconsent": {

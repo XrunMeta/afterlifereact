@@ -2422,7 +2422,13 @@
     "weekdayShortWed": "三",
     "weekdayShortThu": "四",
     "weekdayShortFri": "五",
-    "weekdayShortSat": "六"
+    "weekdayShortSat": "六",
+    "exchangeSheetTitle": "兑换为 XRUN",
+    "feeRule": "每{{unit}}朵收{{fee}}朵 · {{total}}朵",
+    "totalDeduct": "共扣除",
+    "toastSnapped": "需以{{step}}朵为单位兑换（已调整为{{qty}}朵）",
+    "notEnoughTitle": "至少需要{{need}}朵才能兑换",
+    "notEnoughBody": "含手续费{{need}}朵起可兑换，您目前有{{owned}}朵。"
   },
   "sso": {
     "reconsent": {

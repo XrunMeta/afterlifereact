@@ -2426,7 +2426,13 @@
     "weekdayShortWed": "Rab",
     "weekdayShortThu": "Kam",
     "weekdayShortFri": "Jum",
-    "weekdayShortSat": "Sab"
+    "weekdayShortSat": "Sab",
+    "exchangeSheetTitle": "Tukar ke XRUN",
+    "feeRule": "{{fee}} per {{unit}} · {{total}}",
+    "totalDeduct": "Total dipotong",
+    "toastSnapped": "Penukaran per {{step}} (disesuaikan ke {{qty}})",
+    "notEnoughTitle": "Butuh minimal {{need}} untuk menukar",
+    "notEnoughBody": "Penukaran mulai {{need}} termasuk biaya. Anda punya {{owned}}."
   },
   "sso": {
     "reconsent": {
