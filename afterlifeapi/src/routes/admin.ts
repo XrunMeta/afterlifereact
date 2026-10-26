@@ -1533,8 +1533,9 @@ v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
       .bind(v_43e90c, v_96f93d, v_e9396c, v_e9396c, v_e9396c, v_e9396c),
     v_3f4e2e.env.DB
       .prepare(
-        `INSERT INTO gift_inventory_events (user_id, counterpart_user_id, gift_id, count, xrun_amount, kind, ref_id)
-           VALUES (?, NULL, ?, ?, 0, ?, ?)`,
+
+        `INSERT INTO gift_inventory_events (user_id, counterpart_user_id, gift_id, count, xrun_amount, kind, ref_id, claimed_at)
+           VALUES (?, NULL, ?, ?, 0, ?, ?, strftime('%s','now'))`,
       )
       .bind(v_43e90c, v_96f93d, Math.abs(v_e9396c), v_e9396c > 0 ? "received" : "swapped", `admin_inject:${v_58ca36}`),
   ]);
