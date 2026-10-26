@@ -543,6 +543,8 @@ function v_223c52({
 
   const v_6e3315 = v_8c0b26.kind === "received" && v_8c0b26.claimedAt == null;
 
+  const v_194fce = v_8c0b26.kind === "received" && v_8c0b26.claimedAt != null;
+
   const v_231753 = v_6e3315 ? v_4623af : v_3094a2;
   const v_525b1e = v_6e3315
     ? { activeOpacity: 0.75, onPress: () => v_778217(v_8c0b26), disabled: v_5ba323 }
@@ -554,7 +556,7 @@ function v_223c52({
       style={[
         v_d81136.recvRow,
         v_ff995c && v_d81136.recvRowBorder,
-        v_6e3315 && v_d81136.recvRowPending,
+        v_194fce && v_d81136.recvRowClaimed,
       ]}
     >
       <View style={[v_d81136.avatar, { backgroundColor: v_085ccc }]}>
@@ -961,7 +963,7 @@ const v_d81136 = v_472849.create({
     borderBottomColor: v_1bfbd0.zinc200,
   },
 
-  recvRowPending: { backgroundColor: "#fef3c7" },
+  recvRowClaimed: { backgroundColor: v_1bfbd0.zinc50 },
   recvTitle: { fontSize: 14, fontWeight: "700", color: v_1bfbd0.zinc900 },
   recvCount: { fontSize: 15, fontWeight: "700", color: "#dc2626" },
 
