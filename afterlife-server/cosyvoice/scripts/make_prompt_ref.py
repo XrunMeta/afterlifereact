@@ -226,6 +226,10 @@ PROBE_SENTENCES = [
 PROBE_URL = (os.environ.get("COSYVOICE_PROBE_URL")
              or os.environ.get("PRETHIRD_TTS_URL") or "http://127.0.0.1:8203")
 PROBE_TIMEOUT_SEC = 30
+# 점수 기준 상수. 엔진 폭주 가드의 라이브 값(cosyvoice drop-in COSYVOICE_RAMBLE_BASE_SEC=0.9)과 맞춘다.
+# prebuild 는 prethird 환경으로 이 스크립트를 부르므로 엔진 env 가 없고 config 기본 1.8 이 쓰였다 —
+# 짧은 질문이 3초쯤 늘어져도 0점이라 후보를 못 가렸다(2026-10-27 검증).
+PROBE_RAMBLE_BASE_SEC = float(os.environ.get("COSYVOICE_PROBE_RAMBLE_BASE_SEC", "0.9"))
 
 
 def probe_durations(probe_id: str, sentences: list[str], url: str) -> list[float] | None:
@@ -250,7 +254,7 @@ def probe_durations(probe_id: str, sentences: list[str], url: str) -> list[float
 def probe_score(durations: list[float], sentences: list[str]) -> float:
     """예상 상한(엔진 폭주 가드와 같은 식)을 넘은 길이의 합. 후보끼리 상대 비교용."""
     return sum(
-        max(0.0, d - (config.RAMBLE_BASE_SEC + len(s) * config.RAMBLE_PER_CHAR_SEC))
+        max(0.0, d - (PROBE_RAMBLE_BASE_SEC + len(s) * config.RAMBLE_PER_CHAR_SEC))
         for d, s in zip(durations, sentences)
     )
 

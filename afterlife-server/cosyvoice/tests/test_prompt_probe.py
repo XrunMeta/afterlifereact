@@ -18,7 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 import config  # noqa: E402
 import make_prompt_ref as mpr  # noqa: E402
 
-BASE, PER = config.RAMBLE_BASE_SEC, config.RAMBLE_PER_CHAR_SEC
+BASE, PER = mpr.PROBE_RAMBLE_BASE_SEC, config.RAMBLE_PER_CHAR_SEC
 
 def _wav_bytes(sec: float, sr: int = 24000) -> bytes:
     buf = io.BytesIO()
@@ -36,6 +36,12 @@ def test_점수_정상길이는_0():
 def test_점수_늘어진만큼():
     s = "너는 뭐 먹었어?"
     assert mpr.probe_score([7.2], [s]) == pytest.approx(7.2 - (BASE + len(s) * PER))
+
+def test_점수_기준은_라이브값_0점9(monkeypatch):
+    # prebuild(prethird) 환경에는 엔진의 COSYVOICE_RAMBLE_BASE_SEC=0.9 가 없어 config 기본 1.8 이
+    # 쓰였고, 동점 0 이 많아 후보를 못 가렸다(2026-10-27 검증: 0.9 로 다시 매기면 2건이 바뀜).
+    assert mpr.PROBE_RAMBLE_BASE_SEC == 0.9
+    assert mpr.probe_score([3.2], ["잘 들려?"]) == pytest.approx(3.2 - (0.9 + 5 * PER))
 
 def test_고르기_최저점():
     assert mpr.pick_best([3.0, 0.5, 0.5]) == 1
