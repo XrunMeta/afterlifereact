@@ -1250,6 +1250,7 @@ export default function v_def15b() {
         visible={v_0215b6}
         onClose={() => v_b30c04(false)}
         onChanged={v_fa991f}
+        onGoHome={() => v_c65f5d.getParent()?.navigate("HomeTab" as never)}
       />
 
       {
