@@ -49,6 +49,10 @@ EMPTY_SILENCE_MS = int(os.environ.get("COSYVOICE_EMPTY_SILENCE_MS", "120"))
 # 0 이면 비활성. 실측 최적 300ms(lead-RMS 1607→16).
 PROMPT_TAIL_SILENCE_MS = int(os.environ.get("COSYVOICE_PROMPT_TAIL_SILENCE_MS", "300"))
 
+# 합성 결과 문장 앞 무음 상한(ms) — 견본의 머뭇거림을 따라 생기는 0.2~1.2초 앞 무음을 이 길이로 줄인다.
+# 0 이면 비활성. lead_trim.py 참조.
+LEAD_SILENCE_MAX_MS = int(os.environ.get("COSYVOICE_LEAD_SILENCE_MAX_MS", "300"))
+
 # 폭주(hallucination) 가드: 합성 길이가 예상(가산식 = BASE + 문자수×PER_CHAR)을 초과하면
 # CV2 과생성으로 보고 재합성(RETRIES회). 실측(20회): 정상 클러스터 2.4~5.7s / 폭주 8~10.4s.
 # BASE 1.8 + 0.28/자 → 20자=7.4s(두 클러스터 사이). 고정합성 오버헤드는 BASE, 길이비례는 PER_CHAR.
