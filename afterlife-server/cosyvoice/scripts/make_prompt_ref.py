@@ -166,7 +166,10 @@ def transcribe(wav_path: str) -> str | None:
     import urllib.error
     import urllib.request
 
-    payload = json.dumps({"wav_path": wav_path, "out_clone_id": STT_SINK_CLONE}).encode()
+    # max_sec: STT 는 기본 앞 10초만 전사한다(voice.wav → ref_text.txt 용). 견본은 8~30초라
+    # 10초 뒤 문장이 글에서 빠져 오디오·텍스트가 어긋났다(AFL-1059, 라이브 9223) → 파일 전체.
+    payload = json.dumps({"wav_path": wav_path, "out_clone_id": STT_SINK_CLONE,
+                          "max_sec": MAX_PROMPT_SEC}).encode()
     req = urllib.request.Request(
         f"{STT_URL}/transcribe_path",
         data=payload,
