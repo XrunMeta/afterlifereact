@@ -2446,14 +2446,25 @@
     "weekdayShortFri": "金",
     "weekdayShortSat": "土",
     "exchangeSheetTitle": "XRUNに交換します",
+    "exchangeSheetTitleShort": "交換",
+    "exchangeLoading": "交換条件を確認しています…",
+    "exchangeQtyLabel": "交換する数量",
+    "receiveQtyLabel": "受け取る数量",
+    "max": "最大",
+    "feeExchangeNotice": "手数料{{fee}} ROSEを除いた{{qty}} ROSEが交換されます",
+    "exchangeNoCancel": "交換後はキャンセルできません。",
+    "successFeeLine": "手数料{{fee}} ROSE差し引き後に交換",
+    "successRemaining": "残りローズ {{n}} ROSE",
+    "successWalletHint": "報酬はXRUNウォレット > Afterlifeで受け取れます。",
+    "p4ReceiveReward": "XRUNで報酬を受け取る",
     "feeRule": "{{unit}}本ごとに{{fee}}本 · {{total}}本",
     "totalDeduct": "合計差し引き",
     "toastSnapped": "{{step}}本単位で交換できます（{{qty}}本に合わせました）",
-    "notEnoughTitle": "交換には{{need}}本以上必要です",
+    "notEnoughTitle": "交換には{{need}} ROSE以上必要です",
     "noGiftTitle": "交換できるギフトがありません",
     "noGiftBody": "ペルソナと通話するとギフトがもらえます。\n今から通話してみますか？",
     "goHome": "移動する",
-    "notEnoughBody": "現在{{owned}}本お持ちです。\n通話でギフトをもっと集めましょう。"
+    "notEnoughBody": "現在{{owned}} ROSEお持ちです。\n通話でギフトをもっと集めましょう。"
   },
   "sso": {
     "reconsent": {

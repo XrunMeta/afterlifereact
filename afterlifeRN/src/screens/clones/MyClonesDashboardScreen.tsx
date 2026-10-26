@@ -963,6 +963,53 @@ export default function v_def15b() {
               <View style={v_fd5f43.giftDashCard}>
                 <View style={v_fd5f43.giftDashHeader}>
                   <View style={v_fd5f43.giftDashTitleRow}>
+                    <Text style={v_fd5f43.giftDashRoseEmoji}>🌹</Text>
+                    <Text style={v_fd5f43.giftDashTitle}>
+                      {v_8d41d7("giftBox.myRoseTitle", { defaultValue: "내 ROSE" })}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={v_fd5f43.giftDashViewAllBtn}
+                    onPress={() => v_c65f5d.navigate("GiftBox", { view: "exchange" })}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={v_fd5f43.giftDashViewAll}>
+                      {v_8d41d7("giftBox.exchangeHistoryLink", { defaultValue: "교환 내역" })}
+                    </Text>
+                    <Feather name="chevron-right" size={16} color={v_1bfbd0.zinc400} />
+                  </TouchableOpacity>
+                </View>
+                <View style={v_fd5f43.giftDashRoseBody}>
+                  <View style={v_fd5f43.giftDashRoseLeft}>
+                    <Text style={v_fd5f43.giftDashRoseBalance}>
+                      {v_cfa43b}{" "}
+                      <Text style={v_fd5f43.giftDashRoseUnit}>
+                        {v_8d41d7("giftBox.roseUnit", { defaultValue: "ROSE" })}
+                      </Text>
+                    </Text>
+                    <Text style={v_fd5f43.giftDashRoseFeeHint}>
+                      {v_8d41d7("giftBox.feeDeductHint", {
+                        defaultValue: "교환 시 수수료 1 ROSE 차감",
+                      })}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={v_fd5f43.giftDashExchangeBtnCompact}
+                    activeOpacity={0.85}
+                    onPress={() => v_b30c04(true)}
+                  >
+                    <Text style={v_fd5f43.giftDashExchangeBtnText}>
+                      {v_8d41d7("giftBox.exchangeShort", { defaultValue: "교환" })}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {}
+              <View style={v_fd5f43.giftDashCard}>
+                <View style={v_fd5f43.giftDashHeader}>
+                  <View style={v_fd5f43.giftDashTitleRow}>
                     <Feather name="gift" size={18} color={v_1bfbd0.primary} />
                     <Text style={v_fd5f43.giftDashTitle}>
                       {v_8d41d7("giftBox.title", { defaultValue: "선물함" })}
@@ -977,14 +1024,14 @@ export default function v_def15b() {
                     activeOpacity={0.7}
                   >
                     <Text style={v_fd5f43.giftDashViewAll}>
-                      {v_8d41d7("giftBox.viewAll", { defaultValue: "전체 보기" })}
+                      {v_8d41d7("giftBox.viewAll", { defaultValue: "전체보기" })}
                     </Text>
                     <Feather name="chevron-right" size={16} color={v_1bfbd0.zinc400} />
                   </TouchableOpacity>
                 </View>
                 <View style={v_fd5f43.giftDashMetrics}>
                   <TouchableOpacity
-                    style={v_fd5f43.giftDashMetric}
+                    style={[v_fd5f43.giftDashMetric, v_fd5f43.giftDashMetricBorder]}
                     activeOpacity={0.8}
                     onPress={() =>
                       v_c65f5d.navigate("GiftBox", { view: "activity", initialTab: "received" })
@@ -993,7 +1040,12 @@ export default function v_def15b() {
                     <Text style={v_fd5f43.giftDashMetricLabel} numberOfLines={1}>
                       {v_8d41d7("giftBox.tabReceived", { defaultValue: "받은 선물" })}
                     </Text>
-                    <Text style={v_fd5f43.giftDashMetricValue}>{v_489044}</Text>
+                    <View style={v_fd5f43.giftDashMetricRight}>
+                      <Text style={v_fd5f43.giftDashMetricValue}>
+                        {v_489044} {v_8d41d7("giftBox.roseUnit", { defaultValue: "ROSE" })}
+                      </Text>
+                      <Feather name="chevron-right" size={16} color={v_1bfbd0.zinc400} />
+                    </View>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={v_fd5f43.giftDashMetric}
@@ -1005,55 +1057,14 @@ export default function v_def15b() {
                     <Text style={v_fd5f43.giftDashMetricLabel} numberOfLines={1}>
                       {v_8d41d7("giftBox.tabSent", { defaultValue: "보낸 선물" })}
                     </Text>
-                    <Text style={v_fd5f43.giftDashMetricValue}>{v_deb5c7}</Text>
+                    <View style={v_fd5f43.giftDashMetricRight}>
+                      <Text style={v_fd5f43.giftDashMetricValue}>
+                        {v_deb5c7} {v_8d41d7("giftBox.roseUnit", { defaultValue: "ROSE" })}
+                      </Text>
+                      <Feather name="chevron-right" size={16} color={v_1bfbd0.zinc400} />
+                    </View>
                   </TouchableOpacity>
                 </View>
-              </View>
-
-              {}
-              <View style={[v_fd5f43.giftDashCard, v_fd5f43.giftDashCardOwned]}>
-                <View style={v_fd5f43.giftDashHeader}>
-                  <View style={v_fd5f43.giftDashTitleRow}>
-                    <Feather name="package" size={18} color={v_1bfbd0.primary} />
-                    <Text style={v_fd5f43.giftDashTitle}>
-                      {v_8d41d7("giftBox.ownedCountTitle", { defaultValue: "보유 수량" })}
-                    </Text>
-                  </View>
-                  <TouchableOpacity
-                    style={v_fd5f43.giftDashViewAllBtn}
-                    onPress={() => v_c65f5d.navigate("GiftBox", { view: "exchange" })}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={v_fd5f43.giftDashViewAll}>
-                      {v_8d41d7("giftBox.historyView", { defaultValue: "내역 보기" })}
-                    </Text>
-                    <Feather name="chevron-right" size={16} color={v_1bfbd0.zinc400} />
-                  </TouchableOpacity>
-                </View>
-                <View style={v_fd5f43.giftDashMetrics}>
-                  <TouchableOpacity
-                    style={v_fd5f43.giftDashMetric}
-                    activeOpacity={0.8}
-                    onPress={() => v_c65f5d.navigate("GiftBox", { view: "exchange" })}
-                  >
-                    <Text style={[v_fd5f43.giftDashMetricLabel, v_fd5f43.giftDashMetricLabelAccent]} numberOfLines={1}>
-                      {v_8d41d7("giftBox.ownedCountLabel", { defaultValue: "보유 수량" })}
-                    </Text>
-                    <Text style={[v_fd5f43.giftDashMetricValue, v_fd5f43.giftDashMetricValueAccent]}>
-                      {v_cfa43b}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-                <TouchableOpacity
-                  style={v_fd5f43.giftDashExchangeBtn}
-                  activeOpacity={0.85}
-                  onPress={() => v_b30c04(true)}
-                >
-                  <Text style={v_fd5f43.giftDashExchangeBtnText}>
-                    {v_8d41d7("giftBox.exchangeAction", { defaultValue: "교환하기" })}
-                  </Text>
-                </TouchableOpacity>
               </View>
             </View>
           </>
@@ -2433,15 +2444,14 @@ const v_fd5f43 = v_472849.create({
     borderColor: v_1bfbd0.zinc200,
     padding: 16,
   },
-
-  giftDashCardOwned: {},
   giftDashHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 14,
+    marginBottom: 10,
   },
   giftDashTitleRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  giftDashRoseEmoji: { fontSize: 16 },
   giftDashTitle: { fontSize: 16, fontWeight: "700", color: v_1bfbd0.zinc900 },
   giftDashViewAllBtn: {
     flexDirection: "row",
@@ -2449,30 +2459,49 @@ const v_fd5f43 = v_472849.create({
     gap: 2,
   },
   giftDashViewAll: { fontSize: 13, color: v_1bfbd0.zinc500 },
-
-  giftDashMetrics: { marginBottom: 14 },
+  giftDashRoseBody: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  giftDashRoseLeft: { flex: 1, minWidth: 0 },
+  giftDashRoseBalance: {
+    fontSize: 26,
+    fontWeight: "800",
+    color: v_1bfbd0.zinc900,
+    fontVariant: ["tabular-nums"],
+  },
+  giftDashRoseUnit: { fontSize: 18, fontWeight: "800" },
+  giftDashRoseFeeHint: { marginTop: 4, fontSize: 12, color: v_1bfbd0.zinc500 },
+  giftDashMetrics: {},
   giftDashMetric: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 8,
+    paddingVertical: 12,
   },
-  giftDashMetricLabel: { flex: 1, fontSize: 14, color: v_1bfbd0.zinc600 },
-  giftDashMetricLabelAccent: { color: v_1bfbd0.primary },
-
+  giftDashMetricBorder: {
+    borderBottomWidth: v_472849.hairlineWidth,
+    borderBottomColor: v_1bfbd0.zinc200,
+  },
+  giftDashMetricLabel: { flex: 1, fontSize: 14, color: v_1bfbd0.zinc700 },
+  giftDashMetricRight: { flexDirection: "row", alignItems: "center", gap: 2 },
   giftDashMetricValue: {
     fontSize: 15,
+    fontWeight: "700",
     color: v_1bfbd0.zinc900,
     textAlign: "right",
     fontVariant: ["tabular-nums"],
-    marginLeft: 12,
   },
-  giftDashMetricValueAccent: { color: v_1bfbd0.primary },
-  giftDashExchangeBtn: {
-    ...v_d43669.md,
+  giftDashExchangeBtnCompact: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: v_8b0c90.md,
     backgroundColor: v_1bfbd0.zinc900,
     alignItems: "center",
     justifyContent: "center",
+    minWidth: 72,
   },
   giftDashExchangeBtnText: { ...v_c10a43.md, color: v_1bfbd0.white },
 

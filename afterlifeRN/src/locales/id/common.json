@@ -2443,14 +2443,25 @@
     "weekdayShortFri": "Jum",
     "weekdayShortSat": "Sab",
     "exchangeSheetTitle": "Tukar ke XRUN",
+    "exchangeSheetTitleShort": "Tukar",
+    "exchangeLoading": "Memeriksa syarat penukaran…",
+    "exchangeQtyLabel": "Jumlah ditukar",
+    "receiveQtyLabel": "Jumlah diterima",
+    "max": "Maks",
+    "feeExchangeNotice": "{{qty}} ROSE ditukar setelah biaya {{fee}} ROSE",
+    "exchangeNoCancel": "Penukaran tidak dapat dibatalkan.",
+    "successFeeLine": "Ditukar setelah potong biaya {{fee}} ROSE",
+    "successRemaining": "Sisa ROSE {{n}}",
+    "successWalletHint": "Klaim hadiah di Dompet XRUN > Afterlife.",
+    "p4ReceiveReward": "Klaim hadiah di XRUN",
     "feeRule": "{{fee}} per {{unit}} · {{total}}",
     "totalDeduct": "Total dipotong",
     "toastSnapped": "Penukaran per {{step}} (disesuaikan ke {{qty}})",
-    "notEnoughTitle": "Butuh minimal {{need}} untuk menukar",
+    "notEnoughTitle": "Butuh minimal {{need}} ROSE untuk menukar",
     "noGiftTitle": "Tidak ada hadiah untuk ditukar",
     "noGiftBody": "Anda bisa mendapat hadiah dengan menelepon persona.\nMau menelepon sekarang?",
     "goHome": "Buka",
-    "notEnoughBody": "Anda punya {{owned}}.\nKumpulkan lebih banyak hadiah lewat panggilan."
+    "notEnoughBody": "Anda punya {{owned}} ROSE.\nKumpulkan lebih banyak hadiah lewat panggilan."
   },
   "sso": {
     "reconsent": {

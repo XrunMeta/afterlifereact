@@ -24,9 +24,11 @@ interface Options {
   skipConfirm?: boolean;
 
   beforeResult?: () => void;
+
+  onSuccess?: (res: v_867a79, elig: v_02ed3c) => void;
 }
 
-export function v_61fb8c({ onChanged: v_37c9f5, beforeConfirm: v_28a965, skipConfirm: v_f347b1, beforeResult: v_ee7fc8 }: Options = {}) {
+export function v_61fb8c({ onChanged: v_37c9f5, beforeConfirm: v_28a965, skipConfirm: v_f347b1, beforeResult: v_ee7fc8, onSuccess: v_fe60db }: Options = {}) {
   const { t: v_8d41d7 } = v_772971();
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
   const v_f3b147 = v_e662ae(v_37c9f5);
@@ -35,6 +37,8 @@ export function v_61fb8c({ onChanged: v_37c9f5, beforeConfirm: v_28a965, skipCon
   v_f5d26a.current = v_28a965;
   const v_9e39c4 = v_e662ae(v_ee7fc8);
   v_9e39c4.current = v_ee7fc8;
+  const v_9650f3 = v_e662ae(v_fe60db);
+  v_9650f3.current = v_fe60db;
 
   const [v_ae840d, v_95c431] = v_5ab095<v_02ed3c | null>(null);
   const [v_b085c3, v_6c4550] = v_5ab095<v_867a79[]>([]);
@@ -141,19 +145,23 @@ export function v_61fb8c({ onChanged: v_37c9f5, beforeConfirm: v_28a965, skipCon
       const v_8f00b9 = await v_541c70(v_2ca7e0, { giftId: v_c3bc75.giftId, qty: v_d016c9, rateVersion: v_c3bc75.rateVersion }, v_b24339);
       v_9e39c4.current?.();
       v_f3b147.current?.();
-      v_889fad(
-        v_8d41d7("giftBox.p4Title", { defaultValue: "교환이 완료되었어요" }),
-        v_8d41d7("giftBox.p4Body", {
-          defaultValue: "{{name}} {{qty}}송이가 {{reward}} XRUN으로 교환되었어요. XRUN 지갑 > 에프터라이프에서 보상을 받아가세요.",
-          name: v_8f00b9.giftName,
-          qty: v_8f00b9.qty,
-          reward: v_8f00b9.reward,
-        }),
-        [
-          { text: v_8d41d7("common.close", { defaultValue: "닫기" }), style: "cancel" },
-          { text: v_8d41d7("giftBox.p4Receive", { defaultValue: "XRUN에서 받기" }), onPress: () => void v_77a9ad(v_c3bc75.xrunMemberId ?? v_1ed7d9.getState().apiUser?.xrunMemberId, v_1ed7d9.getState().apiUser?.email) },
-        ],
-      );
+      if (v_9650f3.current) {
+        v_9650f3.current(v_8f00b9, v_c3bc75);
+      } else {
+        v_889fad(
+          v_8d41d7("giftBox.p4Title", { defaultValue: "교환이 완료되었어요" }),
+          v_8d41d7("giftBox.p4Body", {
+            defaultValue: "{{name}} {{qty}}송이가 {{reward}} XRUN으로 교환되었어요. XRUN 지갑 > 에프터라이프에서 보상을 받아가세요.",
+            name: v_8f00b9.giftName,
+            qty: v_8f00b9.qty,
+            reward: v_8f00b9.reward,
+          }),
+          [
+            { text: v_8d41d7("common.close", { defaultValue: "닫기" }), style: "cancel" },
+            { text: v_8d41d7("giftBox.p4Receive", { defaultValue: "XRUN에서 받기" }), onPress: () => void v_77a9ad(v_c3bc75.xrunMemberId ?? v_1ed7d9.getState().apiUser?.xrunMemberId, v_1ed7d9.getState().apiUser?.email) },
+          ],
+        );
+      }
     } catch (v_49263d) {
       v_9e39c4.current?.();
       const v_9e86fd = v_49263d as { code?: string; message?: string; details?: Record<string, unknown> };
@@ -297,7 +305,7 @@ export function v_61fb8c({ onChanged: v_37c9f5, beforeConfirm: v_28a965, skipCon
 
   const v_3f5aa8 = (v_479f05) => {
     if (!v_ae840d) return;
-    const v_f4e98d = Number(v_479f05.replace(/D/g, ""));
+    const v_f4e98d = Number(v_479f05.replace(/\D/g, ""));
     if (!v_f4e98d) {
       v_cba33f(v_8d41d7("giftBox.toastEmptyQty", { defaultValue: "교환할 수량을 입력해주세요" }));
       v_839e4f(v_ae840d.minQty);

@@ -2439,14 +2439,25 @@
     "weekdayShortFri": "五",
     "weekdayShortSat": "六",
     "exchangeSheetTitle": "兑换为 XRUN",
+    "exchangeSheetTitleShort": "兑换",
+    "exchangeLoading": "正在确认兑换条件…",
+    "exchangeQtyLabel": "兑换数量",
+    "receiveQtyLabel": "到账数量",
+    "max": "最大",
+    "feeExchangeNotice": "扣除手续费 {{fee}} ROSE 后，将兑换 {{qty}} ROSE",
+    "exchangeNoCancel": "兑换后无法取消。",
+    "successFeeLine": "扣除手续费 {{fee}} ROSE 后兑换",
+    "successRemaining": "剩余 ROSE {{n}}",
+    "successWalletHint": "奖励可在 XRUN 钱包 > Afterlife 领取。",
+    "p4ReceiveReward": "前往 XRUN 领取奖励",
     "feeRule": "每{{unit}}朵收{{fee}}朵 · {{total}}朵",
     "totalDeduct": "共扣除",
     "toastSnapped": "需以{{step}}朵为单位兑换（已调整为{{qty}}朵）",
-    "notEnoughTitle": "至少需要{{need}}朵才能兑换",
+    "notEnoughTitle": "至少需要 {{need}} ROSE 才能兑换",
     "noGiftTitle": "没有可兑换的礼物",
     "noGiftBody": "与角色通话即可获得礼物。\n现在去通话吗？",
     "goHome": "前往",
-    "notEnoughBody": "您目前有{{owned}}朵。\n通过通话收集更多礼物吧。"
+    "notEnoughBody": "您目前有 {{owned}} ROSE。\n通过通话收集更多礼物吧。"
   },
   "sso": {
     "reconsent": {
