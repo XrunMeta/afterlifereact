@@ -43,7 +43,7 @@ export default function v_177da7({ visible: v_cf55be, onClose: v_0890f8, onChang
     onExchangeInc: v_869bef,
     commitTypedQty: v_3f5aa8,
     onExchangeSubmit: v_d037c4,
-  } = v_61fb8c({ onChanged: v_37c9f5, beforeConfirm: v_0890f8 });
+  } = v_61fb8c({ onChanged: v_37c9f5, skipConfirm: true, beforeResult: v_0890f8 });
 
   const [v_683210, v_34a50a] = v_5ab095(false);
 
