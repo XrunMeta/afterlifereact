@@ -31,6 +31,7 @@ import {
   type v_867a79,
 } from "../../api/giftInventory";
 import { v_61fb8c } from "../../hooks/useGiftExchange";
+import v_177da7 from "../../components/gift/GiftExchangeSheet";
 import type { v_2d88fc, v_8ad91b } from "../../navigation/types";
 
 type TabKey = "received" | "sent" | "exchange";
@@ -78,9 +79,58 @@ function v_e4bf58(v_6fc191, t: v_75de9d): string {
   return `${v_5e39a0} ${v_02de88}:${String(v_35f85c).padStart(2, "0")}`;
 }
 
+function v_514b67(v_217d49): string {
+  const v_d5dda0 = typeof v_217d49 === "number" ? new Date(v_217d49) : new Date(v_217d49);
+  if (Number.isNaN(v_d5dda0.getTime())) return "";
+  return [
+    String(v_d5dda0.getHours()).padStart(2, "0"),
+    String(v_d5dda0.getMinutes()).padStart(2, "0"),
+    String(v_d5dda0.getSeconds()).padStart(2, "0"),
+  ].join(":");
+}
+
+function v_9b9d5e(v_217d49, t: v_75de9d): string {
+  const v_d5dda0 = typeof v_217d49 === "number" ? new Date(v_217d49) : new Date(v_217d49);
+  if (Number.isNaN(v_d5dda0.getTime())) return "—";
+  const v_b3d1d6 = `${v_d5dda0.getFullYear()}.${String(v_d5dda0.getMonth() + 1).padStart(2, "0")}.${String(v_d5dda0.getDate()).padStart(2, "0")}`;
+  const v_5c2f9f = new Date();
+  const v_147971 =
+    v_d5dda0.getFullYear() === v_5c2f9f.getFullYear() &&
+    v_d5dda0.getMonth() === v_5c2f9f.getMonth() &&
+    v_d5dda0.getDate() === v_5c2f9f.getDate();
+  if (v_147971) {
+    return v_8d41d7("giftBox.todayWithDate", {
+      defaultValue: "오늘 · {{ymd}}",
+      ymd: v_b3d1d6,
+    });
+  }
+  const v_32f7b8 = v_8d41d7(v_30b99a[v_d5dda0.getDay()], {
+    defaultValue: v_f97821[v_d5dda0.getDay()],
+  });
+  return v_8d41d7("giftBox.ymdWeek", {
+    defaultValue: "{{ymd}} ({{w}})",
+    ymd: v_b3d1d6,
+    w: v_32f7b8,
+  });
+}
+
+const v_1dee60 = require("../../../assets/images/rose-icon.png");
+
+function v_0d7182({ count: v_9e8c70, size: v_05b441 = "md" }: { count: number; size?: "md" | "lg" }) {
+  const v_2d9767 = v_05b441 === "lg" ? v_d81136.roseIconLg : v_d81136.roseIcon;
+  return (
+    <View style={v_d81136.roseAmountRow}>
+      <Image source={v_1dee60} style={v_2d9767} />
+      <Text style={v_05b441 === "lg" ? v_d81136.roseAmountLg : v_d81136.roseAmount}>
+        {v_9e8c70} ROSE
+      </Text>
+    </View>
+  );
+}
+
 const v_951062 = 15;
 
-const v_ca9d61 = false;
+const v_ca9d61 = true;
 
 type PagedKind = "received" | "sent";
 type Paged = { items: v_407a6d[]; offset: number; done: boolean };
@@ -114,6 +164,8 @@ export default function v_8869a8() {
   const v_8e5767 = v_a3453e.useRef(0);
   const [v_5da798, v_19e9c0] = v_5ab095(0);
   const [v_fcc796, v_0cc282] = v_5ab095<number | null>(null);
+  const [v_b09797, v_c60f1e] = v_5ab095(0);
+  const [v_084403, v_4710bd] = v_5ab095(false);
 
   v_cf763b(
     v_de06a3(() => {
@@ -188,6 +240,7 @@ export default function v_8869a8() {
         v_835446(v_204494.paged);
         v_19e9c0(v_ed7fe5.last?.totalReceived ?? 0);
         v_0cc282(v_204494.last?.totalSent ?? null);
+        v_c60f1e(v_ed7fe5.last?.currentOwned ?? v_204494.last?.currentOwned ?? 0);
         await v_308dd7();
       } catch (v_49263d) {
         console.warn("[GiftBox] load fail:", v_49263d);
@@ -224,6 +277,8 @@ export default function v_8869a8() {
     () => v_8af8a0.reduce((v_f4e98d, v_206b88) => v_f4e98d + (v_206b88.count || 1), 0) || v_5da798,
     [v_8af8a0, v_5da798],
   );
+  const v_26f84f =
+    v_fcc796 ?? v_ccaf2e.reduce((v_f4e98d, v_206b88) => v_f4e98d + (v_206b88.count || 1), 0);
 
   const v_22668d = [
     {
@@ -234,7 +289,7 @@ export default function v_8869a8() {
     {
       key: "sent",
       label: v_8d41d7("giftBox.tabSent", { defaultValue: "보낸 선물" }),
-      count: (v_fcc796 ?? v_ccaf2e.reduce((v_f4e98d, v_206b88) => v_f4e98d + (v_206b88.count || 1), 0)) || undefined,
+      count: v_26f84f || undefined,
     },
     { key: "exchange", label: v_8d41d7("giftBox.tabExchange", { defaultValue: "교환" }) },
   ];
@@ -243,7 +298,7 @@ export default function v_8869a8() {
 
   const v_d0fd9b =
     v_24baff?.view === "exchange"
-      ? v_8d41d7("giftBox.ownedCountTitle", { defaultValue: "보유 수량" })
+      ? v_8d41d7("giftBox.myRoseTitle", { defaultValue: "내 ROSE" })
       : v_8d41d7("giftBox.title", { defaultValue: "선물함" });
 
   return (
@@ -265,12 +320,21 @@ export default function v_8869a8() {
               onPress={() => v_94ee83(v_c3c9ed.key)}
               activeOpacity={0.7}
             >
-              <Text style={[v_d81136.tabText, v_f8b770 && v_d81136.tabTextActive]}>
-                {v_c3c9ed.label}
+              <View style={v_d81136.tabLabelRow}>
+                <Text style={[v_d81136.tabText, v_f8b770 && v_d81136.tabTextActive]}>
+                  {v_c3c9ed.label}
+                </Text>
                 {v_ca9d61 && v_c3c9ed.count != null ? (
-                  <Text style={v_d81136.tabCount}> {v_c3c9ed.count}</Text>
+                  v_c3c9ed.key === "sent" ? (
+                    <View style={v_d81136.tabRoseCount}>
+                      <Image source={v_1dee60} style={v_d81136.tabRoseIcon} />
+                      <Text style={v_d81136.tabCount}>{v_c3c9ed.count}</Text>
+                    </View>
+                  ) : (
+                    <Text style={v_d81136.tabCount}> {v_c3c9ed.count}</Text>
+                  )
                 ) : null}
-              </Text>
+              </View>
             </TouchableOpacity>
           );
         })}
@@ -306,6 +370,7 @@ export default function v_8869a8() {
           )}
           {v_11083e === "sent" && (
             <SentTab
+              items={v_ccaf2e}
               grouped={v_bc3259}
               loadingMore={v_f34bc3 === "sent"}
               t={v_8d41d7}
@@ -329,6 +394,8 @@ export default function v_8869a8() {
               maxQty={v_ea7b1e}
               onSubmit={() => void v_d037c4()}
               historyOnly={v_24baff?.view === "exchange"}
+              ownedFallback={v_b09797}
+              onOpenExchangeSheet={() => v_4710bd(true)}
             />
           )}
         </ScrollView>
@@ -338,22 +405,19 @@ export default function v_8869a8() {
           <Text style={v_d81136.toastText}>{v_da74fa}</Text>
         </View>
       ) : null}
+      {v_24baff?.view === "exchange" ? (
+        <GiftExchangeSheet
+          visible={v_084403}
+          onClose={() => v_4710bd(false)}
+          onChanged={() => void v_92fdf2(true)}
+          onGoHome={() => {
+            v_4710bd(false);
+            v_f4c991.dispatch(v_650cfa.navigate({ name: "HomeTab" }));
+          }}
+        />
+      ) : null}
     </SafeView>
   );
-}
-
-function v_8e47b4(v_6fc191, t: v_75de9d): string {
-  const v_d5dda0 = new Date(v_6fc191);
-  if (Number.isNaN(v_d5dda0.getTime())) return "—";
-  const v_5c2f9f = new Date();
-  if (
-    v_d5dda0.getFullYear() === v_5c2f9f.getFullYear() &&
-    v_d5dda0.getMonth() === v_5c2f9f.getMonth() &&
-    v_d5dda0.getDate() === v_5c2f9f.getDate()
-  ) {
-    return v_8d41d7("giftBox.today", { defaultValue: "오늘" });
-  }
-  return v_b5c383(v_6fc191, v_8d41d7);
 }
 
 function v_0f11bb(item: v_407a6d): boolean {
@@ -365,7 +429,7 @@ function v_44c2cb(
   t: v_75de9d,
 ): string {
   if (v_8c0b26.kind === "ad_reward") {
-    return v_8d41d7("giftBox.adRewardSender", { defaultValue: "광고 보상" });
+    return v_8c0b26.cloneName || v_8d41d7("giftBox.adRewardSender", { defaultValue: "광고 보상" });
   }
   if (v_0f11bb(v_8c0b26)) {
     return v_8d41d7("giftBox.anonymous", { defaultValue: "익명" });
@@ -378,7 +442,7 @@ function v_44c2cb(
 }
 
 function v_8345ff(v_1833e7): string {
-  const v_73a570 = ["#dbeafe", "#e9d5ff", "#fce7f3", "#d1fae5", "#fef3c7"];
+  const v_73a570 = ["#dbeafe", "#e9d5ff", "#fce7f3", "#d1fae5", "#fef3c7", "#ffedd5"];
   let v_65a2cd = 0;
   for (let v_ebec57 = 0; v_ebec57 < v_1833e7.length; v_ebec57++) v_65a2cd = (v_65a2cd + v_1833e7.charCodeAt(v_ebec57) * 17) % v_73a570.length;
   return v_73a570[v_65a2cd];
@@ -395,8 +459,9 @@ function v_6da59e({
   loadingMore: boolean;
   t: v_75de9d;
 }) {
-
   const [v_4abce2, v_59fd10] = v_5ab095<ReceivedSubTab>("all");
+  const [v_9875a1, v_2e7fc1] = v_5ab095("");
+  const v_ab6401 = v_9875a1.trim().toLowerCase();
 
   const v_9f6088 = v_df9f57(
     () => v_4622b9.filter((v_23805a) => v_23805a.kind === "received").length,
@@ -408,15 +473,22 @@ function v_6da59e({
   );
 
   const v_e4cf17 = v_df9f57(() => {
-    if (v_4abce2 === "all") return v_4622b9;
-    if (v_4abce2 === "user") return v_4622b9.filter((v_23805a) => v_23805a.kind === "received");
-    return v_4622b9.filter((v_23805a) => v_23805a.kind === "ad_reward");
-  }, [v_4622b9, v_4abce2]);
+    let v_ef8ab1 = v_4622b9;
+    if (v_4abce2 === "user") v_ef8ab1 = v_ef8ab1.filter((v_23805a) => v_23805a.kind === "received");
+    else if (v_4abce2 === "clone") v_ef8ab1 = v_ef8ab1.filter((v_23805a) => v_23805a.kind === "ad_reward");
+    if (!v_ab6401) return v_ef8ab1;
+    return v_ef8ab1.filter((v_23805a) => {
+      const v_eddf67 = v_44c2cb(v_23805a, v_8d41d7).toLowerCase();
+      const v_eb25ce = (v_23805a.cloneName || "").toLowerCase();
+      const v_1ed516 = (v_23805a.cloneUsername || "").toLowerCase();
+      return v_eddf67.includes(v_ab6401) || v_eb25ce.includes(v_ab6401) || v_1ed516.includes(v_ab6401);
+    });
+  }, [v_4622b9, v_4abce2, v_ab6401, v_8d41d7]);
 
   const v_4d79ca = v_df9f57(() => {
     const v_8dcb51 = new Map<string, v_407a6d[]>();
     for (const v_8c0b26 of v_e4cf17) {
-      const v_b24339 = v_8e47b4(v_8c0b26.createdAt, v_8d41d7);
+      const v_b24339 = v_9b9d5e(v_8c0b26.createdAt, v_8d41d7);
       const v_d0c056 = v_8dcb51.get(v_b24339) ?? [];
       v_d0c056.push(v_8c0b26);
       v_8dcb51.set(v_b24339, v_d0c056);
@@ -432,26 +504,54 @@ function v_6da59e({
     },
     {
       key: "user",
-      label: v_8d41d7("giftBox.subTabUser", { defaultValue: "유저" }),
+      label: v_8d41d7("giftBox.subTabFromUser", { defaultValue: "유저에게 받음" }),
       count: v_9f6088,
     },
     {
       key: "clone",
-      label: v_8d41d7("giftBox.subTabClone", { defaultValue: "클론" }),
+      label: v_8d41d7("giftBox.subTabFromClone", { defaultValue: "클론에게 받음" }),
       count: v_396c6c,
     },
   ];
 
   const v_6e7fc2 =
-    v_4abce2 === "all"
-      ? v_8d41d7("dashboard.emptyGift", { defaultValue: "아직 받은 선물이 없어요" })
-      : v_4abce2 === "user"
-        ? v_8d41d7("giftBox.emptyUserGift", { defaultValue: "아직 유저가 보낸 선물이 없어요" })
-        : v_8d41d7("giftBox.emptyCloneGift", { defaultValue: "아직 클론한테 받은 보상이 없어요" });
+    v_ab6401
+      ? v_8d41d7("giftBox.sentSearchNoMatch", { defaultValue: "검색 결과가 없어요" })
+      : v_4abce2 === "all"
+        ? v_8d41d7("dashboard.emptyGift", { defaultValue: "아직 받은 선물이 없어요" })
+        : v_4abce2 === "user"
+          ? v_8d41d7("giftBox.emptyUserGift", { defaultValue: "아직 유저가 보낸 선물이 없어요" })
+          : v_8d41d7("giftBox.emptyCloneGift", { defaultValue: "아직 클론한테 받은 보상이 없어요" });
 
   return (
     <View>
-      <View style={v_d81136.subTabRow}>
+      <View style={v_d81136.searchBar}>
+        <Feather name="search" size={14} color={v_1bfbd0.zinc400} />
+        <TextInput
+          style={v_d81136.searchInput}
+          value={v_9875a1}
+          onChangeText={v_2e7fc1}
+          placeholder={v_8d41d7("giftBox.receivedSearchPlaceholder", {
+            defaultValue: "보낸 사람, 클론 이름 검색",
+          })}
+          placeholderTextColor={v_1bfbd0.zinc400}
+          returnKeyType="search"
+          autoCorrect={false}
+          autoCapitalize="none"
+        />
+        {v_9875a1.length > 0 ? (
+          <TouchableOpacity onPress={() => v_2e7fc1("")} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
+            <Feather name="x" size={14} color={v_1bfbd0.zinc400} />
+          </TouchableOpacity>
+        ) : null}
+      </View>
+
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={v_d81136.subTabRow}
+        style={v_d81136.subTabScroll}
+      >
         {v_bd105c.map((v_c3c9ed) => {
           const v_f8b770 = v_4abce2 === v_c3c9ed.key;
           return (
@@ -462,18 +562,12 @@ function v_6da59e({
               activeOpacity={0.75}
             >
               <Text style={[v_d81136.subTabText, v_f8b770 && v_d81136.subTabTextActive]}>
-                {v_c3c9ed.label}
-                {v_c3c9ed.count > 0 ? (
-                  <Text style={[v_d81136.subTabCount, v_f8b770 && v_d81136.subTabCountActive]}>
-                    {" "}
-                    {v_c3c9ed.count}
-                  </Text>
-                ) : null}
+                {v_c3c9ed.label} {v_c3c9ed.count}
               </Text>
             </TouchableOpacity>
           );
         })}
-      </View>
+      </ScrollView>
 
       {v_e4cf17.length === 0 ? (
         <View style={v_d81136.emptyBox}>
@@ -512,19 +606,21 @@ function v_223c52({
   t: v_75de9d;
   showBorder: boolean;
 }) {
+  const v_e5f5f1 = v_8c0b26.kind === "ad_reward";
   const v_1833e7 = v_44c2cb(v_8c0b26, v_8d41d7);
-  const v_9f1622 = v_8d41d7("giftBox.receivedTitle", {
-    name: v_1833e7,
-    gift: v_561bb6(v_8c0b26.giftName),
-    defaultValue: "{{name}}님이 {{gift}}를 보냈어요",
-  });
-  const v_609005 = v_8c0b26.cloneName
-    ? v_8d41d7("giftBox.toClone", {
-        name: v_8c0b26.cloneName,
-        defaultValue: "{{name}} 클론에게",
+  const v_9f1622 = v_e5f5f1
+    ? v_8d41d7("giftBox.receivedFromCloneTitle", {
+        name: v_8c0b26.cloneName || v_1833e7,
+        defaultValue: "{{name}} 클론과 대화 중에 받았어요",
       })
-    : v_8d41d7("giftBox.toUnknownClone", { defaultValue: "클론에게" });
-  const v_ab4c96 = `${v_609005} · ${v_e4bf58(v_8c0b26.createdAt, v_8d41d7)}`;
+    : v_8d41d7("giftBox.receivedFromUserTitle", {
+        name: v_1833e7,
+        clone: v_8c0b26.cloneName || v_8d41d7("giftBox.toUnknownClone", { defaultValue: "클론" }),
+        defaultValue: "{{name}}님이 내 {{clone}} 클론에게 보냈어요",
+      });
+  const v_3fd4b5 = v_e5f5f1
+    ? v_8d41d7("giftBox.badgeFromClone", { defaultValue: "클론에게 받음" })
+    : v_8d41d7("giftBox.badgeFromUser", { defaultValue: "유저에게 받음" });
   const v_085ccc = v_8345ff(v_1833e7);
 
   return (
@@ -532,7 +628,9 @@ function v_223c52({
       <View style={[v_d81136.avatar, { backgroundColor: v_085ccc }]}>
         {v_8c0b26.counterpartAvatarUrl ? (
           <Image source={{ uri: v_8c0b26.counterpartAvatarUrl }} style={v_d81136.avatarImg} />
-        ) : v_0f11bb(v_8c0b26) && v_8c0b26.kind !== "ad_reward" ? (
+        ) : v_8c0b26.cloneAvatarUrl && v_e5f5f1 ? (
+          <Image source={{ uri: v_8c0b26.cloneAvatarUrl }} style={v_d81136.avatarImg} />
+        ) : v_0f11bb(v_8c0b26) && !v_e5f5f1 ? (
           <Feather name="user" size={18} color={v_1bfbd0.zinc400} />
         ) : (
           <Text style={v_d81136.avatarInitial}>{(v_1833e7.charAt(0) || "?").toUpperCase()}</Text>
@@ -542,84 +640,114 @@ function v_223c52({
         <Text style={v_d81136.recvTitle} numberOfLines={2}>
           {v_9f1622}
         </Text>
-        <Text style={v_d81136.meta} numberOfLines={1}>
-          {v_ab4c96}
-        </Text>
+        <View style={v_d81136.recvMetaRow}>
+          <View style={[v_d81136.sourceBadge, v_e5f5f1 ? v_d81136.sourceBadgeClone : v_d81136.sourceBadgeUser]}>
+            <Text style={[v_d81136.sourceBadgeText, v_e5f5f1 ? v_d81136.sourceBadgeTextClone : v_d81136.sourceBadgeTextUser]}>
+              {v_3fd4b5}
+            </Text>
+          </View>
+          <Text style={v_d81136.metaTime}>{v_514b67(v_8c0b26.createdAt)}</Text>
+        </View>
       </View>
-      <Text style={v_d81136.recvCount}>×{v_8c0b26.count || 1}</Text>
+      <RoseAmount count={v_8c0b26.count || 1} />
     </View>
   );
 }
 
 function v_950e4a({
+  items: v_4622b9,
   grouped: v_4d79ca,
   loadingMore: v_f34bc3,
   t: v_8d41d7,
   onBrowseClones: v_9cb927,
 }: {
+  items: v_407a6d[];
   grouped: [string, v_407a6d[]][];
   loadingMore: boolean;
   t: v_75de9d;
   onBrowseClones: () => void;
 }) {
+  const v_cfb8ec = v_df9f57(() => {
+    const v_5c2f9f = new Date();
+    const v_64877a = v_5c2f9f.getFullYear();
+    const v_35f85c = v_5c2f9f.getMonth();
+    let v_272c28 = 0;
+    const v_fdd5c7 = new Set<string>();
+    for (const v_23805a of v_4622b9) {
+      const v_d5dda0 = new Date(v_23805a.createdAt);
+      if (v_d5dda0.getFullYear() !== v_64877a || v_d5dda0.getMonth() !== v_35f85c) continue;
+      v_272c28 += v_23805a.count || 1;
+      const v_b24339 =
+        v_23805a.counterpartId != null
+          ? `u:${v_23805a.counterpartId}`
+          : v_23805a.cloneId != null
+            ? `c:${v_23805a.cloneId}`
+            : v_23805a.counterpartName || v_23805a.cloneName || v_23805a.id;
+      v_fdd5c7.add(String(v_b24339));
+    }
+    return { rose: v_272c28, people: v_fdd5c7.size };
+  }, [v_4622b9]);
 
-  const [v_9875a1, v_2e7fc1] = v_5ab095("");
-  const v_ab6401 = v_9875a1.trim().toLowerCase();
-  const v_47c5cb = v_df9f57(() => {
-    if (!v_ab6401) return v_4d79ca;
-    return v_4d79ca
-      .map(([v_8dffde, v_18b8bf]) => {
-        const v_4b037d = v_18b8bf.filter((v_23805a) => {
-          const v_1833e7 = (v_23805a.cloneName || "").toLowerCase();
-          const v_1ed516 = (v_23805a.cloneUsername || "").toLowerCase();
-          return v_1833e7.includes(v_ab6401) || v_1ed516.includes(v_ab6401);
-        });
-        return [v_8dffde, v_4b037d] as [string, v_407a6d[]];
-      })
-      .filter(([, v_18b8bf]) => v_18b8bf.length > 0);
-  }, [v_4d79ca, v_ab6401]);
+  const v_93d60b = v_df9f57(() => {
+    const v_8dcb51 = new Map<string, v_407a6d[]>();
+    for (const v_8c0b26 of v_4622b9) {
+      const v_b24339 = v_9b9d5e(v_8c0b26.createdAt, v_8d41d7);
+      const v_d0c056 = v_8dcb51.get(v_b24339) ?? [];
+      v_d0c056.push(v_8c0b26);
+      v_8dcb51.set(v_b24339, v_d0c056);
+    }
+    return Array.from(v_8dcb51.entries());
+  }, [v_4622b9, v_8d41d7]);
+
+  void v_4d79ca;
 
   return (
     <View>
-      <View style={v_d81136.searchBar}>
-        <Feather name="search" size={14} color={v_1bfbd0.zinc400} />
-        <TextInput
-          style={v_d81136.searchInput}
-          value={v_9875a1}
-          onChangeText={v_2e7fc1}
-          placeholder={v_8d41d7("giftBox.sentSearchPlaceholder", { defaultValue: "클론 이름 검색" })}
-          placeholderTextColor={v_1bfbd0.zinc400}
-          returnKeyType="search"
-          autoCorrect={false}
-          autoCapitalize="none"
-        />
-        {v_9875a1.length > 0 ? (
-          <TouchableOpacity onPress={() => v_2e7fc1("")} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
-            <Feather name="x" size={14} color={v_1bfbd0.zinc400} />
-          </TouchableOpacity>
-        ) : null}
+      <View style={v_d81136.sentSummaryCard}>
+        <View style={v_d81136.sentSummaryCol}>
+          <Text style={v_d81136.sentSummaryLabel}>
+            {v_8d41d7("giftBox.sentThisMonth", { defaultValue: "이번 달 보낸 선물" })}
+          </Text>
+          <RoseAmount count={v_cfb8ec.rose} size="lg" />
+        </View>
+        <View style={v_d81136.sentSummaryCol}>
+          <Text style={v_d81136.sentSummaryLabel}>
+            {v_8d41d7("giftBox.sentPeople", { defaultValue: "받은 사람" })}
+          </Text>
+          <Text style={v_d81136.sentSummaryPeople}>
+            {v_cfb8ec.people}
+            {v_8d41d7("giftBox.peopleUnit", { defaultValue: "명" })}
+          </Text>
+        </View>
       </View>
 
-      {v_47c5cb.length === 0 ? (
+      {v_93d60b.length === 0 ? (
         <View style={v_d81136.emptyBox}>
           <Text style={v_d81136.emptyText}>
-            {v_ab6401
-              ? v_8d41d7("giftBox.sentSearchNoMatch", { defaultValue: "검색 결과가 없어요" })
-              : v_8d41d7("giftBox.emptySent", { defaultValue: "아직 보낸 선물이 없어요" })}
+            {v_8d41d7("giftBox.emptySent", { defaultValue: "아직 보낸 선물이 없어요" })}
           </Text>
         </View>
       ) : (
-        v_47c5cb.map(([v_dcea27, v_18b8bf]) => (
-          <View key={v_dcea27} style={{ marginBottom: 16 }}>
-            <Text style={v_d81136.dateHeader}>{v_dcea27}</Text>
+        v_93d60b.map(([v_dcea27, v_18b8bf]) => (
+          <View key={v_dcea27} style={v_d81136.recvGroup}>
+            <Text style={v_d81136.recvDateHeader}>{v_dcea27}</Text>
             {v_18b8bf.map((v_8c0b26) => {
               const v_97d2e9 =
                 v_8c0b26.counterpartName ||
                 v_8c0b26.counterpartEmail ||
                 (v_8c0b26.counterpartId ? `user_${v_8c0b26.counterpartId}` : v_8d41d7("giftBox.someone", { defaultValue: "상대" }));
+              const v_9f1622 = v_8c0b26.cloneName
+                ? v_8d41d7("giftBox.sentToCloneTitle", {
+                    name: v_97d2e9,
+                    defaultValue: "{{name}}님의 클론에게 보냈어요",
+                  })
+                : v_8d41d7("giftBox.sentToUserTitle", {
+                    name: v_97d2e9,
+                    defaultValue: "{{name}}님에게 보냈어요",
+                  });
               return (
                 <View key={v_8c0b26.id} style={v_d81136.sentCard}>
-                  <View style={v_d81136.avatar}>
+                  <View style={[v_d81136.avatar, { backgroundColor: v_8345ff(v_97d2e9) }]}>
                     {v_8c0b26.counterpartAvatarUrl ? (
                       <Image source={{ uri: v_8c0b26.counterpartAvatarUrl }} style={v_d81136.avatarImg} />
                     ) : (
@@ -630,17 +758,15 @@ function v_950e4a({
                   </View>
                   <View style={v_d81136.logBody}>
                     <Text style={v_d81136.sentTitle} numberOfLines={2}>
-                      {v_97d2e9}
-                      {v_8d41d7("giftBox.sentToSuffix", { defaultValue: "님에게 " })}
-                      {v_561bb6(v_8c0b26.giftName)}
+                      {v_9f1622}
                     </Text>
                     <Text style={v_d81136.meta}>
-                      {v_e4bf58(v_8c0b26.createdAt, v_8d41d7)}
+                      {v_514b67(v_8c0b26.createdAt)}
                       {" · "}
                       {v_8d41d7("giftBox.delivered", { defaultValue: "전달 완료" })}
                     </Text>
                   </View>
-                  <Text style={v_d81136.sentCount}>×{v_8c0b26.count || 1}</Text>
+                  <RoseAmount count={v_8c0b26.count || 1} />
                 </View>
               );
             })}
@@ -675,6 +801,8 @@ function v_1bc5d1({
   maxQty: v_063b5f,
   onSubmit: v_3bfe4c,
   historyOnly: v_ec3c62,
+  ownedFallback: v_758ca4,
+  onOpenExchangeSheet: v_160f98,
 }: {
   elig: v_02ed3c | null;
   history: v_867a79[];
@@ -688,6 +816,8 @@ function v_1bc5d1({
   onSubmit: () => void;
 
   historyOnly: boolean;
+  ownedFallback: number;
+  onOpenExchangeSheet: () => void;
 }) {
   const [v_71921b, v_7ca8ec] = v_5ab095(false);
   v_a3453e.useEffect(() => {
@@ -695,14 +825,61 @@ function v_1bc5d1({
   }, [v_10740d]);
 
   if (v_ec3c62) {
+    const v_2461e1 = v_ae840d?.ownedQty ?? v_758ca4;
+    const v_cd229f =
+      v_ae840d?.priceSegments?.[0]?.price != null
+        ? v_35c0e0(Number(v_ae840d.priceSegments[0].price))
+        : "0.1";
+    const v_3cda59 = v_ae840d?.feeQty ?? 1;
     return (
       <View>
+        <View style={v_d81136.myRoseCard}>
+          <View style={v_d81136.myRoseTop}>
+            <Image source={v_1dee60} style={v_d81136.myRoseIcon} />
+            <View style={{ flex: 1 }}>
+              <Text style={v_d81136.myRoseOwnedLabel}>
+                {v_8d41d7("giftBox.ownedShort", { defaultValue: "보유" })}
+              </Text>
+              <Text style={v_d81136.myRoseBalance}>
+                {v_2461e1}{" "}
+                <Text style={v_d81136.myRoseUnit}>
+                  {v_8d41d7("giftBox.roseUnit", { defaultValue: "ROSE" })}
+                </Text>
+              </Text>
+            </View>
+          </View>
+          <View style={v_d81136.myRoseMetaRow}>
+            <Text style={v_d81136.myRoseMeta}>
+              {v_8d41d7("giftBox.exchangeRateHint", {
+                defaultValue: "교환 비율 1 ROSE = {{rate}} XRUN",
+                rate: v_cd229f,
+              })}
+            </Text>
+            <Text style={v_d81136.myRoseMeta}>
+              {v_8d41d7("giftBox.feePerExchange", {
+                defaultValue: "수수료 {{fee}} ROSE / 회",
+                fee: v_3cda59,
+              })}
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={v_d81136.myRoseExchangeBtn}
+            activeOpacity={0.85}
+            onPress={v_160f98}
+          >
+            <Text style={v_d81136.myRoseExchangeBtnText}>
+              {v_8d41d7("giftBox.exchangeToXrun", { defaultValue: "XRUN으로 교환" })}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
         <ExchangeHistory
           history={v_10740d}
           expanded={v_71921b}
           onExpand={() => v_7ca8ec(true)}
           t={v_8d41d7}
-          showFilter
+          showFilter={false}
+          roseHistory
         />
       </View>
     );
@@ -722,12 +899,13 @@ function v_1bc5d1({
           onExpand={() => v_7ca8ec(true)}
           t={v_8d41d7}
           showFilter={false}
+          roseHistory={false}
         />
       </View>
     );
   }
 
-  const v_80cae9 = v_8d41d7("giftBox.flowerUnit", { defaultValue: "송이" });
+  const v_80cae9 = v_8d41d7("giftBox.roseUnit", { defaultValue: "ROSE" });
   const v_097586 = v_ae840d.minQty + v_6f0728(v_ae840d, v_ae840d.minQty);
   const v_4f2dac = v_ae840d.exchangeableQty >= v_ae840d.minQty && !v_ae840d.maintenance && v_ae840d.enabled;
   const v_36c043 = v_4f2dac ? v_c55c0b(v_ae840d.priceSegments, v_d016c9) : 0;
@@ -810,12 +988,13 @@ function v_1bc5d1({
         onExpand={() => v_7ca8ec(true)}
         t={v_8d41d7}
         showFilter={false}
+        roseHistory={false}
       />
 
       {v_4f2dac ? (
         <Text style={v_d81136.exchangeSummary}>
           {v_8d41d7("giftBox.exchangeSummary", {
-            defaultValue: "총 {{deducted}}송이 차감 (수수료 {{fee}}송이 포함) · 받는 보상 {{reward}} XRUN",
+            defaultValue: "총 {{deducted}} ROSE 차감 (수수료 {{fee}} ROSE 포함) · 받는 보상 {{reward}} XRUN",
             deducted: v_6b9a9b,
             fee: v_2d815e,
             reward: v_35c0e0(v_36c043),
@@ -849,13 +1028,15 @@ function v_36c8d0({
   onExpand: v_37d7de,
   t: v_8d41d7,
   showFilter: v_a4bef1,
+  roseHistory: v_7c496a,
 }: {
   history: v_867a79[];
   expanded: boolean;
   onExpand: () => void;
   t: v_75de9d;
-
   showFilter: boolean;
+
+  roseHistory: boolean;
 }) {
   const [v_f21110, v_d217e7] = v_5ab095<ExchangeHistoryFilter>("all");
   const v_986caa = 3;
@@ -864,9 +1045,12 @@ function v_36c8d0({
     if (v_f21110 === "claimed") return v_10740d.filter((v_65a2cd) => v_65a2cd.rewardStatus === "claimed");
     return v_10740d.filter((v_65a2cd) => v_65a2cd.rewardStatus === "pending_claim");
   }, [v_10740d, v_f21110]);
-
-  const v_d1b432 = v_a4bef1 ? v_bc78c8 : v_bc78c8.slice(0, v_ebda8f ? v_bc78c8.length : v_986caa);
-  const v_80cae9 = v_8d41d7("giftBox.flowerUnit", { defaultValue: "송이" });
+  const v_d1b432 = v_a4bef1
+    ? v_bc78c8
+    : v_7c496a
+      ? v_bc78c8
+      : v_bc78c8.slice(0, v_ebda8f ? v_bc78c8.length : v_986caa);
+  const v_80cae9 = v_8d41d7("giftBox.roseUnit", { defaultValue: "ROSE" });
   const v_c4180e = (s: v_867a79["rewardStatus"]) =>
     v_fd5f43 === "claimed"
       ? v_8d41d7("giftBox.statusClaimed", { defaultValue: "수령 완료" })
@@ -878,6 +1062,19 @@ function v_36c8d0({
     { key: "claimed", label: v_8d41d7("giftBox.filterClaimed", { defaultValue: "수령" }) },
     { key: "pending", label: v_8d41d7("giftBox.filterPending", { defaultValue: "수령 대기" }) },
   ];
+
+  const v_e774b1 = v_df9f57(() => {
+    if (!v_7c496a) return null;
+    const v_8dcb51 = new Map<string, v_867a79[]>();
+    for (const v_8c0b26 of v_d1b432) {
+      const v_b24339 = v_9b9d5e(v_8c0b26.createdAt, v_8d41d7);
+      const v_d0c056 = v_8dcb51.get(v_b24339) ?? [];
+      v_d0c056.push(v_8c0b26);
+      v_8dcb51.set(v_b24339, v_d0c056);
+    }
+    return Array.from(v_8dcb51.entries());
+  }, [v_7c496a, v_d1b432, v_8d41d7]);
+
   return (
     <>
       {v_a4bef1 ? (
@@ -901,51 +1098,115 @@ function v_36c8d0({
       ) : (
         <View style={v_d81136.historyHeader}>
           <Text style={[v_d81136.sectionLabel, { marginBottom: 0 }]}>
-            {v_8d41d7("giftBox.recentExchange", { defaultValue: "최근 교환 내역" })}
+            {v_7c496a
+              ? v_8d41d7("giftBox.exchangeHistoryTitle", { defaultValue: "교환 내역" })
+              : v_8d41d7("giftBox.recentExchange", { defaultValue: "최근 교환 내역" })}
           </Text>
-          {v_10740d.length > v_986caa && !v_ebda8f ? (
+          {v_7c496a ? (
+            <Text style={v_d81136.historyViewAll}>
+              {v_8d41d7("giftBox.exchangeHistoryCount", {
+                defaultValue: "총 {{n}}회",
+                n: v_10740d.length,
+              })}
+            </Text>
+          ) : v_10740d.length > v_986caa && !v_ebda8f ? (
             <TouchableOpacity onPress={v_37d7de} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <Text style={v_d81136.historyViewAll}>{v_8d41d7("giftBox.viewAll", { defaultValue: "전체보기" })}</Text>
             </TouchableOpacity>
           ) : null}
         </View>
       )}
-      <View style={v_d81136.historyCard}>
-        {v_d1b432.length === 0 ? (
-          <Text style={[v_d81136.emptyText, { paddingVertical: 20 }]}>
-            {v_8d41d7("giftBox.emptyExchangeHistory", { defaultValue: "최근 교환 내역이 없어요" })}
-          </Text>
+
+      {v_e774b1 ? (
+        v_e774b1.length === 0 ? (
+          <View style={v_d81136.emptyBox}>
+            <Text style={v_d81136.emptyText}>
+              {v_8d41d7("giftBox.emptyExchangeHistory", { defaultValue: "최근 교환 내역이 없어요" })}
+            </Text>
+          </View>
         ) : (
-          v_d1b432.map((v_8c0b26, v_e86ad8) => {
-            const v_6fc191 = new Date(v_8c0b26.createdAt).toISOString();
-            return (
-              <View key={v_8c0b26.exchangeId} style={[v_d81136.historyRow, v_e86ad8 < v_d1b432.length - 1 && v_d81136.historyRowBorder]}>
-                <View style={v_d81136.historyIcon}>
-                  <Text style={{ color: "#2563eb", fontWeight: "700" }}>⇄</Text>
+          v_e774b1.map(([v_dcea27, v_18b8bf]) => (
+            <View key={v_dcea27} style={v_d81136.recvGroup}>
+              <Text style={v_d81136.recvDateHeader}>{v_dcea27}</Text>
+              {v_18b8bf.map((v_8c0b26) => (
+                <View key={v_8c0b26.exchangeId} style={v_d81136.historyRoseCard}>
+                  <View style={v_d81136.historyIcon}>
+                    <Text style={{ color: "#2563eb", fontWeight: "700", fontSize: 12 }}>X</Text>
+                  </View>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text style={v_d81136.sentTitle} numberOfLines={1}>
+                      {v_8c0b26.qty} {v_80cae9} → {v_8c0b26.reward} XRUN
+                    </Text>
+                    <Text style={v_d81136.meta}>
+                      {v_514b67(v_8c0b26.createdAt)}
+                      {" · "}
+                      {v_8d41d7("giftBox.feeShort", {
+                        defaultValue: "수수료 {{fee}} ROSE",
+                        fee: v_8c0b26.feeQty,
+                      })}
+                    </Text>
+                  </View>
+                  <View
+                    style={[
+                      v_d81136.statusPill,
+                      v_8c0b26.rewardStatus === "claimed" && v_d81136.statusPillClaimed,
+                      v_8c0b26.rewardStatus === "pending_claim" && v_d81136.statusPillPending,
+                      v_8c0b26.rewardStatus === "failed" && v_d81136.statusPillFailed,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        v_d81136.statusPillText,
+                        v_8c0b26.rewardStatus === "claimed" && v_d81136.statusPillTextClaimed,
+                        v_8c0b26.rewardStatus === "pending_claim" && v_d81136.statusPillTextPending,
+                        v_8c0b26.rewardStatus === "failed" && v_d81136.statusPillTextFailed,
+                      ]}
+                    >
+                      {v_c4180e(v_8c0b26.rewardStatus)}
+                    </Text>
+                  </View>
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={v_d81136.sentTitle} numberOfLines={1}>
-                    {v_561bb6(v_8c0b26.giftName)} {v_8c0b26.qty}
-                    {v_80cae9} → {v_8c0b26.reward} XRUN
-                  </Text>
-                  <Text style={v_d81136.meta}>
-                    {v_b5c383(v_6fc191, v_8d41d7)} · {v_e4bf58(v_6fc191, v_8d41d7)} · {v_8c0b26.exchangeNo}
+              ))}
+            </View>
+          ))
+        )
+      ) : (
+        <View style={v_d81136.historyCard}>
+          {v_d1b432.length === 0 ? (
+            <Text style={[v_d81136.emptyText, { paddingVertical: 20 }]}>
+              {v_8d41d7("giftBox.emptyExchangeHistory", { defaultValue: "최근 교환 내역이 없어요" })}
+            </Text>
+          ) : (
+            v_d1b432.map((v_8c0b26, v_e86ad8) => {
+              const v_6fc191 = new Date(v_8c0b26.createdAt).toISOString();
+              return (
+                <View key={v_8c0b26.exchangeId} style={[v_d81136.historyRow, v_e86ad8 < v_d1b432.length - 1 && v_d81136.historyRowBorder]}>
+                  <View style={v_d81136.historyIcon}>
+                    <Text style={{ color: "#2563eb", fontWeight: "700" }}>⇄</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={v_d81136.sentTitle} numberOfLines={1}>
+                      {v_561bb6(v_8c0b26.giftName)} {v_8c0b26.qty} {v_80cae9} → {v_8c0b26.reward} XRUN
+                    </Text>
+                    <Text style={v_d81136.meta}>
+                      {v_b5c383(v_6fc191, v_8d41d7)} · {v_e4bf58(v_6fc191, v_8d41d7)} · {v_8c0b26.exchangeNo}
+                    </Text>
+                  </View>
+                  <Text
+                    style={[
+                      v_d81136.doneBadge,
+                      v_8c0b26.rewardStatus === "pending_claim" && v_d81136.pendingBadge,
+                      v_8c0b26.rewardStatus === "failed" && v_d81136.failedBadge,
+                    ]}
+                  >
+                    {v_c4180e(v_8c0b26.rewardStatus)}
                   </Text>
                 </View>
-                <Text
-                  style={[
-                    v_d81136.doneBadge,
-                    v_8c0b26.rewardStatus === "pending_claim" && v_d81136.pendingBadge,
-                    v_8c0b26.rewardStatus === "failed" && v_d81136.failedBadge,
-                  ]}
-                >
-                  {v_c4180e(v_8c0b26.rewardStatus)}
-                </Text>
-              </View>
-            );
-          })
-        )}
-      </View>
+              );
+            })
+          )}
+        </View>
+      )}
     </>
   );
 }
@@ -973,14 +1234,18 @@ const v_d81136 = v_472849.create({
   tabItemActive: { borderBottomColor: v_1bfbd0.zinc900 },
   tabText: { fontSize: 14, fontWeight: "500", color: v_1bfbd0.zinc400 },
   tabTextActive: { fontWeight: "700", color: v_1bfbd0.zinc900 },
-  tabCount: { fontWeight: "700", color: v_1bfbd0.secondary },
+  tabLabelRow: { flexDirection: "row", alignItems: "center", gap: 4 },
+  tabRoseCount: { flexDirection: "row", alignItems: "center", gap: 2 },
+  tabRoseIcon: { width: 14, height: 14, borderRadius: 7 },
+  tabCount: { fontWeight: "700", color: v_1bfbd0.secondary, fontSize: 13 },
   scroll: { flex: 1 },
   scrollContent: { padding: 16, paddingBottom: 40 },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
+  subTabScroll: { marginBottom: 14, flexGrow: 0 },
   subTabRow: {
     flexDirection: "row",
     gap: 8,
-    marginBottom: 14,
+    paddingRight: 8,
   },
   subTabItem: {
     paddingHorizontal: 14,
@@ -1019,13 +1284,43 @@ const v_d81136 = v_472849.create({
     paddingVertical: 14,
   },
   recvRowBorder: {
-
     borderBottomWidth: v_472849.hairlineWidth,
     borderBottomColor: v_1bfbd0.zinc200,
   },
   recvTitle: { fontSize: 14, fontWeight: "700", color: v_1bfbd0.zinc900 },
-  recvCount: { fontSize: 15, fontWeight: "700", color: "#dc2626" },
-
+  recvMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 6,
+    flexWrap: "wrap",
+  },
+  sourceBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  sourceBadgeUser: { backgroundColor: "#fce7f3" },
+  sourceBadgeClone: { backgroundColor: "#dbeafe" },
+  sourceBadgeText: { fontSize: 11, fontWeight: "700" },
+  sourceBadgeTextUser: { color: "#be185d" },
+  sourceBadgeTextClone: { color: "#2563eb" },
+  metaTime: { fontSize: 12, color: v_1bfbd0.zinc500 },
+  roseAmountRow: { flexDirection: "row", alignItems: "center", gap: 4 },
+  roseIcon: { width: 18, height: 18, borderRadius: 9 },
+  roseIconLg: { width: 22, height: 22, borderRadius: 11 },
+  roseAmount: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: v_1bfbd0.zinc900,
+    fontVariant: ["tabular-nums"],
+  },
+  roseAmountLg: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: v_1bfbd0.zinc900,
+    fontVariant: ["tabular-nums"],
+  },
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
@@ -1036,7 +1331,7 @@ const v_d81136 = v_472849.create({
     borderWidth: 1,
     borderColor: v_1bfbd0.zinc200,
     backgroundColor: v_1bfbd0.white,
-    marginBottom: 14,
+    marginBottom: 12,
   },
   searchInput: {
     flex: 1,
@@ -1044,6 +1339,73 @@ const v_d81136 = v_472849.create({
     color: v_1bfbd0.zinc900,
     padding: 0,
   },
+  sentSummaryCard: {
+    flexDirection: "row",
+    backgroundColor: v_1bfbd0.white,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    gap: 12,
+  },
+  sentSummaryCol: { flex: 1, gap: 6 },
+  sentSummaryLabel: { fontSize: 12, color: v_1bfbd0.zinc500 },
+  sentSummaryPeople: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: v_1bfbd0.zinc900,
+    fontVariant: ["tabular-nums"],
+  },
+  myRoseCard: {
+    backgroundColor: v_1bfbd0.white,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 20,
+  },
+  myRoseTop: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 12 },
+  myRoseIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+  },
+  myRoseOwnedLabel: { fontSize: 12, color: v_1bfbd0.zinc500, marginBottom: 2 },
+  myRoseBalance: {
+    fontSize: 26,
+    fontWeight: "800",
+    color: v_1bfbd0.zinc900,
+    fontVariant: ["tabular-nums"],
+  },
+  myRoseUnit: { fontSize: 18, fontWeight: "800" },
+  myRoseMetaRow: { gap: 4, marginBottom: 14 },
+  myRoseMeta: { fontSize: 12, color: v_1bfbd0.zinc500 },
+  myRoseExchangeBtn: {
+    ...v_d43669.md,
+    backgroundColor: v_1bfbd0.zinc900,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  myRoseExchangeBtnText: { ...v_c10a43.md, color: v_1bfbd0.white },
+  historyRoseCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: v_1bfbd0.white,
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 8,
+  },
+  statusPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    backgroundColor: v_1bfbd0.zinc100,
+  },
+  statusPillClaimed: { backgroundColor: "#e8f5e9" },
+  statusPillPending: { backgroundColor: "#fff4e5" },
+  statusPillFailed: { backgroundColor: "#fee2e2" },
+  statusPillText: { fontSize: 11, fontWeight: "700", color: v_1bfbd0.zinc600 },
+  statusPillTextClaimed: { color: "#2e7d32" },
+  statusPillTextPending: { color: "#e65100" },
+  statusPillTextFailed: { color: "#dc2626" },
   summaryLine: { fontSize: 13, color: v_1bfbd0.zinc500, marginBottom: 12 },
   summaryNum: { fontWeight: "700", color: v_1bfbd0.zinc900 },
   emptyBox: {
