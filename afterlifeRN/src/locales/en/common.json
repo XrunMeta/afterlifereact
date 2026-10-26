@@ -2429,7 +2429,13 @@
     "weekdayShortWed": "Wed",
     "weekdayShortThu": "Thu",
     "weekdayShortFri": "Fri",
-    "weekdayShortSat": "Sat"
+    "weekdayShortSat": "Sat",
+    "exchangeSheetTitle": "Exchange for XRUN",
+    "feeRule": "{{fee}} per {{unit}} · {{total}}",
+    "totalDeduct": "Total deducted",
+    "toastSnapped": "You can exchange in units of {{step}} (set to {{qty}})",
+    "notEnoughTitle": "You need at least {{need}} to exchange",
+    "notEnoughBody": "Exchanges start at {{need}} including the fee. You have {{owned}}."
   },
   "sso": {
     "reconsent": {

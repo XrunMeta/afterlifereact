@@ -2426,7 +2426,13 @@
     "weekdayShortWed": "수",
     "weekdayShortThu": "목",
     "weekdayShortFri": "금",
-    "weekdayShortSat": "토"
+    "weekdayShortSat": "토",
+    "exchangeSheetTitle": "XRUN으로 교환합니다",
+    "feeRule": "{{unit}}송이당 {{fee}}송이 · {{total}}송이",
+    "totalDeduct": "총 차감",
+    "toastSnapped": "{{step}}송이 단위로 교환할 수 있어요 ({{qty}}송이로 맞췄어요)",
+    "notEnoughTitle": "교환하려면 {{need}}송이 이상 필요해요",
+    "notEnoughBody": "수수료 포함 {{need}}송이부터 교환할 수 있어요. 지금 {{owned}}송이를 갖고 있어요."
   },
   "sso": {
     "reconsent": {
