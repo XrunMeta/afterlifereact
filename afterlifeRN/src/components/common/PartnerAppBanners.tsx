@@ -56,6 +56,8 @@ export function v_ba6725() {
 
 export const dockedBannerStyle: v_7e4944 = { position: "absolute", left: 0, right: 0, bottom: 0 };
 const v_6c015b = 2800;
+
+export const v_45f9cc = 5000;
 const v_c124a6 = 280;
 
 type AppKind = "xrun" | "clubx";
@@ -118,6 +120,9 @@ export default function v_f9a626({ style: v_7fa4e4, variant: v_46e192 = "carouse
   const { t: v_8d41d7 } = v_772971();
   const { width: v_a4b8ea } = v_e45a99();
   const [v_2365e9, v_bf9d67] = v_5ab095(0);
+  const v_881dda = v_e662ae<v_9cabcb<BannerCard>>(null);
+  const v_169231 = v_e662ae(false);
+  const [v_f0e355, v_368635] = v_5ab095(0);
 
   const v_60cf9e = v_46e192 === "docked";
   const v_eca921 = v_60cf9e ? v_a4b8ea : Math.max(240, v_a4b8ea - 40 - v_1d54af * 2 - v_1c7901);
@@ -192,8 +197,23 @@ export default function v_f9a626({ style: v_7fa4e4, variant: v_46e192 = "carouse
   const v_60260f = (e: v_bd64bf<v_da479e>) => {
     const v_62c214 = v_9e86fd.nativeEvent.contentOffset.x;
     const v_a448ad = Math.round(v_62c214 / v_729796);
+    v_169231.current = false;
     v_bf9d67(Math.max(0, Math.min(v_4552ca.length - 1, v_a448ad)));
+
+    v_368635((v_0eb677) => v_0eb677 + 1);
   };
+
+  v_c4deb2(() => {
+    if (v_4552ca.length <= 1) return;
+    const v_389afb = setTimeout(() => {
+      if (v_169231.current) return;
+      const v_a448ad = (v_2365e9 + 1) % v_4552ca.length;
+      v_881dda.current?.scrollToOffset({ offset: v_a448ad * v_729796, animated: true });
+
+      v_bf9d67(v_a448ad);
+    }, v_45f9cc);
+    return () => clearTimeout(v_389afb);
+  }, [v_2365e9, v_f0e355, v_4552ca.length, v_729796]);
 
   const v_fcf6ec = ({ item: v_8c0b26 }: v_0b9d80<BannerCard>) => (
     <TouchableOpacity
@@ -237,6 +257,7 @@ export default function v_f9a626({ style: v_7fa4e4, variant: v_46e192 = "carouse
         </Text>
       )}
       <FlatList
+        ref={v_881dda}
         data={v_4552ca}
         keyExtractor={(v_23805a) => v_23805a.id}
         renderItem={v_fcf6ec}
@@ -247,6 +268,9 @@ export default function v_f9a626({ style: v_7fa4e4, variant: v_46e192 = "carouse
         snapToAlignment="start"
         disableIntervalMomentum
         contentContainerStyle={v_60cf9e ? undefined : v_fd5f43.listContent}
+        onScrollBeginDrag={() => {
+          v_169231.current = true;
+        }}
         onMomentumScrollEnd={v_60260f}
         getItemLayout={(v_37eab7, v_a56041) => ({
           length: v_729796,
