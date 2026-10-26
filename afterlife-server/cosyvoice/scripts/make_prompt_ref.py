@@ -29,11 +29,14 @@ voice.wav 는 건드리지 않는다 — qwen3tts·openvoice 가 같은 파일�
 """
 from __future__ import annotations
 
+import io
 import json
 import os
 import re
 import subprocess
 import sys
+import urllib.error
+import urllib.request
 
 import config
 from clone_ref import ref_audio_path, prompt_pair_paths
@@ -212,6 +215,53 @@ def transcribe(wav_path: str) -> str | None:
         print(f"    STT 실패: {exc}")
         return None
     return clean_prompt_text(data.get("ref_text") or "")
+
+
+# ── AFL-1059 견본 후보 시험 합성 ───────────────────────────────────────────────
+# 폭주는 대본보다 개별 견본에 좌우된다(2026-10-26 측정). 후보마다 짧은 질문을 재합성 없이
+# 1차 생성 그대로 받아, 늘어진 만큼을 점수로 매기고 가장 낮은 후보를 쓴다.
+PROBE_SENTENCES = [
+    "너는 뭐 먹었어?", "뭐 하고 있었어?", "무슨 일 있어?", "돌아왔네.", "잘 들려?", "밥은 먹었어?",
+]
+PROBE_URL = (os.environ.get("COSYVOICE_PROBE_URL")
+             or os.environ.get("PRETHIRD_TTS_URL") or "http://127.0.0.1:8203")
+PROBE_TIMEOUT_SEC = 30
+
+
+def probe_durations(probe_id: str, sentences: list[str], url: str) -> list[float] | None:
+    """문장마다 1차 생성(ramble_retries=0) 길이(초). 하나라도 실패하면 None."""
+    import soundfile as sf
+
+    out = []
+    for s in sentences:
+        body = json.dumps({"text": s, "clone_id": probe_id, "ramble_retries": 0}).encode()
+        req = urllib.request.Request(
+            f"{url}/tts/kr", data=body, headers={"Content-Type": "application/json"},
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=PROBE_TIMEOUT_SEC) as resp:
+                out.append(float(sf.info(io.BytesIO(resp.read())).duration))
+        except Exception as exc:  # noqa: BLE001 — 어떤 실패든 이 후보 점수 없음
+            print(f"    시험 합성 실패({probe_id}): {exc}")
+            return None
+    return out
+
+
+def probe_score(durations: list[float], sentences: list[str]) -> float:
+    """예상 상한(엔진 폭주 가드와 같은 식)을 넘은 길이의 합. 후보끼리 상대 비교용."""
+    return sum(
+        max(0.0, d - (config.RAMBLE_BASE_SEC + len(s) * config.RAMBLE_PER_CHAR_SEC))
+        for d, s in zip(durations, sentences)
+    )
+
+
+def pick_best(scores: list[float | None]) -> int:
+    """점수가 가장 낮은 후보 번호. 같으면 앞 번호, 전부 None 이면 0(지금 규칙의 창)."""
+    best = None
+    for i, sc in enumerate(scores):
+        if sc is not None and (best is None or sc < scores[best]):
+            best = i
+    return 0 if best is None else best
 
 
 def clean_prompt_text(text: str) -> str | None:
