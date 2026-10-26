@@ -15,8 +15,6 @@ import {
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_772971 } from "jmpfvteuuztnp";
-import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
-import { v_c18c22 } from "svuoaeceudfxfjvvpmmmchnwljywbphjgb";
 import { v_1bfbd0 } from "../constants";
 import { v_889fad } from "../../stores/dialogStore";
 import { v_61fb8c } from "../../hooks/useGiftExchange";
@@ -32,9 +30,6 @@ interface Props {
 
 export default function v_177da7({ visible: v_cf55be, onClose: v_0890f8, onChanged: v_37c9f5 }: Props) {
   const { t: v_8d41d7 } = v_772971();
-  const v_033e14 = v_e0068c();
-  const v_f9771e = v_c18c22(0);
-  const v_2b650d = Math.max(v_033e14.bottom, v_f9771e, v_326be8.OS === "android" ? 56 : 0);
 
   const {
     elig: v_ae840d,
@@ -124,14 +119,13 @@ export default function v_177da7({ visible: v_cf55be, onClose: v_0890f8, onChang
   const v_80cae9 = v_8d41d7("giftBox.flowerUnit", { defaultValue: "송이" });
 
   return (
-    <Modal visible={v_cf55be} transparent animationType="slide" onRequestClose={v_0890f8}>
+    <Modal visible={v_cf55be} transparent animationType="fade" onRequestClose={v_0890f8}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={v_326be8.OS === "ios" ? "padding" : undefined}>
         <Pressable style={v_72c7a6.backdrop} onPress={v_0890f8}>
           <Pressable
-            style={[v_72c7a6.sheet, { paddingBottom: 20 + v_2b650d }]}
+            style={v_72c7a6.sheet}
             onPress={(v_9e86fd) => v_9e86fd.stopPropagation?.()}
           >
-            <View style={v_72c7a6.handle} />
             <Text style={v_72c7a6.title}>{v_8d41d7("giftBox.exchangeSheetTitle", { defaultValue: "XRUN으로 교환합니다" })}</Text>
 
             {!v_b1717e || !v_ae840d ? (
@@ -229,21 +223,15 @@ function v_c9fb73({ label: v_2869c1, value: v_3b402b, accent: v_09a432 }: { labe
 }
 
 const v_72c7a6 = v_472849.create({
-  backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "flex-end" },
+  backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "center", alignItems: "center", padding: 24 },
   sheet: {
+    width: "100%",
+    maxWidth: 400,
     backgroundColor: v_1bfbd0.white,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderRadius: 20,
     paddingHorizontal: 20,
-  },
-  handle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: v_1bfbd0.zinc300,
-    alignSelf: "center",
-    marginTop: 10,
-    marginBottom: 16,
+    paddingTop: 22,
+    paddingBottom: 20,
   },
   title: { fontSize: 18, fontWeight: "700", color: v_1bfbd0.zinc900, textAlign: "center", marginBottom: 16 },
   giftRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 16 },
