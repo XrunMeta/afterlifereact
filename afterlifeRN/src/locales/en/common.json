@@ -2435,7 +2435,10 @@
     "totalDeduct": "Total deducted",
     "toastSnapped": "You can exchange in units of {{step}} (set to {{qty}})",
     "notEnoughTitle": "You need at least {{need}} to exchange",
-    "notEnoughBody": "Exchanges start at {{need}} including the fee. You have {{owned}}."
+    "noGiftTitle": "No gifts to exchange",
+    "noGiftBody": "You can receive gifts by calling personas.\nWant to start a call now?",
+    "goHome": "Go",
+    "notEnoughBody": "You have {{owned}}.\nCollect more gifts through calls."
   },
   "sso": {
     "reconsent": {
