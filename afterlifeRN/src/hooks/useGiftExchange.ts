@@ -20,15 +20,21 @@ interface Options {
   onChanged?: () => void;
 
   beforeConfirm?: () => void;
+
+  skipConfirm?: boolean;
+
+  beforeResult?: () => void;
 }
 
-export function v_61fb8c({ onChanged: v_37c9f5, beforeConfirm: v_28a965 }: Options = {}) {
+export function v_61fb8c({ onChanged: v_37c9f5, beforeConfirm: v_28a965, skipConfirm: v_f347b1, beforeResult: v_ee7fc8 }: Options = {}) {
   const { t: v_8d41d7 } = v_772971();
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
   const v_f3b147 = v_e662ae(v_37c9f5);
   v_f3b147.current = v_37c9f5;
   const v_f5d26a = v_e662ae(v_28a965);
   v_f5d26a.current = v_28a965;
+  const v_9e39c4 = v_e662ae(v_ee7fc8);
+  v_9e39c4.current = v_ee7fc8;
 
   const [v_ae840d, v_95c431] = v_5ab095<v_02ed3c | null>(null);
   const [v_b085c3, v_6c4550] = v_5ab095<v_867a79[]>([]);
@@ -133,6 +139,7 @@ export function v_61fb8c({ onChanged: v_37c9f5, beforeConfirm: v_28a965 }: Optio
     v_ee9ec1(true);
     try {
       const v_8f00b9 = await v_541c70(v_2ca7e0, { giftId: v_c3bc75.giftId, qty: v_d016c9, rateVersion: v_c3bc75.rateVersion }, v_b24339);
+      v_9e39c4.current?.();
       v_f3b147.current?.();
       v_889fad(
         v_8d41d7("giftBox.p4Title", { defaultValue: "교환이 완료되었어요" }),
@@ -148,6 +155,7 @@ export function v_61fb8c({ onChanged: v_37c9f5, beforeConfirm: v_28a965 }: Optio
         ],
       );
     } catch (v_49263d) {
+      v_9e39c4.current?.();
       const v_9e86fd = v_49263d as { code?: string; message?: string; details?: Record<string, unknown> };
       const v_d5dda0 = (v_9e86fd.details ?? {}) as Record<string, any>;
       if (v_9e86fd.code === "INSUFFICIENT_QTY") {
@@ -277,6 +285,10 @@ export function v_61fb8c({ onChanged: v_37c9f5, beforeConfirm: v_28a965 }: Optio
         }),
         [{ text: v_8d41d7("common.confirm", { defaultValue: "확인" }) }],
       );
+      return;
+    }
+    if (v_f347b1) {
+      void v_9bfa1b(v_c3bc75, v_eddb49);
       return;
     }
     v_f5d26a.current?.();
