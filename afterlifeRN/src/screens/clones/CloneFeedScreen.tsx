@@ -93,6 +93,8 @@ export default function v_9887a2(v_b1927c) {
             avatarUrl: v_3f4e2e.avatarUrl,
             cloneType: v_3f4e2e.cloneType as v_d79d7f,
             visibility: v_3f4e2e.visibility as v_b0b271,
+            ownerName: v_3f4e2e.ownerName ?? null,
+            ownerAvatarUrl: v_3f4e2e.ownerAvatarUrl ?? null,
           },
           interests: v_3f4e2e.interests ?? [],
         });

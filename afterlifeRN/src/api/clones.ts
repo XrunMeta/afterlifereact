@@ -57,6 +57,9 @@ export interface CloneDetailResponse {
   clone: {
     id: number;
     ownerId: number;
+
+    ownerName?: string | null;
+    ownerAvatarUrl?: string | null;
     name: string;
     username: string;
     description: string | null;
