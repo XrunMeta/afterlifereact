@@ -229,6 +229,7 @@ export function v_3d8d48(v_328259): v_b01667 {
         score: v_81e2ef.score,
         retry: v_81e2ef.retry,
         who: v_81e2ef.who ?? null,
+        noFaces: v_81e2ef.noFaces === true,
       }));
     } catch {
 
@@ -356,6 +357,8 @@ export function v_3d8d48(v_328259): v_b01667 {
         } else if (v_35f85c.type === 'speech_text') {
 
           if (typeof v_35f85c.text === 'string' && v_35f85c.text) {
+
+            if (__DEV__) console.log(`[Call][transcript] clone: ${v_35f85c.text}`);
             v_f35bd6({ type: 'speech_text', seq: v_35f85c.seq, ts: v_67e77e(), text: v_35f85c.text });
           }
         } else if (v_35f85c.type === 'enroll_suggest') {

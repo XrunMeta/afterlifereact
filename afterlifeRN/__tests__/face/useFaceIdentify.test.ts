@@ -164,7 +164,7 @@ describe("useFaceIdentify onCycle · 접수 여부 (AFL-1039)", () => {
     );
     expect(v_43c42e.current.onEmbedding(v_87d4f2)).toBe(true);
     await v_81e49f(() => expect(v_e028d7).toHaveBeenCalledTimes(1));
-    expect(v_e028d7).toHaveBeenCalledWith({ personId: 7, score: 0.81, displayName: "영희" });
+    expect(v_e028d7).toHaveBeenCalledWith({ personId: 7, score: 0.81, displayName: "영희", noCandidates: false });
   });
 
   it("일치 없음이면 personId null · score 는 top1 점수", async () => {
@@ -179,7 +179,7 @@ describe("useFaceIdentify onCycle · 접수 여부 (AFL-1039)", () => {
     );
     v_43c42e.current.onEmbedding(v_87d4f2);
     await v_81e49f(() => expect(v_e028d7).toHaveBeenCalledTimes(1));
-    expect(v_e028d7).toHaveBeenCalledWith({ personId: null, score: 0.31, displayName: null });
+    expect(v_e028d7).toHaveBeenCalledWith({ personId: null, score: 0.31, displayName: null, noCandidates: false });
   });
 
   it("네트워크 실패(cycle 없음)면 onCycle 미호출", async () => {

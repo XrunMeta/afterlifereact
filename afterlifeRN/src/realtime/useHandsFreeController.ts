@@ -170,6 +170,8 @@ export function v_7df8a4(opts: {
               mode: v_b03676 ? 'say' : 'skip', seq: v_b6611b ?? null, text: v_4069c9(v_b03676), eff: 'SAY',
             });
             if (v_b03676) {
+
+              if (__DEV__) console.log(`[Call][transcript] me: ${v_b03676}`);
               v_bcde6b.current(v_b03676).catch(() => v_700737.current({ type: 'RESPONSE_DONE' }));
             } else {
               v_700737.current({ type: 'RESPONSE_DONE' });
