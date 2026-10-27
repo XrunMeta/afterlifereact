@@ -31,6 +31,10 @@ export function v_84faef(v_f4e98d): string {
   return v_fd5f43 === "-0" ? "0" : v_fd5f43;
 }
 
+function v_907593(v_01dcf5): number {
+  return v_01dcf5.minQty + v_e4ea0f(v_01dcf5 as Parameters<typeof v_e4ea0f>[0], v_01dcf5.minQty);
+}
+
 function v_26ec3c(item: v_83f27d | undefined): number {
   const v_e2a85c = Number((v_8c0b26 as { xrunPrice?: unknown } | undefined)?.xrunPrice);
   return Number.isFinite(v_e2a85c) && v_e2a85c > 0 ? v_e2a85c : v_b6e430;
@@ -124,8 +128,10 @@ v_7de069.get("/eligibility", v_6690d9, async (v_3f4e2e) => {
       return { ...v_206b88, name: v_ab4c96?.name ?? v_206b88.giftId, emoji: v_ab4c96?.emoji ?? "🎁", imageUrl: v_ab4c96?.imageUrl ?? null };
     }),
     ownedQty: v_2461e1,
-    exchangeableQty: v_c47972(v_01dcf5, v_2461e1),
-    minQty: v_01dcf5.minQty,
+
+    feeIncluded: true,
+    exchangeableQty: v_c47972(v_01dcf5, v_2461e1) >= v_01dcf5.minQty ? v_2461e1 : 0,
+    minQty: v_907593(v_01dcf5),
     feeQty: v_01dcf5.feeQty,
     feeUnit: v_01dcf5.feeUnit,
     rateVersion: v_01dcf5.version,
@@ -245,10 +251,12 @@ v_7de069.post("/", v_6690d9, async (v_3f4e2e) => {
       rateVersion: v_01dcf5.version,
     });
   }
-  if (v_d016c9 < v_01dcf5.minQty) {
+
+  const v_4350f9 = v_c47972(v_01dcf5, v_d016c9);
+  if (v_4350f9 < v_01dcf5.minQty) {
     const v_75da0c = v_01dcf5.feeUnit > 0 ? `${v_01dcf5.feeUnit}송이당 ${v_01dcf5.feeQty}송이` : `교환 1회당 ${v_01dcf5.feeQty}송이`;
-    throw new v_3ebe58("BELOW_MIN_QTY", `${v_01dcf5.minQty}송이부터 교환할 수 있어요 (수수료 ${v_75da0c} 별도)`, {
-      minQty: v_01dcf5.minQty,
+    throw new v_3ebe58("BELOW_MIN_QTY", `${v_907593(v_01dcf5)}송이부터 교환할 수 있어요 (수수료 ${v_75da0c} 포함)`, {
+      minQty: v_907593(v_01dcf5),
       feeQty: v_01dcf5.feeQty,
       feeUnit: v_01dcf5.feeUnit,
     });
@@ -271,7 +279,7 @@ v_7de069.post("/", v_6690d9, async (v_3f4e2e) => {
        ON CONFLICT(user_id, idempotency_key) DO NOTHING
        RETURNING id`,
     )
-    .bind(v_43e90c, v_96f93d, v_dcbe7a, v_d016c9, v_e4ea0f(v_01dcf5, v_d016c9), v_62c866, v_625c74.xrun_member_id, v_5c2f9f)
+    .bind(v_43e90c, v_96f93d, v_dcbe7a, v_4350f9, v_d016c9 - v_4350f9, v_62c866, v_625c74.xrun_member_id, v_5c2f9f)
     .first<{ id: number }>();
   if (!v_43af15) {
     const v_ba2215 = await v_a1651b
@@ -297,16 +305,16 @@ v_7de069.post("/", v_6690d9, async (v_3f4e2e) => {
       .run();
   };
 
-  const v_2d815e = v_e4ea0f(v_01dcf5, v_d016c9);
-  const v_565b1e = v_d016c9 + v_2d815e;
+  const v_2d815e = v_d016c9 - v_4350f9;
+  const v_565b1e = v_d016c9;
   const { owned: v_2461e1, units: v_e7458e } = await v_16a6c1(v_a1651b, v_43e90c, v_96f93d, v_26ec3c(v_8c0b26));
   if (v_2461e1 < v_565b1e) {
     await v_d5bb0f(`insufficient owned=${v_2461e1} need=${v_565b1e}`);
-    throw new v_3ebe58("INSUFFICIENT_QTY", "보유 수량이 바뀌었어요", { ownedQty: v_2461e1, exchangeableQty: v_c47972(v_01dcf5, v_2461e1) });
+    throw new v_3ebe58("INSUFFICIENT_QTY", "보유 수량이 바뀌었어요", { ownedQty: v_2461e1, exchangeableQty: v_2461e1 });
   }
 
   const v_e68f9f = v_e7458e.slice(0, v_565b1e);
-  const v_36c043 = v_84faef(v_d016c9 * v_26ec3c(v_8c0b26));
+  const v_36c043 = v_84faef(v_4350f9 * v_26ec3c(v_8c0b26));
   const v_792d31 = new Map<number, number>();
   for (const v_ceb55a of v_e68f9f) if (v_ceb55a.lotId !== null) v_792d31.set(v_ceb55a.lotId, (v_792d31.get(v_ceb55a.lotId) ?? 0) + 1);
   const v_864b3a = [...v_792d31.entries()].map(([v_389afb, v_04326c]) => ({ id: v_389afb, take: v_04326c }));
@@ -342,7 +350,7 @@ v_7de069.post("/", v_6690d9, async (v_3f4e2e) => {
       .bind(v_43e90c, v_96f93d)
       .first<{ count: number }>();
     const v_57fae8 = Number(v_c3bc75?.count ?? 0);
-    throw new v_3ebe58("INSUFFICIENT_QTY", "보유 수량이 바뀌었어요", { ownedQty: v_57fae8, exchangeableQty: v_c47972(v_01dcf5, v_57fae8) });
+    throw new v_3ebe58("INSUFFICIENT_QTY", "보유 수량이 바뀌었어요", { ownedQty: v_57fae8, exchangeableQty: v_57fae8 });
   }
   const v_136d64 = v_864b3a.filter((v_37eab7, v_ebec57) => Number((v_8f00b9[v_ebec57]?.meta as { changes?: number } | undefined)?.changes ?? 0) > 0);
 
@@ -361,7 +369,7 @@ v_7de069.post("/", v_6690d9, async (v_3f4e2e) => {
     .run();
 
   const v_a0e308 = `afterlife-exchange:${v_faf761}`;
-  const v_4317d1 = { member: v_625c74.xrun_member_id, xrunAmount: v_36c043, refId: v_a0e308, giftName: v_dcbe7a, qty: v_d016c9 };
+  const v_4317d1 = { member: v_625c74.xrun_member_id, xrunAmount: v_36c043, refId: v_a0e308, giftName: v_dcbe7a, qty: v_4350f9 };
   let v_28eeb6 = await v_9bded0(v_3f4e2e.env, v_4317d1);
   if (v_28eeb6.status === "error") v_28eeb6 = await v_9bded0(v_3f4e2e.env, v_4317d1);
 
@@ -381,14 +389,14 @@ v_7de069.post("/", v_6690d9, async (v_3f4e2e) => {
   await v_74defc(v_3f4e2e, {
     userId: v_43e90c,
     action: "gift.exchange",
-    details: { exchangeId: v_faf761, giftId: v_96f93d, qty: v_d016c9, feeQty: v_2d815e, reward: v_36c043, rewardId: v_28eeb6.rewardId },
+    details: { exchangeId: v_faf761, giftId: v_96f93d, qty: v_4350f9, feeQty: v_2d815e, deductedQty: v_565b1e, reward: v_36c043, rewardId: v_28eeb6.rewardId },
   });
   return v_3f4e2e.json({
     exchangeId: v_faf761,
     exchangeNo: v_59ed24(v_faf761),
     giftId: v_96f93d,
     giftName: v_dcbe7a,
-    qty: v_d016c9,
+    qty: v_4350f9,
     feeQty: v_2d815e,
     deductedQty: v_565b1e,
     reward: v_36c043,

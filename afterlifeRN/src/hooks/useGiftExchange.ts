@@ -11,6 +11,7 @@ import {
   v_541c70,
   v_c55c0b,
   v_6f0728,
+  v_84d829,
   type v_02ed3c,
   type v_867a79,
 } from "../api/giftInventory";
@@ -113,7 +114,7 @@ export function v_61fb8c({ onChanged: v_37c9f5, beforeConfirm: v_28a965, skipCon
           fee: v_9e86fd.feeQty,
         })
       : v_8d41d7("giftBox.toastBelowMinFlat", {
-          defaultValue: "{{min}}송이부터 교환할 수 있어요 (수수료 교환 1회당 {{fee}}송이 별도)",
+          defaultValue: "{{min}}송이부터 교환할 수 있어요 (수수료 {{fee}}송이 포함)",
           min: v_9e86fd.minQty,
           fee: v_9e86fd.feeQty,
         });
@@ -126,7 +127,7 @@ export function v_61fb8c({ onChanged: v_37c9f5, beforeConfirm: v_28a965, skipCon
           max: v_d2c6bf,
         })
       : v_8d41d7("giftBox.toastOverMaxFlat", {
-          defaultValue: "수수료({{fee}}송이)를 빼고 최대 {{max}}송이까지 교환할 수 있어요",
+          defaultValue: "최대 {{max}}송이까지 교환할 수 있어요 (수수료 {{fee}}송이 포함)",
           fee: v_9e86fd.feeQty,
           max: v_d2c6bf,
         });
@@ -199,8 +200,9 @@ export function v_61fb8c({ onChanged: v_37c9f5, beforeConfirm: v_28a965, skipCon
       } else if (v_9e86fd.code === "RATE_CHANGED") {
         const v_3871e2 = await v_308dd7();
         const v_ab6401 = Math.max(Number(v_d5dda0.minQty ?? v_3871e2?.minQty ?? v_d016c9), v_d016c9);
-        const v_2d815e = v_6f0728(v_3871e2 ?? v_c3bc75, v_ab6401);
-        const v_36c043 = v_3871e2 ? v_c55c0b(v_3871e2.priceSegments, v_ab6401) : 0;
+        const v_148ff6 = v_84d829(v_3871e2 ?? v_c3bc75, v_ab6401);
+        const v_2d815e = v_148ff6.fee;
+        const v_36c043 = v_3871e2 ? v_c55c0b(v_3871e2.priceSegments, v_148ff6.rewardQty) : 0;
         v_889fad(
           v_8d41d7("giftBox.p9Title", { defaultValue: "교환 조건이 바뀌었어요" }),
           v_8d41d7("giftBox.p9Body", {
@@ -255,8 +257,9 @@ export function v_61fb8c({ onChanged: v_37c9f5, beforeConfirm: v_28a965, skipCon
   };
 
   const v_609f35 = (cur: v_02ed3c, v_d016c9) => {
-    const v_2d815e = v_6f0728(v_c3bc75, v_d016c9);
-    const v_36c043 = v_c55c0b(v_c3bc75.priceSegments, v_d016c9);
+    const v_148ff6 = v_84d829(v_c3bc75, v_d016c9);
+    const v_2d815e = v_148ff6.fee;
+    const v_36c043 = v_c55c0b(v_c3bc75.priceSegments, v_148ff6.rewardQty);
     v_889fad(
       v_8d41d7("giftBox.p1Title", {
         defaultValue: "{{name}} {{qty}}송이를 교환할까요?",
@@ -266,7 +269,7 @@ export function v_61fb8c({ onChanged: v_37c9f5, beforeConfirm: v_28a965, skipCon
       v_8d41d7("giftBox.p1Body", {
         defaultValue: "수수료 {{fee}}송이를 포함해 {{total}}송이가 차감되고, {{reward}} XRUN을 받을 수 있어요. 교환 후에는 취소할 수 없어요.",
         fee: v_2d815e,
-        total: v_d016c9 + v_2d815e,
+        total: v_148ff6.deducted,
         reward: v_36c043,
       }),
       [

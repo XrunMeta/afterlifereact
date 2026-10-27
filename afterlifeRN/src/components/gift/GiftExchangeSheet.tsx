@@ -27,6 +27,7 @@ import { v_1ed7d9 } from "../../stores/authStore";
 import { v_61fb8c } from "../../hooks/useGiftExchange";
 import {
   v_6f0728,
+  v_84d829,
   v_c55c0b,
   type v_02ed3c,
   type v_867a79,
@@ -141,7 +142,7 @@ export default function v_177da7({ visible: v_cf55be, onClose: v_0890f8, onChang
             ],
           );
         } else if (v_9e86fd.exchangeableQty < v_9e86fd.minQty) {
-          const v_565b1e = v_9e86fd.minQty + v_6f0728(v_9e86fd, v_9e86fd.minQty);
+          const v_565b1e = v_9e86fd.feeIncluded ? v_9e86fd.minQty : v_9e86fd.minQty + v_6f0728(v_9e86fd, v_9e86fd.minQty);
           v_d5bb0f(
             v_8d41d7("giftBox.notEnoughTitle", {
               defaultValue: "교환하려면 {{need}} ROSE 이상 필요해요",
@@ -177,8 +178,10 @@ export default function v_177da7({ visible: v_cf55be, onClose: v_0890f8, onChang
   };
 
   const v_b1717e = !!v_ae840d && !!v_ae840d.giftId && v_ae840d.exchangeableQty >= v_ae840d.minQty && !v_683210;
-  const v_2d815e = v_ae840d ? v_6f0728(v_ae840d, v_eddb49) : 0;
-  const v_36c043 = v_ae840d ? v_c55c0b(v_ae840d.priceSegments, v_eddb49) : 0;
+
+  const v_64d803 = v_ae840d ? v_84d829(v_ae840d, v_eddb49) : { fee: 0, rewardQty: 0, deducted: 0 };
+  const v_2d815e = v_64d803.fee;
+  const v_36c043 = v_ae840d ? v_c55c0b(v_ae840d.priceSegments, v_64d803.rewardQty) : 0;
   const v_cd229f =
     v_ae840d?.priceSegments?.[0]?.price != null
       ? v_b96919(Number(v_ae840d.priceSegments[0].price))
@@ -287,6 +290,7 @@ export default function v_177da7({ visible: v_cf55be, onClose: v_0890f8, onChang
                 exchangeQty={v_eddb49}
                 exchangeMax={v_ea7b1e}
                 fee={v_2d815e}
+                rewardQty={v_64d803.rewardQty}
                 reward={v_36c043}
                 unitRate={v_cd229f}
                 submitting={v_cb66b4}
@@ -318,6 +322,7 @@ function v_622370({
   exchangeQty: v_eddb49,
   exchangeMax: v_ea7b1e,
   fee: v_2d815e,
+  rewardQty: v_4350f9,
   reward: v_36c043,
   unitRate: v_cd229f,
   submitting: v_cb66b4,
@@ -334,6 +339,8 @@ function v_622370({
   exchangeQty: number;
   exchangeMax: number;
   fee: number;
+
+  rewardQty: number;
   reward: number;
   unitRate: string;
   submitting: boolean;
@@ -436,7 +443,7 @@ function v_622370({
               {v_8d41d7("giftBox.feeExchangeNotice", {
                 defaultValue: "수수료 {{fee}} ROSE를 제외한 {{qty}} ROSE가 교환돼요",
                 fee: v_2d815e,
-                qty: v_eddb49,
+                qty: v_4350f9,
               })}
             </Text>
             <TouchableOpacity

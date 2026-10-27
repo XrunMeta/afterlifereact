@@ -128,6 +128,8 @@ export interface GiftExchangeEligibility {
 
   feeQty: number;
   feeUnit?: number;
+
+  feeIncluded?: boolean;
   rateVersion: number;
 
   priceSegments: Array<{ price: string; count: number }>;
@@ -175,6 +177,20 @@ export async function v_9c3304(
   v_2ca7e0,
 ): Promise<{ items: GiftExchangeResult[] }> {
   return v_04b58a<{ items: GiftExchangeResult[] }>("/oth-path", v_2ca7e0, { method: "GET" });
+}
+
+export function v_84d829(
+  v_9e86fd,
+  v_d016c9,
+): { fee: number; rewardQty: number; deducted: number } {
+  if (v_d016c9 <= 0) return { fee: 0, rewardQty: 0, deducted: 0 };
+  if (!v_9e86fd.feeIncluded) {
+    const v_2d815e = v_6f0728(v_9e86fd, v_d016c9);
+    return { fee: v_2d815e, rewardQty: v_d016c9, deducted: v_d016c9 + v_2d815e };
+  }
+  let v_cb35cb = v_d016c9;
+  while (v_cb35cb > 0 && v_cb35cb + v_6f0728(v_9e86fd, v_cb35cb) > v_d016c9) v_cb35cb--;
+  return { fee: v_d016c9 - v_cb35cb, rewardQty: v_cb35cb, deducted: v_d016c9 };
 }
 
 export function v_6f0728(v_9e86fd, v_d016c9): number {

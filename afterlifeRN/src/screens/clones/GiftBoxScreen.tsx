@@ -27,6 +27,7 @@ import {
   v_0e29ae,
   v_c55c0b,
   v_6f0728,
+  v_84d829,
   type v_407a6d,
   type v_02ed3c,
   type v_867a79,
@@ -994,11 +995,13 @@ function v_1bc5d1({
   }
 
   const v_80cae9 = v_8d41d7("giftBox.roseUnit", { defaultValue: "ROSE" });
-  const v_097586 = v_ae840d.minQty + v_6f0728(v_ae840d, v_ae840d.minQty);
+
+  const v_097586 = v_ae840d.feeIncluded ? v_ae840d.minQty : v_ae840d.minQty + v_6f0728(v_ae840d, v_ae840d.minQty);
   const v_4f2dac = v_ae840d.exchangeableQty >= v_ae840d.minQty && !v_ae840d.maintenance && v_ae840d.enabled;
-  const v_36c043 = v_4f2dac ? v_c55c0b(v_ae840d.priceSegments, v_d016c9) : 0;
-  const v_2d815e = v_6f0728(v_ae840d, v_d016c9);
-  const v_6b9a9b = v_d016c9 + v_2d815e;
+  const v_64d803 = v_84d829(v_ae840d, v_d016c9);
+  const v_36c043 = v_4f2dac ? v_c55c0b(v_ae840d.priceSegments, v_64d803.rewardQty) : 0;
+  const v_2d815e = v_64d803.fee;
+  const v_6b9a9b = v_64d803.deducted;
 
   return (
     <View>
