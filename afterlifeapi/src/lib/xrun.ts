@@ -98,8 +98,6 @@ export interface AfterlifeRegisterContext {
   region?: string;
 
   deviceId?: string;
-
-  referralCode?: string;
 }
 
 function v_b6cf08(v_16e2dd): {
@@ -145,7 +143,8 @@ export async function v_6e4cc8(
     region: v_99e8e7.region,
 
     age: v_42b696 ?? 0,
-    recommand: v_16e2dd.referralCode?.trim() || 0,
+
+    recommand: 0,
     social_code: 0,
 
     app_source: "afterlife",

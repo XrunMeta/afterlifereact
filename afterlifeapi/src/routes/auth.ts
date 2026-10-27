@@ -37,6 +37,7 @@ import {
   v_f748f8,
   v_77a220,
 } from "../lib/xrun";
+import { v_7808c0 } from "../lib/referralReward";
 
 import { v_31fb59 } from "./users";
 
@@ -717,7 +718,7 @@ v_68f0aa.post("/signup", async (v_3f4e2e) => {
       region: v_4d33b2.region,
 
       deviceId: v_4d33b2.deviceId,
-      referralCode: v_2fa46c,
+
     });
     let v_9816e7 = null;
     let v_3ac92c = null;
@@ -764,6 +765,15 @@ v_68f0aa.post("/signup", async (v_3f4e2e) => {
     await v_4960d7(v_3f4e2e, v_81161e.id);
   } catch (v_49263d) {
     console.error(`[SIGNUP_GRANT_FAIL] user_id=${v_81161e.id} err=${(v_49263d as Error).message}`);
+  }
+
+  if (v_2fa46c) {
+    try {
+      const v_cb35cb = await v_7808c0(v_3f4e2e.env, v_81161e.id, v_2fa46c);
+      console.log(`[auth.signup] referral user_id=${v_81161e.id} applied=${v_cb35cb.applied} reason=${v_cb35cb.reason ?? "-"} referrer=${v_cb35cb.referrerUserId ?? "-"}`);
+    } catch (v_49263d) {
+      console.error(`[SIGNUP_REFERRAL_FAIL] user_id=${v_81161e.id} err=${(v_49263d as Error).message}`);
+    }
   }
 
   const { accessToken: v_2ca7e0, refreshToken: v_dfaee3, accessExpiresIn: v_ff8c95 } = await v_8ab5ff(

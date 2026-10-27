@@ -219,6 +219,7 @@ v_0bc486.get("/activity-log", v_6690d9, async (v_3f4e2e) => {
     .prepare(
       `SELECT e.id                        AS id,
               e.kind                      AS kind,
+              e.ref_id                    AS refId,
               e.counterpart_user_id       AS counterpartId,
               cp.email                    AS counterpartEmail,
               cp.name                     AS counterpartName,
@@ -246,6 +247,7 @@ v_0bc486.get("/activity-log", v_6690d9, async (v_3f4e2e) => {
     .all<{
       id: number;
       kind: string;
+      refId: string | null;
       counterpartId: number | null;
       counterpartEmail: string | null;
       counterpartName: string | null;
@@ -298,6 +300,11 @@ v_0bc486.get("/activity-log", v_6690d9, async (v_3f4e2e) => {
     return {
       id: v_cb35cb.id,
       kind: v_cb35cb.kind, 
+
+      rewardSource:
+        v_cb35cb.kind === "ad_reward" && String(v_cb35cb.refId ?? "").startsWith("referral:")
+          ? String(v_cb35cb.refId).endsWith(":referrer") ? "referral_invite" : "referral"
+          : null,
       counterpartId: v_cb35cb.counterpartId,
       counterpartEmail: v_cb35cb.counterpartEmail,
       counterpartName: v_cb35cb.counterpartName,
