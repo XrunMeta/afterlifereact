@@ -7,6 +7,7 @@ import pytest
 from pipeline import (
     DialoguePipeline,
     ad_prenotice_system_message,
+    AD_RETURN_OPENERS,
     ad_returned_system_message,
 )
 
@@ -30,14 +31,24 @@ def test_prenotice_does_not_encourage_refusal():
     assert "거부하거나" in c and "하지 마" in c
 
 
-def test_returned_mentions_return_and_flower():
-    c = ad_returned_system_message()["content"]
-    assert "돌아" in c
-    assert "광고 잘 봤어" in c
-    # 2026-10-27: 광고 동안 꽃을 따 와 선물한다는 설정 — "꽃은 잘 받았어?" 도 복귀 첫마디로 쓸 수 있다.
-    assert "꽃은 잘 받았어" in c
-    # 꽃 말고 다른 보상을 지어내지 않게.
-    assert "지어내지 마" in c
+def test_returned_mentions_return_and_chosen_opener():
+    for opener in AD_RETURN_OPENERS:
+        c = ad_returned_system_message(opener)["content"]
+        assert "돌아" in c and opener in c
+        assert "지어내지 마" in c          # 꽃 말고 다른 보상을 지어내지 않게
+    assert "광고 잘 봤어" in " ".join(AD_RETURN_OPENERS)
+    assert "꽃은 잘 받았어" in " ".join(AD_RETURN_OPENERS)
+
+
+def test_returned_opener_is_random_between_both():
+    # 2026-10-27: 서버가 매번 무작위로 고른다 — 여러 번 부르면 두 후보가 모두 나온다.
+    seen = set()
+    for _ in range(200):
+        c = ad_returned_system_message()["content"]
+        hit = [o for o in AD_RETURN_OPENERS if o in c]
+        assert hit, c
+        seen.add(hit[0])
+    assert seen == set(AD_RETURN_OPENERS)
 
 
 def _make_pipeline(captured):
@@ -112,6 +123,6 @@ def test_say_returned_clone_initiated_and_history_none():
     _run(pipe.say("", ad_event="returned"))
     msgs = cap[0]
     assert msgs[0] == {"role": "system", "content": "너는 클론"}
-    assert msgs[1] == ad_returned_system_message()
+    assert msgs[1]["role"] == "system" and any(o in msgs[1]["content"] for o in AD_RETURN_OPENERS)
     assert msgs[-1]["role"] == "user" and "돌아왔다" in msgs[-1]["content"]
     assert rec and rec[0][0] is None and rec[0][1]

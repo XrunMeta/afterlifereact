@@ -18,6 +18,7 @@ import asyncio
 import io
 import logging
 import os
+import random
 import re
 import tempfile
 import time
@@ -291,15 +292,18 @@ def ad_prenotice_system_message() -> dict:
     }
 
 
-def ad_returned_system_message() -> dict:
+# 광고 복귀 첫마디 후보 — 서버가 매번 무작위로 하나를 골라 지시한다(LLM 에게 고르게 하면 한쪽으로 쏠린다).
+# 2026-10-27 sungjius: 광고 동안 꽃을 따 와 선물한다는 설정(ad.messages pre/post/toast)에 맞춰 "꽃은 잘 받았어?" 추가.
+AD_RETURN_OPENERS = ("어 왔어? 광고 잘 봤어?", "꽃은 잘 받았어?")
+
+
+def ad_returned_system_message(opener: str | None = None) -> dict:
+    opener = opener or random.choice(AD_RETURN_OPENERS)
     return {
         "role": "system",
         "content": (
-            # 2026-10-27 sungjius: 광고 동안 클론이 꽃을 따 와 선물한다는 설정(ad.messages pre/post/toast)에 맞춰
-            #   "꽃은 잘 받았어?" 도 복귀 첫마디로 쓸 수 있게 한다(예전엔 꽃·선물 얘기를 막았다).
             "[중요] 사용자가 방금 짧은 광고를 다 보고 돌아왔어. 광고 동안 너는 상대에게 줄 꽃을 따 와서 "
-            "선물했어. 네가 먼저 '어 왔어? 광고 잘 봤어?' 또는 '꽃은 잘 받았어?' 처럼 반갑게 말을 걸어서 "
-            "끊겼던 대화를 자연스럽게 이어. 둘 중 하나만, 매번 같은 말만 되풀이하지 말고 골라 써. "
+            f"선물했어. 네가 먼저 '{opener}' 처럼 반갑게 말을 걸어서 끊겼던 대화를 자연스럽게 이어. "
             "꽃 말고 다른 선물·보상(포인트·아이템 등)은 지어내지 마. 짧고 자연스럽게."
         ),
     }
