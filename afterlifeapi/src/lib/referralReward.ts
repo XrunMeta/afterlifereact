@@ -14,6 +14,8 @@ async function v_734254(
   v_96f93d,
   v_d016c9,
   v_a0e308,
+
+  v_6da63a,
 ): Promise<boolean> {
   const v_a1651b = v_c9c489.DB;
   const v_292c43 = await v_a1651b.prepare("SELECT id FROM gift_inventory_events WHERE ref_id = ? LIMIT 1").bind(v_a0e308).first();
@@ -23,9 +25,9 @@ async function v_734254(
     .prepare(
       `INSERT INTO gift_inventory_events (user_id, counterpart_user_id, gift_id, count, xrun_amount, kind, ref_id,
                                            gift_name_snapshot, gift_emoji_snapshot, gift_image_url_snapshot, claimed_at)
-         VALUES (?, NULL, ?, ?, 0, 'ad_reward', ?, ?, ?, ?, NULL)`,
+         VALUES (?, ?, ?, ?, 0, 'ad_reward', ?, ?, ?, ?, NULL)`,
     )
-    .bind(v_43e90c, v_96f93d, v_d016c9, v_a0e308, v_ab4c96?.name ?? v_96f93d, v_ab4c96?.emoji ?? "🎁", v_ab4c96?.imageUrl ?? null)
+    .bind(v_43e90c, v_6da63a, v_96f93d, v_d016c9, v_a0e308, v_ab4c96?.name ?? v_96f93d, v_ab4c96?.emoji ?? "🎁", v_ab4c96?.imageUrl ?? null)
     .run();
   return true;
 }
@@ -83,14 +85,14 @@ export async function v_7808c0(
 
   if (
     v_f7d5d5 > 0 &&
-    (await v_734254(v_c9c489, v_dfe078, v_da074e, v_f7d5d5, `${v_fcf4d9}${v_dfe078}:new`))
+    (await v_734254(v_c9c489, v_dfe078, v_da074e, v_f7d5d5, `${v_fcf4d9}${v_dfe078}:new`, v_d08e74))
   ) {
     await v_a1651b.prepare("UPDATE signup_referrals SET new_user_granted = 1 WHERE user_id = ?").bind(v_dfe078).run();
   }
   if (
     v_d08e74 &&
     v_b1117f > 0 &&
-    (await v_734254(v_c9c489, v_d08e74, v_da074e, v_b1117f, `${v_fcf4d9}${v_dfe078}:referrer`))
+    (await v_734254(v_c9c489, v_d08e74, v_da074e, v_b1117f, `${v_fcf4d9}${v_dfe078}:referrer`, v_dfe078))
   ) {
     await v_a1651b.prepare("UPDATE signup_referrals SET referrer_granted = 1 WHERE user_id = ?").bind(v_dfe078).run();
 

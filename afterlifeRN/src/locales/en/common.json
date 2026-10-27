@@ -2426,6 +2426,8 @@
     "toUnknownClone": "To a clone",
     "adRewardSender": "Ad reward",
     "referralRewardSender": "Referral reward",
+    "referralRewardNamed": "{{name}} referral reward",
+    "referralRewardPlain": "Referral reward",
     "referralRewardTitle": "Received for signing up with a referral code",
     "referralInviteTitle": "Received because a friend signed up with your code",
     "anonymous": "Anonymous",

@@ -2400,6 +2400,8 @@
     "emptyReferralGift": "Belum ada hadiah referal",
     "adRewardSender": "Hadiah iklan",
     "referralRewardSender": "Hadiah referal",
+    "referralRewardNamed": "Hadiah referal {{name}}",
+    "referralRewardPlain": "Hadiah referal",
     "referralRewardTitle": "Diterima karena daftar dengan kode referal",
     "referralInviteTitle": "Diterima karena teman daftar dengan kode Anda",
     "anonymous": "Anonim",

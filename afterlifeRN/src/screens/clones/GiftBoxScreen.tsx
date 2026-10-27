@@ -435,7 +435,7 @@ function v_44c2cb(
 ): string {
 
   if (v_8c0b26.rewardSource === "referral" || v_8c0b26.rewardSource === "referral_invite") {
-    return v_8d41d7("giftBox.referralRewardSender", { defaultValue: "추천 보상" });
+    return v_8c0b26.counterpartName || v_8d41d7("giftBox.referralRewardSender", { defaultValue: "추천 보상" });
   }
   if (v_8c0b26.kind === "ad_reward") {
     return v_8c0b26.cloneName || v_8d41d7("giftBox.adRewardSender", { defaultValue: "광고 보상" });
@@ -668,9 +668,10 @@ function v_223c52({
   const v_e5f5f1 = v_8c0b26.kind === "ad_reward" && !v_eb96a8;
   const v_1833e7 = v_44c2cb(v_8c0b26, v_8d41d7);
   const v_9f1622 = v_eb96a8
-    ? v_8c0b26.rewardSource === "referral_invite"
-      ? v_8d41d7("giftBox.referralInviteTitle", { defaultValue: "내 추천인 코드로 친구가 가입해서 받았어요" })
-      : v_8d41d7("giftBox.referralRewardTitle", { defaultValue: "추천인 코드로 가입해서 받았어요" })
+    ? 
+      v_8c0b26.counterpartName
+      ? v_8d41d7("giftBox.referralRewardNamed", { name: v_8c0b26.counterpartName, defaultValue: "{{name}} 추천인 보상" })
+      : v_8d41d7("giftBox.referralRewardPlain", { defaultValue: "추천인 보상" })
     : v_e5f5f1
     ? v_8d41d7("giftBox.receivedFromCloneTitle", {
         name: v_8c0b26.cloneName || v_1833e7,
