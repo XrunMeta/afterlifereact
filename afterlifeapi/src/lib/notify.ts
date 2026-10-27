@@ -25,7 +25,9 @@ export type NotificationType =
 
   | "moderation"
 
-  | "clone_message";
+  | "clone_message"
+
+  | "referral_reward";
 
 export interface NotifyOptions {
 

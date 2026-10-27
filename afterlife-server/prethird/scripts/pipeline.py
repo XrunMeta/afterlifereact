@@ -18,6 +18,7 @@ import asyncio
 import io
 import logging
 import os
+import random
 import re
 import tempfile
 import time
@@ -291,13 +292,19 @@ def ad_prenotice_system_message() -> dict:
     }
 
 
-def ad_returned_system_message() -> dict:
+# 광고 복귀 첫마디 후보 — 서버가 매번 무작위로 하나를 골라 지시한다(LLM 에게 고르게 하면 한쪽으로 쏠린다).
+# 2026-10-27 sungjius: 광고 동안 꽃을 따 와 선물한다는 설정(ad.messages pre/post/toast)에 맞춰 "꽃은 잘 받았어?" 추가.
+AD_RETURN_OPENERS = ("어 왔어? 광고 잘 봤어?", "꽃은 잘 받았어?")
+
+
+def ad_returned_system_message(opener: str | None = None) -> dict:
+    opener = opener or random.choice(AD_RETURN_OPENERS)
     return {
         "role": "system",
         "content": (
-            "[중요] 사용자가 방금 짧은 광고를 다 보고 돌아왔어. 네가 먼저 '어 왔어? 광고 잘 봤어?' "
-            "처럼 반갑게 말을 걸어서 끊겼던 대화를 자연스럽게 이어. 광고 봐줘서 고맙다는 뉘앙스는 "
-            "가볍게 담아도 되지만, 선물이나 꽃 같은 보상 얘기는 하지 마. 짧고 자연스럽게."
+            "[중요] 사용자가 방금 짧은 광고를 다 보고 돌아왔어. 광고 동안 너는 상대에게 줄 꽃을 따 와서 "
+            f"선물했어. 네가 먼저 '{opener}' 처럼 반갑게 말을 걸어서 끊겼던 대화를 자연스럽게 이어. "
+            "꽃 말고 다른 선물·보상(포인트·아이템 등)은 지어내지 마. 짧고 자연스럽게."
         ),
     }
 
@@ -423,6 +430,8 @@ class DialoguePipeline:
         self._history = ConversationHistory.from_env()
         # 직전 클론 답 원문 — 같은 사람 이름을 매 턴 부르지 않게(이번 턴 이름 억제 판단용, 2026-10-23).
         self._last_reply_text = ""
+        # 등록 얼굴 없음 + 어두운 화면 턴이 이어진 수 — 1턴째와 그 뒤 3턴마다 밝은 곳을 부탁한다(2026-10-23).
+        self._dark_no_faces_turns = 0
         # AFL-926: 이전 대화 로딩·인사 prerender 태스크. signaling 이 offer 직후 띄운다.
         #   발화 경로(say/greet/react)는 메시지 조립 전에 이전 대화 로딩을 잠깐 기다린다.
         # AFL-926: 앱이 Bridge 클립을 트는 통화인지(offer "bridge"). None = 모름(구 앱) → 기존처럼 대기.
@@ -864,16 +873,35 @@ class DialoguePipeline:
 
         # [AFL-1039] 말하는 순간 얼굴 대조 결과 → 이번 턴 지시 1줄(위 화자 힌트 뒤). 이름은
         #   서버가 확정한 current_speaker_name 에서만 — 미확인이면 이름 없이 카메라 안내 + <ask=who>.
+        _who_turn = isinstance(turn_face, dict) and turn_face.get("who") in ("self", "other")
         _tf_rule = turn_face_instruction(turn_face, _speaker_now, _tf_now, face_consent)
         if _tf_rule:
             messages = messages + [{"role": "system", "content": _tf_rule}]
         elif remember_me_asked and face_consent is False:
             messages = messages + [{"role": "system", "content": remember_me_consent_instruction()}]
 
+        # [2026-10-23 sungjius] 이 클론에 등록된 얼굴이 하나도 없는데 화면이 어두우면 얼굴을 볼 수가 없어 등록 안내도
+        #   못 한다 — 밝은 곳으로 가 달라고 부탁한다. 매 턴은 귀찮으니 첫 턴과 그 뒤 3턴마다. "누구냐" 질문 턴은
+        #   whoami 지시가 이미 조명을 부탁하므로 셈만 하고 따로 붙이지 않는다. 조건이 풀리면 처음부터 다시 센다.
+        _tf_ok = isinstance(turn_face, dict) and (_tf_now - (turn_face.get("at") or -1e9)) <= 5.0
+        if (_tf_ok and turn_face.get("noFaces") is True and turn_face.get("quality") == "dark"
+                and turn_face.get("verdict") == "insufficient" and not _has_speaker):
+            self._dark_no_faces_turns += 1
+            if (self._dark_no_faces_turns - 1) % 3 == 0 and not _who_turn:
+                messages = messages + [{
+                    "role": "system",
+                    "content": (
+                        "[이번 턴] 화면이 어두워 상대 얼굴이 잘 안 보인다. 상대 말에 평소처럼 답한 뒤, 끝에 "
+                        "\"얼굴이 잘 안 보여서 그런데 조금 밝은 데로 가 줄래?\" 처럼 밝은 곳으로 가거나 불을 켜 달라고 "
+                        "한 문장으로 짧게 부탁해라. 이름은 말하지 마라."
+                    ),
+                }]
+        else:
+            self._dark_no_faces_turns = 0
+
         # [2026-10-23 sungjius] "나 누구야?" 에 이름으로 답한 다음 턴에도 또 이름을 불렀다 — 매 턴 붙는 화자 힌트
         #   때문에 LLM 이 이름을 반복한다. 직전 답에 이미 그 이름이 있고 이번 턴이 "누구냐" 질문이 아니면
         #   이번엔 부르지 않게 한다(이름 부르기 힌트 name_mention_hint 가 있는 턴은 그 힌트가 우선).
-        _who_turn = isinstance(turn_face, dict) and turn_face.get("who") in ("self", "other")
         if (_speaker_now and not _who_turn and not getattr(self, "name_mention_hint", None)
                 and _speaker_now in (getattr(self, "_last_reply_text", "") or "")):
             messages = messages + [{

@@ -114,6 +114,10 @@
       "clone_gift": {
         "title": "🎁 收到礼物"
       },
+      "referral_reward": {
+        "title": "🎁 推荐奖励已到账",
+        "body": "好友使用你的推荐码注册了。快去礼物箱领取{{qty}}朵花吧！"
+      },
       "intimacy_score": {
         "title": "🌡️ +{{score}}°C 温度上升"
       },
@@ -1037,7 +1041,7 @@
       "referralNotFoundShort": "推荐码不存在",
       "referralOk": "{{name}} 将登记为推荐人",
       "referralOkNoName": "推荐码已确认",
-      "referralHint": "输入推荐码，你和推荐人都能获得50朵花",
+      "referralHint": "输入推荐码，你和推荐人都能获得鲜花",
       "phoneTooShort": "请输入不少于 4 位的电话号码。",
       "termsAccept": "请同意用户协议。",
       "ageInvalid": "请输入 13～120 之间的年龄数字。",
@@ -2363,6 +2367,9 @@
     "emptyUserGift": "还没有收到用户的礼物",
     "emptyCloneGift": "还没有克隆奖励",
     "watchAdClaim": "观看广告领取",
+    "watchAdClaimCount": "看广告领取{{count}}朵",
+    "claimUnavailable": "无法领取",
+    "claimUnavailableMsg": "该奖励目前无法领取。",
     "claimFailTitle": "无法领取",
     "claimFailMsg": "请稍后再试。",
     "exchangeable": "可兑换",
@@ -2385,8 +2392,12 @@
     "receivedTitle": "{{name}}送了{{gift}}",
     "toClone": "送给{{name}}克隆",
     "toUnknownClone": "送给克隆",
+    "subTabReferral": "推荐",
+    "emptyReferralGift": "还没有推荐奖励",
     "adRewardSender": "广告奖励",
     "referralRewardSender": "推荐奖励",
+    "referralRewardNamed": "{{name}} 推荐奖励",
+    "referralRewardPlain": "推荐奖励",
     "referralRewardTitle": "使用推荐码注册获得",
     "referralInviteTitle": "好友使用你的推荐码注册获得",
     "anonymous": "匿名",
@@ -2417,6 +2428,8 @@
     "pm": "下午",
     "toastBelowMin": "从{{min}}朵起可兑换（手续费每{{unit}}朵另加{{fee}}朵）",
     "toastOverMax": "扣除手续费（每{{unit}}朵{{fee}}朵）后最多可兑换{{max}}朵",
+    "toastBelowMinFlat": "{{min}}朵起可兑换（每次兑换另收手续费{{fee}}朵）",
+    "toastOverMaxFlat": "扣除手续费（{{fee}}朵）后最多可兑换{{max}}朵",
     "toastDuplicate": "已有兑换正在处理中",
     "toastEmptyQty": "请输入要兑换的数量",
     "p1Title": "要兑换{{name}} {{qty}}朵吗？",

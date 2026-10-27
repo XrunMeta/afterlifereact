@@ -114,6 +114,10 @@
       "clone_gift": {
         "title": "🎁 Gift received"
       },
+      "referral_reward": {
+        "title": "🎁 Referral reward arrived",
+        "body": "A friend signed up with your referral code. Claim {{qty}} flowers in your gift box!"
+      },
       "intimacy_score": {
         "title": "🌡️ +{{score}}°C temperature up"
       },
@@ -1037,7 +1041,7 @@
       "referralNotFoundShort": "Referral code not found",
       "referralOk": "{{name}} will be your referrer",
       "referralOkNoName": "Referral code confirmed",
-      "referralHint": "Enter a referral code and both you and your referrer get 50 flowers",
+      "referralHint": "Enter a referral code and both you and your referrer get flowers",
       "phoneTooShort": "Please enter a valid phone number (4+ digits).",
       "termsAccept": "Please agree to the terms of service.",
       "ageInvalid": "Please enter a valid age between 13 and 120.",
@@ -2381,6 +2385,8 @@
     "subTabClone": "Clone",
     "subTabFromUser": "From users",
     "subTabFromClone": "From clones",
+    "subTabReferral": "Referral",
+    "emptyReferralGift": "No referral rewards yet",
     "badgeFromUser": "From user",
     "badgeFromClone": "From clone",
     "receivedSearchPlaceholder": "Search sender or clone",
@@ -2393,6 +2399,9 @@
     "emptyUserGift": "No gifts from users yet",
     "emptyCloneGift": "No clone rewards yet",
     "watchAdClaim": "Watch ad to claim",
+    "watchAdClaimCount": "Watch ad, get {{count}}",
+    "claimUnavailable": "Unavailable",
+    "claimUnavailableMsg": "This reward can't be claimed right now.",
     "claimFailTitle": "Couldn't claim",
     "claimFailMsg": "Please try again later.",
     "exchangeable": "Exchangeable",
@@ -2417,6 +2426,8 @@
     "toUnknownClone": "To a clone",
     "adRewardSender": "Ad reward",
     "referralRewardSender": "Referral reward",
+    "referralRewardNamed": "{{name}} referral reward",
+    "referralRewardPlain": "Referral reward",
     "referralRewardTitle": "Received for signing up with a referral code",
     "referralInviteTitle": "Received because a friend signed up with your code",
     "anonymous": "Anonymous",
@@ -2447,6 +2458,8 @@
     "pm": "PM",
     "toastBelowMin": "You can exchange from {{min}} (fee {{fee}} per {{unit}} extra)",
     "toastOverMax": "After fee ({{fee}} per {{unit}}), max exchangeable is {{max}}",
+    "toastBelowMinFlat": "You can exchange from {{min}} (plus a {{fee}}-flower fee per exchange)",
+    "toastOverMaxFlat": "Excluding the fee ({{fee}}), you can exchange up to {{max}}",
     "toastDuplicate": "An exchange is already in progress",
     "toastEmptyQty": "Enter a quantity to exchange",
     "p1Title": "Exchange {{qty}} {{name}}?",

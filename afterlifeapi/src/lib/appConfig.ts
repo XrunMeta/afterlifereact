@@ -411,7 +411,7 @@ export interface AdCadence {
   firstRound: number;
   interval: number;
 }
-export const v_599a4b = { firstRound: 11, interval: 5 };
+export const v_599a4b = { firstRound: 10, interval: 10 };
 
 function v_bf244c(v_e2a85c): AdCadence {
   const v_e84077 = Number(v_e2a85c?.firstRound);
@@ -455,6 +455,62 @@ export async function v_b7471b(env: v_273a0c, v_17dc8a): Promise<AdCadence> {
   return v_a448ad;
 }
 
+const v_87334a = "referral.reward";
+export type ReferralRewardRole = "newUser" | "referrer";
+export interface ReferralRewardRule {
+  qty: number;
+  active: boolean;
+}
+export type ReferralRewardConfig = Record<ReferralRewardRole, ReferralRewardRule>;
+export const v_04800b = {
+  newUser: { qty: 50, active: true },
+  referrer: { qty: 50, active: true },
+};
+const v_e50ae2 = (v_81e2ef): v_81e2ef is number => Number.isInteger(v_81e2ef) && (v_81e2ef as number) >= 0 && (v_81e2ef as number) <= 10000;
+function v_dd0b30(v_479f05, v_0debf4): ReferralRewardRule {
+  const v_cb35cb = (v_479f05 ?? {}) as { qty?: unknown; active?: unknown };
+  const v_d016c9 = Number(v_cb35cb.qty);
+  return {
+    qty: v_e50ae2(v_d016c9) ? v_d016c9 : v_0debf4.qty,
+    active: typeof v_cb35cb.active === "boolean" ? v_cb35cb.active : v_0debf4.active,
+  };
+}
+export async function v_866cbe(env: v_273a0c): Promise<ReferralRewardConfig> {
+  try {
+    const v_3ac7e7 = await v_c9c489.DB
+      .prepare(`SELECT value FROM app_config WHERE key = ? LIMIT 1`)
+      .bind(v_87334a)
+      .first<{ value: string }>();
+    if (!v_3ac7e7) return v_04800b;
+    const v_e2a85c = JSON.parse(v_3ac7e7.value) as Record<string, unknown>;
+
+    const v_66ed66 = v_e50ae2(Number(v_e2a85c.qty)) ? { qty: Number(v_e2a85c.qty), active: true } : null;
+    return {
+      newUser: v_dd0b30(v_e2a85c.newUser, v_66ed66 ?? v_04800b.newUser),
+      referrer: v_dd0b30(v_e2a85c.referrer, v_66ed66 ?? v_04800b.referrer),
+    };
+  } catch {
+    return v_04800b;
+  }
+}
+export async function v_267b1e(
+  env: v_273a0c,
+  v_22da99,
+  v_17dc8a,
+): Promise<ReferralRewardConfig> {
+  if (v_17dc8a.qty !== undefined && !v_e50ae2(v_17dc8a.qty)) throw new Error("qty must be an integer 0~10000");
+  const v_c3bc75 = await v_866cbe(v_c9c489);
+  const v_a448ad = { ...v_c3bc75, [v_22da99]: { ...v_c3bc75[v_22da99], ...v_17dc8a } };
+  await v_c9c489.DB
+    .prepare(
+      `INSERT INTO app_config (key, value, updated_at) VALUES (?, ?, unixepoch())
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = unixepoch()`,
+    )
+    .bind(v_87334a, JSON.stringify(v_a448ad))
+    .run();
+  return v_a448ad;
+}
+
 const v_566753 = "gift.exchange";
 export interface GiftExchangeMaintenance {
   from: number; 
@@ -472,9 +528,9 @@ export interface GiftExchangeConfig {
 }
 export const v_6ebdd1 = {
   enabled: true,
-  minQty: 10,
+  minQty: 1,
   feeQty: 1,
-  feeUnit: 10,
+  feeUnit: 0,
   maintenance: null,
   version: 1,
 };
@@ -497,7 +553,7 @@ function v_a7a965(v_e2a85c): GiftExchangeConfig {
     enabled: typeof v_e2a85c?.enabled === "boolean" ? v_e2a85c.enabled : v_6ebdd1.enabled,
     minQty: Number.isInteger(v_9c6813) && v_9c6813 >= 1 && v_9c6813 <= 10000 ? v_9c6813 : v_6ebdd1.minQty,
     feeQty: Number.isInteger(v_3cda59) && v_3cda59 >= 0 && v_3cda59 <= 1000 ? v_3cda59 : v_6ebdd1.feeQty,
-    feeUnit: Number.isInteger(v_25946a) && v_25946a >= 1 && v_25946a <= 10000 ? v_25946a : v_6ebdd1.feeUnit,
+    feeUnit: Number.isInteger(v_25946a) && v_25946a >= 0 && v_25946a <= 10000 ? v_25946a : v_6ebdd1.feeUnit,
     maintenance: v_ffbee4,
     version: Number.isInteger(v_0e1851) && v_0e1851 >= 1 ? v_0e1851 : v_6ebdd1.version,
   };
@@ -546,7 +602,8 @@ export async function v_1e6592(
 }
 
 export function v_e4ea0f(v_01dcf5, v_d016c9): number {
-  return v_d016c9 > 0 ? Math.ceil(v_d016c9 / v_01dcf5.feeUnit) * v_01dcf5.feeQty : 0;
+  if (v_d016c9 <= 0) return 0;
+  return v_01dcf5.feeUnit > 0 ? Math.ceil(v_d016c9 / v_01dcf5.feeUnit) * v_01dcf5.feeQty : v_01dcf5.feeQty;
 }
 
 export function v_c47972(v_01dcf5, v_2461e1): number {

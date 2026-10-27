@@ -17,6 +17,7 @@ const v_1cb55f = {
   clone_comment: "notifications.types.clone_comment.title",
   clone_follow: "notifications.types.clone_follow.title",
   clone_gift: "notifications.types.clone_gift.title",
+  referral_reward: "notifications.types.referral_reward.title",
   intimacy_score: "notifications.types.intimacy_score.title",
   moderation: "notifications.types.moderation.title",
   invite_received: "notifications.types.invite_received.title",
@@ -38,6 +39,7 @@ const v_f1d9a2 = {
   "💬 새 댓글": "notifications.types.clone_comment.title",
   "✨ 새 구독": "notifications.types.clone_follow.title",
   "🎁 선물 도착": "notifications.types.clone_gift.title",
+  "🎁 추천 보상 도착": "notifications.types.referral_reward.title",
 };
 
 const v_d23148 = {
@@ -99,6 +101,10 @@ export function v_1e31b6(
     const v_dd064b = v_d23148[v_4d33b2.trim()];
     if (v_dd064b) {
       v_4d33b2 = v_8d41d7(v_dd064b, { defaultValue: v_4d33b2 });
+    } else if (v_8c0b26.type === "referral_reward") {
+
+      const v_d016c9 = typeof v_8c0b26.data?.qty === "number" ? v_8c0b26.data.qty : undefined;
+      if (v_d016c9 != null) v_4d33b2 = v_8d41d7("notifications.types.referral_reward.body", { qty: v_d016c9, defaultValue: v_4d33b2 });
     }
   }
 

@@ -24,6 +24,7 @@ import { v_1bfbd0, v_8b0c90, v_d43669, v_c10a43 } from "../../components/constan
 import { v_1ed7d9 } from "../../stores/authStore";
 import {
   v_bf9881,
+  v_0e29ae,
   v_c55c0b,
   v_6f0728,
   type v_407a6d,
@@ -31,6 +32,8 @@ import {
   type v_867a79,
 } from "../../api/giftInventory";
 import { v_61fb8c } from "../../hooks/useGiftExchange";
+import { v_18f201 } from "../../lib/pangle";
+import { v_889fad } from "../../stores/dialogStore";
 import v_177da7 from "../../components/gift/GiftExchangeSheet";
 import type { v_2d88fc, v_8ad91b } from "../../navigation/types";
 
@@ -366,6 +369,8 @@ export default function v_8869a8() {
               items={v_8af8a0}
               loadingMore={v_f34bc3 === "received"}
               t={v_8d41d7}
+              accessToken={v_2ca7e0}
+              onReload={() => void v_92fdf2(true)}
             />
           )}
           {v_11083e === "sent" && (
@@ -430,7 +435,7 @@ function v_44c2cb(
 ): string {
 
   if (v_8c0b26.rewardSource === "referral" || v_8c0b26.rewardSource === "referral_invite") {
-    return v_8d41d7("giftBox.referralRewardSender", { defaultValue: "추천 보상" });
+    return v_8c0b26.counterpartName || v_8d41d7("giftBox.referralRewardSender", { defaultValue: "추천 보상" });
   }
   if (v_8c0b26.kind === "ad_reward") {
     return v_8c0b26.cloneName || v_8d41d7("giftBox.adRewardSender", { defaultValue: "광고 보상" });
@@ -452,17 +457,51 @@ function v_8345ff(v_1833e7): string {
   return v_73a570[v_65a2cd];
 }
 
-type ReceivedSubTab = "all" | "user" | "clone";
+type ReceivedSubTab = "all" | "user" | "clone" | "referral";
 
 function v_6da59e({
   items: v_4622b9,
   loadingMore: v_f34bc3,
   t: v_8d41d7,
+  accessToken: v_2ca7e0,
+  onReload: v_561465,
 }: {
   items: v_407a6d[];
   loadingMore: boolean;
   t: v_75de9d;
+  accessToken: string | null;
+  onReload: () => void;
 }) {
+
+  const [v_56eae3, v_0141c0] = v_5ab095<number | null>(null);
+  const v_3249c2 = v_de06a3(
+    async (item: v_407a6d) => {
+      if (!v_2ca7e0 || v_56eae3 !== null) return;
+      v_0141c0(v_8c0b26.id);
+      try {
+        const v_cb35cb = await v_18f201();
+        if (v_cb35cb !== "closed") {
+          console.warn("[GiftBox] rewarded ad result:", v_cb35cb);
+          return;
+        }
+        await v_0e29ae(v_2ca7e0, v_8c0b26.id);
+        v_561465();
+      } catch (v_49263d) {
+        console.warn("[GiftBox] claim fail:", (v_49263d as Error)?.message);
+        v_889fad(
+          v_8d41d7("giftBox.claimFailTitle", { defaultValue: "받지 못했어요" }),
+
+          (v_49263d as { code?: string })?.code === "VALIDATION_FAILED"
+            ? v_8d41d7("giftBox.claimUnavailableMsg", { defaultValue: "지금은 받을 수 없는 보상이에요." })
+            : v_8d41d7("giftBox.claimFailMsg", { defaultValue: "잠시 후 다시 시도해주세요." }),
+        );
+        v_561465();
+      } finally {
+        v_0141c0(null);
+      }
+    },
+    [v_2ca7e0, v_56eae3, v_561465, v_8d41d7],
+  );
   const [v_4abce2, v_59fd10] = v_5ab095<ReceivedSubTab>("all");
   const [v_9875a1, v_2e7fc1] = v_5ab095("");
   const v_ab6401 = v_9875a1.trim().toLowerCase();
@@ -475,11 +514,13 @@ function v_6da59e({
     () => v_4622b9.filter((v_23805a) => v_23805a.kind === "ad_reward" && !v_23805a.rewardSource).length,
     [v_4622b9],
   );
+  const v_88a2ce = v_df9f57(() => v_4622b9.filter((v_23805a) => !!v_23805a.rewardSource).length, [v_4622b9]);
 
   const v_e4cf17 = v_df9f57(() => {
     let v_ef8ab1 = v_4622b9;
     if (v_4abce2 === "user") v_ef8ab1 = v_ef8ab1.filter((v_23805a) => v_23805a.kind === "received");
     else if (v_4abce2 === "clone") v_ef8ab1 = v_ef8ab1.filter((v_23805a) => v_23805a.kind === "ad_reward" && !v_23805a.rewardSource);
+    else if (v_4abce2 === "referral") v_ef8ab1 = v_ef8ab1.filter((v_23805a) => !!v_23805a.rewardSource);
     if (!v_ab6401) return v_ef8ab1;
     return v_ef8ab1.filter((v_23805a) => {
       const v_eddf67 = v_44c2cb(v_23805a, v_8d41d7).toLowerCase();
@@ -504,7 +545,7 @@ function v_6da59e({
     {
       key: "all",
       label: v_8d41d7("giftBox.subTabAll", { defaultValue: "전체" }),
-      count: v_9f6088 + v_396c6c,
+      count: v_4622b9.length,
     },
     {
       key: "user",
@@ -516,6 +557,11 @@ function v_6da59e({
       label: v_8d41d7("giftBox.subTabFromClone", { defaultValue: "클론에게 받음" }),
       count: v_396c6c,
     },
+    {
+      key: "referral",
+      label: v_8d41d7("giftBox.subTabReferral", { defaultValue: "추천인" }),
+      count: v_88a2ce,
+    },
   ];
 
   const v_6e7fc2 =
@@ -525,7 +571,9 @@ function v_6da59e({
         ? v_8d41d7("dashboard.emptyGift", { defaultValue: "아직 받은 선물이 없어요" })
         : v_4abce2 === "user"
           ? v_8d41d7("giftBox.emptyUserGift", { defaultValue: "아직 유저가 보낸 선물이 없어요" })
-          : v_8d41d7("giftBox.emptyCloneGift", { defaultValue: "아직 클론한테 받은 보상이 없어요" });
+          : v_4abce2 === "clone"
+            ? v_8d41d7("giftBox.emptyCloneGift", { defaultValue: "아직 클론한테 받은 보상이 없어요" })
+            : v_8d41d7("giftBox.emptyReferralGift", { defaultValue: "아직 추천 보상이 없어요" });
 
   return (
     <View>
@@ -589,6 +637,8 @@ function v_6da59e({
                     item={v_8c0b26}
                     t={v_8d41d7}
                     showBorder={v_e86ad8 < v_18b8bf.length - 1}
+                    claiming={v_56eae3 === v_8c0b26.id}
+                    onClaim={v_3249c2}
                   />
                 ))}
               </View>
@@ -605,18 +655,23 @@ function v_223c52({
   item: v_8c0b26,
   t: v_8d41d7,
   showBorder: v_ff995c,
+  claiming: v_5ba323,
+  onClaim: v_778217,
 }: {
   item: v_407a6d;
   t: v_75de9d;
   showBorder: boolean;
+  claiming: boolean;
+  onClaim: (item: v_407a6d) => void;
 }) {
   const v_eb96a8 = v_8c0b26.rewardSource === "referral" || v_8c0b26.rewardSource === "referral_invite";
   const v_e5f5f1 = v_8c0b26.kind === "ad_reward" && !v_eb96a8;
   const v_1833e7 = v_44c2cb(v_8c0b26, v_8d41d7);
   const v_9f1622 = v_eb96a8
-    ? v_8c0b26.rewardSource === "referral_invite"
-      ? v_8d41d7("giftBox.referralInviteTitle", { defaultValue: "내 추천인 코드로 친구가 가입해서 받았어요" })
-      : v_8d41d7("giftBox.referralRewardTitle", { defaultValue: "추천인 코드로 가입해서 받았어요" })
+    ? 
+      v_8c0b26.counterpartName
+      ? v_8d41d7("giftBox.referralRewardNamed", { name: v_8c0b26.counterpartName, defaultValue: "{{name}} 추천인 보상" })
+      : v_8d41d7("giftBox.referralRewardPlain", { defaultValue: "추천인 보상" })
     : v_e5f5f1
     ? v_8d41d7("giftBox.receivedFromCloneTitle", {
         name: v_8c0b26.cloneName || v_1833e7,
@@ -633,6 +688,8 @@ function v_223c52({
     ? v_8d41d7("giftBox.badgeFromClone", { defaultValue: "클론에게 받음" })
     : v_8d41d7("giftBox.badgeFromUser", { defaultValue: "유저에게 받음" });
   const v_085ccc = v_8345ff(v_1833e7);
+
+  const v_6e3315 = v_eb96a8 && v_8c0b26.claimedAt == null;
 
   return (
     <View style={[v_d81136.recvRow, v_ff995c && v_d81136.recvRowBorder]}>
@@ -660,7 +717,27 @@ function v_223c52({
           <Text style={v_d81136.metaTime}>{v_514b67(v_8c0b26.createdAt)}</Text>
         </View>
       </View>
-      <RoseAmount count={v_8c0b26.count || 1} />
+      {v_6e3315 && v_8c0b26.claimable === false ? (
+
+        <View style={[v_d81136.claimBadge, v_d81136.claimBadgeOff]}>
+          <Text style={[v_d81136.claimBadgeText, v_d81136.claimBadgeTextOff]}>
+            {v_8d41d7("giftBox.claimUnavailable", { defaultValue: "수령 불가" })}
+          </Text>
+        </View>
+      ) : v_6e3315 ? (
+        v_5ba323 ? (
+          <ActivityIndicator color={v_1bfbd0.zinc600} />
+        ) : (
+          <TouchableOpacity style={v_d81136.claimBadge} onPress={() => v_778217(v_8c0b26)} activeOpacity={0.75}>
+            <Feather name="play" size={11} color={v_1bfbd0.white} />
+            <Text style={v_d81136.claimBadgeText}>
+              {v_8d41d7("giftBox.watchAdClaimCount", { count: v_8c0b26.count || 1, defaultValue: "광고 보고 {{count}}송이 받기" })}
+            </Text>
+          </TouchableOpacity>
+        )
+      ) : (
+        <RoseAmount count={v_8c0b26.count || 1} />
+      )}
     </View>
   );
 }
@@ -1299,6 +1376,19 @@ const v_d81136 = v_472849.create({
     borderBottomColor: v_1bfbd0.zinc200,
   },
   recvTitle: { fontSize: 14, fontWeight: "700", color: v_1bfbd0.zinc900 },
+
+  claimBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: v_1bfbd0.zinc900,
+  },
+  claimBadgeText: { fontSize: 11, fontWeight: "700", color: v_1bfbd0.white },
+  claimBadgeOff: { backgroundColor: v_1bfbd0.zinc200 },
+  claimBadgeTextOff: { color: v_1bfbd0.zinc500 },
   recvMetaRow: {
     flexDirection: "row",
     alignItems: "center",

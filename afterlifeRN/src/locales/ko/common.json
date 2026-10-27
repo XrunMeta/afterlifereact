@@ -114,6 +114,10 @@
       "clone_gift": {
         "title": "🎁 선물 도착"
       },
+      "referral_reward": {
+        "title": "🎁 추천 보상 도착",
+        "body": "친구가 내 추천인 코드로 가입했어요. 선물함에서 꽃 {{qty}}송이를 받아가세요!"
+      },
       "intimacy_score": {
         "title": "🌡️ +{{score}}°C 온도 상승"
       },
@@ -1037,7 +1041,7 @@
       "referralNotFoundShort": "없는 추천인 코드예요",
       "referralOk": "{{name}}님이 추천인으로 등록돼요",
       "referralOkNoName": "추천인 코드가 확인됐어요",
-      "referralHint": "추천인 코드를 입력하면 나와 추천인 모두 꽃 50송이를 받아요",
+      "referralHint": "추천인 코드를 입력하면 나와 추천인 모두 꽃 선물을 받아요",
       "phoneTooShort": "전화번호를 4자 이상으로 입력해 주십시오.",
       "termsAccept": "이용약관에 동의해 주십시오.",
       "ageInvalid": "나이를 13~120 사이 숫자로 입력해 주십시오.",
@@ -2378,6 +2382,8 @@
     "subTabClone": "클론",
     "subTabFromUser": "유저에게 받음",
     "subTabFromClone": "클론에게 받음",
+    "subTabReferral": "추천인",
+    "emptyReferralGift": "아직 추천 보상이 없어요",
     "badgeFromUser": "유저에게 받음",
     "badgeFromClone": "클론에게 받음",
     "receivedSearchPlaceholder": "보낸 사람, 클론 이름 검색",
@@ -2390,6 +2396,9 @@
     "emptyUserGift": "아직 유저가 보낸 선물이 없어요",
     "emptyCloneGift": "아직 클론한테 받은 보상이 없어요",
     "watchAdClaim": "광고 보고 받기",
+    "watchAdClaimCount": "광고 보고 {{count}}송이 받기",
+    "claimUnavailable": "수령 불가",
+    "claimUnavailableMsg": "지금은 받을 수 없는 보상이에요.",
     "claimFailTitle": "받지 못했어요",
     "claimFailMsg": "잠시 후 다시 시도해주세요.",
     "exchangeable": "교환 가능",
@@ -2414,6 +2423,8 @@
     "toUnknownClone": "클론에게",
     "adRewardSender": "광고 보상",
     "referralRewardSender": "추천 보상",
+    "referralRewardNamed": "{{name}} 추천인 보상",
+    "referralRewardPlain": "추천인 보상",
     "referralRewardTitle": "추천인 코드로 가입해서 받았어요",
     "referralInviteTitle": "내 추천인 코드로 친구가 가입해서 받았어요",
     "anonymous": "익명",
@@ -2444,6 +2455,8 @@
     "pm": "오후",
     "toastBelowMin": "{{min}}송이부터 교환할 수 있어요 (수수료 {{unit}}송이당 {{fee}}송이 별도)",
     "toastOverMax": "수수료({{unit}}송이당 {{fee}}송이)를 빼고 최대 {{max}}송이까지 교환할 수 있어요",
+    "toastBelowMinFlat": "{{min}}송이부터 교환할 수 있어요 (수수료 교환 1회당 {{fee}}송이 별도)",
+    "toastOverMaxFlat": "수수료({{fee}}송이)를 빼고 최대 {{max}}송이까지 교환할 수 있어요",
     "toastDuplicate": "이미 교환을 처리하고 있어요",
     "toastEmptyQty": "교환할 수량을 입력해주세요",
     "p1Title": "{{name}} {{qty}}송이를 교환할까요?",

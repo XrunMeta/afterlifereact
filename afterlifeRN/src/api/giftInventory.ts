@@ -60,6 +60,8 @@ export interface GiftActivityItem {
   claimedAt: string | null;
 
   rewardSource?: "referral" | "referral_invite" | null;
+
+  claimable?: boolean | null;
 }
 
 export async function v_0e29ae(

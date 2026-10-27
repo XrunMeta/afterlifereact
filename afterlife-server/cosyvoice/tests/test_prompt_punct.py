@@ -83,3 +83,10 @@ def test_words_없는_옛_STT는_종전대로(monkeypatch, tmp_path):
             return False
     monkeypatch.setattr(mpr.urllib.request, "urlopen", lambda req, timeout=None: _Resp())
     assert mpr.transcribe(str(tmp_path / "x.wav")) == "안녕하세요 반가워요"
+
+
+def test_STT가_쉼을_앞_단어에_삼켜도_맞춘다():
+    # 실측 9220: 맛있더라구요[4.78-6.28], 실제 쉼 5.55-6.32 — 단어 끝이 쉼 안에 있다.
+    w = [{"w": " 더", "s": 4.54, "e": 4.78}, {"w": " 맛있더라구요", "s": 4.78, "e": 6.28},
+         {"w": " 따끈한", "s": 6.28, "e": 6.94}, {"w": " 국물", "s": 6.94, "e": 7.18}]
+    assert mpr.punctuate(w, [(5.55, 6.32)]) == "더 맛있더라구요. 따끈한 국물."

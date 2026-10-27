@@ -7,7 +7,8 @@ import { v_6690d9 } from "../middleware/auth";
 import { v_a04a51 } from "../middleware/idempotency";
 import { v_3ebe58 } from "../lib/errors";
 import { v_20a4f4, v_696c65 } from "../lib/credits";
-import { v_0edc13 } from "../lib/appConfig";
+import { v_0edc13, v_866cbe } from "../lib/appConfig";
+import { v_e82478 } from "../lib/referralReward";
 import { v_2d8130 } from "../lib/giftLots";
 import { v_74defc } from "../lib/logger";
 
@@ -293,6 +294,7 @@ v_0bc486.get("/activity-log", v_6690d9, async (v_3f4e2e) => {
     .first<{ currentOwned: number }>();
 
   const v_dbebe7 = await v_0edc13(v_3f4e2e.env);
+  const v_c9bce8 = await v_866cbe(v_3f4e2e.env);
   const v_6413c7 = new Map(v_dbebe7.map((v_206b88) => [v_206b88.id, v_206b88]));
 
   const v_4622b9 = (v_18b8bf.results ?? []).map((v_cb35cb) => {
@@ -304,6 +306,13 @@ v_0bc486.get("/activity-log", v_6690d9, async (v_3f4e2e) => {
       rewardSource:
         v_cb35cb.kind === "ad_reward" && String(v_cb35cb.refId ?? "").startsWith("referral:")
           ? String(v_cb35cb.refId).endsWith(":referrer") ? "referral_invite" : "referral"
+          : null,
+
+      claimable:
+        v_cb35cb.claimedAtSec == null && String(v_cb35cb.refId ?? "").startsWith("referral:")
+          ? String(v_cb35cb.refId).endsWith(":referrer")
+            ? v_c9bce8.referrer.active
+            : v_c9bce8.newUser.active
           : null,
       counterpartId: v_cb35cb.counterpartId,
       counterpartEmail: v_cb35cb.counterpartEmail,
@@ -345,14 +354,19 @@ v_0bc486.post("/activity-log/:id/claim", v_6690d9, async (v_3f4e2e) => {
 
   const v_9e6ec9 = await v_3f4e2e.env.DB
     .prepare(
-      `SELECT id, user_id, kind, gift_id, count
+      `SELECT id, user_id, kind, gift_id, count, ref_id
          FROM gift_inventory_events
-        WHERE id = ? AND user_id = ? AND kind = 'received' AND claimed_at IS NULL`,
+        WHERE id = ? AND user_id = ? AND claimed_at IS NULL
+          AND (kind = 'received' OR (kind = 'ad_reward' AND ref_id LIKE 'referral:%'))`,
     )
     .bind(v_2c44c0, v_43e90c)
-    .first<{ id: number; user_id: number; kind: string; gift_id: string; count: number }>();
+    .first<{ id: number; user_id: number; kind: string; gift_id: string; count: number; ref_id: string | null }>();
   if (!v_9e6ec9) {
     throw new v_3ebe58("NOT_FOUND", "수령할 선물이 없거나 이미 받았어요.");
+  }
+
+  if (v_9e6ec9.ref_id?.startsWith("referral:") && !(await v_e82478(v_3f4e2e.env, v_9e6ec9.ref_id))) {
+    throw new v_3ebe58("VALIDATION_FAILED", "지금은 받을 수 없는 보상이에요.");
   }
 
   const v_dbebe7 = await v_0edc13(v_3f4e2e.env);

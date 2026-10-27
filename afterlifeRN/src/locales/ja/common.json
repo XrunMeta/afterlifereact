@@ -114,6 +114,10 @@
       "clone_gift": {
         "title": "🎁 ギフトが届きました"
       },
+      "referral_reward": {
+        "title": "🎁 紹介報酬が届きました",
+        "body": "友達があなたの紹介コードで登録しました。ギフトボックスで花{{qty}}本を受け取ってください！"
+      },
       "intimacy_score": {
         "title": "🌡️ +{{score}}°C 温度上昇"
       },
@@ -1037,7 +1041,7 @@
       "referralNotFoundShort": "存在しない紹介コードです",
       "referralOk": "{{name}}さんが紹介者として登録されます",
       "referralOkNoName": "紹介コードを確認しました",
-      "referralHint": "紹介コードを入力すると、あなたと紹介者の両方に花50本をプレゼント",
+      "referralHint": "紹介コードを入力すると、あなたと紹介者の両方に花をプレゼント",
       "phoneTooShort": "電話番号を4文字以上で入力してください。",
       "termsAccept": "利用規約に同意してください。",
       "ageInvalid": "年齢を13〜120の間の数字で入力してください。",
@@ -2370,6 +2374,9 @@
     "emptyUserGift": "まだユーザーからのギフトはありません",
     "emptyCloneGift": "まだクローンの報酬はありません",
     "watchAdClaim": "広告を見て受け取る",
+    "watchAdClaimCount": "広告を見て{{count}}本受け取る",
+    "claimUnavailable": "受取不可",
+    "claimUnavailableMsg": "現在受け取れない報酬です。",
     "claimFailTitle": "受け取れませんでした",
     "claimFailMsg": "しばらくしてからもう一度お試しください。",
     "exchangeable": "交換可能",
@@ -2392,8 +2399,12 @@
     "receivedTitle": "{{name}}さんが{{gift}}を送りました",
     "toClone": "{{name}}クローンへ",
     "toUnknownClone": "クローンへ",
+    "subTabReferral": "紹介",
+    "emptyReferralGift": "まだ紹介報酬はありません",
     "adRewardSender": "広告リワード",
     "referralRewardSender": "紹介報酬",
+    "referralRewardNamed": "{{name}} 紹介報酬",
+    "referralRewardPlain": "紹介報酬",
     "referralRewardTitle": "紹介コードで登録して受け取りました",
     "referralInviteTitle": "あなたの紹介コードで友達が登録して受け取りました",
     "anonymous": "匿名",
@@ -2424,6 +2435,8 @@
     "pm": "午後",
     "toastBelowMin": "{{min}}輪から交換できます（手数料{{unit}}輪あたり{{fee}}輪別途）",
     "toastOverMax": "手数料（{{unit}}輪あたり{{fee}}輪）を除き最大{{max}}輪まで交換できます",
+    "toastBelowMinFlat": "{{min}}本から交換できます（手数料は交換1回につき{{fee}}本）",
+    "toastOverMaxFlat": "手数料（{{fee}}本）を除いて最大{{max}}本まで交換できます",
     "toastDuplicate": "すでに交換を処理中です",
     "toastEmptyQty": "交換する数量を入力してください",
     "p1Title": "{{name}} {{qty}}輪を交換しますか？",

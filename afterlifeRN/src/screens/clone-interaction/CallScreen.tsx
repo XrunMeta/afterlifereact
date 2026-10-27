@@ -834,7 +834,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   );
 
   const handleFaceCycle = useCallback(
-    (c: { personId: number | null; score: number; displayName: string | null }) => {
+    (c: { personId: number | null; score: number; displayName: string | null; noCandidates?: boolean }) => {
       const meta = cycleMetaRef.current;
       cycleMetaRef.current = null;
       if (c.personId != null) personNamesRef.current.set(c.personId, c.displayName);
@@ -845,6 +845,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         score: c.score,
         quality: meta?.quality ?? "ok",
         atMs: Date.now(),
+        noCandidates: c.noCandidates === true,
       };
       turnFaceGate.addSample(sample);
       console.log(
@@ -1420,7 +1421,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       console.log(
         `[Call][face] turn verdict=${v.kind} n=${samples.length} held=${Date.now() - heldStart}ms who=${who ?? "-"}`,
       );
-      sendTurnFace?.({ ...v, retry: false, who });
+      sendTurnFace?.({ ...v, retry: false, who, noFaces: samples.some((x) => x.noCandidates === true) });
       const displayName = personNameOfRef.current(v.personId);
       if (who && v.kind !== "insufficient") {
 
