@@ -428,6 +428,10 @@ function v_44c2cb(
   item: v_407a6d,
   t: v_75de9d,
 ): string {
+
+  if (v_8c0b26.rewardSource === "referral" || v_8c0b26.rewardSource === "referral_invite") {
+    return v_8d41d7("giftBox.referralRewardSender", { defaultValue: "추천 보상" });
+  }
   if (v_8c0b26.kind === "ad_reward") {
     return v_8c0b26.cloneName || v_8d41d7("giftBox.adRewardSender", { defaultValue: "광고 보상" });
   }
@@ -468,14 +472,14 @@ function v_6da59e({
     [v_4622b9],
   );
   const v_396c6c = v_df9f57(
-    () => v_4622b9.filter((v_23805a) => v_23805a.kind === "ad_reward").length,
+    () => v_4622b9.filter((v_23805a) => v_23805a.kind === "ad_reward" && !v_23805a.rewardSource).length,
     [v_4622b9],
   );
 
   const v_e4cf17 = v_df9f57(() => {
     let v_ef8ab1 = v_4622b9;
     if (v_4abce2 === "user") v_ef8ab1 = v_ef8ab1.filter((v_23805a) => v_23805a.kind === "received");
-    else if (v_4abce2 === "clone") v_ef8ab1 = v_ef8ab1.filter((v_23805a) => v_23805a.kind === "ad_reward");
+    else if (v_4abce2 === "clone") v_ef8ab1 = v_ef8ab1.filter((v_23805a) => v_23805a.kind === "ad_reward" && !v_23805a.rewardSource);
     if (!v_ab6401) return v_ef8ab1;
     return v_ef8ab1.filter((v_23805a) => {
       const v_eddf67 = v_44c2cb(v_23805a, v_8d41d7).toLowerCase();
@@ -606,9 +610,14 @@ function v_223c52({
   t: v_75de9d;
   showBorder: boolean;
 }) {
-  const v_e5f5f1 = v_8c0b26.kind === "ad_reward";
+  const v_eb96a8 = v_8c0b26.rewardSource === "referral" || v_8c0b26.rewardSource === "referral_invite";
+  const v_e5f5f1 = v_8c0b26.kind === "ad_reward" && !v_eb96a8;
   const v_1833e7 = v_44c2cb(v_8c0b26, v_8d41d7);
-  const v_9f1622 = v_e5f5f1
+  const v_9f1622 = v_eb96a8
+    ? v_8c0b26.rewardSource === "referral_invite"
+      ? v_8d41d7("giftBox.referralInviteTitle", { defaultValue: "내 추천인 코드로 친구가 가입해서 받았어요" })
+      : v_8d41d7("giftBox.referralRewardTitle", { defaultValue: "추천인 코드로 가입해서 받았어요" })
+    : v_e5f5f1
     ? v_8d41d7("giftBox.receivedFromCloneTitle", {
         name: v_8c0b26.cloneName || v_1833e7,
         defaultValue: "{{name}} 클론과 대화 중에 받았어요",
@@ -618,7 +627,9 @@ function v_223c52({
         clone: v_8c0b26.cloneName || v_8d41d7("giftBox.toUnknownClone", { defaultValue: "클론" }),
         defaultValue: "{{name}}님이 내 {{clone}} 클론에게 보냈어요",
       });
-  const v_3fd4b5 = v_e5f5f1
+  const v_3fd4b5 = v_eb96a8
+    ? v_8d41d7("giftBox.referralRewardSender", { defaultValue: "추천 보상" })
+    : v_e5f5f1
     ? v_8d41d7("giftBox.badgeFromClone", { defaultValue: "클론에게 받음" })
     : v_8d41d7("giftBox.badgeFromUser", { defaultValue: "유저에게 받음" });
   const v_085ccc = v_8345ff(v_1833e7);

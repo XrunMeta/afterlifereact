@@ -1249,7 +1249,11 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
                 ? v_8d41d7("auth.signup.referralOk", { name: v_fc7051.name, defaultValue: "{{name}}님이 추천인으로 등록돼요" })
                 : v_8d41d7("auth.signup.referralOkNoName", { defaultValue: "추천인 코드가 확인됐어요" })}
             </Text>
-          ) : null}
+          ) : (
+            <Text style={v_d81136.referralHintText}>
+              {v_8d41d7("auth.signup.referralHint", { defaultValue: "추천인 코드를 입력하면 나와 추천인 모두 꽃 50송이를 받아요" })}
+            </Text>
+          )}
 
           {}
           <View style={v_d81136.termsSection}>
@@ -1638,6 +1642,7 @@ const v_d81136 = v_472849.create({
   },
   referralCheckBtn: { fontSize: 14, fontWeight: "600", color: v_cafb6f.primary, paddingHorizontal: 4 },
   referralOkText: { marginTop: -8, fontSize: 13, color: "#1A9450" },
+  referralHintText: { marginTop: -8, fontSize: 13, color: "#8e9bae" },
   eyeButton: {
     height: 24,
     width: 24,
