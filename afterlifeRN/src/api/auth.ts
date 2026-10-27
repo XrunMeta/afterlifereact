@@ -22,6 +22,8 @@ export interface SignupPayload {
   deviceId?: string;
   pushToken?: string;
   platform?: "ios" | "android" | "web";
+
+  referralCode?: string;
 }
 
 export interface AuthUserBrief {
@@ -164,6 +166,13 @@ export interface EmailCheckXrunResponse {
   xrunExists: boolean;
   email: string;
 }
+
+export async function v_d42670(v_c99bd2): Promise<{ exists: boolean; name?: string | null }> {
+  const v_8f00b9 = await fetch(`${v_cc9198}/oth-path?code=${encodeURIComponent(v_c99bd2.trim())}`);
+  if (!v_8f00b9.ok) return { exists: false };
+  return (await v_8f00b9.json()) as { exists: boolean; name?: string | null };
+}
+
 export async function v_2efafe(v_e0c7e8): Promise<EmailCheckXrunResponse> {
   return v_c34e2f("/oth-path", { email: v_e0c7e8 });
 }
