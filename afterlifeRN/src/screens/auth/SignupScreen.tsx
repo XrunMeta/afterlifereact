@@ -1251,7 +1251,7 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
             </Text>
           ) : (
             <Text style={v_d81136.referralHintText}>
-              {v_8d41d7("auth.signup.referralHint", { defaultValue: "추천인 코드를 입력하면 나와 추천인 모두 꽃 50송이를 받아요" })}
+              {v_8d41d7("auth.signup.referralHint", { defaultValue: "추천인 코드를 입력하면 나와 추천인 모두 꽃 선물을 받아요" })}
             </Text>
           )}
 

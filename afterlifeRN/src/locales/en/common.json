@@ -114,6 +114,9 @@
       "clone_gift": {
         "title": "🎁 Gift received"
       },
+      "referral_reward": {
+        "title": "🎁 Referral reward arrived"
+      },
       "intimacy_score": {
         "title": "🌡️ +{{score}}°C temperature up"
       },
@@ -1037,7 +1040,7 @@
       "referralNotFoundShort": "Referral code not found",
       "referralOk": "{{name}} will be your referrer",
       "referralOkNoName": "Referral code confirmed",
-      "referralHint": "Enter a referral code and both you and your referrer get 50 flowers",
+      "referralHint": "Enter a referral code and both you and your referrer get flowers",
       "phoneTooShort": "Please enter a valid phone number (4+ digits).",
       "termsAccept": "Please agree to the terms of service.",
       "ageInvalid": "Please enter a valid age between 13 and 120.",
@@ -2393,6 +2396,7 @@
     "emptyUserGift": "No gifts from users yet",
     "emptyCloneGift": "No clone rewards yet",
     "watchAdClaim": "Watch ad to claim",
+    "watchAdClaimCount": "Watch ad, get {{count}}",
     "claimFailTitle": "Couldn't claim",
     "claimFailMsg": "Please try again later.",
     "exchangeable": "Exchangeable",

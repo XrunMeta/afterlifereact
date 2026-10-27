@@ -114,6 +114,9 @@
       "clone_gift": {
         "title": "🎁 선물 도착"
       },
+      "referral_reward": {
+        "title": "🎁 추천 보상 도착"
+      },
       "intimacy_score": {
         "title": "🌡️ +{{score}}°C 온도 상승"
       },
@@ -1037,7 +1040,7 @@
       "referralNotFoundShort": "없는 추천인 코드예요",
       "referralOk": "{{name}}님이 추천인으로 등록돼요",
       "referralOkNoName": "추천인 코드가 확인됐어요",
-      "referralHint": "추천인 코드를 입력하면 나와 추천인 모두 꽃 50송이를 받아요",
+      "referralHint": "추천인 코드를 입력하면 나와 추천인 모두 꽃 선물을 받아요",
       "phoneTooShort": "전화번호를 4자 이상으로 입력해 주십시오.",
       "termsAccept": "이용약관에 동의해 주십시오.",
       "ageInvalid": "나이를 13~120 사이 숫자로 입력해 주십시오.",
@@ -2390,6 +2393,7 @@
     "emptyUserGift": "아직 유저가 보낸 선물이 없어요",
     "emptyCloneGift": "아직 클론한테 받은 보상이 없어요",
     "watchAdClaim": "광고 보고 받기",
+    "watchAdClaimCount": "광고 보고 {{count}}송이 받기",
     "claimFailTitle": "받지 못했어요",
     "claimFailMsg": "잠시 후 다시 시도해주세요.",
     "exchangeable": "교환 가능",
