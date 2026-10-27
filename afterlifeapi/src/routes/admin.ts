@@ -25,6 +25,8 @@ import {
   v_8d6dec,
   v_9459da,
   v_705aa5,
+  v_866cbe,
+  v_70ad18,
   v_1e6592,
   v_52acfb,
   v_b61290,
@@ -208,6 +210,18 @@ v_b7f2b4.patch("/config/knowledge-rules", v_c0a297, async (v_3f4e2e) => {
 });
 
 const v_8295db = 200;
+
+v_b7f2b4.get("/config/referral-reward", v_c0a297, async (v_3f4e2e) => {
+  return v_3f4e2e.json(await v_866cbe(v_3f4e2e.env));
+});
+v_b7f2b4.patch("/config/referral-reward", v_c0a297, async (v_3f4e2e) => {
+  const v_148ff6 = (await v_3f4e2e.req.json().catch(() => ({}))) as { qty?: unknown };
+  const v_d016c9 = Number(v_148ff6.qty);
+  if (!Number.isInteger(v_d016c9) || v_d016c9 < 0 || v_d016c9 > 10000) {
+    throw new v_3ebe58("VALIDATION_FAILED", "qty 는 0~10000 정수여야 해요.");
+  }
+  return v_3f4e2e.json(await v_70ad18(v_3f4e2e.env, v_d016c9));
+});
 
 v_b7f2b4.get("/config/gift-exchange", v_c0a297, async (v_3f4e2e) => {
   return v_3f4e2e.json(await v_705aa5(v_3f4e2e.env));

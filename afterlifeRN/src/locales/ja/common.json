@@ -114,6 +114,9 @@
       "clone_gift": {
         "title": "🎁 ギフトが届きました"
       },
+      "referral_reward": {
+        "title": "🎁 紹介報酬が届きました"
+      },
       "intimacy_score": {
         "title": "🌡️ +{{score}}°C 温度上昇"
       },
@@ -1037,7 +1040,7 @@
       "referralNotFoundShort": "存在しない紹介コードです",
       "referralOk": "{{name}}さんが紹介者として登録されます",
       "referralOkNoName": "紹介コードを確認しました",
-      "referralHint": "紹介コードを入力すると、あなたと紹介者の両方に花50本をプレゼント",
+      "referralHint": "紹介コードを入力すると、あなたと紹介者の両方に花をプレゼント",
       "phoneTooShort": "電話番号を4文字以上で入力してください。",
       "termsAccept": "利用規約に同意してください。",
       "ageInvalid": "年齢を13〜120の間の数字で入力してください。",
@@ -2370,6 +2373,7 @@
     "emptyUserGift": "まだユーザーからのギフトはありません",
     "emptyCloneGift": "まだクローンの報酬はありません",
     "watchAdClaim": "広告を見て受け取る",
+    "watchAdClaimCount": "広告を見て{{count}}本受け取る",
     "claimFailTitle": "受け取れませんでした",
     "claimFailMsg": "しばらくしてからもう一度お試しください。",
     "exchangeable": "交換可能",

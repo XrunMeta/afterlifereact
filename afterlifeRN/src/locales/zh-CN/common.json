@@ -114,6 +114,9 @@
       "clone_gift": {
         "title": "🎁 收到礼物"
       },
+      "referral_reward": {
+        "title": "🎁 推荐奖励已到账"
+      },
       "intimacy_score": {
         "title": "🌡️ +{{score}}°C 温度上升"
       },
@@ -1037,7 +1040,7 @@
       "referralNotFoundShort": "推荐码不存在",
       "referralOk": "{{name}} 将登记为推荐人",
       "referralOkNoName": "推荐码已确认",
-      "referralHint": "输入推荐码，你和推荐人都能获得50朵花",
+      "referralHint": "输入推荐码，你和推荐人都能获得鲜花",
       "phoneTooShort": "请输入不少于 4 位的电话号码。",
       "termsAccept": "请同意用户协议。",
       "ageInvalid": "请输入 13～120 之间的年龄数字。",
@@ -2363,6 +2366,7 @@
     "emptyUserGift": "还没有收到用户的礼物",
     "emptyCloneGift": "还没有克隆奖励",
     "watchAdClaim": "观看广告领取",
+    "watchAdClaimCount": "看广告领取{{count}}朵",
     "claimFailTitle": "无法领取",
     "claimFailMsg": "请稍后再试。",
     "exchangeable": "可兑换",

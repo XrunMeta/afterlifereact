@@ -347,7 +347,8 @@ v_0bc486.post("/activity-log/:id/claim", v_6690d9, async (v_3f4e2e) => {
     .prepare(
       `SELECT id, user_id, kind, gift_id, count
          FROM gift_inventory_events
-        WHERE id = ? AND user_id = ? AND kind = 'received' AND claimed_at IS NULL`,
+        WHERE id = ? AND user_id = ? AND claimed_at IS NULL
+          AND (kind = 'received' OR (kind = 'ad_reward' AND ref_id LIKE 'referral:%'))`,
     )
     .bind(v_2c44c0, v_43e90c)
     .first<{ id: number; user_id: number; kind: string; gift_id: string; count: number }>();

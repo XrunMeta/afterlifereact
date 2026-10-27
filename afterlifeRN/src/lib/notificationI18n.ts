@@ -17,6 +17,7 @@ const v_1cb55f = {
   clone_comment: "notifications.types.clone_comment.title",
   clone_follow: "notifications.types.clone_follow.title",
   clone_gift: "notifications.types.clone_gift.title",
+  referral_reward: "notifications.types.referral_reward.title",
   intimacy_score: "notifications.types.intimacy_score.title",
   moderation: "notifications.types.moderation.title",
   invite_received: "notifications.types.invite_received.title",
@@ -38,6 +39,7 @@ const v_f1d9a2 = {
   "💬 새 댓글": "notifications.types.clone_comment.title",
   "✨ 새 구독": "notifications.types.clone_follow.title",
   "🎁 선물 도착": "notifications.types.clone_gift.title",
+  "🎁 추천 보상 도착": "notifications.types.referral_reward.title",
 };
 
 const v_d23148 = {

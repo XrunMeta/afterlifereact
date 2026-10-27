@@ -114,6 +114,9 @@
       "clone_gift": {
         "title": "🎁 Hadiah diterima"
       },
+      "referral_reward": {
+        "title": "🎁 Hadiah referal tiba"
+      },
       "intimacy_score": {
         "title": "🌡️ +{{score}}°C suhu naik"
       },
@@ -1037,7 +1040,7 @@
       "referralNotFoundShort": "Kode referal tidak ditemukan",
       "referralOk": "{{name}} akan menjadi perujuk Anda",
       "referralOkNoName": "Kode referal terkonfirmasi",
-      "referralHint": "Masukkan kode referal, Anda dan perujuk sama-sama dapat 50 bunga",
+      "referralHint": "Masukkan kode referal, Anda dan perujuk sama-sama dapat bunga",
       "phoneTooShort": "Silakan masukkan nomor telepon minimal 4 karakter.",
       "termsAccept": "Silakan setujui ketentuan layanan.",
       "ageInvalid": "Silakan masukkan usia antara 13 hingga 120.",
@@ -2367,6 +2370,7 @@
     "emptyUserGift": "Belum ada hadiah dari pengguna",
     "emptyCloneGift": "Belum ada hadiah dari klon",
     "watchAdClaim": "Tonton iklan untuk klaim",
+    "watchAdClaimCount": "Tonton iklan, ambil {{count}}",
     "claimFailTitle": "Gagal diklaim",
     "claimFailMsg": "Silakan coba lagi nanti.",
     "exchangeable": "Bisa ditukar",
