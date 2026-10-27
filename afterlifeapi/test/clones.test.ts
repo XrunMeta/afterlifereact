@@ -157,6 +157,25 @@ v_469bf2("clones route — viewerRole 4값", () => {
   });
 });
 
+v_469bf2("GET /oth-path — 제작자 이름·아바타", () => {
+  v_23805a("ownerName·ownerAvatarUrl 을 내려준다 (비로그인 공개 클론)", async () => {
+    const v_a1651b = v_c9c489.DB as unknown as D1Database;
+    const v_1badb6 = await v_bfb240("owner-hdr@test.local");
+    await v_a1651b
+      .prepare("UPDATE users SET name = ?, avatar_url = ? WHERE id = ?")
+      .bind("제작자", "https://example.com/owner.png", v_1badb6)
+      .run();
+    const v_6e0fd3 = await v_4d24a9(v_1badb6, "owner_hdr", "public");
+    const v_8f00b9 = await v_1df298.fetch(`http://localhost/oth-path${v_6e0fd3}`);
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    const v_4d33b2 = (await v_8f00b9.json()) as {
+      clone: { ownerName: string | null; ownerAvatarUrl: string | null };
+    };
+    v_4d37e3(v_4d33b2.clone.ownerName).toBe("제작자");
+    v_4d37e3(v_4d33b2.clone.ownerAvatarUrl).toBe("https://example.com/owner.png");
+  });
+});
+
 v_469bf2("clones search route — stats 객체 통일", () => {
   v_23805a("GET /oth-path — item.stats = {followers, messages, gifts}", async () => {
     const v_1badb6 = await v_bfb240("search-o@test.local");
