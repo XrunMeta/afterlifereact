@@ -457,23 +457,24 @@ export default function v_5db6c6() {
   );
 
   const v_e544cb = ({ label: v_2869c1 }: { label: string }) => (
-    <View style={v_fd5f43.empty}>
+    <Pressable style={v_fd5f43.empty} onPress={() => v_0e1f26.dismiss()} accessible={false}>
       <Feather name="search" size={36} color={v_1bfbd0.zinc300} />
       <Text style={v_fd5f43.emptyText}>{v_2869c1}</Text>
-    </View>
+    </Pressable>
   );
 
   return (
     <SafeView backgroundColor={v_1bfbd0.white} showBottomBackground={false}>
       {
-}
-      <Pressable
-        style={{ flex: 1 }}
-        onPress={() => v_0e1f26.dismiss()}
 
-      >
+}
+      <View style={{ flex: 1 }}>
       {}
-      <View style={[v_fd5f43.searchWrap, { paddingTop: v_033e14.top + 8 }]}>
+      <Pressable
+        style={[v_fd5f43.searchWrap, { paddingTop: v_033e14.top + 8 }]}
+        onPress={() => v_0e1f26.dismiss()}
+        accessible={false}
+      >
         <View style={v_fd5f43.searchBar}>
           <Feather name="search" size={18} color={v_1bfbd0.zinc500} />
           <TextInput
@@ -517,15 +518,15 @@ export default function v_5db6c6() {
             ))}
           </ScrollView>
         )}
-      </View>
+      </Pressable>
 
       {v_9c529a ? (
 
         v_4cd692.length === 0 ? (
-          <View style={v_fd5f43.empty}>
+          <Pressable style={v_fd5f43.empty} onPress={() => v_0e1f26.dismiss()} accessible={false}>
             <Feather name="clock" size={36} color={v_1bfbd0.zinc300} />
             <Text style={v_fd5f43.emptyText}>{v_8d41d7("search.emptyRecent")}</Text>
-          </View>
+          </Pressable>
         ) : (
           <View style={{ flex: 1 }}>
             <View style={v_fd5f43.recentHeader}>
@@ -637,13 +638,14 @@ export default function v_5db6c6() {
             keyExtractor={(v_23805a) => String(v_23805a.id)}
             renderItem={v_71d43d}
             numColumns={v_f229b8}
+            keyboardShouldPersistTaps="handled"
             contentContainerStyle={{ paddingBottom: v_11a565 }}
             showsVerticalScrollIndicator={false}
             refreshControl={v_4e1696}
           />
         )
       )}
-      </Pressable>
+      </View>
     </SafeView>
   );
 }
