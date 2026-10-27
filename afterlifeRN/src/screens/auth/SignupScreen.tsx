@@ -35,6 +35,7 @@ import {
   v_97ea8d,
   v_35200c,
   v_2efafe,
+  v_d42670,
   v_84a859,
 } from "../../api/auth";
 import {
@@ -365,6 +366,26 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       ? "ok"
       : "mismatch";
   const [v_d74a81, v_fcce73] = v_5ab095("");
+
+  const [v_2fa46c, v_276c22] = v_5ab095("");
+  const [v_fc7051, v_974a6b] = v_5ab095<{ code: string; status: "checking" | "ok" | "notfound"; name?: string | null } | null>(null);
+  const v_11889a = async (v_479f05): Promise<boolean> => {
+    const v_c99bd2 = v_479f05.trim().toUpperCase();
+    if (!v_c99bd2) {
+      v_974a6b(null);
+      return true;
+    }
+    if (v_fc7051?.code === v_c99bd2 && v_fc7051.status === "ok") return true;
+    v_974a6b({ code: v_c99bd2, status: "checking" });
+    try {
+      const v_cb35cb = await v_d42670(v_c99bd2);
+      v_974a6b({ code: v_c99bd2, status: v_cb35cb.exists ? "ok" : "notfound", name: v_cb35cb.name });
+      return v_cb35cb.exists;
+    } catch {
+      v_974a6b({ code: v_c99bd2, status: "notfound" });
+      return false;
+    }
+  };
   const [v_c3eac4, v_bdc43c] = v_5ab095<"male" | "female" | "">("");
   const [v_f83808, v_64a312] = v_5ab095<number | null>(null);
 
@@ -781,6 +802,15 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       return;
     }
 
+    if (v_2fa46c.trim() && !(await v_11889a(v_2fa46c))) {
+      v_889fad(
+        v_8d41d7("common.notice"),
+        v_8d41d7("auth.signup.referralNotFound", { defaultValue: "추천인 코드를 찾을 수 없어요. 다시 확인하거나 비워 두세요." }),
+      );
+      return;
+    }
+    const v_b04ddd = v_2fa46c.trim().toUpperCase() || undefined;
+
     const v_f4fe8e = v_f83808 != null ? v_56f818(v_f83808) : undefined;
 
     v_ee9ec1(true);
@@ -807,6 +837,7 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
           pushToken: v_1a29d0 ?? undefined,
           platform: v_ea920b ?? undefined,
           googleIdToken: v_a8d185.idToken,
+          referralCode: v_b04ddd,
         };
         console.log("[AUTH/google.signup] payload:", JSON.stringify(v_931bf0, null, 2));
         const v_8f00b9 = await v_35200c(v_931bf0);
@@ -885,6 +916,7 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
         pushToken: v_1a29d0 ?? undefined,
         platform: v_ea920b ?? undefined,
         deviceId: v_929b58 ?? undefined,
+        referralCode: v_b04ddd,
       });
     } catch (v_49263d) {
       let v_badeaf = v_8d41d7("auth.signup.sendCodeFailed");
@@ -1182,6 +1214,42 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
               ) : null}
             </View>
           </View>
+
+          {}
+          <FormField
+            label={`${v_8d41d7("auth.signup.referral", { defaultValue: "추천인 코드" })} (${v_8d41d7("auth.signup.optional", { defaultValue: "선택사항" })})`}
+            placeholder={v_8d41d7("auth.signup.referralPlaceholder", { defaultValue: "추천인 코드 6자리" }) as string}
+            value={v_2fa46c}
+            onChangeText={(v_81e2ef) => {
+              v_276c22(v_81e2ef.replace(/[^0-9a-zA-Z]/g, "").toUpperCase().slice(0, 6));
+              v_974a6b(null);
+            }}
+            autoCapitalize="characters"
+            maxLength={6}
+            rightAccessory={
+              v_fc7051?.status === "checking" ? (
+                <ActivityIndicator size="small" color={v_cafb6f.primary} />
+              ) : v_fc7051?.status === "ok" ? (
+                <Feather name="check-circle" size={18} color="#1A9450" />
+              ) : v_2fa46c.length > 0 ? (
+                <TouchableOpacity onPress={() => void v_11889a(v_2fa46c)} hitSlop={8}>
+                  <Text style={v_d81136.referralCheckBtn}>{v_8d41d7("auth.signup.referralCheck", { defaultValue: "확인" })}</Text>
+                </TouchableOpacity>
+              ) : null
+            }
+            errorText={
+              v_fc7051?.status === "notfound"
+                ? (v_8d41d7("auth.signup.referralNotFoundShort", { defaultValue: "없는 추천인 코드예요" }) as string)
+                : undefined
+            }
+          />
+          {v_fc7051?.status === "ok" ? (
+            <Text style={v_d81136.referralOkText}>
+              {v_fc7051.name
+                ? v_8d41d7("auth.signup.referralOk", { name: v_fc7051.name, defaultValue: "{{name}}님이 추천인으로 등록돼요" })
+                : v_8d41d7("auth.signup.referralOkNoName", { defaultValue: "추천인 코드가 확인됐어요" })}
+            </Text>
+          ) : null}
 
           {}
           <View style={v_d81136.termsSection}>
@@ -1568,6 +1636,8 @@ const v_d81136 = v_472849.create({
     justifyContent: "center",
     marginRight: 2,
   },
+  referralCheckBtn: { fontSize: 14, fontWeight: "600", color: v_cafb6f.primary, paddingHorizontal: 4 },
+  referralOkText: { marginTop: -8, fontSize: 13, color: "#1A9450" },
   eyeButton: {
     height: 24,
     width: 24,

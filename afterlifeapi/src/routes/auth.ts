@@ -30,6 +30,7 @@ import { v_bb3c56 } from "../lib/appleAuth";
 import { v_4960d7 } from "../lib/credits";
 import {
   v_6e4cc8,
+  v_499cc6,
   v_a0ec33,
   v_937e23,
   v_3326b4,
@@ -71,6 +72,8 @@ const v_7b8b17 = v_1f4ea7.object({
   deviceId: v_1f4ea7.string().min(1).max(200).optional(),
   pushToken: v_1f4ea7.string().min(1).max(500).optional(),
   platform: v_1f4ea7.enum(["ios", "android", "web"]).optional(),
+
+  referralCode: v_1f4ea7.string().trim().max(20).optional(),
 });
 
 const v_192e7b = v_1f4ea7.object({
@@ -503,6 +506,16 @@ v_68f0aa.post("/apple", async (v_3f4e2e) => {
   });
 });
 
+v_68f0aa.get("/referral/lookup", async (v_3f4e2e) => {
+  const v_c99bd2 = String(v_3f4e2e.req.query("code") ?? "").trim();
+  if (!v_c99bd2) throw new v_3ebe58("VALIDATION_FAILED", "code is required");
+  const v_6d4ed3 = await v_499cc6(v_3f4e2e.env, v_c99bd2);
+  if (!v_6d4ed3.exists) return v_3f4e2e.json({ exists: false });
+  const v_f4e98d = (v_6d4ed3.firstname ?? "").trim();
+  const v_0b292c = v_f4e98d ? v_f4e98d.slice(0, 1) + "*".repeat(Math.max(1, Math.min(v_f4e98d.length - 1, 4))) : null;
+  return v_3f4e2e.json({ exists: true, name: v_0b292c });
+});
+
 v_68f0aa.post("/signup", async (v_3f4e2e) => {
   const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_7b8b17);
   const v_a1651b = v_3f4e2e.env.DB;
@@ -515,6 +528,15 @@ v_68f0aa.post("/signup", async (v_3f4e2e) => {
       "VALIDATION_FAILED",
       `Password has appeared in public breaches (${v_222361.hits} hits). Choose another.`,
     );
+  }
+
+  const v_2fa46c = v_4d33b2.referralCode?.trim().toUpperCase() || undefined;
+  if (v_2fa46c) {
+    const v_6d4ed3 = await v_499cc6(v_3f4e2e.env, v_2fa46c);
+
+    if (v_6d4ed3.reason === "format" || v_6d4ed3.reason === "not_found") {
+      throw new v_3ebe58("VALIDATION_FAILED", "추천인 코드를 찾을 수 없어요. 다시 확인해 주세요.");
+    }
   }
 
   if (v_4d33b2.googleIdToken) {
@@ -695,6 +717,7 @@ v_68f0aa.post("/signup", async (v_3f4e2e) => {
       region: v_4d33b2.region,
 
       deviceId: v_4d33b2.deviceId,
+      referralCode: v_2fa46c,
     });
     let v_9816e7 = null;
     let v_3ac92c = null;
