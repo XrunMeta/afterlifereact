@@ -188,6 +188,7 @@ export default function v_e1aa8b({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
         deviceId: v_24baff.deviceId,
         pushToken: v_24baff.pushToken,
         platform: v_24baff.platform,
+        referralCode: v_24baff.referralCode,
       });
       v_e5c3f6.current = { accessToken: v_8f00b9.accessToken, refreshToken: v_8f00b9.refreshToken ?? null };
       v_a21cba = true;

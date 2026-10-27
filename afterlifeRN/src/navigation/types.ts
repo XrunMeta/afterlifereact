@@ -66,6 +66,8 @@ export type AuthStackParamList = {
     pushToken?: string;
     platform?: "ios" | "android" | "web";
     deviceId?: string;
+
+    referralCode?: string;
   };
 
   EmailOtpLogin: { email: string; autoLogin: boolean; password?: string };
@@ -100,7 +102,12 @@ export type ClonesStackParamList = {
   CloneLearn: { cloneId: number };
   InviteStatus: undefined;
 
-  GiftBox: { initialTab?: "received" | "sent" | "exchange" } | undefined;
+  GiftBox:
+    | {
+        initialTab?: "received" | "sent" | "exchange";
+        view?: "activity" | "exchange";
+      }
+    | undefined;
 };
 
 export type ShareStackParamList = {

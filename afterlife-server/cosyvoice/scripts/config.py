@@ -49,6 +49,18 @@ EMPTY_SILENCE_MS = int(os.environ.get("COSYVOICE_EMPTY_SILENCE_MS", "120"))
 # 0 이면 비활성. 실측 최적 300ms(lead-RMS 1607→16).
 PROMPT_TAIL_SILENCE_MS = int(os.environ.get("COSYVOICE_PROMPT_TAIL_SILENCE_MS", "300"))
 
+# 합성 결과 문장 앞 무음 상한(ms) — 견본의 머뭇거림을 따라 생기는 0.2~1.2초 앞 무음을 이 길이로 줄인다.
+# 0 이면 비활성. lead_trim.py 참조.
+LEAD_SILENCE_MAX_MS = int(os.environ.get("COSYVOICE_LEAD_SILENCE_MAX_MS", "300"))
+
+# 문장 안 정적 상한(초) — 첫 소리와 마지막 소리 사이 조용한 구간이 이보다 길면 폭주처럼 다시 합성한다.
+# CosyVoice 가 드물게 단어 중간에서 끊고 0.7초쯤 쉬었다 잇는다("말 이어가." → "마…리오가", AFL-1059).
+# 문장 중간에 문장부호(쉼표·마침표)가 있으면 그 자리 쉼은 자연스러워 더 길게 허용한다 — 프리셋도 쉼표에서
+# 0.6~0.75초 쉰다. 2026-10-27 스캔(문장 176개): 0.7/1.0 이면 프리셋 재합성 0.3%, 문장부호 넣은 사용자 견본 12%.
+# 0 이면 끔.
+INNER_GAP_MAX_SEC = float(os.environ.get("COSYVOICE_INNER_GAP_MAX_SEC", "0.7"))
+INNER_GAP_PUNCT_MAX_SEC = float(os.environ.get("COSYVOICE_INNER_GAP_PUNCT_MAX_SEC", "1.0"))
+
 # 폭주(hallucination) 가드: 합성 길이가 예상(가산식 = BASE + 문자수×PER_CHAR)을 초과하면
 # CV2 과생성으로 보고 재합성(RETRIES회). 실측(20회): 정상 클러스터 2.4~5.7s / 폭주 8~10.4s.
 # BASE 1.8 + 0.28/자 → 20자=7.4s(두 클러스터 사이). 고정합성 오버헤드는 BASE, 길이비례는 PER_CHAR.

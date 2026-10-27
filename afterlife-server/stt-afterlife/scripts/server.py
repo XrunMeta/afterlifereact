@@ -3,7 +3,7 @@ import os
 import time
 import logging
 from fastapi import FastAPI, Response, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 import config
 from clone_stt import (
     validate_clone_id,
@@ -53,8 +53,11 @@ def _startup():
 _SAMPLE_RATE = 16000  # faster-whisper 고정 입력 샘플레이트
 
 
-def _transcribe_wav(wav_path: str) -> tuple[str, float, int]:
-    """wav_path 를 faster-whisper 로 전사. (text, duration_sec, segments_count) 반환.
+def _transcribe_wav(wav_path: str, max_sec: float | None = None,
+                    words: bool = False) -> tuple[str, float, int, list[dict] | None]:
+    """wav_path 를 faster-whisper 로 전사. (text, duration_sec, segments_count, words) 반환.
+
+    words=True 면 단어별 시각 [{w, s, e}] 도 준다(견본 쪽이 쉼 자리에 문장부호를 넣는 데 쓴다, AFL-1059).
 
     ICL ref_audio↔ref_text 구간 정합: audio 를 **물리적으로** STT_MAX_SEC 로 cut 한 뒤
     전사한다. clip_timestamps(논리범위)는 경계에 걸친 세그먼트의 끝(>MAX)을 truncate 하지
@@ -73,25 +76,34 @@ def _transcribe_wav(wav_path: str) -> tuple[str, float, int]:
     except Exception as exc:
         # 손상/읽기불가 wav → 503 (qwen3tts extract_ref_clip 의 ValueError→503 매핑과 일관)
         raise HTTPException(503, f"corrupt/unreadable wav: {wav_path!r}") from exc
-    max_samples = int(config.STT_MAX_SEC * _SAMPLE_RATE)
+    # max_sec: 견본 쌍(voice_prompt.wav)처럼 파일 전체가 ref 인 경우 호출자가 넘긴다(AFL-1059).
+    limit = max_sec if max_sec is not None else config.STT_MAX_SEC
+    max_samples = int(limit * _SAMPLE_RATE)
     # 물리 cut. STT는 16k 리샘플 후 cut, 엔진 extract_ref_clip은 원본 sr 기준 cut 이지만
     # 둘 다 "앞 N초"라 커버하는 시간구간은 동일(STT_MAX_SEC == REF_CLIP_MAX_SEC 전제).
     audio = audio[:max_samples]
 
+    kw = {"word_timestamps": True} if words else {}
     segments, info = model.transcribe(
         audio,
         language=config.LANG,
         beam_size=5,
+        **kw,
     )
     parts = []
     seg_count = 0
+    word_list: list[dict] | None = [] if words else None
     for seg in segments:
         parts.append(seg.text)
         seg_count += 1
+        if words:
+            for w in getattr(seg, "words", None) or []:
+                word_list.append({"w": w.word, "s": round(float(w.start), 2),
+                                  "e": round(float(w.end), 2)})
 
     text = "".join(parts).strip()
-    duration = min(len(audio) / _SAMPLE_RATE, config.STT_MAX_SEC)
-    return text, duration, seg_count
+    duration = min(len(audio) / _SAMPLE_RATE, limit)
+    return text, duration, seg_count, word_list
 
 
 # ─── 요청 모델 ────────────────────────────────────────────────────────────────
@@ -103,6 +115,10 @@ class TranscribeReq(BaseModel):
 class TranscribePathReq(BaseModel):
     wav_path: str
     out_clone_id: str
+    # 없으면 STT_MAX_SEC(10초, ref_text.txt 정합). 견본 쌍은 파일 전체를 전사해야 해서 30초까지 받는다.
+    max_sec: float | None = Field(default=None, gt=0, le=30)
+    # True 면 응답에 단어별 시각(words)을 싣는다 — 견본 글에 문장부호를 넣는 데 쓴다(AFL-1059).
+    words: bool = False
 
 
 # ─── 엔드포인트 ───────────────────────────────────────────────────────────────
@@ -120,7 +136,7 @@ def transcribe(req: TranscribeReq, response: Response):
         raise HTTPException(404, f"voice.wav not found for clone '{clone_id}'")
 
     t0 = time.time()
-    text, duration, seg_count = _transcribe_wav(wav)
+    text, duration, seg_count, _ = _transcribe_wav(wav)
     elapsed_ms = int((time.time() - t0) * 1000)
 
     if not text:
@@ -173,7 +189,7 @@ def transcribe_path(req: TranscribePathReq, response: Response):
         raise HTTPException(404, f"wav not found: {req.wav_path!r}")
 
     t0 = time.time()
-    text, duration, seg_count = _transcribe_wav(safe_wav)
+    text, duration, seg_count, word_list = _transcribe_wav(safe_wav, req.max_sec, req.words)
     elapsed_ms = int((time.time() - t0) * 1000)
 
     if not text:
@@ -199,13 +215,16 @@ def transcribe_path(req: TranscribePathReq, response: Response):
     )
 
     response.headers["X-STT-Ms"] = str(elapsed_ms)
-    return {
+    body = {
         "ok": True,
         "clone_id": clone_id,
         "ref_text": text,
         "chars": len(text),
         "model": config.MODEL,
     }
+    if word_list is not None:
+        body["words"] = word_list
+    return body
 
 
 @app.get("/healthz")

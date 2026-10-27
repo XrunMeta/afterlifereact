@@ -143,6 +143,7 @@ export async function v_6e4cc8(
     region: v_99e8e7.region,
 
     age: v_42b696 ?? 0,
+
     recommand: 0,
     social_code: 0,
 
@@ -298,6 +299,30 @@ export async function v_937e23(
   if (v_8f00b9.status === 401 || v_7ecfd1?.code === 401) return { found: false, reason: "invalid credentials" };
   if (v_8f00b9.status === 404 || v_7ecfd1?.code === 404) return { found: false };
   return { found: false, reason: `xrun verify ${v_8f00b9.status} ${v_7ecfd1?.code ?? ""}: ${v_7ecfd1?.message ?? "unknown"}` };
+}
+
+export interface XrunReferralLookup {
+  exists: boolean;
+  member?: number;
+  firstname?: string | null;
+  reason?: string;
+}
+export const v_5a4f47 = /^[23456789ABCDEFGHJKMNPQRSTUVWXYZ]{6}$/;
+export async function v_499cc6(env: v_273a0c, v_c99bd2): Promise<XrunReferralLookup> {
+  const v_3f4e2e = v_c99bd2.trim().toUpperCase();
+  if (!v_5a4f47.test(v_3f4e2e)) return { exists: false, reason: "format" };
+  const v_76be17 = (v_c9c489 as unknown as { XRUN_DB?: D1Database }).XRUN_DB;
+  if (!v_76be17) return { exists: false, reason: "no_xrun_binding" };
+  let v_3ac7e7;
+  try {
+    v_3ac7e7 = await v_76be17
+      .prepare(`SELECT member, firstname FROM Members WHERE referral_code = ? AND status IN (9201,9202,9203) LIMIT 1`)
+      .bind(v_3f4e2e)
+      .first<{ member: number; firstname: string | null }>();
+  } catch (v_49263d) {
+    return { exists: false, reason: `error: ${(v_49263d as Error).message}` };
+  }
+  return v_3ac7e7 ? { exists: true, member: v_3ac7e7.member, firstname: v_3ac7e7.firstname } : { exists: false, reason: "not_found" };
 }
 
 export async function v_a0ec33(

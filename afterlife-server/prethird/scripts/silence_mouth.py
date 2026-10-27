@@ -9,11 +9,15 @@ MuseTalk 는 답변 오디오 전체(문장 끝 tail silence 포함)를 프레�
 
 환경변수
   PRETHIRD_SILENT_MOUTH=1           켜기(기본 끔)
-  PRETHIRD_SILENT_MOUTH_REF         기준 특징 .pt (기본 prethird/assets/closed_mouth.pt)
+  PRETHIRD_SILENT_MOUTH_REF         기준 특징 .pt (기본 prethird/assets/closed_mouth_pad2.pt)
+
+기준 특징 모양은 렌더러의 audio padding 에 묶인다. 지금 padding 2+2 → (2×5 시점 × 5 층, 384) = (50,384).
+옛 closed_mouth.pt 는 padding 1+1 시절 (30,384) 라 매 턴 "모양 불일치 — 건너뜀" 이었다(2026-10-26).
+closed_mouth_pad2.pt 는 그 층별 평균을 10 시점으로 복제한 것이다. padding 을 바꾸면 이 파일도 다시 만든다.
   PRETHIRD_SILENT_MOUTH_LO/HI       무음/말 진폭 문턱 (기본 0.015 / 0.05)
   PRETHIRD_SILENT_MOUTH_START/END   말 시작/끝 판정에 필요한 연속 프레임 (기본 2 / 3)
   PRETHIRD_SILENT_MOUTH_MINSIL      이보다 짧은 무음은 말로 본다(음소 사이) (기본 5)
-  PRETHIRD_SILENT_MOUTH_FADE        전환 이완 프레임 (기본 2)
+  PRETHIRD_SILENT_MOUTH_FADE        전환 이완 프레임 (기본 8 = 0.32초. 2 면 말 끝에 입이 탁 닫혔다, 2026-10-26)
 """
 from __future__ import annotations
 
@@ -22,7 +26,7 @@ from pathlib import Path
 
 import numpy as np
 
-_DEFAULT_REF = str(Path(__file__).resolve().parents[1] / "assets" / "closed_mouth.pt")
+_DEFAULT_REF = str(Path(__file__).resolve().parents[1] / "assets" / "closed_mouth_pad2.pt")
 _ref_cache: dict = {}
 
 def enabled() -> bool:
@@ -33,6 +37,9 @@ def _env_f(name: str, default: float) -> float:
         return float(os.environ.get(name, default))
     except ValueError:
         return default
+
+def fade_frames() -> int:
+    return max(1, int(_env_f("PRETHIRD_SILENT_MOUTH_FADE", 8)))
 
 def speech_alpha(amp: np.ndarray, lo: float = 0.015, hi: float = 0.05, start: int = 2,
                  end: int = 3, min_sil: int = 5, fade: int = 2) -> np.ndarray:
@@ -112,7 +119,7 @@ def apply(whisper_chunks, audio_path: str, fps: float):
             start=max(1, int(_env_f("PRETHIRD_SILENT_MOUTH_START", 2))),
             end=max(1, int(_env_f("PRETHIRD_SILENT_MOUTH_END", 3))),
             min_sil=max(1, int(_env_f("PRETHIRD_SILENT_MOUTH_MINSIL", 5))),
-            fade=max(1, int(_env_f("PRETHIRD_SILENT_MOUTH_FADE", 2))),
+            fade=fade_frames(),
         )
         a = torch.tensor(al, dtype=whisper_chunks.dtype, device=whisper_chunks.device)
         a = a.view(-1, *([1] * (whisper_chunks.dim() - 1)))
