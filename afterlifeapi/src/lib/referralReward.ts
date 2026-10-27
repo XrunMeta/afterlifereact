@@ -41,8 +41,11 @@ export async function v_7808c0(
   v_dfe078,
   v_c99bd2,
 ): Promise<SignupReferralResult> {
-  const { qty: v_d016c9 } = await v_866cbe(v_c9c489);
-  if (v_d016c9 <= 0) return { applied: false, reason: "disabled" };
+  const v_01dcf5 = await v_866cbe(v_c9c489);
+
+  const v_f7d5d5 = v_01dcf5.newUser.active ? v_01dcf5.newUser.qty : 0;
+  const v_b1117f = v_01dcf5.referrer.active ? v_01dcf5.referrer.qty : 0;
+  if (v_f7d5d5 <= 0 && v_b1117f <= 0) return { applied: false, reason: "disabled" };
   const v_6d4ed3 = await v_499cc6(v_c9c489, v_c99bd2);
   if (!v_6d4ed3.exists || !v_6d4ed3.member) return { applied: false, reason: v_6d4ed3.reason ?? "not_found" };
 
@@ -69,16 +72,20 @@ export async function v_7808c0(
       `INSERT OR IGNORE INTO signup_referrals (user_id, referral_code, referrer_xrun_member, referrer_user_id, gift_id, reward_qty)
        VALUES (?, ?, ?, ?, ?, ?)`,
     )
-    .bind(v_dfe078, v_c99bd2.trim().toUpperCase(), v_6d4ed3.member, v_d08e74, v_da074e, v_d016c9)
+    .bind(v_dfe078, v_c99bd2.trim().toUpperCase(), v_6d4ed3.member, v_d08e74, v_da074e, v_f7d5d5)
     .run();
   if (!v_43af15.meta?.changes) return { applied: false, reason: "already_applied", referrerUserId: v_d08e74 };
 
-  if (await v_734254(v_c9c489, v_dfe078, v_da074e, v_d016c9, `${v_fcf4d9}${v_dfe078}:new`)) {
+  if (
+    v_f7d5d5 > 0 &&
+    (await v_734254(v_c9c489, v_dfe078, v_da074e, v_f7d5d5, `${v_fcf4d9}${v_dfe078}:new`))
+  ) {
     await v_a1651b.prepare("UPDATE signup_referrals SET new_user_granted = 1 WHERE user_id = ?").bind(v_dfe078).run();
   }
   if (
     v_d08e74 &&
-    (await v_734254(v_c9c489, v_d08e74, v_da074e, v_d016c9, `${v_fcf4d9}${v_dfe078}:referrer`))
+    v_b1117f > 0 &&
+    (await v_734254(v_c9c489, v_d08e74, v_da074e, v_b1117f, `${v_fcf4d9}${v_dfe078}:referrer`))
   ) {
     await v_a1651b.prepare("UPDATE signup_referrals SET referrer_granted = 1 WHERE user_id = ?").bind(v_dfe078).run();
 
@@ -86,8 +93,8 @@ export async function v_7808c0(
       userId: v_d08e74,
       type: "referral_reward",
       title: "🎁 추천 보상 도착",
-      body: `친구가 내 추천인 코드로 가입했어요. 선물함에서 꽃 ${v_d016c9}송이를 받아가세요!`,
-      data: { type: "referral_reward", qty: v_d016c9 },
+      body: `친구가 내 추천인 코드로 가입했어요. 선물함에서 꽃 ${v_b1117f}송이를 받아가세요!`,
+      data: { type: "referral_reward", qty: v_b1117f },
       skipEmail: true,
     }).catch((v_49263d) => console.warn("[referral] notify failed:", (v_49263d as Error).message));
   }

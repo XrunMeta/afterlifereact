@@ -456,33 +456,59 @@ export async function v_b7471b(env: v_273a0c, v_17dc8a): Promise<AdCadence> {
 }
 
 const v_87334a = "referral.reward";
-export interface ReferralRewardConfig {
-
+export type ReferralRewardRole = "newUser" | "referrer";
+export interface ReferralRewardRule {
   qty: number;
+  active: boolean;
 }
-export const v_04800b = { qty: 50 };
+export type ReferralRewardConfig = Record<ReferralRewardRole, ReferralRewardRule>;
+export const v_04800b = {
+  newUser: { qty: 50, active: true },
+  referrer: { qty: 50, active: true },
+};
+const v_e50ae2 = (v_81e2ef): v_81e2ef is number => Number.isInteger(v_81e2ef) && (v_81e2ef as number) >= 0 && (v_81e2ef as number) <= 10000;
+function v_dd0b30(v_479f05, v_0debf4): ReferralRewardRule {
+  const v_cb35cb = (v_479f05 ?? {}) as { qty?: unknown; active?: unknown };
+  const v_d016c9 = Number(v_cb35cb.qty);
+  return {
+    qty: v_e50ae2(v_d016c9) ? v_d016c9 : v_0debf4.qty,
+    active: typeof v_cb35cb.active === "boolean" ? v_cb35cb.active : v_0debf4.active,
+  };
+}
 export async function v_866cbe(env: v_273a0c): Promise<ReferralRewardConfig> {
   try {
     const v_3ac7e7 = await v_c9c489.DB
       .prepare(`SELECT value FROM app_config WHERE key = ? LIMIT 1`)
       .bind(v_87334a)
       .first<{ value: string }>();
-    const v_d016c9 = Number((v_3ac7e7 ? (JSON.parse(v_3ac7e7.value) as { qty?: unknown }) : null)?.qty);
-    return Number.isInteger(v_d016c9) && v_d016c9 >= 0 && v_d016c9 <= 10000 ? { qty: v_d016c9 } : v_04800b;
+    if (!v_3ac7e7) return v_04800b;
+    const v_e2a85c = JSON.parse(v_3ac7e7.value) as Record<string, unknown>;
+
+    const v_66ed66 = v_e50ae2(Number(v_e2a85c.qty)) ? { qty: Number(v_e2a85c.qty), active: true } : null;
+    return {
+      newUser: v_dd0b30(v_e2a85c.newUser, v_66ed66 ?? v_04800b.newUser),
+      referrer: v_dd0b30(v_e2a85c.referrer, v_66ed66 ?? v_04800b.referrer),
+    };
   } catch {
     return v_04800b;
   }
 }
-export async function v_70ad18(env: v_273a0c, v_d016c9): Promise<ReferralRewardConfig> {
-  if (!Number.isInteger(v_d016c9) || v_d016c9 < 0 || v_d016c9 > 10000) throw new Error("qty must be an integer 0~10000");
+export async function v_267b1e(
+  env: v_273a0c,
+  v_22da99,
+  v_17dc8a,
+): Promise<ReferralRewardConfig> {
+  if (v_17dc8a.qty !== undefined && !v_e50ae2(v_17dc8a.qty)) throw new Error("qty must be an integer 0~10000");
+  const v_c3bc75 = await v_866cbe(v_c9c489);
+  const v_a448ad = { ...v_c3bc75, [v_22da99]: { ...v_c3bc75[v_22da99], ...v_17dc8a } };
   await v_c9c489.DB
     .prepare(
       `INSERT INTO app_config (key, value, updated_at) VALUES (?, ?, unixepoch())
          ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = unixepoch()`,
     )
-    .bind(v_87334a, JSON.stringify({ qty: v_d016c9 }))
+    .bind(v_87334a, JSON.stringify(v_a448ad))
     .run();
-  return { qty: v_d016c9 };
+  return v_a448ad;
 }
 
 const v_566753 = "gift.exchange";
