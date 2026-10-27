@@ -87,12 +87,7 @@ export function v_61fb8c({ onChanged: v_37c9f5, beforeConfirm: v_28a965, skipCon
     if (!v_ae840d) return;
     if (v_eddb49 - v_2900f3 < v_ae840d.minQty) {
       v_cba33f(
-        v_8d41d7("giftBox.toastBelowMin", {
-          defaultValue: "{{min}}송이부터 교환할 수 있어요 (수수료 {{unit}}송이당 {{fee}}송이 별도)",
-          min: v_ae840d.minQty,
-          unit: v_ae840d.feeUnit,
-          fee: v_ae840d.feeQty,
-        }),
+        v_c91954(v_ae840d),
       );
       return;
     }
@@ -102,17 +97,39 @@ export function v_61fb8c({ onChanged: v_37c9f5, beforeConfirm: v_28a965, skipCon
     if (!v_ae840d) return;
     if (v_eddb49 + v_2900f3 > v_ea7b1e) {
       v_cba33f(
-        v_8d41d7("giftBox.toastOverMax", {
-          defaultValue: "수수료({{unit}}송이당 {{fee}}송이)를 빼고 최대 {{max}}송이까지 교환할 수 있어요",
-          unit: v_ae840d.feeUnit,
-          fee: v_ae840d.feeQty,
-          max: v_ea7b1e,
-        }),
+        v_54e98c(v_ae840d, v_ea7b1e),
       );
       return;
     }
     v_839e4f((v_ab6401) => v_ab6401 + v_2900f3);
   };
+
+  const v_c91954 = (e: v_02ed3c) =>
+    v_9e86fd.feeUnit
+      ? v_8d41d7("giftBox.toastBelowMin", {
+          defaultValue: "{{min}}송이부터 교환할 수 있어요 (수수료 {{unit}}송이당 {{fee}}송이 별도)",
+          min: v_9e86fd.minQty,
+          unit: v_9e86fd.feeUnit,
+          fee: v_9e86fd.feeQty,
+        })
+      : v_8d41d7("giftBox.toastBelowMinFlat", {
+          defaultValue: "{{min}}송이부터 교환할 수 있어요 (수수료 교환 1회당 {{fee}}송이 별도)",
+          min: v_9e86fd.minQty,
+          fee: v_9e86fd.feeQty,
+        });
+  const v_54e98c = (e: v_02ed3c, v_d2c6bf) =>
+    v_9e86fd.feeUnit
+      ? v_8d41d7("giftBox.toastOverMax", {
+          defaultValue: "수수료({{unit}}송이당 {{fee}}송이)를 빼고 최대 {{max}}송이까지 교환할 수 있어요",
+          unit: v_9e86fd.feeUnit,
+          fee: v_9e86fd.feeQty,
+          max: v_d2c6bf,
+        })
+      : v_8d41d7("giftBox.toastOverMaxFlat", {
+          defaultValue: "수수료({{fee}}송이)를 빼고 최대 {{max}}송이까지 교환할 수 있어요",
+          fee: v_9e86fd.feeQty,
+          max: v_d2c6bf,
+        });
 
   const v_b5de70 = (v_35f85c) => {
     const v_85cf93 = (v_d799e2) => {
@@ -275,12 +292,7 @@ export function v_61fb8c({ onChanged: v_37c9f5, beforeConfirm: v_28a965, skipCon
     const v_c3bc75 = v_3871e2 ?? v_ae840d;
     if (v_c3bc75.maintenance || !v_c3bc75.enabled) return v_b5de70(v_c3bc75.maintenance);
     if (v_eddb49 < v_c3bc75.minQty) {
-      v_cba33f(v_8d41d7("giftBox.toastBelowMin", {
-        defaultValue: "{{min}}송이부터 교환할 수 있어요 (수수료 {{unit}}송이당 {{fee}}송이 별도)",
-        min: v_c3bc75.minQty,
-        unit: v_c3bc75.feeUnit,
-        fee: v_c3bc75.feeQty,
-      }));
+      v_cba33f(v_c91954(v_c3bc75));
       return;
     }
     if (v_eddb49 > v_c3bc75.exchangeableQty) {
@@ -312,18 +324,12 @@ export function v_61fb8c({ onChanged: v_37c9f5, beforeConfirm: v_28a965, skipCon
       return;
     }
     if (v_f4e98d < v_ae840d.minQty) {
-      v_cba33f(v_8d41d7("giftBox.toastBelowMin", {
-        defaultValue: "{{min}}송이부터 교환할 수 있어요 (수수료 {{unit}}송이당 {{fee}}송이 별도)",
-        min: v_ae840d.minQty, unit: v_ae840d.feeUnit, fee: v_ae840d.feeQty,
-      }));
+      v_cba33f(v_c91954(v_ae840d));
       v_839e4f(v_ae840d.minQty);
       return;
     }
     if (v_f4e98d > v_ea7b1e) {
-      v_cba33f(v_8d41d7("giftBox.toastOverMax", {
-        defaultValue: "수수료({{unit}}송이당 {{fee}}송이)를 빼고 최대 {{max}}송이까지 교환할 수 있어요",
-        unit: v_ae840d.feeUnit, fee: v_ae840d.feeQty, max: v_ea7b1e,
-      }));
+      v_cba33f(v_54e98c(v_ae840d, v_ea7b1e));
       v_839e4f(v_ea7b1e);
       return;
     }

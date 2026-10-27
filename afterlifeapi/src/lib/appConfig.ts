@@ -528,9 +528,9 @@ export interface GiftExchangeConfig {
 }
 export const v_6ebdd1 = {
   enabled: true,
-  minQty: 10,
+  minQty: 1,
   feeQty: 1,
-  feeUnit: 10,
+  feeUnit: 0,
   maintenance: null,
   version: 1,
 };
@@ -553,7 +553,7 @@ function v_a7a965(v_e2a85c): GiftExchangeConfig {
     enabled: typeof v_e2a85c?.enabled === "boolean" ? v_e2a85c.enabled : v_6ebdd1.enabled,
     minQty: Number.isInteger(v_9c6813) && v_9c6813 >= 1 && v_9c6813 <= 10000 ? v_9c6813 : v_6ebdd1.minQty,
     feeQty: Number.isInteger(v_3cda59) && v_3cda59 >= 0 && v_3cda59 <= 1000 ? v_3cda59 : v_6ebdd1.feeQty,
-    feeUnit: Number.isInteger(v_25946a) && v_25946a >= 1 && v_25946a <= 10000 ? v_25946a : v_6ebdd1.feeUnit,
+    feeUnit: Number.isInteger(v_25946a) && v_25946a >= 0 && v_25946a <= 10000 ? v_25946a : v_6ebdd1.feeUnit,
     maintenance: v_ffbee4,
     version: Number.isInteger(v_0e1851) && v_0e1851 >= 1 ? v_0e1851 : v_6ebdd1.version,
   };
@@ -602,7 +602,8 @@ export async function v_1e6592(
 }
 
 export function v_e4ea0f(v_01dcf5, v_d016c9): number {
-  return v_d016c9 > 0 ? Math.ceil(v_d016c9 / v_01dcf5.feeUnit) * v_01dcf5.feeQty : 0;
+  if (v_d016c9 <= 0) return 0;
+  return v_01dcf5.feeUnit > 0 ? Math.ceil(v_d016c9 / v_01dcf5.feeUnit) * v_01dcf5.feeQty : v_01dcf5.feeQty;
 }
 
 export function v_c47972(v_01dcf5, v_2461e1): number {

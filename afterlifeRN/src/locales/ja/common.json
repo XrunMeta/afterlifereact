@@ -2435,6 +2435,8 @@
     "pm": "午後",
     "toastBelowMin": "{{min}}輪から交換できます（手数料{{unit}}輪あたり{{fee}}輪別途）",
     "toastOverMax": "手数料（{{unit}}輪あたり{{fee}}輪）を除き最大{{max}}輪まで交換できます",
+    "toastBelowMinFlat": "{{min}}本から交換できます（手数料は交換1回につき{{fee}}本）",
+    "toastOverMaxFlat": "手数料（{{fee}}本）を除いて最大{{max}}本まで交換できます",
     "toastDuplicate": "すでに交換を処理中です",
     "toastEmptyQty": "交換する数量を入力してください",
     "p1Title": "{{name}} {{qty}}輪を交換しますか？",

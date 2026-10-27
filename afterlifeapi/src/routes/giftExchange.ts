@@ -246,7 +246,8 @@ v_7de069.post("/", v_6690d9, async (v_3f4e2e) => {
     });
   }
   if (v_d016c9 < v_01dcf5.minQty) {
-    throw new v_3ebe58("BELOW_MIN_QTY", `${v_01dcf5.minQty}송이부터 교환할 수 있어요 (수수료 ${v_01dcf5.feeUnit}송이당 ${v_01dcf5.feeQty}송이 별도)`, {
+    const v_75da0c = v_01dcf5.feeUnit > 0 ? `${v_01dcf5.feeUnit}송이당 ${v_01dcf5.feeQty}송이` : `교환 1회당 ${v_01dcf5.feeQty}송이`;
+    throw new v_3ebe58("BELOW_MIN_QTY", `${v_01dcf5.minQty}송이부터 교환할 수 있어요 (수수료 ${v_75da0c} 별도)`, {
       minQty: v_01dcf5.minQty,
       feeQty: v_01dcf5.feeQty,
       feeUnit: v_01dcf5.feeUnit,

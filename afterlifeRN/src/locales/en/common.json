@@ -2458,6 +2458,8 @@
     "pm": "PM",
     "toastBelowMin": "You can exchange from {{min}} (fee {{fee}} per {{unit}} extra)",
     "toastOverMax": "After fee ({{fee}} per {{unit}}), max exchangeable is {{max}}",
+    "toastBelowMinFlat": "You can exchange from {{min}} (plus a {{fee}}-flower fee per exchange)",
+    "toastOverMaxFlat": "Excluding the fee ({{fee}}), you can exchange up to {{max}}",
     "toastDuplicate": "An exchange is already in progress",
     "toastEmptyQty": "Enter a quantity to exchange",
     "p1Title": "Exchange {{qty}} {{name}}?",

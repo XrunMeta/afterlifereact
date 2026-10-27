@@ -51,9 +51,14 @@ async function v_2461e1(v_43e90c, v_96f93d): Promise<number> {
 }
 
 v_469bf2("gift → XRUN exchange", () => {
-  v_ba7107(() => {
+  v_ba7107(async () => {
     v_8fd90d.activate();
     v_8fd90d.disableNetConnect();
+
+    await v_a1651b()
+      .prepare(`INSERT OR REPLACE INTO app_config (key, value, updated_at) VALUES ('gift.exchange', ?, unixepoch())`)
+      .bind(JSON.stringify({ enabled: true, minQty: 10, feeQty: 1, feeUnit: 10, maintenance: null, version: 1 }))
+      .run();
   });
   v_719203(() => v_8fd90d.assertNoPendingInterceptors());
 
@@ -133,7 +138,7 @@ v_469bf2("gift → XRUN exchange", () => {
 
   v_23805a("수수료는 10송이당 1송이: 12송이 보유면 최대 10송이, 21송이면 19송이", async () => {
     const { giftExchangeFee: v_e4ea0f, giftExchangeMaxQty: v_c47972, GIFT_EXCHANGE_DEFAULT: v_6ebdd1 } = await import("../src/lib/appConfig");
-    const v_01dcf5 = v_6ebdd1;
+    const v_01dcf5 = { ...v_6ebdd1, minQty: 10, feeQty: 1, feeUnit: 10 };
     v_4d37e3(v_e4ea0f(v_01dcf5, 10)).toBe(1);
     v_4d37e3(v_e4ea0f(v_01dcf5, 11)).toBe(2);
     v_4d37e3(v_e4ea0f(v_01dcf5, 20)).toBe(2);
@@ -142,6 +147,17 @@ v_469bf2("gift → XRUN exchange", () => {
     v_4d37e3(v_c47972(v_01dcf5, 13)).toBe(11);
     v_4d37e3(v_c47972(v_01dcf5, 21)).toBe(19);
     v_4d37e3(v_c47972(v_01dcf5, 22)).toBe(20);
+  });
+
+  v_23805a("기본(2026-10-27): 교환 1회당 1송이 고정 · 최소 1송이 → 2송이부터 교환", async () => {
+    const { giftExchangeFee: v_e4ea0f, giftExchangeMaxQty: v_c47972, GIFT_EXCHANGE_DEFAULT: v_6ebdd1 } = await import("../src/lib/appConfig");
+    const v_01dcf5 = v_6ebdd1;
+    v_4d37e3(v_01dcf5).toMatchObject({ minQty: 1, feeQty: 1, feeUnit: 0 });
+    v_4d37e3(v_e4ea0f(v_01dcf5, 1)).toBe(1);
+    v_4d37e3(v_e4ea0f(v_01dcf5, 50)).toBe(1);
+    v_4d37e3(v_c47972(v_01dcf5, 1)).toBe(0);
+    v_4d37e3(v_c47972(v_01dcf5, 2)).toBe(1);
+    v_4d37e3(v_c47972(v_01dcf5, 70)).toBe(69);
   });
 
   v_23805a("검증: 최소 미달·보유 부족·조건 변경·점검·키 없음", async () => {
