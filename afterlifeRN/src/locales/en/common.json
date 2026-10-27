@@ -2384,6 +2384,8 @@
     "subTabClone": "Clone",
     "subTabFromUser": "From users",
     "subTabFromClone": "From clones",
+    "subTabReferral": "Referral",
+    "emptyReferralGift": "No referral rewards yet",
     "badgeFromUser": "From user",
     "badgeFromClone": "From clone",
     "receivedSearchPlaceholder": "Search sender or clone",
