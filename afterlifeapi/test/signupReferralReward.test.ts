@@ -1,7 +1,7 @@
 import { v_469bf2, v_23805a, v_4d37e3, v_ba7107 } from "xualxe";
 import { v_1df298, v_c9c489 } from "lwkoweqmjbnvjqw";
 import { v_7808c0, v_da074e } from "../src/lib/referralReward";
-import { v_70ad18 } from "../src/lib/appConfig";
+import { v_267b1e } from "../src/lib/appConfig";
 
 const v_a1651b = () => v_c9c489.DB as unknown as D1Database;
 const v_8c880b = "Abcdef1";
@@ -53,7 +53,8 @@ v_ba7107(async () => {
 
 v_469bf2("가입 추천인 꽃 보상", () => {
   v_23805a("가입자·추천인 각각 수령 대기 N송이(관리자 설정) → 광고 보고 받기로 보유 증가, 1회만", async () => {
-    await v_70ad18(v_c9c489 as any, 30);
+    await v_267b1e(v_c9c489 as any, "newUser", { qty: 30 });
+    await v_267b1e(v_c9c489 as any, "referrer", { qty: 40 });
     const v_6b73c1 = await v_b016d7("referrer@test.local", 9001);
     const v_792e11 = await v_b016d7("newbie@test.local", 5555);
 
@@ -65,7 +66,7 @@ v_469bf2("가입 추천인 꽃 보상", () => {
     const [v_49d970] = await v_483de2(v_792e11);
     const [v_c44eec] = await v_483de2(v_6b73c1);
     v_4d37e3(v_49d970.count).toBe(30);
-    v_4d37e3(v_c44eec.count).toBe(30);
+    v_4d37e3(v_c44eec.count).toBe(40);
 
     v_4d37e3((await v_7808c0(v_c9c489 as any, v_792e11, "QWE234")).applied).toBe(false);
     v_4d37e3((await v_483de2(v_792e11)).length).toBe(1);
@@ -80,7 +81,8 @@ v_469bf2("가입 추천인 꽃 보상", () => {
     v_4d37e3(await v_2461e1(v_792e11)).toBe(30);
     v_4d37e3((await v_de0f68()).status).toBe(404);
     v_4d37e3(await v_2461e1(v_792e11)).toBe(30);
-    await v_70ad18(v_c9c489 as any, 50);
+    await v_267b1e(v_c9c489 as any, "newUser", { qty: 50 });
+    await v_267b1e(v_c9c489 as any, "referrer", { qty: 50 });
   });
 
   v_23805a("추천인이 afterlife 회원이 아니면 가입자만 대기 보상", async () => {
