@@ -164,6 +164,9 @@ function v_75c31a({ route: v_c7daf6, navigation: v_c65f5d, feed: v_2db2a5 }: Inn
     interests: v_2db2a5.interests,
     likes: String(v_58313d),
     comments: v_7c0a2d,
+
+    ownerName: v_2db2a5.clone.ownerName ?? null,
+    ownerAvatarUrl: v_2db2a5.clone.ownerAvatarUrl ?? null,
   };
 
   const [v_b84498, v_e24028] = v_5ab095<boolean>(v_2db2a5.likedByMe ?? v_632420.includes(v_6bbace));
