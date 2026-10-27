@@ -5,7 +5,7 @@ export interface AdCadence {
   interval: number;
 }
 
-export const v_5565ed = { firstRound: 11, interval: 5 };
+export const v_5565ed = { firstRound: 10, interval: 10 };
 
 export function v_8e0f80(v_5a1787, v_303197 = v_5565ed): boolean {
   const v_3e45d6 = v_303197?.firstRound;

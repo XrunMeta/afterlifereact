@@ -411,7 +411,7 @@ export interface AdCadence {
   firstRound: number;
   interval: number;
 }
-export const v_599a4b = { firstRound: 11, interval: 5 };
+export const v_599a4b = { firstRound: 10, interval: 10 };
 
 function v_bf244c(v_e2a85c): AdCadence {
   const v_e84077 = Number(v_e2a85c?.firstRound);

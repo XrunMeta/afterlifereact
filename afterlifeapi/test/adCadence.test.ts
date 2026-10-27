@@ -26,19 +26,19 @@ v_469bf2("GET /oth-path — 광고 주기(cadence)", () => {
     v_4d37e3(v_b75e36.cadence?.interval).toBe(2);
   });
 
-  v_23805a("ad.cadence 없으면 기본 11/5 폴백", async () => {
+  v_23805a("ad.cadence 없으면 기본 10/10 폴백", async () => {
     const v_8f00b9 = await v_1df298.fetch("https://x/oth-path");
     const v_b75e36 = (await v_8f00b9.json()) as { cadence?: { firstRound?: number; interval?: number } };
-    v_4d37e3(v_b75e36.cadence?.firstRound).toBe(11);
-    v_4d37e3(v_b75e36.cadence?.interval).toBe(5);
+    v_4d37e3(v_b75e36.cadence?.firstRound).toBe(10);
+    v_4d37e3(v_b75e36.cadence?.interval).toBe(10);
   });
 
   v_23805a("비정상 값(0·음수·정수아님)은 기본값으로 방어", async () => {
     await v_342dde("ad.cadence", JSON.stringify({ firstRound: 0, interval: -5 }));
     const v_8f00b9 = await v_1df298.fetch("https://x/oth-path");
     const v_b75e36 = (await v_8f00b9.json()) as { cadence?: { firstRound?: number; interval?: number } };
-    v_4d37e3(v_b75e36.cadence?.firstRound).toBe(11);
-    v_4d37e3(v_b75e36.cadence?.interval).toBe(5);
+    v_4d37e3(v_b75e36.cadence?.firstRound).toBe(10);
+    v_4d37e3(v_b75e36.cadence?.interval).toBe(10);
   });
 
   v_23805a("깨진 JSON 이어도 500 없이 기본값", async () => {
@@ -46,7 +46,7 @@ v_469bf2("GET /oth-path — 광고 주기(cadence)", () => {
     const v_8f00b9 = await v_1df298.fetch("https://x/oth-path");
     v_4d37e3(v_8f00b9.status).toBe(200);
     const v_b75e36 = (await v_8f00b9.json()) as { cadence?: { firstRound?: number; interval?: number } };
-    v_4d37e3(v_b75e36.cadence?.firstRound).toBe(11);
-    v_4d37e3(v_b75e36.cadence?.interval).toBe(5);
+    v_4d37e3(v_b75e36.cadence?.firstRound).toBe(10);
+    v_4d37e3(v_b75e36.cadence?.interval).toBe(10);
   });
 });

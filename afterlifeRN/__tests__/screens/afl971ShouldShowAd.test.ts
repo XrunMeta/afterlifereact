@@ -2,14 +2,14 @@
 import { v_8e0f80, v_1c04ac, v_7841ab } from '../../src/screens/clone-interaction/afl971Ad';
 
 describe('afl971ShouldShowAd', () => {
-  it('기본(11/5): 11, 16, 21, 26 라운드에 true', () => {
-    for (const v_cb35cb of [11, 16, 21, 26, 31]) expect(v_8e0f80(v_cb35cb)).toBe(true);
+  it('기본(10/10): 10, 20, 30, 40 라운드에 true', () => {
+    for (const v_cb35cb of [10, 20, 30, 40]) expect(v_8e0f80(v_cb35cb)).toBe(true);
   });
-  it('기본(11/5): 첫 10라운드(1~10)는 광고 없음', () => {
-    for (let v_cb35cb = 1; v_cb35cb <= 10; v_cb35cb++) expect(v_8e0f80(v_cb35cb)).toBe(false);
+  it('기본(10/10): 1~9 라운드는 광고 없음', () => {
+    for (let v_cb35cb = 1; v_cb35cb <= 9; v_cb35cb++) expect(v_8e0f80(v_cb35cb)).toBe(false);
   });
-  it('기본(11/5): 12~15·17~20 은 false', () => {
-    for (const v_cb35cb of [12, 13, 14, 15, 17, 18, 19, 20]) expect(v_8e0f80(v_cb35cb)).toBe(false);
+  it('기본(10/10): 11~19·21~29 는 false', () => {
+    for (const v_cb35cb of [11, 15, 19, 21, 25, 29]) expect(v_8e0f80(v_cb35cb)).toBe(false);
   });
   it('서버 cadence 커스텀(2/1): 2부터 매 라운드', () => {
     const v_3f4e2e = { firstRound: 2, interval: 1 };
