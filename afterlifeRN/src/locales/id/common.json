@@ -2393,6 +2393,8 @@
     "receivedTitle": "{{name}} mengirim {{gift}}",
     "toClone": "Ke klon {{name}}",
     "toUnknownClone": "Ke klon",
+    "subTabReferral": "Referal",
+    "emptyReferralGift": "Belum ada hadiah referal",
     "adRewardSender": "Hadiah iklan",
     "referralRewardSender": "Hadiah referal",
     "referralRewardTitle": "Diterima karena daftar dengan kode referal",

@@ -2381,6 +2381,8 @@
     "subTabClone": "클론",
     "subTabFromUser": "유저에게 받음",
     "subTabFromClone": "클론에게 받음",
+    "subTabReferral": "추천인",
+    "emptyReferralGift": "아직 추천 보상이 없어요",
     "badgeFromUser": "유저에게 받음",
     "badgeFromClone": "클론에게 받음",
     "receivedSearchPlaceholder": "보낸 사람, 클론 이름 검색",

@@ -2389,6 +2389,8 @@
     "receivedTitle": "{{name}}送了{{gift}}",
     "toClone": "送给{{name}}克隆",
     "toUnknownClone": "送给克隆",
+    "subTabReferral": "推荐",
+    "emptyReferralGift": "还没有推荐奖励",
     "adRewardSender": "广告奖励",
     "referralRewardSender": "推荐奖励",
     "referralRewardTitle": "使用推荐码注册获得",

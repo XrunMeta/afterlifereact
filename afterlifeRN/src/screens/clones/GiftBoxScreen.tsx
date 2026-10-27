@@ -457,7 +457,7 @@ function v_8345ff(v_1833e7): string {
   return v_73a570[v_65a2cd];
 }
 
-type ReceivedSubTab = "all" | "user" | "clone";
+type ReceivedSubTab = "all" | "user" | "clone" | "referral";
 
 function v_6da59e({
   items: v_4622b9,
@@ -510,11 +510,13 @@ function v_6da59e({
     () => v_4622b9.filter((v_23805a) => v_23805a.kind === "ad_reward" && !v_23805a.rewardSource).length,
     [v_4622b9],
   );
+  const v_88a2ce = v_df9f57(() => v_4622b9.filter((v_23805a) => !!v_23805a.rewardSource).length, [v_4622b9]);
 
   const v_e4cf17 = v_df9f57(() => {
     let v_ef8ab1 = v_4622b9;
     if (v_4abce2 === "user") v_ef8ab1 = v_ef8ab1.filter((v_23805a) => v_23805a.kind === "received");
     else if (v_4abce2 === "clone") v_ef8ab1 = v_ef8ab1.filter((v_23805a) => v_23805a.kind === "ad_reward" && !v_23805a.rewardSource);
+    else if (v_4abce2 === "referral") v_ef8ab1 = v_ef8ab1.filter((v_23805a) => !!v_23805a.rewardSource);
     if (!v_ab6401) return v_ef8ab1;
     return v_ef8ab1.filter((v_23805a) => {
       const v_eddf67 = v_44c2cb(v_23805a, v_8d41d7).toLowerCase();
@@ -551,6 +553,11 @@ function v_6da59e({
       label: v_8d41d7("giftBox.subTabFromClone", { defaultValue: "클론에게 받음" }),
       count: v_396c6c,
     },
+    {
+      key: "referral",
+      label: v_8d41d7("giftBox.subTabReferral", { defaultValue: "추천인" }),
+      count: v_88a2ce,
+    },
   ];
 
   const v_6e7fc2 =
@@ -560,7 +567,9 @@ function v_6da59e({
         ? v_8d41d7("dashboard.emptyGift", { defaultValue: "아직 받은 선물이 없어요" })
         : v_4abce2 === "user"
           ? v_8d41d7("giftBox.emptyUserGift", { defaultValue: "아직 유저가 보낸 선물이 없어요" })
-          : v_8d41d7("giftBox.emptyCloneGift", { defaultValue: "아직 클론한테 받은 보상이 없어요" });
+          : v_4abce2 === "clone"
+            ? v_8d41d7("giftBox.emptyCloneGift", { defaultValue: "아직 클론한테 받은 보상이 없어요" })
+            : v_8d41d7("giftBox.emptyReferralGift", { defaultValue: "아직 추천 보상이 없어요" });
 
   return (
     <View>
