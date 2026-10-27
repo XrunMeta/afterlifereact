@@ -2428,6 +2428,8 @@
     "pm": "下午",
     "toastBelowMin": "从{{min}}朵起可兑换（手续费每{{unit}}朵另加{{fee}}朵）",
     "toastOverMax": "扣除手续费（每{{unit}}朵{{fee}}朵）后最多可兑换{{max}}朵",
+    "toastBelowMinFlat": "{{min}}朵起可兑换（每次兑换另收手续费{{fee}}朵）",
+    "toastOverMaxFlat": "扣除手续费（{{fee}}朵）后最多可兑换{{max}}朵",
     "toastDuplicate": "已有兑换正在处理中",
     "toastEmptyQty": "请输入要兑换的数量",
     "p1Title": "要兑换{{name}} {{qty}}朵吗？",

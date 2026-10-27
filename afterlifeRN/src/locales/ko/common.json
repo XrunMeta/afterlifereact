@@ -2455,6 +2455,8 @@
     "pm": "오후",
     "toastBelowMin": "{{min}}송이부터 교환할 수 있어요 (수수료 {{unit}}송이당 {{fee}}송이 별도)",
     "toastOverMax": "수수료({{unit}}송이당 {{fee}}송이)를 빼고 최대 {{max}}송이까지 교환할 수 있어요",
+    "toastBelowMinFlat": "{{min}}송이부터 교환할 수 있어요 (수수료 교환 1회당 {{fee}}송이 별도)",
+    "toastOverMaxFlat": "수수료({{fee}}송이)를 빼고 최대 {{max}}송이까지 교환할 수 있어요",
     "toastDuplicate": "이미 교환을 처리하고 있어요",
     "toastEmptyQty": "교환할 수량을 입력해주세요",
     "p1Title": "{{name}} {{qty}}송이를 교환할까요?",
