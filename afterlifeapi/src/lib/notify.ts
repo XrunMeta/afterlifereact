@@ -4,6 +4,8 @@ import type { v_273a0c } from "./env";
 import { v_a71d8b } from "./gmail";
 import { v_51b1f7 } from "./expoPush";
 import { v_74c502 } from "./cloneAccess";
+import { v_3f8b7c } from "./deactivation";
+import { v_8cf86b } from "./utils";
 
 export type NotificationType =
   | "invite_received"
@@ -23,7 +25,9 @@ export type NotificationType =
 
   | "moderation"
 
-  | "clone_message";
+  | "clone_message"
+
+  | "referral_reward";
 
 export interface NotifyOptions {
 
@@ -100,6 +104,10 @@ export async function v_c226a5(env: v_273a0c, v_328259): Promise<NotifyResult> {
   let v_871c5a = 0;
   let v_49ca22 = 0;
   let v_c5c953 = false;
+
+  if (v_328259.userId && (await v_3f8b7c(v_c9c489, v_328259.userId).catch(() => false))) {
+    return { inserted: v_81161e, pushAttempted: v_871c5a, pushSent: v_49ca22, emailSent: v_c5c953 };
+  }
 
   const v_762d02 = v_328259.userId ? await v_5f5ee2(v_c9c489, v_328259.userId, v_328259.type) : true;
 
@@ -198,7 +206,7 @@ export async function v_80a022(
       .prepare(`SELECT name, email FROM users WHERE id = ?`)
       .bind(v_4317d1.actorId)
       .first<{ name: string | null; email: string | null }>();
-    const v_6dd0ab = v_380fb2?.name || v_380fb2?.email?.split("@")[0] || "누군가";
+    const v_6dd0ab = v_380fb2?.name || v_8cf86b(v_380fb2?.email) || "누군가";
 
     let v_9f1622 = "";
     let v_4d33b2 = "";

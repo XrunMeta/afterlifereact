@@ -55,12 +55,7 @@ export default function v_1619c2() {
           {
 
             key: "deactivate", icon: "pause-circle", labelKey: "my.menu.deactivate", label: "계정 비활성화 (일시정지)",
-            descKey: "my.menu.deactivateDesc",
-            onPress: () =>
-              v_889fad(
-                v_8d41d7("my.menu.deactivate", { defaultValue: "계정 비활성화 (일시정지)" }),
-                v_8d41d7("my.deactivate.soon", { defaultValue: "준비 중이에요." }),
-              ),
+            descKey: "my.menu.deactivateDesc", onPress: () => v_c65f5d.navigate("DeactivateAccount"),
           },
           {
             key: "delete", icon: "trash-2", labelKey: "settings.privacy.deleteAccount", label: "회원 탈퇴",

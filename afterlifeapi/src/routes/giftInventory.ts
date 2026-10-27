@@ -47,7 +47,8 @@ v_0bc486.post(
     }
 
     const v_b9fbb4 = await v_3f4e2e.env.DB
-      .prepare(`SELECT id FROM users WHERE id = ? AND deleted_at IS NULL`)
+
+      .prepare(`SELECT id FROM users WHERE id = ? AND deleted_at IS NULL AND deactivated_at IS NULL`)
       .bind(v_4d33b2.toUserId)
       .first<{ id: number }>();
     if (!v_b9fbb4) throw new v_3ebe58("NOT_FOUND", "받을 사용자를 찾을 수 없어요.");
@@ -119,24 +120,24 @@ v_0bc486.post(
              updated_at = strftime('%s','now')`,
         )
         .bind(v_4d33b2.toUserId, v_4d33b2.giftId),
-
       v_3f4e2e.env.DB
         .prepare(
           `INSERT INTO gift_inventory_events (user_id, counterpart_user_id, gift_id, count, xrun_amount, kind, ref_id,
-                                               clone_id, gift_name_snapshot, gift_emoji_snapshot, gift_image_url_snapshot)
-             VALUES (?, ?, ?, 1, ?, 'sent', ?, ?, ?, ?, ?)`,
+                                               clone_id, gift_name_snapshot, gift_emoji_snapshot, gift_image_url_snapshot,
+                                               claimed_at)
+             VALUES (?, ?, ?, 1, ?, 'sent', ?, ?, ?, ?, ?, strftime('%s','now'))`,
         )
         .bind(v_f7e120, v_4d33b2.toUserId, v_4d33b2.giftId, v_4547b1, v_62c866,
               v_a97aa2, v_5097fd, v_56896b, v_92e7a1),
       v_3f4e2e.env.DB
         .prepare(
           `INSERT INTO gift_inventory_events (user_id, counterpart_user_id, gift_id, count, xrun_amount, kind, ref_id,
-                                               clone_id, gift_name_snapshot, gift_emoji_snapshot, gift_image_url_snapshot)
-             VALUES (?, ?, ?, 1, ?, 'received', ?, ?, ?, ?, ?)`,
+                                               clone_id, gift_name_snapshot, gift_emoji_snapshot, gift_image_url_snapshot,
+                                               claimed_at)
+             VALUES (?, ?, ?, 1, ?, 'received', ?, ?, ?, ?, ?, strftime('%s','now'))`,
         )
         .bind(v_4d33b2.toUserId, v_f7e120, v_4d33b2.giftId, v_4547b1, v_62c866,
               v_a97aa2, v_5097fd, v_56896b, v_92e7a1),
-
       v_3f4e2e.env.DB
         .prepare(
           `INSERT INTO user_gift_lots (user_id, gift_id, received_at, count_received, count_remaining, xrun_price_snapshot)
@@ -197,6 +198,13 @@ v_0bc486.get("/inventory", v_6690d9, async (v_3f4e2e) => {
   return v_3f4e2e.json({ items: v_4622b9 });
 });
 
+const v_9a7b9d = ["received", "ad_reward", "sent", "exchanged"];
+function v_bf1264(v_94302c): string[] {
+  if (v_94302c === "received") return ["received", "ad_reward"];
+  if (v_94302c === "sent") return ["sent"];
+  return v_9a7b9d;
+}
+
 v_0bc486.get("/activity-log", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
   const v_f71b56 = new URL(v_3f4e2e.req.url);
@@ -204,11 +212,14 @@ v_0bc486.get("/activity-log", v_6690d9, async (v_3f4e2e) => {
   const v_02be30 = Math.max(1, Math.min(200, Number.isFinite(v_cf2260) ? v_cf2260 : 50));
   const v_40e259 = Number(v_f71b56.searchParams.get("offset") ?? 0);
   const v_3bbadf = Math.max(0, Number.isFinite(v_40e259) ? v_40e259 : 0);
+  const v_28c2de = v_bf1264(v_f71b56.searchParams.get("kind"));
+  const v_8b630e = v_28c2de.map(() => "?").join(", ");
 
   const v_18b8bf = await v_3f4e2e.env.DB
     .prepare(
       `SELECT e.id                        AS id,
               e.kind                      AS kind,
+              e.ref_id                    AS refId,
               e.counterpart_user_id       AS counterpartId,
               cp.email                    AS counterpartEmail,
               cp.name                     AS counterpartName,
@@ -223,18 +234,20 @@ v_0bc486.get("/activity-log", v_6690d9, async (v_3f4e2e) => {
               e.gift_image_url_snapshot   AS giftImageUrlSnap,
               e.count                     AS count,
               e.xrun_amount               AS xrunAmount,
-              e.created_at                AS createdAtSec
+              e.created_at                AS createdAtSec,
+              e.claimed_at                AS claimedAtSec
          FROM gift_inventory_events e
          LEFT JOIN users  cp ON cp.id = e.counterpart_user_id
          LEFT JOIN clones c  ON c.id  = e.clone_id
-        WHERE e.user_id = ? AND e.kind IN ('received', 'ad_reward', 'sent', 'exchanged')
-        ORDER BY e.created_at DESC
+        WHERE e.user_id = ? AND e.kind IN (${v_8b630e})
+        ORDER BY e.created_at DESC, e.id DESC
         LIMIT ? OFFSET ?`,
     )
-    .bind(v_43e90c, v_02be30, v_3bbadf)
+    .bind(v_43e90c, ...v_28c2de, v_02be30, v_3bbadf)
     .all<{
       id: number;
       kind: string;
+      refId: string | null;
       counterpartId: number | null;
       counterpartEmail: string | null;
       counterpartName: string | null;
@@ -250,15 +263,24 @@ v_0bc486.get("/activity-log", v_6690d9, async (v_3f4e2e) => {
       count: number;
       xrunAmount: number;
       createdAtSec: number;
+      claimedAtSec: number | null;
     }>();
 
   const v_679404 = await v_3f4e2e.env.DB
     .prepare(
       `SELECT COUNT(*) AS n FROM gift_inventory_events
-        WHERE user_id = ? AND kind IN ('received', 'ad_reward', 'sent', 'exchanged')`,
+        WHERE user_id = ? AND kind IN (${v_8b630e})`,
+    )
+    .bind(v_43e90c, ...v_28c2de)
+    .first<{ n: number }>();
+
+  const v_e52c8b = await v_3f4e2e.env.DB
+    .prepare(
+      `SELECT COALESCE(SUM(count), 0) AS totalSent FROM gift_inventory_events
+        WHERE user_id = ? AND kind = 'sent'`,
     )
     .bind(v_43e90c)
-    .first<{ n: number }>();
+    .first<{ totalSent: number }>();
 
   const v_9ba17d = await v_3f4e2e.env.DB
     .prepare(`SELECT COALESCE(SUM(total_received), 0) AS totalReceived FROM user_gift_inventory WHERE user_id = ?`)
@@ -278,6 +300,11 @@ v_0bc486.get("/activity-log", v_6690d9, async (v_3f4e2e) => {
     return {
       id: v_cb35cb.id,
       kind: v_cb35cb.kind, 
+
+      rewardSource:
+        v_cb35cb.kind === "ad_reward" && String(v_cb35cb.refId ?? "").startsWith("referral:")
+          ? String(v_cb35cb.refId).endsWith(":referrer") ? "referral_invite" : "referral"
+          : null,
       counterpartId: v_cb35cb.counterpartId,
       counterpartEmail: v_cb35cb.counterpartEmail,
       counterpartName: v_cb35cb.counterpartName,
@@ -293,6 +320,8 @@ v_0bc486.get("/activity-log", v_6690d9, async (v_3f4e2e) => {
       count: v_cb35cb.count,
       xrunAmount: v_cb35cb.xrunAmount,
       createdAt: new Date(v_cb35cb.createdAtSec * 1000).toISOString(),
+
+      claimedAt: v_cb35cb.claimedAtSec != null ? new Date(v_cb35cb.claimedAtSec * 1000).toISOString() : null,
     };
   });
 
@@ -300,9 +329,81 @@ v_0bc486.get("/activity-log", v_6690d9, async (v_3f4e2e) => {
     items: v_4622b9,
     total: v_679404?.n ?? 0,
     totalReceived: v_9ba17d?.totalReceived ?? 0,
+    totalSent: v_e52c8b?.totalSent ?? 0,
     currentOwned: v_b5069d?.currentOwned ?? 0,
     limit: v_02be30,
     offset: v_3bbadf,
+  });
+});
+
+v_0bc486.post("/activity-log/:id/claim", v_6690d9, async (v_3f4e2e) => {
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_2c44c0 = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isFinite(v_2c44c0) || v_2c44c0 <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "invalid activity id");
+  }
+
+  const v_9e6ec9 = await v_3f4e2e.env.DB
+    .prepare(
+      `SELECT id, user_id, kind, gift_id, count
+         FROM gift_inventory_events
+        WHERE id = ? AND user_id = ? AND claimed_at IS NULL
+          AND (kind = 'received' OR (kind = 'ad_reward' AND ref_id LIKE 'referral:%'))`,
+    )
+    .bind(v_2c44c0, v_43e90c)
+    .first<{ id: number; user_id: number; kind: string; gift_id: string; count: number }>();
+  if (!v_9e6ec9) {
+    throw new v_3ebe58("NOT_FOUND", "수령할 선물이 없거나 이미 받았어요.");
+  }
+
+  const v_dbebe7 = await v_0edc13(v_3f4e2e.env);
+  const v_8c0b26 = v_dbebe7.find((v_206b88) => v_206b88.id === v_9e6ec9.gift_id);
+  const v_f9c48b =
+    v_8c0b26 && typeof (v_8c0b26 as any).xrunPrice === "number" && (v_8c0b26 as any).xrunPrice > 0
+      ? Number((v_8c0b26 as any).xrunPrice)
+      : 0.01;
+
+  const v_b1eff4 = await v_3f4e2e.env.DB
+    .prepare(
+      `UPDATE gift_inventory_events
+          SET claimed_at = strftime('%s','now')
+        WHERE id = ? AND user_id = ? AND claimed_at IS NULL`,
+    )
+    .bind(v_2c44c0, v_43e90c)
+    .run();
+  if ((v_b1eff4.meta?.changes ?? 0) === 0) {
+    throw new v_3ebe58("CONFLICT", "이미 수령된 선물이에요.");
+  }
+
+  await v_3f4e2e.env.DB.batch([
+    v_3f4e2e.env.DB
+      .prepare(
+        `INSERT INTO user_gift_inventory (user_id, gift_id, count, total_received, updated_at)
+           VALUES (?, ?, ?, ?, strftime('%s','now'))
+         ON CONFLICT(user_id, gift_id) DO UPDATE SET
+           count = count + ?,
+           total_received = total_received + ?,
+           updated_at = strftime('%s','now')`,
+      )
+      .bind(v_43e90c, v_9e6ec9.gift_id, v_9e6ec9.count, v_9e6ec9.count, v_9e6ec9.count, v_9e6ec9.count),
+    v_3f4e2e.env.DB
+      .prepare(
+        `INSERT INTO user_gift_lots (user_id, gift_id, received_at, count_received, count_remaining, xrun_price_snapshot)
+           VALUES (?, ?, strftime('%s','now'), ?, ?, ?)`,
+      )
+      .bind(v_43e90c, v_9e6ec9.gift_id, v_9e6ec9.count, v_9e6ec9.count, v_f9c48b),
+  ]);
+
+  await v_74defc(v_3f4e2e, {
+    userId: v_43e90c,
+    action: "gift.claimed",
+    details: { eventId: v_2c44c0, giftId: v_9e6ec9.gift_id, count: v_9e6ec9.count },
+  });
+
+  return v_3f4e2e.json({
+    ok: true,
+    id: v_2c44c0,
+    claimedAt: new Date().toISOString(),
   });
 });
 
@@ -462,9 +563,11 @@ v_0bc486.post("/ad-reward-grant", v_6690d9, async (v_3f4e2e) => {
       .bind(v_43e90c, v_96f93d),
     v_3f4e2e.env.DB
       .prepare(
+
         `INSERT INTO gift_inventory_events (user_id, counterpart_user_id, gift_id, count, xrun_amount, kind, ref_id,
-                                             clone_id, gift_name_snapshot, gift_emoji_snapshot, gift_image_url_snapshot)
-           VALUES (?, NULL, ?, 1, 0, 'ad_reward', ?, ?, ?, ?, ?)`,
+                                             clone_id, gift_name_snapshot, gift_emoji_snapshot, gift_image_url_snapshot,
+                                             claimed_at)
+           VALUES (?, NULL, ?, 1, 0, 'ad_reward', ?, ?, ?, ?, ?, strftime('%s','now'))`,
       )
       .bind(v_43e90c, v_96f93d, v_a0e308, v_a97aa2, v_5097fd, v_56896b, v_92e7a1),
 

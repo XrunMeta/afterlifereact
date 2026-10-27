@@ -1,4 +1,4 @@
-import { v_b7c41b } from "zmui";
+import { v_b7c41b, type v_437670 } from "zmui";
 import type { v_de0a25 } from "../lib/env";
 import { v_3ebe58 } from "../lib/errors";
 import { v_4c95c2, v_1f4ea7 } from "../lib/validate";
@@ -17,7 +17,10 @@ import {
   v_5d4a51,
   v_efcb2d,
   v_d875d1,
+  type v_b107dc,
+  type v_96af67,
 } from "../lib/cloneAccess";
+import { v_3ca92e } from "../lib/deactivation";
 import { v_9c8187, v_55eb2a, v_3821c0, v_5729a9 } from "../lib/memoryStore";
 import {
   v_dd9d7c,
@@ -33,11 +36,12 @@ import { v_0b44ec } from "../lib/personaQuestions";
 import { v_70b594 } from "../lib/knowledgeQuestions";
 import { v_038cdc } from "../lib/knowledgeStore";
 import { v_71b908, v_cba618 } from "../lib/knowledgeBlacklist";
-import { v_041f8e, v_4b949c, v_5193f8, v_f64843 } from "../lib/assetJobs";
-import { v_5acfc3 } from "../lib/utils";
+import { v_041f8e, v_4b949c, v_5193f8, v_f64843, v_689a90 } from "../lib/assetJobs";
+import { v_8cf86b, v_5acfc3 } from "../lib/utils";
 import { v_67dc73 } from "../lib/prebuildClient";
 import { v_842ce7 } from "../lib/guideJob";
 import { v_4c5429 } from "../lib/cloneFaceScope";
+import { v_94652e } from "../lib/faceApiConsent";
 import { v_d0fd96 } from "../lib/displayName";
 
 export const v_f891e6 = new v_b7c41b<v_de0a25>();
@@ -448,6 +452,8 @@ v_f891e6.post(
         await v_3f4e2e.env.DB.prepare(`UPDATE clones SET ${v_c8b83f} = ? WHERE id = ?`)
           .bind(v_d5ec97.out_url, v_6e0fd3)
           .run();
+
+        await v_f64843(v_3f4e2e.env.DB, v_04211c, v_6e0fd3);
       } else {
 
         await v_f64843(v_3f4e2e.env.DB, v_04211c, v_6e0fd3);
@@ -551,7 +557,7 @@ v_f891e6.post(
           .bind(v_43e90c)
           .first<{ name: string | null; email: string | null }>();
         const v_6dd0ab =
-          v_380fb2?.name || v_380fb2?.email?.split("@")[0] || "누군가";
+          v_380fb2?.name || v_8cf86b(v_380fb2?.email) || "누군가";
         const v_823f08 = await v_a1651b
           .prepare(`SELECT follower_id FROM user_follows WHERE followee_id = ?`)
           .bind(v_43e90c)
@@ -1217,6 +1223,11 @@ v_f891e6.post("/asset-job", v_6690d9, async (v_3f4e2e) => {
 
   const v_59b4e0 = await v_041f8e(v_3f4e2e.env.DB, v_04211c, v_43e90c, v_94302c, v_2fa661);
 
+  if (v_94302c === "voice_clone") {
+    await v_689a90(v_3f4e2e.env.DB, v_04211c, `${new URL(v_3f4e2e.req.url).origin}/oth-path${v_4de33e.id}`);
+    return v_3f4e2e.json({ job_id: v_04211c, status: "done" }, 201);
+  }
+
   if (v_3f4e2e.env.ORCHESTRATOR_URL && v_3f4e2e.env.ORCH_SECRET) {
     const v_f17108 = new URL(v_3f4e2e.req.url).origin;
     const v_0ad77a = `${v_f17108}/oth-path${v_4de33e.id}`;
@@ -1258,14 +1269,11 @@ v_f891e6.get("/asset-job/:id", v_6690d9, async (v_3f4e2e) => {
   });
 });
 
-v_f891e6.get("/:id", async (v_3f4e2e) => {
-  const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
-  if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
-    throw new v_3ebe58("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
-  }
-  const v_eb25ce = await v_5d4a51(v_3f4e2e.env.DB, v_6e0fd3);
-  if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "페르소나를 찾을 수 없어요.");
-
+async function v_2635f9(
+  c: v_437670<v_de0a25>,
+  clone: v_b107dc,
+  v_328259 = {},
+): Promise<{ userId: number | null; viewerRole: v_96af67 | null }> {
   const v_43e90c = await v_efcb2d(v_3f4e2e);
   const v_00efe2 = await v_d875d1(v_3f4e2e.env.DB, v_eb25ce, v_43e90c);
 
@@ -1282,14 +1290,27 @@ v_f891e6.get("/:id", async (v_3f4e2e) => {
           .prepare(
             `SELECT 1 FROM clone_allowed_viewers WHERE clone_id = ? AND user_id = ? LIMIT 1`,
           )
-          .bind(v_6e0fd3, v_43e90c)
+          .bind(v_eb25ce.id, v_43e90c)
           .first();
     if (!v_030f63) throw new v_3ebe58("FORBIDDEN", "이 페르소나에 접근할 권한이 없어요.");
   }
 
   if (v_a697ec(v_eb25ce, v_00efe2)) {
+    if (v_328259.suspendedAs404) throw new v_3ebe58("NOT_FOUND", "페르소나를 찾을 수 없어요.");
     throw new v_3ebe58("FORBIDDEN", "이 페르소나는 현재 일시 중지 상태예요.");
   }
+  return { userId: v_43e90c, viewerRole: v_00efe2 };
+}
+
+v_f891e6.get("/:id", async (v_3f4e2e) => {
+  const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
+  }
+  const v_eb25ce = await v_5d4a51(v_3f4e2e.env.DB, v_6e0fd3);
+  if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "페르소나를 찾을 수 없어요.");
+
+  const { userId: v_43e90c, viewerRole: v_00efe2 } = await v_2635f9(v_3f4e2e, v_eb25ce);
 
   const v_774c91 = (
     await v_3f4e2e.env.DB
@@ -1774,6 +1795,10 @@ v_f891e6.get("/:id/followers", async (v_3f4e2e) => {
   if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
     throw new v_3ebe58("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
   }
+
+  const v_eb25ce = await v_5d4a51(v_3f4e2e.env.DB, v_6e0fd3);
+  if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "페르소나를 찾을 수 없어요.");
+  await v_2635f9(v_3f4e2e, v_eb25ce, { suspendedAs404: true });
   const v_f71b56 = new URL(v_3f4e2e.req.url);
   const v_cf2260 = Number(v_f71b56.searchParams.get("limit") ?? 50);
   const v_02be30 = Math.max(1, Math.min(200, Number.isFinite(v_cf2260) ? v_cf2260 : 50));
@@ -1794,7 +1819,7 @@ v_f891e6.get("/:id/followers", async (v_3f4e2e) => {
                 u.avatar_url AS userAvatarUrl
            FROM clone_follows cf
            JOIN users u ON u.id = cf.user_id
-          WHERE cf.clone_id = ? AND u.deleted_at IS NULL${v_fb635a}
+          WHERE cf.clone_id = ? AND u.deleted_at IS NULL AND ${v_3ca92e("u.id")}${v_fb635a}
           ORDER BY cf.id DESC
           LIMIT ?`,
       )
@@ -1813,7 +1838,7 @@ v_f891e6.get("/:id/followers", async (v_3f4e2e) => {
       followId: v_cb35cb.followId,
       userId: v_cb35cb.userId,
       name: v_cb35cb.userName,
-      email: v_cb35cb.userEmail,
+      email: v_8cf86b(v_cb35cb.userEmail),
       avatarUrl: v_cb35cb.userAvatarUrl,
       createdAt: v_cb35cb.createdAt,
     })),
@@ -1872,7 +1897,10 @@ v_f891e6.post("/:id/gift", v_6690d9, async (v_3f4e2e) => {
   }
 
   const v_eb25ce = await v_3f4e2e.env.DB
-    .prepare(`SELECT id, owner_id, admin_suspended_at FROM clones WHERE id = ? AND ${v_74c502()}`)
+
+    .prepare(`SELECT id, owner_id,
+                     COALESCE(admin_suspended_at, (SELECT u.deactivated_at FROM users u WHERE u.id = clones.owner_id)) AS admin_suspended_at
+                FROM clones WHERE id = ? AND ${v_74c502()}`)
     .bind(v_6e0fd3)
     .first<{ id: number; owner_id: number; admin_suspended_at: string | null }>();
   if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "페르소나를 찾을 수 없어요.");
@@ -2204,6 +2232,8 @@ v_f891e6.get("/:id/gifts/summary", v_6690d9, async (v_3f4e2e) => {
   const v_eb25ce = await v_5d4a51(v_a1651b, v_6e0fd3);
   if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "페르소나를 찾을 수 없어요.");
 
+  await v_2635f9(v_3f4e2e, v_eb25ce);
+
   const v_18b8bf = await v_a1651b
     .prepare(
       `SELECT g.gift_id, g.gift_name,
@@ -2237,6 +2267,7 @@ v_f891e6.get("/:id/gifts/summary", v_6690d9, async (v_3f4e2e) => {
 
 v_f891e6.post("/:cloneId/self-confirm", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
+  await v_94652e(v_3f4e2e.env, v_43e90c, "/oth-path"); 
   const v_6e0fd3 = Number(v_3f4e2e.req.param("cloneId"));
   if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0)
     throw new v_3ebe58("VALIDATION_FAILED", "cloneId: 양의 정수여야 합니다");

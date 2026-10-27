@@ -114,6 +114,9 @@
       "clone_gift": {
         "title": "🎁 收到礼物"
       },
+      "referral_reward": {
+        "title": "🎁 推荐奖励已到账"
+      },
       "intimacy_score": {
         "title": "🌡️ +{{score}}°C 温度上升"
       },
@@ -348,9 +351,18 @@
     "sort": "排序",
     "sortRecent": "最近对话",
     "sortIntimacy": "亲密度从高到低",
+    "sortIntimacyAsc": "亲密度从低到高",
     "sortName": "按名称",
     "adBannerFallback": "横幅广告",
     "deleteMessageTitle": "删除消息",
+    "copy": "复制",
+    "selectCopy": "选择复制",
+    "selectCopyHint": "长按可调整范围并复制",
+    "reply": "回复",
+    "replyingTo": "回复 {{name}}",
+    "replyDeleted": "已删除的消息",
+    "replyCancelA11y": "取消回复",
+    "reactionA11y": "{{emoji}} 回应",
     "notifyOff": "关闭通知",
     "notifyOn": "开启通知",
     "callAction": "通话",
@@ -473,7 +485,8 @@
     "faceConsentPrompt": {
       "title": "人脸识别同意",
       "desc": "为在通话中识别说话人，需要以下同意。（可选）",
-      "agree": "同意"
+      "agree": "同意",
+      "continue": "直接继续"
     },
     "poorConnection": "通话信号不佳\n请重新拨打",
     "giftInsufficientTitle": "XRUN 不足",
@@ -751,7 +764,7 @@
     },
     "delete": {
       "title": "注销账号",
-      "desc": "确定要注销吗？\n所有数据将被删除且无法恢复。",
+      "desc": "确定要注销吗？\n注销后所有数据（积分、使用记录、保存的内容）将被删除且无法恢复。",
       "userFallback": "会员",
       "stay": "取消",
       "leave": "注销",
@@ -832,7 +845,7 @@
       "faceDetect": "人脸检测",
       "faceDetectDesc": "记得我的克隆",
       "faceRecognition": "人脸识别同意",
-      "faceRecognitionDesc": "静默自动注册 · 人脸识别条款 · 通话学习"
+      "faceRecognitionDesc": "允许人脸识别 · 人脸识别条款 · 通话学习"
     },
     "logout": {
       "title": "要退出登录吗?",
@@ -899,8 +912,8 @@
       "accountLocked": "账户已被锁定。请约 10 分钟后重试，或通过找回密码重置。",
       "accountDeletedTitle": "已注销的账户",
       "accountDeletedMessage": "该账户已完成注销，无法再次登录。",
-      "accountSuspendedTitle": "账户已被停用",
-      "accountSuspendedMessage": "因举报累积，账户已被停用。",
+      "accountSuspendedTitle": "账号已被暂停。",
+      "accountSuspendedMessage": "由于违反服务运营政策，您的账号已被暂停使用。\n联系: oth-staff@example.invalid",
       "googleUnavailableTitle": "无法使用 Google 登录",
       "googleUnavailableMessage": "请稍后再试。",
       "googleNoToken": "未能获取 Google 登录令牌。",
@@ -1020,6 +1033,14 @@
       "emailInvalid": "邮箱格式不正确。（例如：hello@example.com）",
       "passwordTooShort": "密码需包含大小写字母和数字，且不少于 7 位。",
       "passwordsNotMatch": "两次密码不一致。",
+      "referral": "推荐码",
+      "referralPlaceholder": "6位推荐码",
+      "referralCheck": "确认",
+      "referralNotFound": "找不到该推荐码，请重新确认或留空。",
+      "referralNotFoundShort": "推荐码不存在",
+      "referralOk": "{{name}} 将登记为推荐人",
+      "referralOkNoName": "推荐码已确认",
+      "referralHint": "输入推荐码，你和推荐人都能获得鲜花",
       "phoneTooShort": "请输入不少于 4 位的电话号码。",
       "termsAccept": "请同意用户协议。",
       "ageInvalid": "请输入 13～120 之间的年龄数字。",
@@ -1095,6 +1116,12 @@
       "submit": "开始使用 afterlife",
       "googleOnboardingDesc": "首次使用 Google 账户，请填写一次基本信息。",
       "submitting": "处理中..."
+    },
+    "deactivated": {
+      "title": "该账号已停用。",
+      "message": "重新登录并恢复账号和 AI 克隆吗？",
+      "activate": "启用",
+      "failed": "无法启用，请重新登录。"
     }
   },
   "create": {
@@ -1268,19 +1295,18 @@
       "recordStartFailedMsg": "无法开始录音，请稍后重试。",
       "chooseScriptHint": "请选择脚本并朗读。",
       "uploading": "上传中...",
-      "cloneJobRegistered": "克隆任务已注册",
       "recordDoneUploadFailed": "录音完成（上传失败 — 已重试）",
       "uploadPromptHint": "请上传语音文件",
       "pickAnother": "选择其他文件",
       "pickFile": "选择语音文件",
       "filePickedUploadFailed": "已选择文件（任务注册失败 — 已重试）",
       "scripts": {
-        "s1Title": "日常问候",
-        "s1Text": "您好，今天真是美好的一天。阳光温暖、微风轻柔，非常适合散步。这样宁静的时光让人格外珍惜。祝您也拥有愉快的一天。",
-        "s2Title": "美食故事",
-        "s2Text": "您最近最喜欢吃什么？我特别喜欢泡菜汤。浓郁的辣味加上热腾腾的汤，一口下去仿佛一整天的疲惫都消散了。尤其是下雨天喝，更加美味。",
-        "s3Title": "回忆往昔",
-        "s3Text": "童年回忆里最让我难忘的，是和家人一起去的那次海边旅行。海浪声、带着咸味的海风，还有在沙滩上奔跑玩耍的瞬间，至今仍历历在目。那时的幸福感又浮现出来了。"
+        "s1Title": "今天的一天",
+        "s1Text": "今天天气真的很好。吃完午饭我出去走了一下，太阳暖暖的，心情一下子就好起来了。所以我还特意绕了点路才回来。这种天气，什么都不想，就这么走走也很舒服，对吧？我已经在想晚饭吃什么了。",
+        "s2Title": "喜欢的食物",
+        "s2Text": "我特别喜欢喝热乎乎的汤。下雨天喝的话就更好喝了。喝上一口热汤，一天的累好像一下子就没了。你最近常吃什么呀？要是知道好吃的地方，也告诉我一下吧。",
+        "s3Title": "难忘的旅行",
+        "s3Text": "小时候跟家人一起去海边的事，我到现在还记得很清楚。我们一边听着海浪声，一边在沙滩上玩了一整天。晚上大家一起吃烤海鲜，真的特别好吃。现在想起来还会忍不住笑。真想再回到那一天，哪怕只有一次。"
       },
       "warnTooShortTitle": "文件太短",
       "warnTooShortMsg": "所选文件太短。声音训练需要 30 秒至 1 分钟的安静录音。请选择其他文件重新上传。",
@@ -1288,9 +1314,14 @@
       "warnTooLargeMsg": "所选文件太长。请剪辑为 30 秒至 1 分钟后重新上传。",
       "toastSilence": "声音太小，请大声一点。",
       "toastNoise": "周围太吵，请在安静的地方录音。",
+      "toastClipping": "声音太大，已经失真。请离麦克风稍远一点说话。",
+      "recordAbortedTitle": "录音已中断",
+      "recordAbortedMsg": "录音时离开了应用，录音已停止。请从头重新录音。",
       "recordQualityTitle": "录音质量检查",
       "recordQualitySilenceMsg": "录音中静音部分较多。请在安静的地方清晰地重新录制整句话。",
-      "recordQualityNoiseMsg": "录音中混入了环境噪音。在安静的地方重新录制，声音会自然得多。"
+      "recordQualityNoiseMsg": "录音中混入了环境噪音。在安静的地方重新录制，声音会自然得多。",
+      "registeredFile": "语音文件已成功登记。",
+      "registeredRecording": "录制的语音已成功登记。"
     },
     "visibility": {
       "memlowLocked": "追思克隆固定为不公开。仅共同管理员可见。",
@@ -1425,6 +1456,12 @@
       "videoPending": "视频准备中",
       "reuploadPhoto": "重新上传照片",
       "photoUploading": "照片上传中...",
+      "progressCreating": "正在创建克隆...",
+      "progressPosting": "正在发布...",
+      "progressDone": "发布完成",
+      "progressVideo": "等待视频生成...",
+      "progressReupload": "请重新上传照片",
+      "postButton": "发布",
       "photoRequired": "请先上传照片",
       "captionPlaceholder": "填写简介（例：#日常 #infp 喜欢 K-pop 歌曲）",
       "loginNeeded": "没有登录信息，请重新登录。",
@@ -1569,13 +1606,13 @@
       },
       "faceBiometric": {
         "sectionTitle": "面部识别（生物识别信息）",
-        "description": "在通话中无需单独确认卡，默默记住首次遇见的面孔，下一次通话即可更自然地识别。可随时开关。关闭后，通过此方式登记的说话人信息将被删除（手动登记的说话人不受影响）。",
-        "toggleLabel": "允许静默自动登记",
+        "description": "对话中使用人脸识别。",
+        "toggleLabel": "允许人脸识别（生物识别信息）",
         "saveError": "设置保存失败，请重试。",
-        "revokeConfirmTitle": "关闭静默自动登记",
-        "revokeConfirmMessage": "关闭后，通过此方式自动登记的所有说话人的面部识别信息将被立即删除。手动登记的说话人不受影响。此操作不可撤销。是否继续？",
+        "revokeConfirmTitle": "停用人脸识别",
+        "revokeConfirmMessage": "停用后，对话中将不再使用人脸识别，人脸识别信息会立即删除且无法恢复。确定要停用吗？",
         "retroPromptTitle": "是否同意使用面部识别（生物识别信息）？",
-        "retroPromptMessage": "同意后，通话中首次遇见的面孔将无需确认默默记住，下一次通话即可更自然地识别。可在设置中随时更改。",
+        "retroPromptMessage": "同意后，对话中将使用人脸识别。您可以随时在设置中更改。",
         "retroPromptAgree": "同意",
         "retroPromptDecline": "拒绝"
       },
@@ -1873,8 +1910,9 @@
     "later": "稍后添加"
   },
   "errors": {
+    "faceConsentRequired": "需要同意人脸识别。请在设置中开启“允许人脸识别(生物识别信息)”。",
     "accountDeleted": "该账号已注销。",
-    "accountSuspended": "由于举报累积,账号已被停用。",
+    "accountSuspended": "由于违反服务运营政策，您的账号已被暂停使用。\n联系: oth-staff@example.invalid",
     "accountSuspendedForPersona": "由于举报累积账号已被暂时停用,无法创建 克隆。",
     "accountLocked": "账号已暂时锁定,请稍后再试。",
     "tooManyFailures": "失败次数过多,请稍后再试。",
@@ -2191,6 +2229,11 @@
     "other": "其他"
   },
   "faceEnroll": {
+    "consentRequired": {
+      "title": "需要同意人脸识别",
+      "message": "要登记面孔，请在设置中开启“允许人脸识别（生物识别信息）”。",
+      "goSettings": "前往设置"
+    },
     "rescanNotice": "我们再确认一下面孔。",
     "permissionRequired": "需要摄像头权限。",
     "permissionSkip": "跳过登记直接通话",
@@ -2203,7 +2246,7 @@
       "title": "这位是谁?",
       "desc": "告诉我们姓名和关系,下次通话时就能认出来。",
       "existingLabel": "已登记的人 (从中选择会追加学习)",
-      "markSelf": "这张脸是我",
+      "markSelf": "保存我的面部信息",
       "alreadyRegistered": "{{name}}已经登记过了",
       "updateName": "更新名字",
       "existingHint": "如果是新的人,请在下方直接输入姓名",
@@ -2318,19 +2361,40 @@
     "tabReceived": "收到的礼物",
     "tabSent": "送出的礼物",
     "tabExchange": "兑换",
+    "subTabUser": "用户",
+    "subTabClone": "克隆",
+    "emptyUserGift": "还没有收到用户的礼物",
+    "emptyCloneGift": "还没有克隆奖励",
+    "watchAdClaim": "观看广告领取",
+    "watchAdClaimCount": "看广告领取{{count}}朵",
+    "claimFailTitle": "无法领取",
+    "claimFailMsg": "请稍后再试。",
     "exchangeable": "可兑换",
     "exchangeAction": "兑换",
+    "ownedCountTitle": "持有数量",
+    "ownedCountLabel": "持有数量",
+    "historyView": "查看记录",
+    "sentSearchPlaceholder": "搜索克隆名称",
+    "sentSearchNoMatch": "没有结果",
+    "subTabAll": "全部",
     "flowerUnit": "朵",
     "peopleUnit": "人",
     "ownedLabel": "持有中",
     "ownedEmpty": "暂无持有的礼物",
     "filterAll": "全部",
+    "filterClaimed": "已领取",
+    "filterPending": "待领取",
     "filterAnon": "仅匿名",
     "loadMore": "加载更多 ({{n}})",
     "receivedTitle": "{{name}}送了{{gift}}",
     "toClone": "送给{{name}}克隆",
     "toUnknownClone": "送给克隆",
+    "subTabReferral": "推荐",
+    "emptyReferralGift": "还没有推荐奖励",
     "adRewardSender": "广告奖励",
+    "referralRewardSender": "推荐奖励",
+    "referralRewardTitle": "使用推荐码注册获得",
+    "referralInviteTitle": "好友使用你的推荐码注册获得",
     "anonymous": "匿名",
     "someone": "对方",
     "sentThisMonth": "本月送出的礼物",
@@ -2390,7 +2454,27 @@
     "weekdayShortWed": "三",
     "weekdayShortThu": "四",
     "weekdayShortFri": "五",
-    "weekdayShortSat": "六"
+    "weekdayShortSat": "六",
+    "exchangeSheetTitle": "兑换为 XRUN",
+    "exchangeSheetTitleShort": "兑换",
+    "exchangeLoading": "正在确认兑换条件…",
+    "exchangeQtyLabel": "兑换数量",
+    "receiveQtyLabel": "到账数量",
+    "max": "最大",
+    "feeExchangeNotice": "扣除手续费 {{fee}} ROSE 后，将兑换 {{qty}} ROSE",
+    "exchangeNoCancel": "兑换后无法取消。",
+    "successFeeLine": "扣除手续费 {{fee}} ROSE 后兑换",
+    "successRemaining": "剩余 ROSE {{n}}",
+    "successWalletHint": "奖励可在 XRUN 钱包 > Afterlife 领取。",
+    "p4ReceiveReward": "前往 XRUN 领取奖励",
+    "feeRule": "每{{unit}}朵收{{fee}}朵 · {{total}}朵",
+    "totalDeduct": "共扣除",
+    "toastSnapped": "需以{{step}}朵为单位兑换（已调整为{{qty}}朵）",
+    "notEnoughTitle": "至少需要 {{need}} ROSE 才能兑换",
+    "noGiftTitle": "没有可兑换的礼物",
+    "noGiftBody": "与角色通话即可获得礼物。\n现在去通话吗？",
+    "goHome": "前往",
+    "notEnoughBody": "您目前有 {{owned}} ROSE。\n通过通话收集更多礼物吧。"
   },
   "sso": {
     "reconsent": {
@@ -2399,5 +2483,35 @@
       "saving": "处理中...",
       "continue": "同意并继续"
     }
+  },
+  "deactivate": {
+    "whatHappens": "停用后",
+    "verify": "身份验证",
+    "byPassword": "密码",
+    "byEmail": "邮箱验证（社交账号）",
+    "passwordPlaceholder": "输入密码",
+    "sendCode": "向注册邮箱发送验证码",
+    "resendCode": "重新发送验证码",
+    "codeSent": "已发送至 {{email}}。",
+    "codePlaceholder": "6位验证码",
+    "submit": "停用",
+    "confirmTitle": "要停用账号吗？",
+    "confirmBody": "所有设备将立即退出登录。",
+    "effect": {
+      "hide": "你的资料和创建的 AI 克隆将从首页、探索和搜索中隐藏，除共同管理员外其他人无法对话或通话。",
+      "posts": "你的帖子和评论将被隐藏。",
+      "interaction": "其他人无法向你发送礼物或分享。",
+      "notify": "所有通知将停止。",
+      "restore": "重新登录即可随时恢复，数据不会被删除。"
+    },
+    "verifyPassword": "身份验证 · 密码",
+    "verifyEmail": "身份验证 · 邮箱验证码"
+  },
+  "partner": {
+    "appsCaption": "相关应用",
+    "xrunTitle": "XRUN",
+    "xrunSub": "钱包 · 奖励 · 登录联动",
+    "clubxTitle": "ClubX",
+    "clubxSub": "俱乐部 · 道具"
   }
 }

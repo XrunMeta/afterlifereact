@@ -1,4 +1,5 @@
 import { v_889fad } from "../../stores/dialogStore";
+import { v_fec9c0 } from "../../lib/accountStatusAlert";
 import { v_c4deb2, v_5ab095 } from "bapkr";
 import v_e84827 from "bkjbgtcoyuizqwgwtnaxmfkyvlqwevapsqmanbsnv";
 import {
@@ -84,6 +85,31 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
     await v_232d52();
   };
 
+  const v_1f78cc = async (
+    v_a3ff5a,
+    v_bfe9b9,
+  ) => {
+    const v_9ec4c0 = await v_7ef860(v_a3ff5a.accessToken);
+    await v_31080f(v_a3ff5a.accessToken, v_9ec4c0.user, {
+      persist: v_f53eaa,
+      refreshToken: v_a3ff5a.refreshToken ?? null,
+    });
+    v_e41029(v_bfe9b9);
+    await v_679b55(v_9ec4c0.user.email);
+
+    try {
+      const { resetToMyClonesDashboard: v_a3ff58 } = await import("../../lib/resetToMyClonesDashboard");
+      await v_a3ff58();
+    } catch (v_49263d) {
+      console.warn("[AUTH/reactivate] nav reset failed:", v_49263d);
+    }
+  };
+  const v_bab7a9 = async (v_49263d, v_bfe9b9) =>
+    v_fec9c0(v_49263d, v_8d41d7, {
+      deviceId: await v_ea1c99(),
+      onReactivated: (v_fd5f43) => v_1f78cc(v_fd5f43, v_bfe9b9),
+    });
+
   v_c4deb2(() => {
     void (async () => {
       try {
@@ -152,6 +178,8 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
 
       await v_679b55(v_e0c7e8);
     } catch (v_49263d) {
+
+      if (await v_bab7a9(v_49263d, "email")) return;
 
       if (v_49263d instanceof v_84a859 && v_49263d.code === "ACCOUNT_DELETED") {
         v_889fad(v_8d41d7("auth.login.accountDeletedTitle"), v_8d41d7("auth.login.accountDeletedMessage"));
@@ -281,6 +309,7 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
         }
       } catch (v_49263d) {
         if (v_49263d?.code === v_8d3720.SIGN_IN_CANCELLED) return;
+        if (await v_bab7a9(v_49263d, "google")) return;
 
         if (v_49263d instanceof v_84a859 && v_49263d.code === "ACCOUNT_DELETED") {
           v_889fad(v_8d41d7("auth.login.accountDeletedTitle"), v_8d41d7("auth.login.accountDeletedMessage"));
@@ -336,6 +365,7 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
         await v_232d52();
       } catch (v_49263d) {
         if (v_49263d?.code === "ERR_REQUEST_CANCELED") return;
+        if (await v_bab7a9(v_49263d, "apple")) return;
         if (v_49263d instanceof v_84a859 && v_49263d.code === "ACCOUNT_DELETED") {
           v_889fad(v_8d41d7("auth.login.accountDeletedTitle"), v_8d41d7("auth.login.accountDeletedMessage"));
           return;
@@ -411,6 +441,10 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
                 onChangeText={v_52b279}
                 placeholder={v_8d41d7("auth.login.passwordLabel")}
                 secureTextEntry={!v_b5ab16}
+                autoCapitalize="none"
+                autoCorrect={false}
+                textContentType="password"
+                autoComplete="password"
                 leftIcon={<Feather name="lock" size={20} color={v_1bfbd0.zinc900} />}
                 rightIcon={
                   <TouchableOpacity onPress={() => v_b7733b(!v_b5ab16)}>

@@ -1,6 +1,8 @@
+import { v_1186b8 } from "../lib/deactivation";
 import { v_b7c41b, type v_437670 } from "zmui";
 import type { v_de0a25 } from "../lib/env";
 import { v_3ebe58 } from "../lib/errors";
+import { v_74defc } from "../lib/logger";
 import { v_09b071 } from "../scheduled/cleanup";
 import { v_c0a297, v_b09138 } from "../middleware/auth";
 import { v_4c95c2, v_1f4ea7 } from "../lib/validate";
@@ -23,6 +25,8 @@ import {
   v_8d6dec,
   v_9459da,
   v_705aa5,
+  v_866cbe,
+  v_70ad18,
   v_1e6592,
   v_52acfb,
   v_b61290,
@@ -206,6 +210,18 @@ v_b7f2b4.patch("/config/knowledge-rules", v_c0a297, async (v_3f4e2e) => {
 });
 
 const v_8295db = 200;
+
+v_b7f2b4.get("/config/referral-reward", v_c0a297, async (v_3f4e2e) => {
+  return v_3f4e2e.json(await v_866cbe(v_3f4e2e.env));
+});
+v_b7f2b4.patch("/config/referral-reward", v_c0a297, async (v_3f4e2e) => {
+  const v_148ff6 = (await v_3f4e2e.req.json().catch(() => ({}))) as { qty?: unknown };
+  const v_d016c9 = Number(v_148ff6.qty);
+  if (!Number.isInteger(v_d016c9) || v_d016c9 < 0 || v_d016c9 > 10000) {
+    throw new v_3ebe58("VALIDATION_FAILED", "qty 는 0~10000 정수여야 해요.");
+  }
+  return v_3f4e2e.json(await v_70ad18(v_3f4e2e.env, v_d016c9));
+});
 
 v_b7f2b4.get("/config/gift-exchange", v_c0a297, async (v_3f4e2e) => {
   return v_3f4e2e.json(await v_705aa5(v_3f4e2e.env));
@@ -1003,9 +1019,9 @@ v_b7f2b4.delete("/oth-path", v_c0a297, async (v_3f4e2e) => {
     }
   } catch {  }
   const v_3c8572 = await v_3f4e2e.env.DB
-    .prepare(`SELECT id, deletion_state FROM clones WHERE id = ?`)
+    .prepare(`SELECT id, owner_id, deletion_state FROM clones WHERE id = ?`)
     .bind(v_6e0fd3)
-    .first<{ id: number; deletion_state: string }>();
+    .first<{ id: number; owner_id: number; deletion_state: string }>();
   if (!v_3c8572) throw new v_3ebe58("NOT_FOUND", "Clone not found.");
   if (v_3c8572.deletion_state !== "active") {
     return v_3f4e2e.json({ ok: true, alreadyDeleted: true, deletionState: v_3c8572.deletion_state });
@@ -1027,6 +1043,12 @@ v_b7f2b4.delete("/oth-path", v_c0a297, async (v_3f4e2e) => {
     resourceType: "clone",
     resourceId: v_6e0fd3,
     reason: v_58ca36,
+  });
+
+  await v_74defc(v_3f4e2e, {
+    userId: v_3c8572.owner_id,
+    action: "clone.delete",
+    details: { cloneId: v_6e0fd3, state: "soft_deleted", by: "admin", adminUserId: v_105fc4, reason: v_58ca36 },
   });
   return v_3f4e2e.json({ ok: true, deletedId: v_6e0fd3, deletionState: "soft_deleted" });
 });
@@ -1525,8 +1547,9 @@ v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
       .bind(v_43e90c, v_96f93d, v_e9396c, v_e9396c, v_e9396c, v_e9396c),
     v_3f4e2e.env.DB
       .prepare(
-        `INSERT INTO gift_inventory_events (user_id, counterpart_user_id, gift_id, count, xrun_amount, kind, ref_id)
-           VALUES (?, NULL, ?, ?, 0, ?, ?)`,
+
+        `INSERT INTO gift_inventory_events (user_id, counterpart_user_id, gift_id, count, xrun_amount, kind, ref_id, claimed_at)
+           VALUES (?, NULL, ?, ?, 0, ?, ?, strftime('%s','now'))`,
       )
       .bind(v_43e90c, v_96f93d, Math.abs(v_e9396c), v_e9396c > 0 ? "received" : "swapped", `admin_inject:${v_58ca36}`),
   ]);
@@ -2158,6 +2181,8 @@ v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
     case "account_ban":
       await v_3f4e2e.env.DB.prepare(`UPDATE users SET banned_until = datetime('now', ?) WHERE id = ?`).bind(`+${v_6a53fd || 30} days`, v_389afb).run();
       v_c8eee3 = `${v_6a53fd || 30}일간 계정 사용이 정지됩니다.`;
+
+      await v_1186b8(v_3f4e2e.env, v_389afb);
       break;
     case "clone_deactivate":
 

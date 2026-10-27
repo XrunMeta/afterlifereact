@@ -132,6 +132,14 @@ export default function v_18ad36() {
 
     const v_277683 = typeof v_d5dda0.cloneId === "number" ? v_d5dda0.cloneId : 0;
 
+    if (v_f4e98d.type === "referral_reward") {
+      (v_c65f5d.navigate as (name: string, params?: unknown) => void)("Main", {
+        screen: "ClonesTab",
+        params: { screen: "GiftBox", params: { initialTab: "received" } },
+      });
+      return;
+    }
+
     if (v_f4e98d.type === "clone_gift") {
       v_c65f5d.navigate("Main", {
         screen: "MyTab",

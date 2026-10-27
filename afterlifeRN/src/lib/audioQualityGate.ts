@@ -4,6 +4,12 @@ export const v_974277 = -55;
 export const v_45d7ec = 30;         
 export const v_b955ff = 25;         
 
+export const v_e7c7a4 = -1; 
+
+export function v_44adb0(v_a1651b): boolean {
+  return typeof v_a1651b === "number" && Number.isFinite(v_a1651b) && v_a1651b >= v_e7c7a4;
+}
+
 export type AudioVerdict = "ok" | "silence" | "noise";
 
 export interface AudioVerdictResult {

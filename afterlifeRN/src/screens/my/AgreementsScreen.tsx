@@ -176,6 +176,8 @@ export default function v_c78d4f() {
   return (
     <SafeScrollView backgroundColor={v_1bfbd0.white} showBottomBackground={false}>
       <PageHeader title={v_9f1622} showBackButton onBackPress={() => v_c65f5d.goBack()} />
+      {}
+      <View style={{ height: 16 }} />
 
       {}
       {}
@@ -258,7 +260,7 @@ function v_afe1c9({ t: v_8d41d7 }: FaceConsentSectionProps) {
   return (
     <View
       testID="face-consent-section"
-      style={[v_fd5f43.content, { paddingTop: 16, paddingBottom: 32 }]}
+      style={[v_fd5f43.content, { paddingTop: 0, paddingBottom: 32 }]}
     >
       <Text style={v_fd5f43.sectionTitle}>{v_8d41d7("settings.privacy.faceConsent.sectionTitle")}</Text>
       <View style={v_fd5f43.card}>
@@ -358,7 +360,7 @@ function v_b8358a({
             <Switch
               testID="face-biometric-consent-toggle"
 
-              value={v_b6e533 !== "revoked"}
+              value={v_b6e533 === "granted"}
               onValueChange={v_0a2cea}
               disabled={v_35bf26}
               trackColor={{ false: v_1bfbd0.zinc200, true: v_1bfbd0.violet600 }}

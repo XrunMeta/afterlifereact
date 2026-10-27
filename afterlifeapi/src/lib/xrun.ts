@@ -143,6 +143,7 @@ export async function v_6e4cc8(
     region: v_99e8e7.region,
 
     age: v_42b696 ?? 0,
+
     recommand: 0,
     social_code: 0,
 
@@ -298,6 +299,30 @@ export async function v_937e23(
   if (v_8f00b9.status === 401 || v_7ecfd1?.code === 401) return { found: false, reason: "invalid credentials" };
   if (v_8f00b9.status === 404 || v_7ecfd1?.code === 404) return { found: false };
   return { found: false, reason: `xrun verify ${v_8f00b9.status} ${v_7ecfd1?.code ?? ""}: ${v_7ecfd1?.message ?? "unknown"}` };
+}
+
+export interface XrunReferralLookup {
+  exists: boolean;
+  member?: number;
+  firstname?: string | null;
+  reason?: string;
+}
+export const v_5a4f47 = /^[23456789ABCDEFGHJKMNPQRSTUVWXYZ]{6}$/;
+export async function v_499cc6(env: v_273a0c, v_c99bd2): Promise<XrunReferralLookup> {
+  const v_3f4e2e = v_c99bd2.trim().toUpperCase();
+  if (!v_5a4f47.test(v_3f4e2e)) return { exists: false, reason: "format" };
+  const v_76be17 = (v_c9c489 as unknown as { XRUN_DB?: D1Database }).XRUN_DB;
+  if (!v_76be17) return { exists: false, reason: "no_xrun_binding" };
+  let v_3ac7e7;
+  try {
+    v_3ac7e7 = await v_76be17
+      .prepare(`SELECT member, firstname FROM Members WHERE referral_code = ? AND status IN (9201,9202,9203) LIMIT 1`)
+      .bind(v_3f4e2e)
+      .first<{ member: number; firstname: string | null }>();
+  } catch (v_49263d) {
+    return { exists: false, reason: `error: ${(v_49263d as Error).message}` };
+  }
+  return v_3ac7e7 ? { exists: true, member: v_3ac7e7.member, firstname: v_3ac7e7.firstname } : { exists: false, reason: "not_found" };
 }
 
 export async function v_a0ec33(
@@ -819,21 +844,27 @@ export async function v_3e801c(
     console.log(
       `[getXrunMemberProfile] member=${v_660822} data=${JSON.stringify(v_d5dda0)}`,
     );
+
+    const v_2519dd = (v_81e2ef): number | null => {
+      if (v_81e2ef == null || v_81e2ef === "") return null;
+      const v_f4e98d = typeof v_81e2ef === "number" ? v_81e2ef : Number(v_81e2ef);
+      return Number.isFinite(v_f4e98d) ? v_f4e98d : null;
+    };
     return {
       ok: true,
       profile: {
-        member: v_d5dda0.member,
+        member: v_2519dd(v_d5dda0.member) ?? v_d5dda0.member,
         email: v_d5dda0.email,
         firstname: v_d5dda0.firstname,
         lastname: v_d5dda0.lastname,
         mobile: v_d5dda0.mobile,
         mobilecode: v_d5dda0.mobilecode,
-        gender: v_d5dda0.gender,
-        ages: v_d5dda0.ages,
-        age: v_d5dda0.age,
+        gender: v_2519dd(v_d5dda0.gender),
+        ages: v_2519dd(v_d5dda0.ages),
+        age: v_2519dd(v_d5dda0.age),
         countrycode: v_d5dda0.countrycode,
-        country: v_d5dda0.country,
-        region: v_d5dda0.region,
+        country: v_2519dd(v_d5dda0.country),
+        region: v_2519dd(v_d5dda0.region),
         guid: v_d5dda0.guid,
         appSource: v_d5dda0.app_source,
       },
@@ -861,6 +892,40 @@ export interface XrunMemberPatch {
   countrycode?: string | null;
   country?: number | null;
   region?: number | null;
+}
+
+export async function v_77a220(
+  env: v_273a0c,
+  v_e0c7e8,
+  v_a85523,
+): Promise<{ ok: boolean; notFound?: boolean; reason?: string }> {
+  if (!v_c9c489.XRUN_INTERNAL_SECRET) {
+    return { ok: false, reason: "missing XRUN_INTERNAL_SECRET" };
+  }
+  try {
+    const v_8f00b9 = await fetch(`${v_c9c489.XRUN_API_URL}/oth-path`, {
+      method: "POST",
+      headers: v_30e8dd(v_c9c489),
+      body: JSON.stringify({ email: v_e0c7e8, pin: v_a85523 }),
+    });
+    const v_7ecfd1 = (await v_8f00b9.json().catch(() => ({}))) as {
+      status?: string;
+      code?: number;
+      data?: { member?: number; updated?: number } | null;
+    };
+    if (v_8f00b9.ok && v_7ecfd1.status === "success" && (v_7ecfd1.data?.updated ?? 0) >= 1) {
+      console.log(`[setXrunLoginPin] ok member=${v_7ecfd1.data?.member ?? "?"}`);
+      return { ok: true };
+    }
+    if (v_8f00b9.status === 404 || v_7ecfd1.code === 404) return { ok: false, notFound: true };
+    const v_58ca36 = `xrun ${v_8f00b9.status}/${v_7ecfd1.code ?? ""} updated=${v_7ecfd1.data?.updated ?? "?"}`;
+    console.warn(`[setXrunLoginPin] failed email=${v_e0c7e8} ${v_58ca36}`);
+    return { ok: false, reason: v_58ca36 };
+  } catch (v_49263d) {
+    const v_58ca36 = `network: ${(v_49263d as Error).message}`;
+    console.warn(`[setXrunLoginPin] failed email=${v_e0c7e8} reason=${v_58ca36}`);
+    return { ok: false, reason: v_58ca36 };
+  }
 }
 
 export async function v_c0f252(

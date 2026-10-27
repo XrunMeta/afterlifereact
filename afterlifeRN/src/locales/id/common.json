@@ -114,6 +114,9 @@
       "clone_gift": {
         "title": "🎁 Hadiah diterima"
       },
+      "referral_reward": {
+        "title": "🎁 Hadiah referal tiba"
+      },
       "intimacy_score": {
         "title": "🌡️ +{{score}}°C suhu naik"
       },
@@ -348,9 +351,18 @@
     "sort": "Urutkan",
     "sortRecent": "Obrolan terbaru",
     "sortIntimacy": "Keintiman tertinggi",
+    "sortIntimacyAsc": "Keintiman terendah",
     "sortName": "Nama",
     "adBannerFallback": "Spanduk iklan",
     "deleteMessageTitle": "Hapus pesan",
+    "copy": "Salin",
+    "selectCopy": "Pilih teks",
+    "selectCopyHint": "Tekan lama untuk mengatur bagian dan menyalin",
+    "reply": "Balas",
+    "replyingTo": "Membalas {{name}}",
+    "replyDeleted": "Pesan dihapus",
+    "replyCancelA11y": "Batalkan balasan",
+    "reactionA11y": "Reaksi {{emoji}}",
     "notifyOff": "Matikan notifikasi",
     "notifyOn": "Nyalakan notifikasi",
     "callAction": "Panggil",
@@ -473,7 +485,8 @@
     "faceConsentPrompt": {
       "title": "Persetujuan pengenalan wajah",
       "desc": "Untuk mengenali siapa yang berbicara selama panggilan, diperlukan persetujuan berikut. (opsional)",
-      "agree": "Setuju"
+      "agree": "Setuju",
+      "continue": "Lanjutkan saja"
     },
     "poorConnection": "Koneksi panggilan buruk\nSilakan telepon lagi",
     "giftInsufficientTitle": "XRUN tidak cukup",
@@ -751,7 +764,7 @@
     },
     "delete": {
       "title": "Hapus akun",
-      "desc": "Yakin ingin menghapus akun?\nSemua data akan dihapus dan tidak dapat dipulihkan.",
+      "desc": "Yakin ingin menghapus akun?\nSemua data (poin, riwayat penggunaan, konten tersimpan) akan dihapus dan tidak dapat dipulihkan.",
       "userFallback": "Anggota",
       "stay": "Batal",
       "leave": "Hapus",
@@ -832,7 +845,7 @@
       "faceDetect": "Deteksi wajah",
       "faceDetectDesc": "Klon yang mengingat saya",
       "faceRecognition": "Persetujuan pengenalan wajah",
-      "faceRecognitionDesc": "Daftar otomatis · ketentuan pengenalan wajah · pembelajaran panggilan"
+      "faceRecognitionDesc": "Izinkan pengenalan wajah · ketentuan pengenalan wajah · pembelajaran panggilan"
     },
     "logout": {
       "title": "Keluar?",
@@ -899,8 +912,8 @@
       "accountLocked": "Akun terkunci. Silakan coba lagi sekitar 10 menit lagi, atau setel ulang melalui Lupa Kata Sandi.",
       "accountDeletedTitle": "Akun telah dihapus",
       "accountDeletedMessage": "Akun ini sudah diproses untuk dihapus dan tidak dapat login kembali.",
-      "accountSuspendedTitle": "Akun Ditangguhkan",
-      "accountSuspendedMessage": "Akun ini ditangguhkan karena akumulasi laporan.",
+      "accountSuspendedTitle": "Akun Anda ditangguhkan.",
+      "accountSuspendedMessage": "Akun Anda ditangguhkan karena melanggar kebijakan layanan.\nKontak: oth-staff@example.invalid",
       "googleUnavailableTitle": "Login Google tidak tersedia",
       "googleUnavailableMessage": "Silakan coba lagi nanti.",
       "googleNoToken": "Token login Google tidak diterima.",
@@ -1020,6 +1033,14 @@
       "emailInvalid": "Format email tidak benar. (contoh: hello@example.com)",
       "passwordTooShort": "Kata sandi harus minimal 7 karakter, termasuk huruf besar/kecil dan angka.",
       "passwordsNotMatch": "Kata sandi tidak cocok.",
+      "referral": "Kode referal",
+      "referralPlaceholder": "Kode referal 6 karakter",
+      "referralCheck": "Cek",
+      "referralNotFound": "Kode referal tidak ditemukan. Periksa lagi atau kosongkan.",
+      "referralNotFoundShort": "Kode referal tidak ditemukan",
+      "referralOk": "{{name}} akan menjadi perujuk Anda",
+      "referralOkNoName": "Kode referal terkonfirmasi",
+      "referralHint": "Masukkan kode referal, Anda dan perujuk sama-sama dapat bunga",
       "phoneTooShort": "Silakan masukkan nomor telepon minimal 4 karakter.",
       "termsAccept": "Silakan setujui ketentuan layanan.",
       "ageInvalid": "Silakan masukkan usia antara 13 hingga 120.",
@@ -1095,6 +1116,12 @@
       "submit": "Mulai afterlife",
       "googleOnboardingDesc": "Ini pertama kali Anda memulai dengan akun Google. Silakan masukkan informasi dasar sekali saja.",
       "submitting": "Memproses..."
+    },
+    "deactivated": {
+      "title": "Akun ini dinonaktifkan.",
+      "message": "Masuk kembali dan pulihkan akun serta klon AI Anda?",
+      "activate": "Aktifkan",
+      "failed": "Gagal mengaktifkan. Silakan masuk lagi."
     }
   },
   "create": {
@@ -1268,19 +1295,18 @@
       "recordStartFailedMsg": "Gagal memulai rekaman. Silakan coba lagi nanti.",
       "chooseScriptHint": "Silakan pilih skrip dan baca.",
       "uploading": "Mengunggah...",
-      "cloneJobRegistered": "Tugas kloning terdaftar",
       "recordDoneUploadFailed": "Rekaman selesai (unggah gagal — mencoba ulang)",
       "uploadPromptHint": "Silakan unggah file suara",
       "pickAnother": "Pilih file lain",
       "pickFile": "Pilih File Suara",
       "filePickedUploadFailed": "File dipilih (pendaftaran tugas gagal — mencoba ulang)",
       "scripts": {
-        "s1Title": "Sapaan Sehari-hari",
-        "s1Text": "Halo. Hari ini benar-benar hari yang menyenangkan. Sinar matahari hangat dan angin lembut, sangat cocok untuk berjalan-jalan. Waktu yang damai seperti ini terasa begitu berharga. Semoga Anda juga menikmati hari ini dengan baik.",
-        "s2Title": "Cerita Makanan",
-        "s2Text": "Makanan favorit Anda saat ini apa? Saya sangat suka sup kimchi. Rasanya pedas yang kuat, dan menyendok kuah hangatnya membuat semua lelah hari itu hilang. Apalagi jika dimakan saat hujan, lebih lezat lagi.",
-        "s3Title": "Kenangan Masa Kecil",
-        "s3Text": "Kenangan masa kecil yang paling berkesan bagi saya adalah liburan ke pantai bersama keluarga. Suara ombak, angin asin, dan momen bermain di pasir masih terasa hidup hingga sekarang. Perasaan bahagia saat itu kembali muncul."
+        "s1Title": "Hariku",
+        "s1Text": "Cuaca hari ini enak banget. Habis makan siang aku keluar sebentar, mataharinya hangat, jadi langsung senang rasanya. Makanya aku sengaja jalan agak memutar pulangnya. Hari kayak gini, jalan-jalan aja tanpa mikirin apa-apa udah enak, kan? Aku udah mikirin mau makan apa nanti malam.",
+        "s2Title": "Makanan favorit",
+        "s2Text": "Aku suka banget makanan berkuah yang hangat. Apalagi kalau dimakan pas hujan, rasanya makin enak. Satu sendok kuah hangat aja, capek seharian langsung hilang. Kamu lagi sering makan apa akhir-akhir ini? Kalau tahu tempat yang enak, kasih tahu aku juga ya.",
+        "s3Title": "Perjalanan yang berkesan",
+        "s3Text": "Aku masih ingat jelas waktu kecil pergi ke pantai sama keluarga. Kami main di pasir seharian sambil dengar suara ombak. Malamnya kami makan seafood bakar bareng-bareng, dan itu enak banget. Sampai sekarang kalau ingat, aku masih senyum-senyum sendiri. Pengin banget balik ke hari itu, sekali aja."
       },
       "warnTooShortTitle": "File terlalu pendek",
       "warnTooShortMsg": "File yang dipilih sangat pendek. Pelatihan suara memerlukan rekaman tenang berdurasi 30 detik hingga 1 menit. Pilih file lain dan unggah lagi.",
@@ -1288,9 +1314,14 @@
       "warnTooLargeMsg": "File yang dipilih terlalu panjang. Potong menjadi 30 detik hingga 1 menit lalu unggah lagi.",
       "toastSilence": "Terlalu pelan. Mohon bicara sedikit lebih keras.",
       "toastNoise": "Sekitar Anda bising. Mohon rekam di tempat yang tenang.",
+      "toastClipping": "Suara terlalu keras dan pecah. Mohon bicara sedikit lebih jauh dari mikrofon.",
+      "recordAbortedTitle": "Rekaman dihentikan",
+      "recordAbortedMsg": "Anda keluar dari aplikasi saat merekam, jadi rekaman dihentikan. Silakan rekam ulang dari awal.",
       "recordQualityTitle": "Periksa kualitas rekaman",
       "recordQualitySilenceMsg": "Rekaman memiliki banyak bagian hening. Mohon rekam ulang seluruh kalimat dengan jelas di tempat yang tenang.",
-      "recordQualityNoiseMsg": "Rekaman tercampur suara bising. Merekam ulang di tempat yang tenang akan membuat suara jauh lebih alami."
+      "recordQualityNoiseMsg": "Rekaman tercampur suara bising. Merekam ulang di tempat yang tenang akan membuat suara jauh lebih alami.",
+      "registeredFile": "File suara berhasil didaftarkan.",
+      "registeredRecording": "Rekaman suara berhasil didaftarkan."
     },
     "visibility": {
       "memlowLocked": "Klon Kenangan diatur sebagai pribadi. Hanya ko-admin yang dapat melihat.",
@@ -1425,6 +1456,12 @@
       "videoPending": "Video sedang dipersiapkan",
       "reuploadPhoto": "Unggah ulang foto",
       "photoUploading": "Mengunggah foto...",
+      "progressCreating": "Membuat klon...",
+      "progressPosting": "Mengunggah postingan...",
+      "progressDone": "Terposting",
+      "progressVideo": "Menunggu video...",
+      "progressReupload": "Silakan unggah ulang foto",
+      "postButton": "Posting",
       "photoRequired": "Silakan daftarkan foto terlebih dahulu",
       "captionPlaceholder": "Tulis perkenalan (contoh: #keseharian #infp suka lagu K-pop)",
       "loginNeeded": "Informasi login tidak ada. Silakan login kembali.",
@@ -1586,13 +1623,13 @@
       },
       "faceBiometric": {
         "sectionTitle": "Pengenalan Wajah (Informasi Biometrik)",
-        "description": "Selama panggilan, wajah baru akan diingat secara diam-diam tanpa kartu konfirmasi terpisah agar dapat dikenali lebih alami pada panggilan berikutnya. Anda dapat mematikan atau menyalakannya kapan saja. Jika dimatikan, informasi pembicara yang terdaftar melalui cara ini akan dihapus (pembicara yang didaftarkan sendiri tidak terpengaruh).",
-        "toggleLabel": "Izinkan pendaftaran otomatis diam",
+        "description": "Menggunakan pengenalan wajah selama percakapan.",
+        "toggleLabel": "Izinkan pengenalan wajah (informasi biometrik)",
         "saveError": "Gagal menyimpan pengaturan. Silakan coba lagi.",
-        "revokeConfirmTitle": "Matikan Pendaftaran Otomatis Diam",
-        "revokeConfirmMessage": "Jika dimatikan, informasi pengenalan wajah dari semua pembicara yang terdaftar otomatis melalui cara ini akan segera dihapus. Pembicara yang didaftarkan sendiri tidak terpengaruh. Tidak dapat dibatalkan. Apakah Anda ingin melanjutkan?",
+        "revokeConfirmTitle": "Nonaktifkan Pengenalan Wajah",
+        "revokeConfirmMessage": "Jika dinonaktifkan, pengenalan wajah tidak akan digunakan selama percakapan, dan data pengenalan wajah akan segera dihapus serta tidak dapat dikembalikan. Nonaktifkan?",
         "retroPromptTitle": "Apakah Anda menyetujui penggunaan pengenalan wajah (informasi biometrik)?",
-        "retroPromptMessage": "Jika Anda setuju, wajah baru selama panggilan akan diingat secara diam-diam tanpa konfirmasi terpisah sehingga dapat dikenali lebih alami pada panggilan berikutnya. Anda dapat mengubahnya kapan saja di pengaturan.",
+        "retroPromptMessage": "Jika Anda setuju, pengenalan wajah akan digunakan selama percakapan. Anda dapat mengubahnya kapan saja di Pengaturan.",
         "retroPromptAgree": "Setuju",
         "retroPromptDecline": "Tolak"
       },
@@ -1877,8 +1914,9 @@
     "later": "Tambahkan Nanti"
   },
   "errors": {
+    "faceConsentRequired": "Diperlukan persetujuan pengenalan wajah. Aktifkan 'Izinkan pengenalan wajah (data biometrik)' di Pengaturan.",
     "accountDeleted": "Akun ini sudah dihapus.",
-    "accountSuspended": "Akun Anda diblokir karena laporan yang menumpuk.",
+    "accountSuspended": "Akun Anda ditangguhkan karena melanggar kebijakan layanan.\nKontak: oth-staff@example.invalid",
     "accountSuspendedForPersona": "Akun Anda dinonaktifkan sementara karena laporan yang menumpuk, sehingga tidak bisa membuat clone.",
     "accountLocked": "Akun Anda dikunci sementara. Silakan coba lagi nanti.",
     "tooManyFailures": "Terlalu banyak percobaan gagal. Silakan coba lagi nanti.",
@@ -2195,6 +2233,11 @@
     "other": "Lainnya"
   },
   "faceEnroll": {
+    "consentRequired": {
+      "title": "Persetujuan Pengenalan Wajah Diperlukan",
+      "message": "Untuk mendaftarkan wajah, nyalakan 'Izinkan pengenalan wajah (informasi biometrik)' di pengaturan.",
+      "goSettings": "Buka Pengaturan"
+    },
     "rescanNotice": "Kita periksa wajah sekali lagi.",
     "permissionRequired": "Izin kamera dibutuhkan.",
     "permissionSkip": "Lewati pendaftaran dan telepon",
@@ -2207,7 +2250,7 @@
       "title": "Siapa orang ini?",
       "desc": "Beritahu nama dan hubungan agar kami bisa mengenalinya pada panggilan berikutnya.",
       "existingLabel": "Sudah terdaftar (pilih untuk menambah pembelajaran saja)",
-      "markSelf": "Wajah ini adalah saya",
+      "markSelf": "Simpan informasi wajah saya",
       "alreadyRegistered": "{{name}} sudah terdaftar",
       "updateName": "Perbarui nama",
       "existingHint": "Jika ini orang baru, ketik namanya di bawah",
@@ -2322,19 +2365,40 @@
     "tabReceived": "Diterima",
     "tabSent": "Dikirim",
     "tabExchange": "Tukar",
+    "subTabUser": "Pengguna",
+    "subTabClone": "Klon",
+    "emptyUserGift": "Belum ada hadiah dari pengguna",
+    "emptyCloneGift": "Belum ada hadiah dari klon",
+    "watchAdClaim": "Tonton iklan untuk klaim",
+    "watchAdClaimCount": "Tonton iklan, ambil {{count}}",
+    "claimFailTitle": "Gagal diklaim",
+    "claimFailMsg": "Silakan coba lagi nanti.",
     "exchangeable": "Bisa ditukar",
     "exchangeAction": "Tukar",
+    "ownedCountTitle": "Jumlah dimiliki",
+    "ownedCountLabel": "Jumlah dimiliki",
+    "historyView": "Lihat riwayat",
+    "sentSearchPlaceholder": "Cari nama klon",
+    "sentSearchNoMatch": "Tidak ada hasil",
+    "subTabAll": "Semua",
     "flowerUnit": "",
     "peopleUnit": "",
     "ownedLabel": "Dimiliki",
     "ownedEmpty": "Belum ada hadiah yang dimiliki",
     "filterAll": "Semua",
+    "filterClaimed": "Diterima",
+    "filterPending": "Menunggu",
     "filterAnon": "Hanya anonim",
     "loadMore": "Muat lebih ({{n}})",
     "receivedTitle": "{{name}} mengirim {{gift}}",
     "toClone": "Ke klon {{name}}",
     "toUnknownClone": "Ke klon",
+    "subTabReferral": "Referal",
+    "emptyReferralGift": "Belum ada hadiah referal",
     "adRewardSender": "Hadiah iklan",
+    "referralRewardSender": "Hadiah referal",
+    "referralRewardTitle": "Diterima karena daftar dengan kode referal",
+    "referralInviteTitle": "Diterima karena teman daftar dengan kode Anda",
     "anonymous": "Anonim",
     "someone": "Seseorang",
     "sentThisMonth": "Hadiah dikirim bulan ini",
@@ -2394,7 +2458,27 @@
     "weekdayShortWed": "Rab",
     "weekdayShortThu": "Kam",
     "weekdayShortFri": "Jum",
-    "weekdayShortSat": "Sab"
+    "weekdayShortSat": "Sab",
+    "exchangeSheetTitle": "Tukar ke XRUN",
+    "exchangeSheetTitleShort": "Tukar",
+    "exchangeLoading": "Memeriksa syarat penukaran…",
+    "exchangeQtyLabel": "Jumlah ditukar",
+    "receiveQtyLabel": "Jumlah diterima",
+    "max": "Maks",
+    "feeExchangeNotice": "{{qty}} ROSE ditukar setelah biaya {{fee}} ROSE",
+    "exchangeNoCancel": "Penukaran tidak dapat dibatalkan.",
+    "successFeeLine": "Ditukar setelah potong biaya {{fee}} ROSE",
+    "successRemaining": "Sisa ROSE {{n}}",
+    "successWalletHint": "Klaim hadiah di Dompet XRUN > Afterlife.",
+    "p4ReceiveReward": "Klaim hadiah di XRUN",
+    "feeRule": "{{fee}} per {{unit}} · {{total}}",
+    "totalDeduct": "Total dipotong",
+    "toastSnapped": "Penukaran per {{step}} (disesuaikan ke {{qty}})",
+    "notEnoughTitle": "Butuh minimal {{need}} ROSE untuk menukar",
+    "noGiftTitle": "Tidak ada hadiah untuk ditukar",
+    "noGiftBody": "Anda bisa mendapat hadiah dengan menelepon persona.\nMau menelepon sekarang?",
+    "goHome": "Buka",
+    "notEnoughBody": "Anda punya {{owned}} ROSE.\nKumpulkan lebih banyak hadiah lewat panggilan."
   },
   "sso": {
     "reconsent": {
@@ -2403,5 +2487,35 @@
       "saving": "Memproses...",
       "continue": "Setuju dan lanjutkan"
     }
+  },
+  "deactivate": {
+    "whatHappens": "Jika dinonaktifkan",
+    "verify": "Verifikasi",
+    "byPassword": "Kata sandi",
+    "byEmail": "Kode email (akun sosial)",
+    "passwordPlaceholder": "Masukkan kata sandi",
+    "sendCode": "Kirim kode ke email saya",
+    "resendCode": "Kirim ulang kode",
+    "codeSent": "Dikirim ke {{email}}.",
+    "codePlaceholder": "Kode 6 digit",
+    "submit": "Nonaktifkan",
+    "confirmTitle": "Nonaktifkan akun?",
+    "confirmBody": "Anda akan langsung keluar dari semua perangkat.",
+    "effect": {
+      "hide": "Profil dan klon AI Anda disembunyikan dari beranda, jelajah, dan pencarian, dan selain Ko-Admin tidak ada yang bisa mengobrol atau menelepon.",
+      "posts": "Postingan dan komentar Anda disembunyikan.",
+      "interaction": "Orang lain tidak bisa mengirim hadiah atau berbagi.",
+      "notify": "Semua notifikasi berhenti.",
+      "restore": "Masuk kembali kapan saja untuk memulihkan. Data Anda tetap tersimpan."
+    },
+    "verifyPassword": "Verifikasi · Kata sandi",
+    "verifyEmail": "Verifikasi · Kode email"
+  },
+  "partner": {
+    "appsCaption": "Aplikasi terkait",
+    "xrunTitle": "XRUN",
+    "xrunSub": "Dompet · hadiah · login",
+    "clubxTitle": "ClubX",
+    "clubxSub": "Klub · item"
   }
 }

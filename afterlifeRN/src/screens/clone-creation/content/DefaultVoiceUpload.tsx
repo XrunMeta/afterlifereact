@@ -2,7 +2,7 @@
 
 import { v_889fad } from "../../../stores/dialogStore";
 import v_a3453e, { v_c4deb2, v_e662ae, v_5ab095 } from "bapkr";
-import { v_3094a2, v_19b633, v_4623af, v_472849, v_39a996, v_326be8, v_405151 } from "rcmrninabrnb";
+import { v_3094a2, v_19b633, v_4623af, v_472849, v_39a996, v_326be8, v_405151, v_6b5698 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import * as v_c95b2c from "gketqwckyalygtuqsawm";
 import {
@@ -24,7 +24,7 @@ import { v_7d2692 } from "../../../api/files";
 import { v_1ed7d9 } from "../../../stores/authStore";
 import { v_d7b329 } from "../../../lib/voicePresetName";
 import { v_6c761f } from "../../../lib/audioFileCheck";
-import { v_184958, v_dac67e, type v_b161c8 } from "../../../lib/audioQualityGate";
+import { v_184958, v_dac67e, v_44adb0 } from "../../../lib/audioQualityGate";
 
 export const v_e79da6 = [
   { id: "v1", name: "Nova" },
@@ -38,27 +38,27 @@ export const v_e79da6 = [
 const v_58b6a9 = [
   {
     id: "s1",
-    title: "일상 인사",
+    title: "오늘 하루",
     text:
-      "안녕하세요. 오늘은 정말 좋은 하루였어요. 햇살이 따뜻하고 바람도 부드러워서 " +
-      "산책하기에 딱 좋았답니다. 이렇게 평화로운 시간이 정말 소중하게 느껴져요. " +
-      "오늘 하루도 즐겁게 잘 보내세요.",
+      "오늘 날씨 진짜 좋더라고요. 점심 먹고 잠깐 밖에 나갔는데, 햇살이 따뜻해서 기분이 확 좋아졌어요. " +
+      "그래서 일부러 좀 돌아서 걸어왔어요. 이런 날은 그냥 아무 생각 없이 걷기만 해도 좋잖아요. " +
+      "저녁엔 뭐 먹을지 벌써 고민 중이에요.",
   },
   {
     id: "s2",
-    title: "음식 이야기",
+    title: "좋아하는 음식",
     text:
-      "요즘 가장 좋아하는 음식이 뭐예요? 저는 김치찌개를 정말 좋아해요. 매운 맛이 " +
-      "진하고 따끈한 국물을 한 숟갈 떠먹으면 하루의 피로가 싹 풀리는 기분이거든요. " +
-      "특히 비 오는 날에 먹으면 더 맛있어요.",
+      "저는 김치찌개를 진짜 좋아해요. 특히 비 오는 날 먹으면 더 맛있더라고요. " +
+      "따끈한 국물 한 숟갈 떠먹으면, 하루 피곤한 게 싹 풀리는 느낌이에요. " +
+      "혹시 요즘 자주 먹는 거 있어요? 맛있는 데 알면 저도 좀 알려 줘요.",
   },
   {
     id: "s3",
-    title: "추억 회상",
+    title: "기억에 남는 여행",
     text:
-      "어릴 적 추억 중에 가장 기억에 남는 건 가족과 함께 갔던 바다 여행이에요. 파도 " +
-      "소리와 짭조름한 바람, 그리고 모래사장에서 뛰놀던 그 순간들이 아직도 생생해요. " +
-      "그때 행복했던 기분이 다시 떠올라요.",
+      "어릴 때 가족이랑 바다에 갔던 게 아직도 생생해요. 파도 소리 들으면서 모래사장에서 하루 종일 뛰어놀았거든요. " +
+      "저녁엔 다 같이 조개구이를 먹었는데, 그게 그렇게 맛있었어요. 지금 생각해도 웃음이 나요. " +
+      "그때로 한 번만 돌아가 보고 싶네요.",
   },
 ] as const;
 
@@ -235,6 +235,13 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
     }
   };
 
+  const v_d211a6 = (): string => {
+    const v_1833e7 = v_04e790.upload?.fileName;
+    if (v_1833e7) return v_1833e7;
+    const v_25c4f7 = (v_f04727.voiceFile ?? "").split(/[\/]/).pop() ?? "";
+    try { return decodeURIComponent(v_25c4f7); } catch { return v_25c4f7; }
+  };
+
   const v_402288 = (v_35f85c) => {
     const v_38d084 = v_04e790[v_35f85c];
     if (v_38d084) void v_a9e8f0(v_35f85c, v_38d084);
@@ -274,10 +281,10 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
   const v_b599c8 = v_b3e89c(v_5ebce3, 200);
 
   const v_89619a = v_e662ae<number[]>([]);
-  const v_cc5fba = v_e662ae<Record<v_b161c8, number>>({ ok: 0, silence: 0, noise: 0 });
-  const v_ceb0fd = v_e662ae<{ silence: number; noise: number; total: number }>({
-    silence: 0, noise: 0, total: 0,
-  });
+  const v_e5c412 = v_e662ae(false);
+
+  const v_595f6c = v_e662ae(false);
+  const v_ceb0fd = v_e662ae<{ silence: number; total: number }>({ silence: 0, total: 0 });
 
   const v_5cdd15 = v_a3453e.useCallback((v_badeaf) => {
     if (v_326be8.OS === "android") {
@@ -298,27 +305,16 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
 
     v_89619a.current = v_184958(v_89619a.current, v_35f85c);
     v_ceb0fd.current.total += 1;
-    if (v_89619a.current.length < 15) return; 
 
-    const v_8f00b9 = v_dac67e(v_89619a.current);
-    if (v_8f00b9.verdict === "ok") return;
-
-    if (v_8f00b9.verdict === "silence") v_ceb0fd.current.silence += 1;
-    if (v_8f00b9.verdict === "noise") v_ceb0fd.current.noise += 1;
-
-    const v_5c2f9f = Date.now();
-    if (v_5c2f9f - v_cc5fba.current[v_8f00b9.verdict] < 5000) return;
-    v_cc5fba.current[v_8f00b9.verdict] = v_5c2f9f;
-
-    if (v_8f00b9.verdict === "silence") {
-      v_5cdd15(v_8d41d7("create.voice.toastSilence", {
-        defaultValue: "너무 조용해요. 좀 더 크게 말씀해 주세요.",
-      }));
-    } else if (v_8f00b9.verdict === "noise") {
-      v_5cdd15(v_8d41d7("create.voice.toastNoise", {
-        defaultValue: "주변이 시끄러워요. 조용한 곳에서 녹음해 주세요.",
+    if (v_44adb0(v_35f85c) && !v_e5c412.current) {
+      v_e5c412.current = true;
+      v_5cdd15(v_8d41d7("create.voice.toastClipping", {
+        defaultValue: "소리가 너무 커서 깨져요. 마이크에서 조금 떨어져서 말씀해 주세요.",
       }));
     }
+
+    if (v_89619a.current.length < 15) return; 
+    if (v_dac67e(v_89619a.current).verdict === "silence") v_ceb0fd.current.silence += 1;
 
   }, [v_b599c8.isRecording, (v_b599c8 as unknown as { metering?: number }).metering]);
 
@@ -342,6 +338,35 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
 
   }, []);
 
+  const v_08e4cb = v_a3453e.useCallback((v_58ca36) => {
+    const v_cb35cb = v_504bbe.current;
+    console.log(`[DefaultVoice][abort] reason=${v_58ca36} active=${v_595f6c.current}`);
+    if (!v_595f6c.current) return;
+    v_595f6c.current = false;
+    try {
+      void v_cb35cb.stop().catch(() => {});
+    } catch {
+
+    }
+    void v_0e491a({ allowsRecording: false }).catch(() => {});
+    v_ceb0fd.current = { silence: 0, total: 0 };
+    if (v_58ca36 === "background") {
+      v_889fad(
+        v_8d41d7("create.voice.recordAbortedTitle", { defaultValue: "녹음이 중단됐어요" }),
+        v_8d41d7("create.voice.recordAbortedMsg", {
+          defaultValue: "녹음 중에 앱을 벗어나서 녹음을 멈췄어요. 처음부터 다시 녹음해 주세요.",
+        }),
+      );
+    }
+  }, [v_8d41d7]);
+
+  v_c4deb2(() => {
+    const v_1ae212 = v_6b5698.addEventListener("change", (v_fd5f43) => {
+      if (v_fd5f43 === "background") v_08e4cb("background");
+    });
+    return () => v_1ae212.remove();
+  }, [v_08e4cb]);
+
   v_cf763b(
     v_a3453e.useCallback(() => {
       return () => {
@@ -351,6 +376,7 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
 
         }
         v_a4d7cc(null);
+        v_08e4cb("blur");
       };
 
     }, []),
@@ -468,7 +494,14 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
       await v_0e491a({ allowsRecording: true, playsInSilentMode: true });
 
       await v_5ebce3.prepareToRecordAsync();
+
+      v_4a4814("record", v_884e4d);
+      v_2941d3((v_ba2215) => ({ ...v_ba2215, record: false }));
+      v_e5c412.current = false;
+      v_ceb0fd.current = { silence: 0, total: 0 };
       await v_5ebce3.record();
+      v_595f6c.current = true;
+      console.log(`[DefaultVoice][record] started native.isRecording=${v_5ebce3.isRecording}`);
     } catch (v_49263d) {
       console.warn("[DefaultVoice] 녹음 시작 실패:", String(v_49263d));
       v_889fad(
@@ -481,6 +514,7 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
   };
 
   const v_f30df7 = async () => {
+    v_595f6c.current = false;
     await v_5ebce3.stop();
 
     await v_0e491a({ allowsRecording: false });
@@ -488,24 +522,15 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
     if (!v_cd1446) return;
 
     const v_fd5f43 = v_ceb0fd.current;
-    v_ceb0fd.current = { silence: 0, noise: 0, total: 0 };
-    if (v_fd5f43.total >= 15) { 
-      const v_a7bb65 = v_fd5f43.silence / v_fd5f43.total;
-      const v_576a95 = v_fd5f43.noise / v_fd5f43.total;
-      if (v_a7bb65 > 0.3 || v_576a95 > 0.3) {
-        const primary: v_b161c8 = v_a7bb65 >= v_576a95 ? "silence" : "noise";
-        v_889fad(
-          v_8d41d7("create.voice.recordQualityTitle", { defaultValue: "녹음 품질 확인" }),
-          v_127e92 === "silence"
-            ? v_8d41d7("create.voice.recordQualitySilenceMsg", {
-                defaultValue: "녹음에 무음 구간이 많아요. 조용한 곳에서 문장 전체를 또렷하게 다시 녹음해 주세요.",
-              })
-            : v_8d41d7("create.voice.recordQualityNoiseMsg", {
-                defaultValue: "녹음에 주변 소음이 섞였어요. 조용한 곳에서 다시 녹음해 주시면 클론 목소리가 훨씬 자연스러워집니다.",
-              }),
-        );
+    v_ceb0fd.current = { silence: 0, total: 0 };
+    if (v_fd5f43.total >= 15 && v_fd5f43.silence / v_fd5f43.total > 0.3) { 
+      v_889fad(
+        v_8d41d7("create.voice.recordQualityTitle", { defaultValue: "녹음 품질 확인" }),
+        v_8d41d7("create.voice.recordQualitySilenceMsg", {
+          defaultValue: "녹음에 무음 구간이 많아요. 조용한 곳에서 문장 전체를 또렷하게 다시 녹음해 주세요.",
+        }),
+      );
 
-      }
     }
 
     await v_a9e8f0("record", {
@@ -672,7 +697,7 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
             <View style={v_d81136.recordedRow}>
               <Feather name="check-circle" size={16} color={v_a9d3e9} />
               <Text style={v_d81136.recordedText}>
-                {v_8d41d7("create.voice.cloneJobRegistered", { defaultValue: "클로닝 잡 등록됨" })}
+                {v_8d41d7("create.voice.registeredRecording", { defaultValue: "녹음한 음성이 정상적으로 등록되었습니다." })}
               </Text>
             </View>
           )}
@@ -727,9 +752,16 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
           {!v_11c383 && v_f04727.voiceFile && v_f04727.voiceCloneJobId && (
             <View style={v_d81136.recordedRow}>
               <Feather name="check-circle" size={16} color={v_a9d3e9} />
-              <Text style={v_d81136.recordedText}>
-                {v_8d41d7("create.voice.cloneJobRegistered", { defaultValue: "클로닝 잡 등록됨" })}
-              </Text>
+              <View style={{ flex: 1 }}>
+                <Text style={v_d81136.recordedText}>
+                  {v_8d41d7("create.voice.registeredFile", { defaultValue: "음성 파일이 정상적으로 등록되었습니다." })}
+                </Text>
+                {!!v_d211a6() && (
+                  <Text style={[v_d81136.recordedText, { color: v_1bfbd0.zinc500 }]} numberOfLines={1} ellipsizeMode="middle">
+                    {v_d211a6()}
+                  </Text>
+                )}
+              </View>
             </View>
           )}
           {}

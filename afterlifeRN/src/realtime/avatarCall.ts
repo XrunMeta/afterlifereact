@@ -59,6 +59,8 @@ export interface AvatarCall {
 
   sendTurnFace?: (v: TurnFaceReport) => void;
 
+  sendNoConsentTurnFace?: (who: 'self' | 'other' | null) => void;
+
   sendAudioReady?: () => void;
 
   sendAdPrepareReturn?: () => void;
@@ -82,6 +84,8 @@ export type UseAvatarCall = (opts: {
   pipeline?: string | null;
 
   usesBridge?: boolean;
+
+  faceConsent?: boolean | null;
 
   ttsOutput?: string | null;
 

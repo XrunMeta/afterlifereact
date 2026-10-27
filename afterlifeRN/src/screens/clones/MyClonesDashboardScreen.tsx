@@ -31,6 +31,7 @@ import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import v_556baf from "../../components/ui/SafeView";
 import v_1a40c4 from "../../components/ui/Button";
 import v_258c1c from "../../components/common/PageHeader";
+import v_f9a626, { v_db1b12, v_ba6725 } from "../../components/common/PartnerAppBanners";
 import v_5778ce from "../../components/common/HashtagText";
 import v_4c2648 from "./components/FriendPickerModal";
 import v_92380d from "./components/VisibilityPickerModal";
@@ -57,6 +58,7 @@ import { v_48981e, type v_2b70d7 } from "../../api/credits";
 import { v_7d2692 } from "../../api/files";
 import { v_1bfbd0, v_9b1a04, v_8b0c90, v_a9d3e9, v_d43669, v_c10a43, v_119e65 } from "../../components/constants";
 import type { v_affcc0, v_b0b271 } from "../../types/clone";
+import v_177da7 from "../../components/gift/GiftExchangeSheet";
 import type { v_2d88fc } from "../../navigation/types";
 import type { v_8ad91b } from "../../navigation/types";
 
@@ -93,6 +95,7 @@ export default function v_def15b() {
   const [v_8a7926, v_d42991] = v_5ab095<v_affcc0[] | null>(null);
 
   const [v_612e9f, v_575aad] = v_5ab095(false);
+  const { onLayout: v_e8db2a, listBottomPad: v_936ba7 } = v_ba6725();
 
   const [v_959d04, v_fd8761] = v_5ab095<v_a9d96d[]>([]);
 
@@ -106,13 +109,20 @@ export default function v_def15b() {
   const [v_b1118a, v_6edbbc] = v_5ab095(v_ebad5a);
   const [v_489044, v_9500c7] = v_5ab095(0);
   const [v_cfa43b, v_ed9bd4] = v_5ab095(0);
-  const v_deb5c7 = v_df9f57(
-    () =>
-      v_c9ba75
-        .filter((v_206b88) => v_206b88.kind === "sent")
-        .reduce((v_f4e98d, v_206b88) => v_f4e98d + (v_206b88.count || 1), 0),
-    [v_c9ba75],
-  );
+
+  const [v_0215b6, v_b30c04] = v_5ab095(false);
+  const v_fa991f = v_de06a3(() => {
+    if (!v_2ca7e0) return;
+    v_bf9881(v_2ca7e0, { limit: 50 })
+      .then((v_cb35cb) => {
+        v_4b3c02(v_cb35cb.items);
+        v_9500c7(v_cb35cb.totalReceived);
+        v_ed9bd4(v_cb35cb.currentOwned);
+      })
+      .catch((v_49263d) => console.warn("[MyClonesDashboard] giftActivity fail:", v_49263d));
+  }, [v_2ca7e0]);
+
+  const [v_deb5c7, v_9093a8] = v_5ab095(0);
 
   const v_8e46f5 = v_de06a3(async (v_cc88f5 = false) => {
     if (!v_2ca7e0) {
@@ -134,6 +144,9 @@ export default function v_def15b() {
     } catch (v_49263d) {
       console.warn("[Dashboard] listMyClones failed:", v_49263d);
 
+      if (!v_cc88f5) {
+
+      }
     } finally {
       if (v_cc88f5) v_575aad(false);
     }
@@ -173,6 +186,11 @@ export default function v_def15b() {
           .then((v_cb35cb) => {
             v_4b3c02(v_cb35cb.items);
             v_9500c7(v_cb35cb.totalReceived);
+
+            v_9093a8(
+              v_cb35cb.totalSent ??
+                v_cb35cb.items.filter((v_206b88) => v_206b88.kind === "sent").reduce((v_f4e98d, v_206b88) => v_f4e98d + (v_206b88.count || 1), 0),
+            );
             v_ed9bd4(v_cb35cb.currentOwned);
           })
           .catch((v_49263d) => console.warn("[MyClonesDashboard] giftActivity fail:", v_49263d));
@@ -761,6 +779,8 @@ export default function v_def15b() {
   };
 
   return (
+
+    <View style={v_fd5f43.screen} onLayout={v_e8db2a}>
     <SafeView backgroundColor={v_1bfbd0.white} showBottomBackground={false}>
       <PageHeader
         title={v_8d41d7("dashboard.title")}
@@ -798,7 +818,7 @@ export default function v_def15b() {
         data={v_fc7f92}
         keyExtractor={(v_8c0b26) => String(v_8c0b26.id)}
         renderItem={v_b80d74}
-        contentContainerStyle={v_fd5f43.listContent}
+        contentContainerStyle={[v_fd5f43.listContent, { paddingBottom: 24 + v_936ba7 }]}
         showsVerticalScrollIndicator={false}
         extraData={v_fc7f92}
         refreshControl={
@@ -935,8 +955,61 @@ export default function v_def15b() {
             {
 }
 
-            {}
+            {
+
+}
             <View style={v_fd5f43.giftDashSection}>
+              {}
+              <View style={v_fd5f43.giftDashCard}>
+                <View style={v_fd5f43.giftDashHeader}>
+                  <View style={v_fd5f43.giftDashTitleRow}>
+                    <Image
+                      source={require("../../../assets/images/rose-icon.png")}
+                      style={v_fd5f43.giftDashRoseIcon}
+                    />
+                    <Text style={v_fd5f43.giftDashTitle}>
+                      {v_8d41d7("giftBox.myRoseTitle", { defaultValue: "내 ROSE" })}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={v_fd5f43.giftDashViewAllBtn}
+                    onPress={() => v_c65f5d.navigate("GiftBox", { view: "exchange" })}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={v_fd5f43.giftDashViewAll}>
+                      {v_8d41d7("giftBox.exchangeHistoryLink", { defaultValue: "교환 내역" })}
+                    </Text>
+                    <Feather name="chevron-right" size={16} color={v_1bfbd0.zinc400} />
+                  </TouchableOpacity>
+                </View>
+                <View style={v_fd5f43.giftDashRoseBody}>
+                  <View style={v_fd5f43.giftDashRoseLeft}>
+                    <Text style={v_fd5f43.giftDashRoseBalance}>
+                      {v_cfa43b}{" "}
+                      <Text style={v_fd5f43.giftDashRoseUnit}>
+                        {v_8d41d7("giftBox.roseUnit", { defaultValue: "ROSE" })}
+                      </Text>
+                    </Text>
+                    <Text style={v_fd5f43.giftDashRoseFeeHint}>
+                      {v_8d41d7("giftBox.feeDeductHint", {
+                        defaultValue: "교환 시 수수료 1 ROSE 차감",
+                      })}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={v_fd5f43.giftDashExchangeBtnCompact}
+                    activeOpacity={0.85}
+                    onPress={() => v_b30c04(true)}
+                  >
+                    <Text style={v_fd5f43.giftDashExchangeBtnText}>
+                      {v_8d41d7("giftBox.exchangeShort", { defaultValue: "교환" })}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {}
               <View style={v_fd5f43.giftDashCard}>
                 <View style={v_fd5f43.giftDashHeader}>
                   <View style={v_fd5f43.giftDashTitleRow}>
@@ -947,7 +1020,9 @@ export default function v_def15b() {
                   </View>
                   <TouchableOpacity
                     style={v_fd5f43.giftDashViewAllBtn}
-                    onPress={() => v_c65f5d.navigate("GiftBox", { initialTab: "received" })}
+                    onPress={() =>
+                      v_c65f5d.navigate("GiftBox", { view: "activity", initialTab: "received" })
+                    }
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                     activeOpacity={0.7}
                   >
@@ -959,91 +1034,86 @@ export default function v_def15b() {
                 </View>
                 <View style={v_fd5f43.giftDashMetrics}>
                   <TouchableOpacity
-                    style={v_fd5f43.giftDashMetric}
+                    style={[v_fd5f43.giftDashMetric, v_fd5f43.giftDashMetricBorder]}
                     activeOpacity={0.8}
-                    onPress={() => v_c65f5d.navigate("GiftBox", { initialTab: "received" })}
+                    onPress={() =>
+                      v_c65f5d.navigate("GiftBox", { view: "activity", initialTab: "received" })
+                    }
                   >
-                    <Text style={v_fd5f43.giftDashMetricLabel} numberOfLines={2}>
+                    <Text style={v_fd5f43.giftDashMetricLabel} numberOfLines={1}>
                       {v_8d41d7("giftBox.tabReceived", { defaultValue: "받은 선물" })}
                     </Text>
-                    <Text style={v_fd5f43.giftDashMetricValue}>{v_489044}</Text>
+                    <View style={v_fd5f43.giftDashMetricRight}>
+                      <Text style={v_fd5f43.giftDashMetricValue}>
+                        {v_489044} {v_8d41d7("giftBox.roseUnit", { defaultValue: "ROSE" })}
+                      </Text>
+                      <Feather name="chevron-right" size={16} color={v_1bfbd0.zinc400} />
+                    </View>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={v_fd5f43.giftDashMetric}
                     activeOpacity={0.8}
-                    onPress={() => v_c65f5d.navigate("GiftBox", { initialTab: "sent" })}
+                    onPress={() =>
+                      v_c65f5d.navigate("GiftBox", { view: "activity", initialTab: "sent" })
+                    }
                   >
-                    <Text style={v_fd5f43.giftDashMetricLabel} numberOfLines={2}>
+                    <Text style={v_fd5f43.giftDashMetricLabel} numberOfLines={1}>
                       {v_8d41d7("giftBox.tabSent", { defaultValue: "보낸 선물" })}
                     </Text>
-                    <Text style={v_fd5f43.giftDashMetricValue}>{v_deb5c7}</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[v_fd5f43.giftDashMetric, v_fd5f43.giftDashMetricAccent]}
-                    activeOpacity={0.8}
-                    onPress={() => v_c65f5d.navigate("GiftBox", { initialTab: "exchange" })}
-                  >
-                    <Text style={[v_fd5f43.giftDashMetricLabel, v_fd5f43.giftDashMetricLabelAccent]} numberOfLines={2}>
-                      {v_8d41d7("giftBox.exchangeable", { defaultValue: "교환 가능" })}
-                    </Text>
-                    <Text style={[v_fd5f43.giftDashMetricValue, v_fd5f43.giftDashMetricValueAccent]}>
-                      {v_cfa43b}
-                    </Text>
+                    <View style={v_fd5f43.giftDashMetricRight}>
+                      <Text style={v_fd5f43.giftDashMetricValue}>
+                        {v_deb5c7} {v_8d41d7("giftBox.roseUnit", { defaultValue: "ROSE" })}
+                      </Text>
+                      <Feather name="chevron-right" size={16} color={v_1bfbd0.zinc400} />
+                    </View>
                   </TouchableOpacity>
                 </View>
-                <TouchableOpacity
-                  style={v_fd5f43.giftDashExchangeBtn}
-                  activeOpacity={0.85}
-                  onPress={() => v_c65f5d.navigate("GiftBox", { initialTab: "exchange" })}
-                >
-                  <Text style={v_fd5f43.giftDashExchangeBtnText}>
-                    {v_8d41d7("giftBox.exchangeAction", { defaultValue: "교환하기" })}
-                  </Text>
-                </TouchableOpacity>
               </View>
             </View>
           </>
         }
         ListFooterComponent={
-          v_959d04.length > 0 ? (
-            <View style={v_fd5f43.systemClonesSection}>
-              <Text style={v_fd5f43.systemClonesSectionTitle}>{v_8d41d7("dashboard.systemClonesTitle", { defaultValue: "통화 가능" })}</Text>
-              {v_959d04.map((v_69bba6) => (
-                <View key={v_69bba6.id} style={v_fd5f43.card}>
-                  <View style={v_fd5f43.cloneHeader}>
-                    <View style={v_fd5f43.avatarWrap}>
-                      <View style={[v_fd5f43.avatar, { backgroundColor: v_1bfbd0.zinc100, alignItems: "center", justifyContent: "center" }]}>
-                        <Feather name="user" size={20} color={v_1bfbd0.zinc400} />
+          <View>
+            {v_959d04.length > 0 ? (
+              <View style={v_fd5f43.systemClonesSection}>
+                <Text style={v_fd5f43.systemClonesSectionTitle}>{v_8d41d7("dashboard.systemClonesTitle", { defaultValue: "통화 가능" })}</Text>
+                {v_959d04.map((v_69bba6) => (
+                  <View key={v_69bba6.id} style={v_fd5f43.card}>
+                    <View style={v_fd5f43.cloneHeader}>
+                      <View style={v_fd5f43.avatarWrap}>
+                        <View style={[v_fd5f43.avatar, { backgroundColor: v_1bfbd0.zinc100, alignItems: "center", justifyContent: "center" }]}>
+                          <Feather name="user" size={20} color={v_1bfbd0.zinc400} />
+                        </View>
+                      </View>
+                      <View style={v_fd5f43.cloneInfo}>
+                        <Text style={v_fd5f43.cloneName}>{v_69bba6.name}</Text>
+                        <Text style={v_fd5f43.cloneUsername}>@{v_69bba6.username}</Text>
                       </View>
                     </View>
-                    <View style={v_fd5f43.cloneInfo}>
-                      <Text style={v_fd5f43.cloneName}>{v_69bba6.name}</Text>
-                      <Text style={v_fd5f43.cloneUsername}>@{v_69bba6.username}</Text>
+                    <View style={v_fd5f43.actionsRow}>
+                      <TouchableOpacity
+                        style={v_fd5f43.actionBtn}
+                        onPress={async () => {
+
+                          const v_3ed4c3 = await v_84d546(v_2ca7e0, () => {
+                            v_f4c991.dispatch(
+                              v_650cfa.navigate({ name: "MyTab", params: { screen: "Purchase" } }),
+                            );
+                          });
+                          if (!v_3ed4c3) return;
+                          v_38f9da({ cloneId: v_69bba6.id, name: v_69bba6.name, source: "my-clones-shared" });
+                          v_f4c991.navigate("Call", { cloneId: v_69bba6.id, name: v_69bba6.name });
+                        }}
+                      >
+                        <Feather name="video" size={16} color={v_1bfbd0.zinc700} />
+                        <Text style={v_fd5f43.actionText}>{v_8d41d7("dashboard.actionCall")}</Text>
+                      </TouchableOpacity>
                     </View>
                   </View>
-                  <View style={v_fd5f43.actionsRow}>
-                    <TouchableOpacity
-                      style={v_fd5f43.actionBtn}
-                      onPress={async () => {
-
-                        const v_3ed4c3 = await v_84d546(v_2ca7e0, () => {
-                          v_f4c991.dispatch(
-                            v_650cfa.navigate({ name: "MyTab", params: { screen: "Purchase" } }),
-                          );
-                        });
-                        if (!v_3ed4c3) return;
-                        v_38f9da({ cloneId: v_69bba6.id, name: v_69bba6.name, source: "my-clones-shared" });
-                        v_f4c991.navigate("Call", { cloneId: v_69bba6.id, name: v_69bba6.name });
-                      }}
-                    >
-                      <Feather name="video" size={16} color={v_1bfbd0.zinc700} />
-                      <Text style={v_fd5f43.actionText}>{v_8d41d7("dashboard.actionCall")}</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              ))}
-            </View>
-          ) : null
+                ))}
+              </View>
+            ) : null}
+          </View>
         }
       />
       )}
@@ -1223,6 +1293,14 @@ export default function v_def15b() {
 
       {}
 
+      {}
+      <GiftExchangeSheet
+        visible={v_0215b6}
+        onClose={() => v_b30c04(false)}
+        onChanged={v_fa991f}
+        onGoHome={() => v_c65f5d.getParent()?.navigate("HomeTab" as never)}
+      />
+
       {
 }
       <Modal
@@ -1386,7 +1464,6 @@ export default function v_def15b() {
                         )}
                         <View style={v_fd5f43.accountInfo}>
                           <Text style={v_fd5f43.accountName}>{v_ceb55a.name ?? v_ceb55a.email}</Text>
-                          <Text style={v_fd5f43.accountSub}>{v_ceb55a.email}</Text>
                         </View>
                       </View>
                     ))
@@ -1415,7 +1492,6 @@ export default function v_def15b() {
                         )}
                         <View style={v_fd5f43.accountInfo}>
                           <Text style={v_fd5f43.accountName}>{v_ceb55a.name ?? v_ceb55a.email}</Text>
-                          <Text style={v_fd5f43.accountSub}>{v_ceb55a.email}</Text>
                         </View>
                       </View>
                     ))
@@ -1564,6 +1640,10 @@ export default function v_def15b() {
 
       {}
     </SafeView>
+
+    {}
+    <PartnerAppBanners variant="docked" style={v_db1b12} />
+    </View>
   );
 }
 
@@ -2152,7 +2232,6 @@ const v_fd5f43 = v_472849.create({
   },
   accountInfo: { flex: 1 },
   accountName: { fontSize: 15, fontWeight: "600", color: v_1bfbd0.zinc900 },
-  accountSub: { fontSize: 13, color: v_1bfbd0.zinc500, marginTop: 2 },
 
   commentRow: {
     paddingVertical: 12,
@@ -2358,7 +2437,9 @@ const v_fd5f43 = v_472849.create({
   intimacyInfoOkBtn: { marginTop: 16, paddingVertical: 12, borderRadius: v_8b0c90.full, backgroundColor: v_1bfbd0.primary, alignItems: "center" },
   intimacyInfoOkText: { fontSize: 14, fontWeight: "700", color: v_1bfbd0.white },
 
-  giftDashSection: { marginTop: 16, marginBottom: 16, paddingHorizontal: 4 },
+  screen: { flex: 1 },
+
+  giftDashSection: { marginTop: 16, marginBottom: 16, paddingHorizontal: 4, gap: 12 },
   giftDashCard: {
     backgroundColor: v_1bfbd0.white,
     borderRadius: 16,
@@ -2370,9 +2451,10 @@ const v_fd5f43 = v_472849.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 14,
+    marginBottom: 10,
   },
   giftDashTitleRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  giftDashRoseIcon: { width: 22, height: 22, borderRadius: 11 },
   giftDashTitle: { fontSize: 16, fontWeight: "700", color: v_1bfbd0.zinc900 },
   giftDashViewAllBtn: {
     flexDirection: "row",
@@ -2380,27 +2462,49 @@ const v_fd5f43 = v_472849.create({
     gap: 2,
   },
   giftDashViewAll: { fontSize: 13, color: v_1bfbd0.zinc500 },
-  giftDashMetrics: { flexDirection: "row", alignItems: "stretch", gap: 8, marginBottom: 14 },
-  giftDashMetric: {
-    flex: 1,
-    backgroundColor: v_1bfbd0.zinc100,
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-
+  giftDashRoseBody: {
+    flexDirection: "row",
+    alignItems: "center",
     justifyContent: "space-between",
-    minHeight: 72,
+    gap: 12,
   },
-  giftDashMetricAccent: { backgroundColor: "#eff6ff" },
-  giftDashMetricLabel: { fontSize: 11, lineHeight: 15, color: v_1bfbd0.zinc500 },
-  giftDashMetricLabelAccent: { color: v_1bfbd0.primary },
-  giftDashMetricValue: { fontSize: 22, fontWeight: "700", color: v_1bfbd0.zinc900, marginTop: 6 },
-  giftDashMetricValueAccent: { color: v_1bfbd0.primary },
-  giftDashExchangeBtn: {
-    ...v_d43669.md,
+  giftDashRoseLeft: { flex: 1, minWidth: 0 },
+  giftDashRoseBalance: {
+    fontSize: 26,
+    fontWeight: "800",
+    color: v_1bfbd0.zinc900,
+    fontVariant: ["tabular-nums"],
+  },
+  giftDashRoseUnit: { fontSize: 18, fontWeight: "800" },
+  giftDashRoseFeeHint: { marginTop: 4, fontSize: 12, color: v_1bfbd0.zinc500 },
+  giftDashMetrics: {},
+  giftDashMetric: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 12,
+  },
+  giftDashMetricBorder: {
+    borderBottomWidth: v_472849.hairlineWidth,
+    borderBottomColor: v_1bfbd0.zinc200,
+  },
+  giftDashMetricLabel: { flex: 1, fontSize: 14, color: v_1bfbd0.zinc700 },
+  giftDashMetricRight: { flexDirection: "row", alignItems: "center", gap: 2 },
+  giftDashMetricValue: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: v_1bfbd0.zinc900,
+    textAlign: "right",
+    fontVariant: ["tabular-nums"],
+  },
+  giftDashExchangeBtnCompact: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: v_8b0c90.md,
     backgroundColor: v_1bfbd0.zinc900,
     alignItems: "center",
     justifyContent: "center",
+    minWidth: 72,
   },
   giftDashExchangeBtnText: { ...v_c10a43.md, color: v_1bfbd0.white },
 

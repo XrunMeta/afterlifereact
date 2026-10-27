@@ -114,6 +114,9 @@
       "clone_gift": {
         "title": "🎁 ギフトが届きました"
       },
+      "referral_reward": {
+        "title": "🎁 紹介報酬が届きました"
+      },
       "intimacy_score": {
         "title": "🌡️ +{{score}}°C 温度上昇"
       },
@@ -348,9 +351,18 @@
     "sort": "並び替え",
     "sortRecent": "最近の会話順",
     "sortIntimacy": "親密度が高い順",
+    "sortIntimacyAsc": "親密度が低い順",
     "sortName": "名前順",
     "adBannerFallback": "バナー広告",
     "deleteMessageTitle": "メッセージを削除",
+    "copy": "コピー",
+    "selectCopy": "選択してコピー",
+    "selectCopyHint": "長押しで範囲を調整してコピーできます",
+    "reply": "返信",
+    "replyingTo": "{{name}}に返信",
+    "replyDeleted": "削除されたメッセージ",
+    "replyCancelA11y": "返信をキャンセル",
+    "reactionA11y": "{{emoji}} リアクション",
     "notifyOff": "通知をオフ",
     "notifyOn": "通知をオン",
     "callAction": "通話",
@@ -473,7 +485,8 @@
     "faceConsentPrompt": {
       "title": "顔認識への同意",
       "desc": "通話中に誰が話しているかを認識するには、以下の同意が必要です。（任意）",
-      "agree": "同意"
+      "agree": "同意",
+      "continue": "このまま進む"
     },
     "poorConnection": "通話状態がよくありません\nもう一度おかけください",
     "giftInsufficientTitle": "XRUN不足",
@@ -751,7 +764,7 @@
     },
     "delete": {
       "title": "退会",
-      "desc": "本当に退会しますか？\nすべてのデータが削除され、復元できません。",
+      "desc": "本当に退会しますか？\n退会するとすべてのデータ（ポイント、利用履歴、保存したコンテンツ）が削除され、復元できません。",
       "userFallback": "会員",
       "stay": "キャンセル",
       "leave": "退会する",
@@ -832,7 +845,7 @@
       "faceDetect": "顔の検出",
       "faceDetectDesc": "私を覚えているクローン",
       "faceRecognition": "顔認識の同意",
-      "faceRecognitionDesc": "自動登録・顔認識の規約・通話の学習"
+      "faceRecognitionDesc": "顔認識の許可・顔認識の規約・通話の学習"
     },
     "logout": {
       "title": "ログアウトしますか?",
@@ -899,8 +912,8 @@
       "accountLocked": "アカウントがロックされました。約10分後に再試行するか、パスワードを忘れた方から再設定してください。",
       "accountDeletedTitle": "退会済みのアカウントです",
       "accountDeletedMessage": "既に退会処理されたアカウントのため、再度ログインできません。",
-      "accountSuspendedTitle": "アカウント使用停止",
-      "accountSuspendedMessage": "通報の累積によりアカウントの使用が停止されました。",
+      "accountSuspendedTitle": "アカウントが一時停止されました。",
+      "accountSuspendedMessage": "サービス運営ポリシー違反により、アカウントの利用が停止されました。\nお問い合わせ: oth-staff@example.invalid",
       "googleUnavailableTitle": "Google ログインを使用できません",
       "googleUnavailableMessage": "しばらくしてから再度お試しください。",
       "googleNoToken": "Google ログイントークンを受け取れませんでした。",
@@ -1020,6 +1033,14 @@
       "emailInvalid": "メールアドレスの形式が正しくありません。(例: hello@example.com)",
       "passwordTooShort": "パスワードは英大小文字と数字を含む7文字以上である必要があります。",
       "passwordsNotMatch": "パスワードが一致しません。",
+      "referral": "紹介コード",
+      "referralPlaceholder": "紹介コード6桁",
+      "referralCheck": "確認",
+      "referralNotFound": "紹介コードが見つかりません。もう一度確認するか、空欄にしてください。",
+      "referralNotFoundShort": "存在しない紹介コードです",
+      "referralOk": "{{name}}さんが紹介者として登録されます",
+      "referralOkNoName": "紹介コードを確認しました",
+      "referralHint": "紹介コードを入力すると、あなたと紹介者の両方に花をプレゼント",
       "phoneTooShort": "電話番号を4文字以上で入力してください。",
       "termsAccept": "利用規約に同意してください。",
       "ageInvalid": "年齢を13〜120の間の数字で入力してください。",
@@ -1095,6 +1116,12 @@
       "submit": "アフターライフを始める",
       "googleOnboardingDesc": "Googleアカウントでの初回開始です。基本情報を一度だけ入力してください。",
       "submitting": "処理中..."
+    },
+    "deactivated": {
+      "title": "無効化中のアカウントです。",
+      "message": "再ログインして、アカウントとAIクローンを元通り使いますか？",
+      "activate": "有効化",
+      "failed": "有効化できませんでした。もう一度ログインしてください。"
     }
   },
   "create": {
@@ -1268,19 +1295,18 @@
       "recordStartFailedMsg": "録音を開始できませんでした。しばらくしてから再度お試しください。",
       "chooseScriptHint": "スクリプトを選んで読んでください。",
       "uploading": "アップロード中...",
-      "cloneJobRegistered": "クローニングジョブを登録しました",
       "recordDoneUploadFailed": "録音完了(アップロード失敗 — 再試行中)",
       "uploadPromptHint": "音声ファイルをアップロードしてください",
       "pickAnother": "別のファイルを選択",
       "pickFile": "音声ファイルを選択",
       "filePickedUploadFailed": "ファイル選択済み(ジョブ登録失敗 — 再試行中)",
       "scripts": {
-        "s1Title": "日常のあいさつ",
-        "s1Text": "こんにちは。今日は本当にいい一日でした。日差しが暖かく、風もやわらかで、散歩にぴったりでした。こんな穏やかな時間が本当に大切に感じられます。今日も一日、楽しく過ごしてくださいね。",
-        "s2Title": "食べ物の話",
-        "s2Text": "最近いちばん好きな食べ物は何ですか?私はキムチチゲが大好きです。辛みが濃くて、熱々のスープを一口すすると、一日の疲れがすっと解けるような気がします。特に雨の日に食べるともっとおいしいんです。",
-        "s3Title": "思い出の回想",
-        "s3Text": "子どもの頃の思い出でいちばん心に残っているのは、家族と一緒に行った海への旅行です。波の音、しょっぱい風、そして砂浜で駆け回ったあの瞬間が今でも鮮やかです。あの時の幸せな気分がまたよみがえります。"
+        "s1Title": "今日のこと",
+        "s1Text": "今日、すごくいい天気でしたね。お昼のあとにちょっと外に出たら、日差しがあったかくて、なんだか気分が上がりました。それで、わざと少し遠回りして帰ってきたんです。こういう日は、何も考えずに歩くだけでも気持ちいいですよね。夜ごはん、何にしようか、もう考えてます。",
+        "s2Title": "好きな食べもの",
+        "s2Text": "私、あったかいお鍋が本当に好きなんです。雨の日に食べると、もっとおいしいんですよね。熱いスープをひと口飲むと、一日の疲れがすっと取れる感じがします。最近よく食べてるもの、ありますか？おいしいお店を知ってたら、ぜひ教えてください。",
+        "s3Title": "思い出の旅",
+        "s3Text": "小さいころ、家族で海に行ったのを今でもはっきり覚えています。波の音を聞きながら、砂浜で一日中走り回ってたんです。夜はみんなで貝を焼いて食べたんですけど、それがすごくおいしくて。今思い出しても笑っちゃいます。あの日に一度だけ戻ってみたいですね。"
       },
       "warnTooShortTitle": "ファイルが短すぎます",
       "warnTooShortMsg": "選択したファイルがとても短いです。声の学習には30秒〜1分の静かな録音が必要です。別のファイルを選んで再度アップロードしてください。",
@@ -1288,9 +1314,14 @@
       "warnTooLargeMsg": "選択したファイルが長すぎます。30秒〜1分に切り取って再度アップロードしてください。",
       "toastSilence": "声が小さすぎます。もう少し大きな声で話してください。",
       "toastNoise": "周りがうるさいです。静かな場所で録音してください。",
+      "toastClipping": "音が大きすぎて割れています。マイクから少し離れて話してください。",
+      "recordAbortedTitle": "録音が中断されました",
+      "recordAbortedMsg": "録音中にアプリを離れたため、録音を停止しました。最初から録音し直してください。",
       "recordQualityTitle": "録音品質の確認",
       "recordQualitySilenceMsg": "録音に無音部分が多くあります。静かな場所で文全体をはっきりと録り直してください。",
-      "recordQualityNoiseMsg": "録音に周囲の雑音が入っています。静かな場所で録り直すと、声がずっと自然になります。"
+      "recordQualityNoiseMsg": "録音に周囲の雑音が入っています。静かな場所で録り直すと、声がずっと自然になります。",
+      "registeredFile": "音声ファイルが正常に登録されました。",
+      "registeredRecording": "録音した音声が正常に登録されました。"
     },
     "visibility": {
       "memlowLocked": "追悼クローンは非公開に固定されます。共同管理者のみ閲覧できます。",
@@ -1425,6 +1456,12 @@
       "videoPending": "動画準備中",
       "reuploadPhoto": "写真を再アップロード",
       "photoUploading": "写真をアップロード中...",
+      "progressCreating": "クローンを作成中...",
+      "progressPosting": "投稿中...",
+      "progressDone": "投稿しました",
+      "progressVideo": "動画の生成を待っています...",
+      "progressReupload": "写真をもう一度アップロードしてください",
+      "postButton": "投稿",
       "photoRequired": "先に写真を登録してください",
       "captionPlaceholder": "紹介文を作成(例: #日常 #infp K-POP が好きです)",
       "loginNeeded": "ログイン情報がありません。再度ログインしてください。",
@@ -1589,13 +1626,13 @@
       },
       "faceBiometric": {
         "sectionTitle": "顔認識(生体情報)",
-        "description": "通話中に初めて見る顔を別途の確認カードなしに静かに記憶し、次の通話からより自然に認識できるようにします。いつでもオン/オフを切り替えできます。オフにするとこの方法で登録された話者情報が削除されます(直接登録した話者は影響なし)。",
-        "toggleLabel": "静かな自動登録を許可",
+        "description": "会話中に顔認識を使用します。",
+        "toggleLabel": "顔認識(生体情報)を許可",
         "saveError": "設定を保存できませんでした。もう一度お試しください。",
-        "revokeConfirmTitle": "静かな自動登録をオフにする",
-        "revokeConfirmMessage": "オフにするとこの方法で自動登録されたすべての話者の顔認識情報が即座に削除されます。直接登録した話者は影響ありません。元に戻せません。続行しますか?",
+        "revokeConfirmTitle": "顔認識を無効にする",
+        "revokeConfirmMessage": "無効にすると会話中に顔認識を使用しなくなり、顔認識情報がすぐに削除され、元に戻せません。無効にしますか?",
         "retroPromptTitle": "顔認識(生体情報)の活用に同意しますか?",
-        "retroPromptMessage": "同意されると通話中に初めて見る顔を別途の確認なしに静かに記憶し、次の通話からより自然に認識します。設定でいつでも変更できます。",
+        "retroPromptMessage": "同意すると会話中に顔認識を使用します。設定でいつでも変更できます。",
         "retroPromptAgree": "同意",
         "retroPromptDecline": "拒否"
       },
@@ -1880,8 +1917,9 @@
     "later": "後で追加"
   },
   "errors": {
+    "faceConsentRequired": "顔認識への同意が必要です。設定で「顔認識(生体情報)を許可」をオンにしてください。",
     "accountDeleted": "このアカウントは既に退会しています。",
-    "accountSuspended": "通報が累積したためアカウントの利用が停止されています。",
+    "accountSuspended": "サービス運営ポリシー違反により、アカウントの利用が停止されました。\nお問い合わせ: oth-staff@example.invalid",
     "accountSuspendedForPersona": "通報の累積によりアカウントが一時的に無効になっているため、クローンを作成できません。",
     "accountLocked": "アカウントが一時的にロックされています。しばらくしてから再度お試しください。",
     "tooManyFailures": "失敗が多すぎます。しばらくしてから再度お試しください。",
@@ -2198,6 +2236,11 @@
     "other": "その他"
   },
   "faceEnroll": {
+    "consentRequired": {
+      "title": "顔認識の同意が必要です",
+      "message": "顔を登録するには、設定で「顔認識(生体情報)を許可」をオンにしてください。",
+      "goSettings": "設定へ移動"
+    },
     "rescanNotice": "顔をもう一度確認します。",
     "permissionRequired": "カメラの権限が必要です。",
     "permissionSkip": "登録をスキップして通話",
@@ -2210,7 +2253,7 @@
       "title": "この方はどなたですか?",
       "desc": "名前と関係を教えていただくと、次回の通話から認識できます。",
       "existingLabel": "すでに登録済みの人 (選択すると学習だけ追加されます)",
-      "markSelf": "この顔は私です",
+      "markSelf": "顔情報を保存しておきます",
       "alreadyRegistered": "{{name}}さんはすでに登録されています",
       "updateName": "名前を更新",
       "existingHint": "新しい人の場合は、下に名前を直接入力してください",
@@ -2325,19 +2368,40 @@
     "tabReceived": "受け取ったギフト",
     "tabSent": "送ったギフト",
     "tabExchange": "交換",
+    "subTabUser": "ユーザー",
+    "subTabClone": "クローン",
+    "emptyUserGift": "まだユーザーからのギフトはありません",
+    "emptyCloneGift": "まだクローンの報酬はありません",
+    "watchAdClaim": "広告を見て受け取る",
+    "watchAdClaimCount": "広告を見て{{count}}本受け取る",
+    "claimFailTitle": "受け取れませんでした",
+    "claimFailMsg": "しばらくしてからもう一度お試しください。",
     "exchangeable": "交換可能",
     "exchangeAction": "交換する",
+    "ownedCountTitle": "所持数",
+    "ownedCountLabel": "所持数",
+    "historyView": "履歴を見る",
+    "sentSearchPlaceholder": "クローン名を検索",
+    "sentSearchNoMatch": "検索結果がありません",
+    "subTabAll": "すべて",
     "flowerUnit": "輪",
     "peopleUnit": "人",
     "ownedLabel": "所持中",
     "ownedEmpty": "所持中のギフトがありません",
     "filterAll": "すべて",
+    "filterClaimed": "受取済み",
+    "filterPending": "受取待ち",
     "filterAnon": "匿名のみ",
     "loadMore": "もっと見る ({{n}})",
     "receivedTitle": "{{name}}さんが{{gift}}を送りました",
     "toClone": "{{name}}クローンへ",
     "toUnknownClone": "クローンへ",
+    "subTabReferral": "紹介",
+    "emptyReferralGift": "まだ紹介報酬はありません",
     "adRewardSender": "広告リワード",
+    "referralRewardSender": "紹介報酬",
+    "referralRewardTitle": "紹介コードで登録して受け取りました",
+    "referralInviteTitle": "あなたの紹介コードで友達が登録して受け取りました",
     "anonymous": "匿名",
     "someone": "相手",
     "sentThisMonth": "今月送ったギフト",
@@ -2397,7 +2461,27 @@
     "weekdayShortWed": "水",
     "weekdayShortThu": "木",
     "weekdayShortFri": "金",
-    "weekdayShortSat": "土"
+    "weekdayShortSat": "土",
+    "exchangeSheetTitle": "XRUNに交換します",
+    "exchangeSheetTitleShort": "交換",
+    "exchangeLoading": "交換条件を確認しています…",
+    "exchangeQtyLabel": "交換する数量",
+    "receiveQtyLabel": "受け取る数量",
+    "max": "最大",
+    "feeExchangeNotice": "手数料{{fee}} ROSEを除いた{{qty}} ROSEが交換されます",
+    "exchangeNoCancel": "交換後はキャンセルできません。",
+    "successFeeLine": "手数料{{fee}} ROSE差し引き後に交換",
+    "successRemaining": "残りローズ {{n}} ROSE",
+    "successWalletHint": "報酬はXRUNウォレット > Afterlifeで受け取れます。",
+    "p4ReceiveReward": "XRUNで報酬を受け取る",
+    "feeRule": "{{unit}}本ごとに{{fee}}本 · {{total}}本",
+    "totalDeduct": "合計差し引き",
+    "toastSnapped": "{{step}}本単位で交換できます（{{qty}}本に合わせました）",
+    "notEnoughTitle": "交換には{{need}} ROSE以上必要です",
+    "noGiftTitle": "交換できるギフトがありません",
+    "noGiftBody": "ペルソナと通話するとギフトがもらえます。\n今から通話してみますか？",
+    "goHome": "移動する",
+    "notEnoughBody": "現在{{owned}} ROSEお持ちです。\n通話でギフトをもっと集めましょう。"
   },
   "sso": {
     "reconsent": {
@@ -2406,5 +2490,35 @@
       "saving": "処理中...",
       "continue": "同意して続ける"
     }
+  },
+  "deactivate": {
+    "whatHappens": "無効化すると",
+    "verify": "本人確認",
+    "byPassword": "パスワード",
+    "byEmail": "メール認証（ソーシャルアカウント）",
+    "passwordPlaceholder": "パスワードを入力",
+    "sendCode": "登録メールに認証コードを送る",
+    "resendCode": "認証コードを再送",
+    "codeSent": "{{email}} に送信しました。",
+    "codePlaceholder": "6桁の認証コード",
+    "submit": "無効化",
+    "confirmTitle": "アカウントを無効化しますか？",
+    "confirmBody": "すべての端末ですぐにログアウトされます。",
+    "effect": {
+      "hide": "プロフィールと作成したAIクローンがホーム・探索・検索から非表示になり、共同管理者以外は会話・通話できません。",
+      "posts": "投稿とコメントが非表示になります。",
+      "interaction": "他の人からギフト・共有を受け取れません。",
+      "notify": "すべての通知が止まります。",
+      "restore": "再ログインすればいつでも元に戻せます。データは削除されません。"
+    },
+    "verifyPassword": "本人確認 · パスワード",
+    "verifyEmail": "本人確認 · メール認証コード"
+  },
+  "partner": {
+    "appsCaption": "関連アプリ",
+    "xrunTitle": "XRUN",
+    "xrunSub": "ウォレット · 報酬 · ログイン連携",
+    "clubxTitle": "ClubX",
+    "clubxSub": "クラブ · アイテム"
   }
 }

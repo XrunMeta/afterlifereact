@@ -2,6 +2,7 @@ import type { v_ea2b42 } from "zmui";
 import type { v_de0a25 } from "../lib/env";
 import { v_3ebe58 } from "../lib/errors";
 import { v_2703c5 } from "../lib/jwt";
+import { v_d5996b } from "../lib/deactivation";
 
 export const requireAuth: v_ea2b42<v_de0a25> = async (v_3f4e2e, v_a448ad) => {
   const v_ad8d0d = v_3f4e2e.req.header("Authorization");
@@ -9,7 +10,7 @@ export const requireAuth: v_ea2b42<v_de0a25> = async (v_3f4e2e, v_a448ad) => {
     throw new v_3ebe58("UNAUTHENTICATED", "Missing bearer token.");
   }
   const v_21cc31 = v_ad8d0d.slice(7);
-  const v_931bf0 = await v_2703c5<{ sub: number; kind?: string }>(
+  const v_931bf0 = await v_2703c5<{ sub: number; kind?: string; epoch?: number }>(
     v_21cc31,
     v_3f4e2e.env.JWT_ACCESS_SECRET,
   );
@@ -19,6 +20,10 @@ export const requireAuth: v_ea2b42<v_de0a25> = async (v_3f4e2e, v_a448ad) => {
   const v_0c8987 = typeof v_931bf0.sub === "string" ? Number(v_931bf0.sub) : v_931bf0.sub;
   if (!Number.isInteger(v_0c8987) || v_0c8987 <= 0) {
     throw new v_3ebe58("UNAUTHENTICATED", "Malformed sub claim.");
+  }
+
+  if (await v_d5996b(v_3f4e2e.env, v_0c8987, v_931bf0.epoch)) {
+    throw new v_3ebe58("UNAUTHENTICATED", "다시 로그인해 주세요.");
   }
   v_3f4e2e.set("userId", v_0c8987);
   await v_a448ad();

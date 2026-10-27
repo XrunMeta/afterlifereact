@@ -473,7 +473,7 @@ class TestTranscribeClip:
         실 faster-whisper 의 빈 입력 동작은 통합(재백필 실측)에서 검증."""
         monkeypatch.setattr(config, "STT_MAX_SEC", 10.0)
         _FakeWhisperModel.decode_return = []
-        text, duration, seg_count = srv._transcribe_wav("/fake/empty.wav")
+        text, duration, seg_count, _ = srv._transcribe_wav("/fake/empty.wav")
         assert len(_FakeWhisperModel.last_audio) == 0
         assert duration == 0.0
 
@@ -484,3 +484,74 @@ class TestTranscribeClip:
         with pytest.raises(HTTPException) as ei:
             srv._transcribe_wav("/fake/bad.wav")
         assert ei.value.status_code == 503
+
+
+class TestTranscribePathMaxSec:
+    """AFL-1059: 견본 쌍(voice_prompt.wav, 8~30초)은 통째로 전사해야 한다.
+
+    STT_MAX_SEC(10초) 물리 cut 은 voice.wav 앞 10초를 쓰는 ref_text.txt 용이다. 견본 쌍 전사에도
+    같은 cut 이 걸려 10초 넘는 견본의 뒷문장이 글에서 빠졌다(라이브 9223: "…좀 더 오라" 에서 끊김).
+    오디오·텍스트가 어긋난 견본은 엉뚱한 소리를 낸다.
+    """
+
+    def _post(self, ref_root, **extra):
+        wav = _make_voice_wav(ref_root, "zz-probe-1-0")
+        return client.post("/transcribe_path", json={"wav_path": wav, "out_clone_id": "zz-stt-sink", **extra})
+
+    def test_max_sec_지정하면_그만큼_전사(self, tmp_ref_root, monkeypatch):
+        monkeypatch.setattr(config, "STT_MAX_SEC", 10.0)
+        _FakeWhisperModel.decode_return = [0.0] * (20 * 16000)
+        res = self._post(tmp_ref_root, max_sec=30)
+        assert res.status_code == 200
+        assert len(_FakeWhisperModel.last_audio) == 20 * 16000
+
+    def test_max_sec_없으면_종전_10초(self, tmp_ref_root, monkeypatch):
+        monkeypatch.setattr(config, "STT_MAX_SEC", 10.0)
+        _FakeWhisperModel.decode_return = [0.0] * (20 * 16000)
+        assert self._post(tmp_ref_root).status_code == 200
+        assert len(_FakeWhisperModel.last_audio) == 10 * 16000
+
+    def test_max_sec_범위밖은_거부(self, tmp_ref_root):
+        assert self._post(tmp_ref_root, max_sec=31).status_code == 422
+        assert self._post(tmp_ref_root, max_sec=0).status_code == 422
+
+
+class TestTranscribePathWords:
+    """AFL-1059: 사용자 녹음 견본은 STT 글에 문장부호가 없어(소리엔 쉼이 있는데) CosyVoice 가 아무 데서나
+    1~5초씩 쉬었다. 견본 쪽(make_prompt_ref)이 쉼 자리에 문장부호를 넣을 수 있게 단어별 시각을 준다."""
+
+    class _W:
+        def __init__(self, word, start, end):
+            self.word, self.start, self.end = word, start, end
+
+    def _seg(self):
+        s = _FakeSegment(" 오늘 날씨 좋더라구요 점심")
+        s.words = [self._W(" 오늘", 0.0, 0.4), self._W(" 날씨", 0.4, 0.8),
+                   self._W(" 좋더라구요", 0.8, 1.6), self._W(" 점심", 2.4, 2.8)]
+        return s
+
+    def test_words_요청하면_단어별_시각을_준다(self, tmp_ref_root, monkeypatch):
+        monkeypatch.setattr(_FakeWhisperModel, "transcribe_result", [self._seg()])
+        seen = {}
+        orig = _FakeWhisperModel.transcribe
+
+        def spy(self_, audio=None, *a, **k):
+            seen.update(k)
+            return orig(self_, audio, *a, **k)
+        monkeypatch.setattr(_FakeWhisperModel, "transcribe", spy)
+        wav = _make_voice_wav(tmp_ref_root, "zz-probe-1-0")
+        res = client.post("/transcribe_path", json={"wav_path": wav, "out_clone_id": "zz-stt-sink",
+                                                     "max_sec": 30, "words": True})
+        assert res.status_code == 200
+        assert seen.get("word_timestamps") is True
+        # 단어 앞 공백은 그대로 — 어절이 쪼개져 와도 이어 붙이면 원래 띄어쓰기가 된다.
+        assert res.json()["words"] == [
+            {"w": " 오늘", "s": 0.0, "e": 0.4}, {"w": " 날씨", "s": 0.4, "e": 0.8},
+            {"w": " 좋더라구요", "s": 0.8, "e": 1.6}, {"w": " 점심", "s": 2.4, "e": 2.8},
+        ]
+
+    def test_words_없으면_종전_응답(self, tmp_ref_root):
+        wav = _make_voice_wav(tmp_ref_root, "zz-probe-1-0")
+        res = client.post("/transcribe_path", json={"wav_path": wav, "out_clone_id": "zz-stt-sink"})
+        assert res.status_code == 200
+        assert "words" not in res.json()

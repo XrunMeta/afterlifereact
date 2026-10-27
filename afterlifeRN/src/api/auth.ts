@@ -22,6 +22,8 @@ export interface SignupPayload {
   deviceId?: string;
   pushToken?: string;
   platform?: "ios" | "android" | "web";
+
+  referralCode?: string;
 }
 
 export interface AuthUserBrief {
@@ -164,6 +166,13 @@ export interface EmailCheckXrunResponse {
   xrunExists: boolean;
   email: string;
 }
+
+export async function v_d42670(v_c99bd2): Promise<{ exists: boolean; name?: string | null }> {
+  const v_8f00b9 = await fetch(`${v_cc9198}/oth-path?code=${encodeURIComponent(v_c99bd2.trim())}`);
+  if (!v_8f00b9.ok) return { exists: false };
+  return (await v_8f00b9.json()) as { exists: boolean; name?: string | null };
+}
+
 export async function v_2efafe(v_e0c7e8): Promise<EmailCheckXrunResponse> {
   return v_c34e2f("/oth-path", { email: v_e0c7e8 });
 }
@@ -227,6 +236,24 @@ export async function v_c93bd8(v_931bf0): Promise<LoginSuccessResponse> {
 
 export async function v_7ef860(v_2ca7e0): Promise<{ user: AuthUser; interests: string[] }> {
   return v_9b97b4("/oth-path", v_2ca7e0);
+}
+
+export async function v_2d81c4(v_2ca7e0): Promise<{ ok: true; email: string }> {
+  return v_9b97b4("/oth-path", v_2ca7e0, { method: "POST", body: "{}" });
+}
+
+export async function v_ab34b7(
+  v_2ca7e0,
+  v_68f0aa,
+): Promise<{ ok: true }> {
+  return v_9b97b4("/oth-path", v_2ca7e0, { method: "POST", body: JSON.stringify(v_68f0aa) });
+}
+
+export async function v_887ecd(
+  v_801c01,
+  v_929b58,
+): Promise<LoginSuccessResponse> {
+  return v_c34e2f("/oth-path", { reactivateToken: v_801c01, deviceId: v_929b58 });
 }
 
 export interface UserSearchItem {
@@ -330,22 +357,44 @@ export interface XrunProfilePatch {
   region?: number | null;
 }
 
+function v_60a45b(v_81e2ef): number | null {
+  if (v_81e2ef == null || v_81e2ef === "") return null;
+  const v_f4e98d = typeof v_81e2ef === "number" ? v_81e2ef : Number(v_81e2ef);
+  return Number.isFinite(v_f4e98d) ? v_f4e98d : null;
+}
+
+function v_95137b(v_e2a85c): XrunProfile {
+  return {
+    ...v_e2a85c,
+    member: v_60a45b(v_e2a85c.member) ?? v_e2a85c.member,
+    gender: v_60a45b(v_e2a85c.gender),
+    ages: v_60a45b(v_e2a85c.ages),
+    age: v_60a45b(v_e2a85c.age),
+    country: v_60a45b(v_e2a85c.country),
+    region: v_60a45b(v_e2a85c.region),
+  };
+}
+
 export async function v_2c296e(v_2ca7e0): Promise<XrunProfile> {
   const v_8f00b9 = await v_9b97b4<{ profile: XrunProfile }>(
     "/oth-path",
     v_2ca7e0,
     { method: "GET" },
   );
-  return v_8f00b9.profile;
+  return v_95137b(v_8f00b9.profile);
 }
 
 export async function v_ad7aba(
   v_2ca7e0,
   v_931bf0,
 ): Promise<{ ok: true; updated: number; profile: XrunProfile | null }> {
-  return v_9b97b4<{ ok: true; updated: number; profile: XrunProfile | null }>(
+  const v_8f00b9 = await v_9b97b4<{ ok: true; updated: number; profile: XrunProfile | null }>(
     "/oth-path",
     v_2ca7e0,
     { method: "PATCH", body: JSON.stringify(v_931bf0) },
   );
+  return {
+    ...v_8f00b9,
+    profile: v_8f00b9.profile ? v_95137b(v_8f00b9.profile) : null,
+  };
 }

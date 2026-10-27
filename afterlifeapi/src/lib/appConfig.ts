@@ -455,6 +455,36 @@ export async function v_b7471b(env: v_273a0c, v_17dc8a): Promise<AdCadence> {
   return v_a448ad;
 }
 
+const v_87334a = "referral.reward";
+export interface ReferralRewardConfig {
+
+  qty: number;
+}
+export const v_04800b = { qty: 50 };
+export async function v_866cbe(env: v_273a0c): Promise<ReferralRewardConfig> {
+  try {
+    const v_3ac7e7 = await v_c9c489.DB
+      .prepare(`SELECT value FROM app_config WHERE key = ? LIMIT 1`)
+      .bind(v_87334a)
+      .first<{ value: string }>();
+    const v_d016c9 = Number((v_3ac7e7 ? (JSON.parse(v_3ac7e7.value) as { qty?: unknown }) : null)?.qty);
+    return Number.isInteger(v_d016c9) && v_d016c9 >= 0 && v_d016c9 <= 10000 ? { qty: v_d016c9 } : v_04800b;
+  } catch {
+    return v_04800b;
+  }
+}
+export async function v_70ad18(env: v_273a0c, v_d016c9): Promise<ReferralRewardConfig> {
+  if (!Number.isInteger(v_d016c9) || v_d016c9 < 0 || v_d016c9 > 10000) throw new Error("qty must be an integer 0~10000");
+  await v_c9c489.DB
+    .prepare(
+      `INSERT INTO app_config (key, value, updated_at) VALUES (?, ?, unixepoch())
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = unixepoch()`,
+    )
+    .bind(v_87334a, JSON.stringify({ qty: v_d016c9 }))
+    .run();
+  return { qty: v_d016c9 };
+}
+
 const v_566753 = "gift.exchange";
 export interface GiftExchangeMaintenance {
   from: number; 
