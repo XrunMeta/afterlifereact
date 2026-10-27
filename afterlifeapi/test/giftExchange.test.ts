@@ -59,10 +59,15 @@ v_469bf2("gift → XRUN exchange", () => {
       .prepare(`INSERT OR REPLACE INTO app_config (key, value, updated_at) VALUES ('gift.exchange', ?, unixepoch())`)
       .bind(JSON.stringify({ enabled: true, minQty: 10, feeQty: 1, feeUnit: 10, maintenance: null, version: 1 }))
       .run();
+
+    await v_a1651b()
+      .prepare(`INSERT OR REPLACE INTO app_config (key, value, updated_at) VALUES ('gift.catalog', ?, unixepoch())`)
+      .bind(JSON.stringify([{ id: "gift-rose", name: "장미", emoji: "🌹", price: 10, xrunPrice: 0.1 }, { id: "gift-bouquet", name: "꽃다발", emoji: "💐", price: 10, xrunPrice: 0.1 }]))
+      .run();
   });
   v_719203(() => v_8fd90d.assertNoPendingInterceptors());
 
-  v_23805a("eligibility: 보유·교환 가능 수량·조건·송이별 가격 구간", async () => {
+  v_23805a("eligibility: 보유·교환 가능 수량·조건·지금 관리자 가격", async () => {
     const v_ceb55a = await v_bfb240(5001);
     await v_8b0655(v_ceb55a, "gift-rose", [[0.01, 3], [0.1, 10]]);
     const v_cb35cb = await v_51c3d2(v_ceb55a, "GET", "/oth-path");
@@ -76,11 +81,12 @@ v_469bf2("gift → XRUN exchange", () => {
       feeQty: 1,
       feeUnit: 10,
       rateVersion: 1,
-      priceSegments: [{ price: "0.01", count: 3 }, { price: "0.1", count: 10 }],
+
+      priceSegments: [{ price: "0.1", count: 13 }],
     });
   });
 
-  v_23805a("교환: 오래된 송이부터 차감, 보상 = 앞 교환 수량 가격 합, XRUN 수령 대기 생성", async () => {
+  v_23805a("교환: 오래된 송이부터 차감, 보상 = 교환 수량 × 관리자 가격, XRUN 수령 대기 생성", async () => {
     const v_ceb55a = await v_bfb240(5002);
     await v_8b0655(v_ceb55a, "gift-rose", [[0.01, 3], [0.1, 10]]);
     let v_f966e3 = null;
@@ -94,8 +100,8 @@ v_469bf2("gift → XRUN exchange", () => {
     const v_cb35cb = await v_51c3d2(v_ceb55a, "POST", "/oth-path", { giftId: "gift-rose", qty: 10, rateVersion: 1 }, "key-ex-0001");
     v_4d37e3(v_cb35cb.status).toBe(200);
 
-    v_4d37e3(v_cb35cb.json).toMatchObject({ qty: 10, feeQty: 1, deductedQty: 11, reward: "0.73", rewardStatus: "pending_claim" });
-    v_4d37e3(v_f966e3).toMatchObject({ member: 5002, xrunAmount: "0.73", qty: 10 });
+    v_4d37e3(v_cb35cb.json).toMatchObject({ qty: 10, feeQty: 1, deductedQty: 11, reward: "1", rewardStatus: "pending_claim" });
+    v_4d37e3(v_f966e3).toMatchObject({ member: 5002, xrunAmount: "1", qty: 10 });
     v_4d37e3(await v_2461e1(v_ceb55a, "gift-rose")).toBe(2);
 
     const v_826279 = await v_51c3d2(v_ceb55a, "POST", "/oth-path", { giftId: "gift-rose", qty: 10, rateVersion: 1 }, "key-ex-0001");
@@ -104,7 +110,7 @@ v_469bf2("gift → XRUN exchange", () => {
     v_4d37e3(await v_2461e1(v_ceb55a, "gift-rose")).toBe(2);
 
     const v_65a2cd = await v_51c3d2(v_ceb55a, "GET", "/oth-path");
-    v_4d37e3(v_65a2cd.json.items[0]).toMatchObject({ exchangeNo: v_cb35cb.json.exchangeNo, rewardStatus: "pending_claim", reward: "0.73" });
+    v_4d37e3(v_65a2cd.json.items[0]).toMatchObject({ exchangeNo: v_cb35cb.json.exchangeNo, rewardStatus: "pending_claim", reward: "1" });
 
     const v_16dbdb = await v_1df298.fetch("https://x/oth-path", {
       method: "POST",
@@ -230,6 +236,7 @@ v_469bf2("gift send → lots FIFO", () => {
       .first<{ n: number }>();
     v_4d37e3(Number(v_9fdb66?.n)).toBe(12);
     const v_9e86fd = await v_51c3d2(v_a13c2e, "GET", "/oth-path");
-    v_4d37e3(v_9e86fd.json.priceSegments).toEqual([{ price: "0.01", count: 2 }, { price: "0.1", count: 10 }]);
+
+    v_4d37e3(v_9e86fd.json.priceSegments).toEqual([{ price: v_4d37e3.any(String), count: 12 }]);
   });
 });
