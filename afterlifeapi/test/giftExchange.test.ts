@@ -57,7 +57,7 @@ v_469bf2("gift → XRUN exchange", () => {
 
     await v_a1651b()
       .prepare(`INSERT OR REPLACE INTO app_config (key, value, updated_at) VALUES ('gift.exchange', ?, unixepoch())`)
-      .bind(JSON.stringify({ enabled: true, minQty: 10, feeQty: 1, feeUnit: 10, maintenance: null, version: 1 }))
+      .bind(JSON.stringify({ enabled: true, minQty: 1, feeQty: 1, feeUnit: 0, maintenance: null, version: 1 }))
       .run();
 
     await v_a1651b()
@@ -76,17 +76,18 @@ v_469bf2("gift → XRUN exchange", () => {
       xrunLinked: true,
       giftId: "gift-rose",
       ownedQty: 13,
-      exchangeableQty: 11, 
-      minQty: 10,
+      feeIncluded: true,
+      exchangeableQty: 13, 
+      minQty: 2,
       feeQty: 1,
-      feeUnit: 10,
+      feeUnit: 0,
       rateVersion: 1,
 
       priceSegments: [{ price: "0.1", count: 13 }],
     });
   });
 
-  v_23805a("교환: 오래된 송이부터 차감, 보상 = 교환 수량 × 관리자 가격, XRUN 수령 대기 생성", async () => {
+  v_23805a("교환: 10송이 입력 → 10송이 차감·수수료 1 → 9 × 관리자 가격, XRUN 수령 대기 생성", async () => {
     const v_ceb55a = await v_bfb240(5002);
     await v_8b0655(v_ceb55a, "gift-rose", [[0.01, 3], [0.1, 10]]);
     let v_f966e3 = null;
@@ -100,17 +101,17 @@ v_469bf2("gift → XRUN exchange", () => {
     const v_cb35cb = await v_51c3d2(v_ceb55a, "POST", "/oth-path", { giftId: "gift-rose", qty: 10, rateVersion: 1 }, "key-ex-0001");
     v_4d37e3(v_cb35cb.status).toBe(200);
 
-    v_4d37e3(v_cb35cb.json).toMatchObject({ qty: 10, feeQty: 1, deductedQty: 11, reward: "1", rewardStatus: "pending_claim" });
-    v_4d37e3(v_f966e3).toMatchObject({ member: 5002, xrunAmount: "1", qty: 10 });
-    v_4d37e3(await v_2461e1(v_ceb55a, "gift-rose")).toBe(2);
+    v_4d37e3(v_cb35cb.json).toMatchObject({ qty: 9, feeQty: 1, deductedQty: 10, reward: "0.9", rewardStatus: "pending_claim" });
+    v_4d37e3(v_f966e3).toMatchObject({ member: 5002, xrunAmount: "0.9", qty: 9 });
+    v_4d37e3(await v_2461e1(v_ceb55a, "gift-rose")).toBe(3);
 
     const v_826279 = await v_51c3d2(v_ceb55a, "POST", "/oth-path", { giftId: "gift-rose", qty: 10, rateVersion: 1 }, "key-ex-0001");
     v_4d37e3(v_826279.status).toBe(200);
     v_4d37e3(v_826279.json.exchangeId).toBe(v_cb35cb.json.exchangeId);
-    v_4d37e3(await v_2461e1(v_ceb55a, "gift-rose")).toBe(2);
+    v_4d37e3(await v_2461e1(v_ceb55a, "gift-rose")).toBe(3);
 
     const v_65a2cd = await v_51c3d2(v_ceb55a, "GET", "/oth-path");
-    v_4d37e3(v_65a2cd.json.items[0]).toMatchObject({ exchangeNo: v_cb35cb.json.exchangeNo, rewardStatus: "pending_claim", reward: "1" });
+    v_4d37e3(v_65a2cd.json.items[0]).toMatchObject({ exchangeNo: v_cb35cb.json.exchangeNo, rewardStatus: "pending_claim", reward: "0.9" });
 
     const v_16dbdb = await v_1df298.fetch("https://x/oth-path", {
       method: "POST",
@@ -169,10 +170,11 @@ v_469bf2("gift → XRUN exchange", () => {
   v_23805a("검증: 최소 미달·보유 부족·조건 변경·점검·키 없음", async () => {
     const v_ceb55a = await v_bfb240(5003);
     await v_8b0655(v_ceb55a, "gift-rose", [[0.1, 10]]);
-    v_4d37e3((await v_51c3d2(v_ceb55a, "POST", "/oth-path", { giftId: "gift-rose", qty: 9, rateVersion: 1 }, "key-ex-0101")).json.error.code).toBe("BELOW_MIN_QTY");
-    const v_57506c = await v_51c3d2(v_ceb55a, "POST", "/oth-path", { giftId: "gift-rose", qty: 10, rateVersion: 1 }, "key-ex-0102");
+
+    v_4d37e3((await v_51c3d2(v_ceb55a, "POST", "/oth-path", { giftId: "gift-rose", qty: 1, rateVersion: 1 }, "key-ex-0101")).json.error.code).toBe("BELOW_MIN_QTY");
+    const v_57506c = await v_51c3d2(v_ceb55a, "POST", "/oth-path", { giftId: "gift-rose", qty: 11, rateVersion: 1 }, "key-ex-0102");
     v_4d37e3(v_57506c.status).toBe(409);
-    v_4d37e3(v_57506c.json.error).toMatchObject({ code: "INSUFFICIENT_QTY", details: { ownedQty: 10, exchangeableQty: 9 } });
+    v_4d37e3(v_57506c.json.error).toMatchObject({ code: "INSUFFICIENT_QTY", details: { ownedQty: 10, exchangeableQty: 10 } });
     v_4d37e3((await v_51c3d2(v_ceb55a, "POST", "/oth-path", { giftId: "gift-rose", qty: 10, rateVersion: 0 }, "key-ex-0103")).json.error.code).toBe("RATE_CHANGED");
     v_4d37e3((await v_51c3d2(v_ceb55a, "POST", "/oth-path", { giftId: "gift-rose", qty: 10, rateVersion: 1 })).json.error.code).toBe("IDEMPOTENCY_REQUIRED");
 
@@ -185,7 +187,7 @@ v_469bf2("gift → XRUN exchange", () => {
 
     const v_a448ad = await v_1e6592(v_9e86fd, { maintenance: null, minQty: 5 });
     v_4d37e3(v_a448ad.version).toBe(2);
-    await v_1e6592(v_9e86fd, { minQty: 10 });
+    await v_1e6592(v_9e86fd, { minQty: 1 });
   });
 
   v_23805a("XRUN 실패 시 선물 원복 + 실패 기록, 정지 회원은 ACCOUNT_RESTRICTED", async () => {
