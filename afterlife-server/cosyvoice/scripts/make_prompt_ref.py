@@ -200,8 +200,8 @@ def transcribe(wav_path: str) -> str | None:
 # CosyVoice 가 "아무 데서나 쉰다" 를 배워 1~5초씩 쉬었다(9220·9222·9224). 문장부호만 넣어도
 # 1초 넘는 정적이 절반으로 줄었다(2026-10-27, 문장 176개).
 PUNCT_PAUSE_SEC = float(os.environ.get("COSYVOICE_PROMPT_PUNCT_PAUSE_SEC", "0.3"))
-# 쉼 시작과 직전 단어 끝이 이보다 멀면 자리를 못 믿는다. STT 는 쉼을 다음 단어 안으로 삼키곤 해서
-# (9222: 햇볕이[5.14-6.64], 실제 쉼 5.45-6.33) 쉼 가운데가 아니라 쉼 시작 ↔ 단어 끝으로 맞춘다.
+# 쉼 시작과 직전 단어 끝이 이보다 멀면 자리를 못 믿는다. STT 는 쉼을 다음 단어(9222: 햇볕이[5.14-6.64],
+# 실제 쉼 5.45-6.33)나 앞 단어(9220) 안으로 삼키곤 해서 쉼 가운데가 아니라 쉼 시작 ↔ 단어 끝으로 맞춘다.
 PUNCT_SNAP_SEC = 0.6
 # 이렇게 끝나는 말 뒤의 쉼은 문장 끝(마침표), 그 밖은 쉼표.
 _SENT_END = ("요", "다", "죠", "까", "네", "지", "야", "어", "아", "니")
@@ -221,7 +221,9 @@ def punctuate(words: list[dict], pauses: list[tuple[float, float]],
         for i in range(len(toks) - 1):  # 마지막 단어 뒤는 문장 사이가 아니다
             if toks[i]["e"] > pe + 0.1:  # 쉼이 끝난 뒤에 끝나는 단어는 쉼 앞 단어가 아니다
                 continue
-            d = abs(toks[i]["e"] - ps)
+            # 단어 끝이 쉼 안에 있으면 STT 가 쉼을 그 단어에 삼킨 것(9220: 맛있더라구요[4.78-6.28], 쉼 5.55-6.32).
+            e = toks[i]["e"]
+            d = 0.0 if ps <= e <= pe else abs(e - ps)
             if d <= dist:
                 best, dist = i, d
         if best is None:
