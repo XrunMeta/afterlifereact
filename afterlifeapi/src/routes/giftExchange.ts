@@ -40,7 +40,7 @@ async function v_16a6c1(
   v_a1651b,
   v_43e90c,
   v_96f93d,
-  v_2ffbfb,
+  v_d41105,
 ): Promise<{ owned: number; units: Unit[] }> {
   const v_f0104f = await v_a1651b
     .prepare(`SELECT count FROM user_gift_inventory WHERE user_id = ? AND gift_id = ?`)
@@ -60,11 +60,11 @@ async function v_16a6c1(
     ).results ?? [];
   const v_e7458e = [];
   for (const v_41d9f0 of v_9fdb66) {
-    const v_6bbb57 = Number(v_41d9f0.xrun_price_snapshot) > 0 ? Number(v_41d9f0.xrun_price_snapshot) : v_b6e430;
+    const v_6bbb57 = v_d41105;
     for (let v_ebec57 = 0; v_ebec57 < Number(v_41d9f0.count_remaining) && v_e7458e.length < v_2461e1; v_ebec57++) v_e7458e.push({ lotId: v_41d9f0.id, price: v_6bbb57 });
     if (v_e7458e.length >= v_2461e1) break;
   }
-  while (v_e7458e.length < v_2461e1) v_e7458e.push({ lotId: null, price: v_2ffbfb });
+  while (v_e7458e.length < v_2461e1) v_e7458e.push({ lotId: null, price: v_d41105 });
   return { owned: v_2461e1, units: v_e7458e };
 }
 
@@ -306,7 +306,7 @@ v_7de069.post("/", v_6690d9, async (v_3f4e2e) => {
   }
 
   const v_e68f9f = v_e7458e.slice(0, v_565b1e);
-  const v_36c043 = v_84faef(v_e68f9f.slice(0, v_d016c9).reduce((v_fd5f43, v_ceb55a) => v_fd5f43 + v_ceb55a.price, 0));
+  const v_36c043 = v_84faef(v_d016c9 * v_26ec3c(v_8c0b26));
   const v_792d31 = new Map<number, number>();
   for (const v_ceb55a of v_e68f9f) if (v_ceb55a.lotId !== null) v_792d31.set(v_ceb55a.lotId, (v_792d31.get(v_ceb55a.lotId) ?? 0) + 1);
   const v_864b3a = [...v_792d31.entries()].map(([v_389afb, v_04326c]) => ({ id: v_389afb, take: v_04326c }));
