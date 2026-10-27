@@ -54,3 +54,23 @@ def test_0이면_끈다():
 def test_전부_무음이면_그대로():
     audio = _quiet(0.5)
     assert np.array_equal(cap_lead_silence(audio, SR, max_ms=300), audio)
+
+
+# ── AFL-1059: 문장 안 정적 ───────────────────────────────────────────────────────
+# CosyVoice 가 드물게 단어 중간에서 끊고 0.7초 쉬었다가 잇는다("말 이어가." → "마…리오가",
+# 2026-10-27 11:32 실통화 preset-9519). 길이 검사는 통과해서 그대로 나갔다.
+from lead_trim import longest_inner_silence  # noqa: E402
+
+
+def test_문장_안_가장_긴_정적():
+    audio = np.concatenate([_quiet(0.3), _tone(0.3), _quiet(0.7), _tone(0.5), _quiet(0.4)])
+    assert abs(longest_inner_silence(audio, SR) - 0.7) < 0.02
+
+
+def test_앞뒤_무음은_세지_않는다():
+    audio = np.concatenate([_quiet(1.0), _tone(0.5), _quiet(1.0)])
+    assert longest_inner_silence(audio, SR) == 0.0
+
+
+def test_전부_조용하면_0():
+    assert longest_inner_silence(_quiet(1.0), SR) == 0.0

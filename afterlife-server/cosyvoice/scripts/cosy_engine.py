@@ -6,12 +6,12 @@
       이후 inference_zero_shot(text,'','',zero_shot_spk_id=clone_id)가 프롬프트 재처리 없이 재사용.
 """
 from __future__ import annotations
-import io, os, threading, logging
+import io, os, re, threading, logging
 import numpy as np
 import soundfile as sf
 import config
 from clone_ref import load_ref_text, PROMPT_WAV
-from lead_trim import cap_lead_silence
+from lead_trim import cap_lead_silence, longest_inner_silence
 
 log = logging.getLogger("cosyvoice")
 
@@ -26,6 +26,15 @@ def seed_for(clone_id: str, text: str, attempt: int) -> int:
     import hashlib
     h = hashlib.sha256(f"{clone_id}::{text}::{attempt}".encode()).digest()
     return (int.from_bytes(h[:4], "big") + config.SEED_OFFSET) & 0x7FFFFFFF or 42
+
+
+_MID_PUNCT = re.compile(r"[,，、;:…]|[.!?](?=\s*\S)")
+
+
+def inner_gap_limit(text: str) -> float:
+    """문장 안 정적 상한(초). 문장 중간에 문장부호가 있으면 그 자리 쉼을 고려해 더 길게 허용한다."""
+    body = text.strip().rstrip(".!?…~ ")
+    return config.INNER_GAP_PUNCT_MAX_SEC if _MID_PUNCT.search(body) else config.INNER_GAP_MAX_SEC
 
 
 class CosyEngine:
@@ -180,7 +189,9 @@ class CosyEngine:
         # 1차 샘플링을 요청이 지정했으면 그 값으로, 아니면 기동 시 설정된 기본을 그대로 쓴다.
         _req_tk = (o["sampling_top_k"] if opts and opts.get("sampling_top_k") is not None else None)
         _req_tp = (o["sampling_top_p"] if opts and opts.get("sampling_top_p") is not None else None)
-        best = None
+        # 문장 안 정적 가드(AFL-1059): 길이는 정상인데 단어 중간에서 끊고 쉬는 결과도 다시 합성한다.
+        gap_max = inner_gap_limit(text) if config.INNER_GAP_MAX_SEC > 0 else 0.0
+        best, best_bad = None, None
         for attempt in range(o["ramble_retries"] + 1):
             # 1차=기본(또는 요청) 샘플링, 재합성=폴백 top_k(greedy 1, 폭주율↓).
             tk = _req_tk if attempt == 0 else o["ramble_fallback_top_k"]
@@ -191,15 +202,22 @@ class CosyEngine:
                 log.info("empty audio clone=%s text=%r → 무음 반환", clone_id, text[:40])
                 return self._silence_wav(config.EMPTY_SILENCE_MS)
             dur = len(audio) / self.sr
-            if dur <= expected_max:
+            gap = longest_inner_silence(audio, self.sr) if gap_max > 0 else 0.0
+            if dur <= expected_max and gap <= gap_max:
                 if attempt > 0:
-                    log.info("ramble 회복: clone=%s dur=%.1fs (attempt=%d)", clone_id, dur, attempt)
+                    log.info("ramble 회복: clone=%s dur=%.1fs gap=%.2fs (attempt=%d)", clone_id, dur, gap, attempt)
                 best = audio
                 break
-            log.warning("ramble 의심 clone=%s text=%r dur=%.1fs > max=%.1fs → 재합성(%d/%d)",
-                        clone_id, text[:30], dur, expected_max, attempt + 1, o["ramble_retries"])
-            if best is None or len(audio) < len(best):
-                best = audio  # 모두 초과 시 가장 짧은 것
+            if dur > expected_max:
+                log.warning("ramble 의심 clone=%s text=%r dur=%.1fs > max=%.1fs → 재합성(%d/%d)",
+                            clone_id, text[:30], dur, expected_max, attempt + 1, o["ramble_retries"])
+            else:
+                log.warning("[inner-gap] clone=%s text=%r 문장 안 정적 %.2fs > %.2fs → 재합성(%d/%d)",
+                            clone_id, text[:30], gap, gap_max, attempt + 1, o["ramble_retries"])
+            # 모두 실패하면 넘친 만큼(길이 초과 + 정적 초과)이 가장 적은 것. 정적이 없으면 종전대로 가장 짧은 것.
+            bad = max(0.0, dur - expected_max) + max(0.0, gap - gap_max)
+            if best is None or bad < best_bad or (bad == best_bad and len(audio) < len(best)):
+                best, best_bad = audio, bad
         n0 = len(best)
         best = cap_lead_silence(best, self.sr, config.LEAD_SILENCE_MAX_MS)
         if len(best) < n0:
