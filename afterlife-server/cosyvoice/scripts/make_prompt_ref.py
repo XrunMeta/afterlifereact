@@ -34,6 +34,8 @@ import os
 import re
 import subprocess
 import sys
+import urllib.error
+import urllib.request
 
 import config
 from clone_ref import ref_audio_path, prompt_pair_paths
@@ -168,8 +170,9 @@ def transcribe(wav_path: str) -> str | None:
 
     # max_sec: STT 는 기본 앞 10초만 전사한다(voice.wav → ref_text.txt 용). 견본은 8~30초라
     # 10초 뒤 문장이 글에서 빠져 오디오·텍스트가 어긋났다(AFL-1059, 라이브 9223) → 파일 전체.
+    # words: 단어별 시각을 받아 견본 소리의 쉼 자리에 문장부호를 넣는다(punctuate).
     payload = json.dumps({"wav_path": wav_path, "out_clone_id": STT_SINK_CLONE,
-                          "max_sec": MAX_PROMPT_SEC}).encode()
+                          "max_sec": MAX_PROMPT_SEC, "words": True}).encode()
     req = urllib.request.Request(
         f"{STT_URL}/transcribe_path",
         data=payload,
@@ -185,7 +188,51 @@ def transcribe(wav_path: str) -> str | None:
     except Exception as exc:  # noqa: BLE001 — 어떤 실패든 상위에서 skip 처리
         print(f"    STT 실패: {exc}")
         return None
+    words = data.get("words")
+    if words:
+        starts, ends = silences(wav_path)
+        return clean_prompt_text(punctuate(words, list(zip(starts, ends))))
     return clean_prompt_text(data.get("ref_text") or "")
+
+
+# ── 쉼 자리 문장부호(AFL-1059) ─────────────────────────────────────────────────
+# 사용자 녹음 견본은 STT 글에 문장부호가 없었다. 소리엔 0.4~0.9초 쉼이 있는데 글엔 표시가 없으니
+# CosyVoice 가 "아무 데서나 쉰다" 를 배워 1~5초씩 쉬었다(9220·9222·9224). 문장부호만 넣어도
+# 1초 넘는 정적이 절반으로 줄었다(2026-10-27, 문장 176개).
+PUNCT_PAUSE_SEC = float(os.environ.get("COSYVOICE_PROMPT_PUNCT_PAUSE_SEC", "0.3"))
+# 쉼 시작과 직전 단어 끝이 이보다 멀면 자리를 못 믿는다. STT 는 쉼을 다음 단어 안으로 삼키곤 해서
+# (9222: 햇볕이[5.14-6.64], 실제 쉼 5.45-6.33) 쉼 가운데가 아니라 쉼 시작 ↔ 단어 끝으로 맞춘다.
+PUNCT_SNAP_SEC = 0.6
+# 이렇게 끝나는 말 뒤의 쉼은 문장 끝(마침표), 그 밖은 쉼표.
+_SENT_END = ("요", "다", "죠", "까", "네", "지", "야", "어", "아", "니")
+_HAS_PUNCT = re.compile(r"[.,!?…~]$")
+
+
+def punctuate(words: list[dict], pauses: list[tuple[float, float]],
+              min_pause: float = PUNCT_PAUSE_SEC) -> str:
+    """STT 단어(w·s·e)와 소리의 쉼 구간으로 쉼 자리에 문장부호를 넣은 글. 끝은 마침표로 닫는다."""
+    toks = [dict(w) for w in words if (w.get("w") or "").strip()]
+    if not toks:
+        return ""
+    for ps, pe in pauses:
+        if pe - ps < min_pause:
+            continue
+        best, dist = None, PUNCT_SNAP_SEC
+        for i in range(len(toks) - 1):  # 마지막 단어 뒤는 문장 사이가 아니다
+            if toks[i]["e"] > pe + 0.1:  # 쉼이 끝난 뒤에 끝나는 단어는 쉼 앞 단어가 아니다
+                continue
+            d = abs(toks[i]["e"] - ps)
+            if d <= dist:
+                best, dist = i, d
+        if best is None:
+            continue
+        w = toks[best]["w"].rstrip()
+        if not _HAS_PUNCT.search(w):
+            toks[best]["w"] = w + ("." if w.endswith(_SENT_END) else ",")
+    last = toks[-1]["w"].rstrip()
+    if not _HAS_PUNCT.search(last):
+        toks[-1]["w"] = last + "."
+    return "".join(t["w"] for t in toks).strip()
 
 
 def clean_prompt_text(text: str) -> str | None:
