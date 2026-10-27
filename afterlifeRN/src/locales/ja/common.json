@@ -115,7 +115,8 @@
         "title": "🎁 ギフトが届きました"
       },
       "referral_reward": {
-        "title": "🎁 紹介報酬が届きました"
+        "title": "🎁 紹介報酬が届きました",
+        "body": "友達があなたの紹介コードで登録しました。ギフトボックスで花{{qty}}本を受け取ってください！"
       },
       "intimacy_score": {
         "title": "🌡️ +{{score}}°C 温度上昇"
@@ -2374,6 +2375,8 @@
     "emptyCloneGift": "まだクローンの報酬はありません",
     "watchAdClaim": "広告を見て受け取る",
     "watchAdClaimCount": "広告を見て{{count}}本受け取る",
+    "claimUnavailable": "受取不可",
+    "claimUnavailableMsg": "現在受け取れない報酬です。",
     "claimFailTitle": "受け取れませんでした",
     "claimFailMsg": "しばらくしてからもう一度お試しください。",
     "exchangeable": "交換可能",

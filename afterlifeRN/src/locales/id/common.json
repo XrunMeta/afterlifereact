@@ -115,7 +115,8 @@
         "title": "🎁 Hadiah diterima"
       },
       "referral_reward": {
-        "title": "🎁 Hadiah referal tiba"
+        "title": "🎁 Hadiah referal tiba",
+        "body": "Teman mendaftar dengan kode referal Anda. Ambil {{qty}} bunga di kotak hadiah!"
       },
       "intimacy_score": {
         "title": "🌡️ +{{score}}°C suhu naik"
@@ -2371,6 +2372,8 @@
     "emptyCloneGift": "Belum ada hadiah dari klon",
     "watchAdClaim": "Tonton iklan untuk klaim",
     "watchAdClaimCount": "Tonton iklan, ambil {{count}}",
+    "claimUnavailable": "Tidak tersedia",
+    "claimUnavailableMsg": "Hadiah ini tidak bisa diambil saat ini.",
     "claimFailTitle": "Gagal diklaim",
     "claimFailMsg": "Silakan coba lagi nanti.",
     "exchangeable": "Bisa ditukar",

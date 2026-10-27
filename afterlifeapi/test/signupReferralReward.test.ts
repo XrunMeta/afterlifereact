@@ -98,4 +98,21 @@ v_469bf2("가입 추천인 꽃 보상", () => {
     v_4d37e3(v_cb35cb).toMatchObject({ applied: false, reason: "self" });
     v_4d37e3((await v_483de2(v_b1d852)).length).toBe(0);
   });
+  v_23805a("관리자에서 비활성화하면 대기 보상 수령 불가, 다시 활성화하면 수령", async () => {
+    const v_792e11 = await v_b016d7("newbie3@test.local", 5557);
+    await v_7808c0(v_c9c489 as any, v_792e11, "XYZ234");
+    const [v_e2a85c] = await v_483de2(v_792e11);
+    await v_267b1e(v_c9c489 as any, "newUser", { active: false });
+    const v_9edd60 = await v_21cc31("newbie3@test.local");
+    const v_de0f68 = () =>
+      v_1df298.fetch(`http://localhost/oth-path${v_e2a85c.id}/claim`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${v_9edd60}` },
+      });
+    v_4d37e3((await v_de0f68()).status).toBe(422);
+    v_4d37e3(await v_2461e1(v_792e11)).toBe(0);
+    await v_267b1e(v_c9c489 as any, "newUser", { active: true });
+    v_4d37e3((await v_de0f68()).status).toBe(200);
+    v_4d37e3(await v_2461e1(v_792e11)).toBe(50);
+  });
 });

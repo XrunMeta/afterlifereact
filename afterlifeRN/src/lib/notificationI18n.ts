@@ -101,6 +101,10 @@ export function v_1e31b6(
     const v_dd064b = v_d23148[v_4d33b2.trim()];
     if (v_dd064b) {
       v_4d33b2 = v_8d41d7(v_dd064b, { defaultValue: v_4d33b2 });
+    } else if (v_8c0b26.type === "referral_reward") {
+
+      const v_d016c9 = typeof v_8c0b26.data?.qty === "number" ? v_8c0b26.data.qty : undefined;
+      if (v_d016c9 != null) v_4d33b2 = v_8d41d7("notifications.types.referral_reward.body", { qty: v_d016c9, defaultValue: v_4d33b2 });
     }
   }
 
