@@ -115,7 +115,8 @@
         "title": "🎁 선물 도착"
       },
       "referral_reward": {
-        "title": "🎁 추천 보상 도착"
+        "title": "🎁 추천 보상 도착",
+        "body": "친구가 내 추천인 코드로 가입했어요. 선물함에서 꽃 {{qty}}송이를 받아가세요!"
       },
       "intimacy_score": {
         "title": "🌡️ +{{score}}°C 온도 상승"
@@ -2396,6 +2397,8 @@
     "emptyCloneGift": "아직 클론한테 받은 보상이 없어요",
     "watchAdClaim": "광고 보고 받기",
     "watchAdClaimCount": "광고 보고 {{count}}송이 받기",
+    "claimUnavailable": "수령 불가",
+    "claimUnavailableMsg": "지금은 받을 수 없는 보상이에요.",
     "claimFailTitle": "받지 못했어요",
     "claimFailMsg": "잠시 후 다시 시도해주세요.",
     "exchangeable": "교환 가능",

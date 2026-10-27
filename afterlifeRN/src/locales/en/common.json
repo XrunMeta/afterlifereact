@@ -115,7 +115,8 @@
         "title": "🎁 Gift received"
       },
       "referral_reward": {
-        "title": "🎁 Referral reward arrived"
+        "title": "🎁 Referral reward arrived",
+        "body": "A friend signed up with your referral code. Claim {{qty}} flowers in your gift box!"
       },
       "intimacy_score": {
         "title": "🌡️ +{{score}}°C temperature up"
@@ -2399,6 +2400,8 @@
     "emptyCloneGift": "No clone rewards yet",
     "watchAdClaim": "Watch ad to claim",
     "watchAdClaimCount": "Watch ad, get {{count}}",
+    "claimUnavailable": "Unavailable",
+    "claimUnavailableMsg": "This reward can't be claimed right now.",
     "claimFailTitle": "Couldn't claim",
     "claimFailMsg": "Please try again later.",
     "exchangeable": "Exchangeable",

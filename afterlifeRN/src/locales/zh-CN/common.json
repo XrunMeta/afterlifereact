@@ -115,7 +115,8 @@
         "title": "🎁 收到礼物"
       },
       "referral_reward": {
-        "title": "🎁 推荐奖励已到账"
+        "title": "🎁 推荐奖励已到账",
+        "body": "好友使用你的推荐码注册了。快去礼物箱领取{{qty}}朵花吧！"
       },
       "intimacy_score": {
         "title": "🌡️ +{{score}}°C 温度上升"
@@ -2367,6 +2368,8 @@
     "emptyCloneGift": "还没有克隆奖励",
     "watchAdClaim": "观看广告领取",
     "watchAdClaimCount": "看广告领取{{count}}朵",
+    "claimUnavailable": "无法领取",
+    "claimUnavailableMsg": "该奖励目前无法领取。",
     "claimFailTitle": "无法领取",
     "claimFailMsg": "请稍后再试。",
     "exchangeable": "可兑换",

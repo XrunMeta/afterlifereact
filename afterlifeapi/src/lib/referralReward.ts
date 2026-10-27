@@ -30,6 +30,11 @@ async function v_734254(
   return true;
 }
 
+export async function v_e82478(env: v_273a0c, v_a0e308): Promise<boolean> {
+  const v_01dcf5 = await v_866cbe(v_c9c489);
+  return v_a0e308.endsWith(":referrer") ? v_01dcf5.referrer.active : v_01dcf5.newUser.active;
+}
+
 export interface SignupReferralResult {
   applied: boolean;
   reason?: string;

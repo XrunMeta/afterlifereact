@@ -490,8 +490,12 @@ function v_6da59e({
         console.warn("[GiftBox] claim fail:", (v_49263d as Error)?.message);
         v_889fad(
           v_8d41d7("giftBox.claimFailTitle", { defaultValue: "받지 못했어요" }),
-          v_8d41d7("giftBox.claimFailMsg", { defaultValue: "잠시 후 다시 시도해주세요." }),
+
+          (v_49263d as { code?: string })?.code === "VALIDATION_FAILED"
+            ? v_8d41d7("giftBox.claimUnavailableMsg", { defaultValue: "지금은 받을 수 없는 보상이에요." })
+            : v_8d41d7("giftBox.claimFailMsg", { defaultValue: "잠시 후 다시 시도해주세요." }),
         );
+        v_561465();
       } finally {
         v_0141c0(null);
       }
@@ -712,7 +716,14 @@ function v_223c52({
           <Text style={v_d81136.metaTime}>{v_514b67(v_8c0b26.createdAt)}</Text>
         </View>
       </View>
-      {v_6e3315 ? (
+      {v_6e3315 && v_8c0b26.claimable === false ? (
+
+        <View style={[v_d81136.claimBadge, v_d81136.claimBadgeOff]}>
+          <Text style={[v_d81136.claimBadgeText, v_d81136.claimBadgeTextOff]}>
+            {v_8d41d7("giftBox.claimUnavailable", { defaultValue: "수령 불가" })}
+          </Text>
+        </View>
+      ) : v_6e3315 ? (
         v_5ba323 ? (
           <ActivityIndicator color={v_1bfbd0.zinc600} />
         ) : (
@@ -1375,6 +1386,8 @@ const v_d81136 = v_472849.create({
     backgroundColor: v_1bfbd0.zinc900,
   },
   claimBadgeText: { fontSize: 11, fontWeight: "700", color: v_1bfbd0.white },
+  claimBadgeOff: { backgroundColor: v_1bfbd0.zinc200 },
+  claimBadgeTextOff: { color: v_1bfbd0.zinc500 },
   recvMetaRow: {
     flexDirection: "row",
     alignItems: "center",
