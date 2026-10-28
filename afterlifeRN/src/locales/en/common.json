@@ -2505,7 +2505,7 @@
     "exchangeSearchPlaceholder": "Search amount or date",
     "successFeeLine": "Exchanged after deducting a {{fee}} ROSE fee",
     "successRemaining": "{{n}} ROSE remaining",
-    "successWalletHint": "Claim rewards in XRUN Wallet > Afterlife.",
+    "successWalletHint": "You can check it in XRUN Wallet > Afterlife.",
     "p4ReceiveReward": "Claim reward in XRUN",
     "feeRule": "{{fee}} per {{unit}} · {{total}}",
     "totalDeduct": "Total deducted",

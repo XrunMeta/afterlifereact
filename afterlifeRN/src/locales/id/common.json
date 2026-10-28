@@ -2484,7 +2484,7 @@
     "exchangeSearchPlaceholder": "Cari jumlah, tanggal",
     "successFeeLine": "Ditukar setelah potong biaya {{fee}} ROSE",
     "successRemaining": "Sisa ROSE {{n}}",
-    "successWalletHint": "Klaim hadiah di Dompet XRUN > Afterlife.",
+    "successWalletHint": "Anda dapat memeriksanya di XRUN Wallet > Afterlife.",
     "p4ReceiveReward": "Klaim hadiah di XRUN",
     "feeRule": "{{fee}} per {{unit}} · {{total}}",
     "totalDeduct": "Total dipotong",
