@@ -405,7 +405,14 @@ function v_622370({
               </View>
             </View>
 
-            <View style={v_72c7a6.arrowBridge} pointerEvents="none">
+            {}
+            <Text style={v_72c7a6.feeAboveArrow}>
+              {v_8d41d7("giftBox.swapFeeHint", {
+                defaultValue: "Swap 수수료 {{fee}} ROSE",
+                fee: v_ae840d.feeQty,
+              })}
+            </Text>
+            <View style={[v_72c7a6.arrowBridge, v_72c7a6.arrowBridgeBelowFee]} pointerEvents="none">
               <View style={v_72c7a6.arrowCircle}>
                 <Feather name="arrow-down" size={16} color={v_1bfbd0.zinc900} />
               </View>
@@ -422,12 +429,6 @@ function v_622370({
                 </View>
                 <View style={v_72c7a6.receiveRight}>
                   <Text style={v_72c7a6.receiveAmount}>{v_b96919(v_36c043)}</Text>
-                  <Text style={v_72c7a6.rateHint}>
-                    {v_8d41d7("giftBox.swapFeeHint", {
-                      defaultValue: "Swap 수수료 {{fee}} ROSE",
-                      fee: v_ae840d.feeQty,
-                    })}
-                  </Text>
                 </View>
               </View>
             </View>
@@ -502,7 +503,7 @@ function v_e83058({
       <View style={v_72c7a6.infoBox}>
         <Text style={v_72c7a6.infoBoxText}>
           {v_8d41d7("giftBox.successWalletHint", {
-            defaultValue: "보상은 XRUN 지갑 > Afterlife에서 받을 수 있어요.",
+            defaultValue: "XRUN Wallet > Afterlife를 통하여 확인 가능합니다.",
           })}
         </Text>
       </View>
@@ -634,6 +635,8 @@ const v_72c7a6 = v_472849.create({
     alignItems: "center",
     justifyContent: "center",
   },
+
+  arrowBridgeBelowFee: { marginTop: 4 },
   arrowCircle: {
     width: 36,
     height: 36,
@@ -661,10 +664,11 @@ const v_72c7a6 = v_472849.create({
     color: v_1bfbd0.zinc900,
     fontVariant: ["tabular-nums"],
   },
-  rateHint: {
+  feeAboveArrow: {
+    marginTop: 10,
     fontSize: 12,
     color: v_1bfbd0.zinc500,
-    textAlign: "right",
+    textAlign: "center",
   },
   primaryBtn: {
     alignSelf: "stretch",
