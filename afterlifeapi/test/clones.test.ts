@@ -186,6 +186,59 @@ v_469bf2("clones search route — stats 객체 통일", () => {
   });
 });
 
+v_469bf2("clones search route — visibility='private' 는 검색에서 제외", () => {
+  v_23805a("비로그인 — 타인의 private 클론은 안 보임", async () => {
+    const v_1badb6 = await v_bfb240("srch-priv-anon@test.local");
+    const v_6e0fd3 = await v_4d24a9(v_1badb6, "srch_priv_anon", "private");
+    const v_8f00b9 = await v_1df298.fetch(
+      `http://localhost/oth-path?q=srch_priv_anon`,
+    );
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    const v_4d33b2 = (await v_8f00b9.json()) as { items: Array<{ id: number }> };
+    v_4d37e3(v_4d33b2.items.find((v_ebec57) => v_ebec57.id === v_6e0fd3)).toBeUndefined();
+  });
+
+  v_23805a("소유자 — 자기 private 클론도 검색에 안 뜸(디스커버리 아님)", async () => {
+    const v_1badb6 = await v_bfb240("srch-priv-owner@test.local");
+    const v_6e0fd3 = await v_4d24a9(v_1badb6, "srch_priv_owner", "private");
+    const v_21cc31 = await v_86c39f(v_1badb6);
+    const v_8f00b9 = await v_1df298.fetch(
+      `http://localhost/oth-path?q=srch_priv_owner`,
+      { headers: { Authorization: `Bearer ${v_21cc31}` } },
+    );
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    const v_4d33b2 = (await v_8f00b9.json()) as { items: Array<{ id: number }> };
+    v_4d37e3(v_4d33b2.items.find((v_ebec57) => v_ebec57.id === v_6e0fd3)).toBeUndefined();
+  });
+
+  v_23805a("타인 로그인 — 타인의 private 클론은 안 보임", async () => {
+    const v_1badb6 = await v_bfb240("srch-priv-other-o@test.local");
+    const v_7a3219 = await v_bfb240("srch-priv-other-v@test.local");
+    const v_6e0fd3 = await v_4d24a9(v_1badb6, "srch_priv_other", "private");
+    const v_21cc31 = await v_86c39f(v_7a3219);
+    const v_8f00b9 = await v_1df298.fetch(
+      `http://localhost/oth-path?q=srch_priv_other`,
+      { headers: { Authorization: `Bearer ${v_21cc31}` } },
+    );
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    const v_4d33b2 = (await v_8f00b9.json()) as { items: Array<{ id: number }> };
+    v_4d37e3(v_4d33b2.items.find((v_ebec57) => v_ebec57.id === v_6e0fd3)).toBeUndefined();
+  });
+
+  v_23805a("소유자 — 자기 public 클론은 검색에 그대로 보임(회귀 방지)", async () => {
+    const v_1badb6 = await v_bfb240("srch-pub-owner@test.local");
+    const v_6e0fd3 = await v_4d24a9(v_1badb6, "srch_pub_owner", "public");
+    const v_21cc31 = await v_86c39f(v_1badb6);
+    const v_8f00b9 = await v_1df298.fetch(
+      `http://localhost/oth-path?q=srch_pub_owner`,
+      { headers: { Authorization: `Bearer ${v_21cc31}` } },
+    );
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    const v_4d33b2 = (await v_8f00b9.json()) as { items: Array<{ id: number }> };
+    v_4d37e3(v_4d33b2.items.find((v_ebec57) => v_ebec57.id === v_6e0fd3)).toBeDefined();
+  });
+});
+
 v_469bf2("PATCH /oth-path — voice_preset_id 활성 검증 (L-1)", () => {
   v_ba7107(async () => {
     if (!(await v_2e4ad6())) {
