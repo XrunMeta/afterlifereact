@@ -91,10 +91,10 @@ export async function v_bf9881(
   if (v_24baff?.limit) v_212049.set("limit", String(v_24baff.limit));
   if (v_24baff?.offset) v_212049.set("offset", String(v_24baff.offset));
   if (v_24baff?.kind) v_212049.set("kind", v_24baff.kind);
-  if (v_24baff?.q) {
-    v_212049.set("q", v_24baff.q);
-    v_212049.set("tz", String(v_769bcc()));
-  }
+  if (v_24baff?.q) v_212049.set("q", v_24baff.q);
+  if (v_24baff?.from) v_212049.set("from", v_24baff.from);
+  if (v_24baff?.to) v_212049.set("to", v_24baff.to);
+  if (v_24baff?.q || v_24baff?.from || v_24baff?.to) v_212049.set("tz", String(v_769bcc()));
   const v_25c4f7 = v_212049.toString();
   return v_04b58a(
     `/oth-path${v_25c4f7 ? `?${v_25c4f7}` : ""}`,
@@ -181,9 +181,12 @@ export async function v_9c3304(
   v_2ca7e0,
   v_328259,
 ): Promise<{ items: GiftExchangeResult[] }> {
-  const v_25c4f7 = v_328259?.q
-    ? `?${new URLSearchParams({ q: v_328259.q, tz: String(v_769bcc()) }).toString()}`
-    : "";
+  const v_212049 = new URLSearchParams();
+  if (v_328259?.q) v_212049.set("q", v_328259.q);
+  if (v_328259?.from) v_212049.set("from", v_328259.from);
+  if (v_328259?.to) v_212049.set("to", v_328259.to);
+  if (v_212049.toString()) v_212049.set("tz", String(v_769bcc()));
+  const v_25c4f7 = v_212049.toString() ? `?${v_212049.toString()}` : "";
   return v_04b58a<{ items: GiftExchangeResult[] }>(`/oth-path${v_25c4f7}`, v_2ca7e0, { method: "GET" });
 }
 

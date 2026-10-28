@@ -11,7 +11,7 @@ import { v_0edc13, v_866cbe } from "../lib/appConfig";
 import { v_e82478 } from "../lib/referralReward";
 import { v_2d8130 } from "../lib/giftLots";
 import { v_74defc } from "../lib/logger";
-import { v_232ace, v_bfd593, v_6f53a3, v_8d734d } from "../lib/searchQuery";
+import { v_232ace, v_bfd593, v_88281d, v_328f08, v_6f53a3, v_8d734d } from "../lib/searchQuery";
 
 export const v_0bc486 = new v_b7c41b<v_de0a25>();
 
@@ -231,6 +231,13 @@ v_0bc486.get("/activity-log", v_6690d9, async (v_3f4e2e) => {
     }
     v_1fd8b7 = ` AND (${v_16c519.join(" OR ")})`;
   }
+
+  const v_cc25ad = v_88281d(
+    "e.created_at",
+    v_328f08(v_f71b56.searchParams.get("from"), v_f71b56.searchParams.get("to"), v_8d734d(v_f71b56.searchParams.get("tz"))),
+  );
+  v_1fd8b7 += v_cc25ad.sql;
+  v_894b6f.push(...v_cc25ad.binds);
 
   const v_18b8bf = await v_3f4e2e.env.DB
     .prepare(

@@ -99,3 +99,30 @@ v_469bf2("GET /oth-path?q= 검색", () => {
     }
   });
 });
+
+v_469bf2("GET /oth-path?from=&to= 기간", () => {
+  v_23805a("양끝 포함, KST 자정 경계, 검색어와 AND, 한쪽만", async () => {
+    const v_b32680 = await v_bfb240("나");
+    const v_69caa4 = await v_bfb240("박희은");
+    await v_bdb39e(v_b32680, "sent", v_a8a114(2026, 10, 19), v_69caa4);
+    await v_bdb39e(v_b32680, "sent", v_a8a114(2026, 10, 20), v_69caa4);
+    await v_bdb39e(v_b32680, "sent", v_a8a114(2026, 10, 26), v_69caa4);
+    await v_bdb39e(v_b32680, "sent", v_a8a114(2026, 10, 27), null);
+
+    await v_bdb39e(v_b32680, "sent", Math.floor(Date.UTC(2026, 9, 26, 15, 30) / 1000), v_69caa4);
+    const v_cb35cb = (v_212049) => v_38715b(v_b32680, `?kind=sent&tz=540${v_212049}`);
+
+    const v_03f021 = await v_cb35cb("&from=2026-10-20&to=2026-10-26");
+    v_4d37e3(v_6a53fd(v_03f021.json)).toEqual(["2026-10-20", "2026-10-26"]);
+    v_4d37e3(v_03f021.json.total).toBe(2);
+    v_4d37e3(v_6a53fd((await v_cb35cb("&from=2026-10-26")).json)).toEqual(["2026-10-26", "2026-10-27", "2026-10-27"]);
+    v_4d37e3(v_6a53fd((await v_cb35cb("&to=2026-10-19")).json)).toEqual(["2026-10-19"]);
+    v_4d37e3(v_6a53fd((await v_cb35cb(`&from=2026-10-20&to=2026-10-27&q=${encodeURIComponent("희은")}`)).json)).toEqual([
+      "2026-10-20",
+      "2026-10-26",
+      "2026-10-27",
+    ]);
+
+    v_4d37e3((await v_cb35cb("&from=20261020&to=bad")).json.items).toHaveLength(5);
+  });
+});
