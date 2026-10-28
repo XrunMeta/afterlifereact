@@ -831,7 +831,7 @@ function v_950e4a({
                       {v_9f1622}
                     </Text>
                     <Text style={v_d81136.meta}>
-                      {v_514b67(v_8c0b26.createdAt)}
+                      {v_37bee9(v_8c0b26.createdAt)}
                       {" · "}
                       {v_8d41d7("giftBox.delivered", { defaultValue: "전달 완료" })}
                     </Text>
