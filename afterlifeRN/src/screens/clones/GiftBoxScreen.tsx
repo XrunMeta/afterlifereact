@@ -1146,7 +1146,7 @@ function v_36c8d0({
         <View style={v_d81136.historyHeader}>
           <Text style={[v_d81136.sectionLabel, { marginBottom: 0 }]}>
             {v_7c496a
-              ? v_8d41d7("giftBox.exchangeHistoryTitle", { defaultValue: "교환 내역" })
+              ? v_8d41d7("giftBox.exchangeHistoryTitle", { defaultValue: "Swap 내역" })
               : v_8d41d7("giftBox.recentExchange", { defaultValue: "최근 교환 내역" })}
           </Text>
           {v_7c496a ? (

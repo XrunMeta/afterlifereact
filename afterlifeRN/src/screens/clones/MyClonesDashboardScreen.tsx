@@ -978,7 +978,7 @@ export default function v_def15b() {
                     activeOpacity={0.7}
                   >
                     <Text style={v_fd5f43.giftDashViewAll}>
-                      {v_8d41d7("giftBox.exchangeHistoryLink", { defaultValue: "교환 내역" })}
+                      {v_8d41d7("giftBox.exchangeHistoryLink", { defaultValue: "Swap 내역" })}
                     </Text>
                     <Feather name="chevron-right" size={16} color={v_1bfbd0.zinc400} />
                   </TouchableOpacity>
