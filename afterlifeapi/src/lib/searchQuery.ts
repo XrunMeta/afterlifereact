@@ -81,3 +81,42 @@ export function v_232ace(v_ff56ab, v_ab6401, v_88d904): { sql: string; binds: (s
 export function v_bfd593(v_ab6401): string {
   return `%${v_ab6401.toLowerCase().replace(/[\\%_]/g, (v_3f4e2e) => `\\${v_3f4e2e}`)}%`;
 }
+
+export function v_328f08(
+  v_a9e425,
+  v_4cb329,
+  v_88d904,
+): { fromSec?: number; toSec?: number } | null {
+  const v_087ffc = (v_479f05, v_cfafa0): number | undefined => {
+    const v_35f85c = /^(\d{4})-(\d{2})-(\d{2})$/.exec((v_479f05 ?? "").trim());
+    if (!v_35f85c) return undefined;
+    const [v_64877a, v_c307e0, v_d5dda0] = [Number(v_35f85c[1]), Number(v_35f85c[2]), Number(v_35f85c[3])];
+    if (!v_86ad02(v_64877a) || !v_e8c263(v_c307e0) || !v_1e58d7(v_d5dda0)) return undefined;
+    return Date.UTC(v_64877a, v_c307e0 - 1, v_d5dda0 + v_cfafa0) / 1000 - v_88d904 * 60;
+  };
+  const v_be1550 = v_087ffc(v_a9e425, 0);
+  const v_908727 = v_087ffc(v_4cb329, 1);
+  if (v_be1550 === undefined && v_908727 === undefined) return null;
+  const v_cb35cb = {};
+  if (v_be1550 !== undefined) v_cb35cb.fromSec = v_be1550;
+  if (v_908727 !== undefined) v_cb35cb.toSec = v_908727;
+  return v_cb35cb;
+}
+
+export function v_88281d(
+  v_ff56ab,
+  v_4f2c9c,
+): { sql: string; binds: number[] } {
+  if (!v_4f2c9c) return { sql: "", binds: [] };
+  let v_f8df46 = "";
+  const v_925171 = [];
+  if (v_4f2c9c.fromSec !== undefined) {
+    v_f8df46 += ` AND ${v_ff56ab} >= ?`;
+    v_925171.push(v_4f2c9c.fromSec);
+  }
+  if (v_4f2c9c.toSec !== undefined) {
+    v_f8df46 += ` AND ${v_ff56ab} < ?`;
+    v_925171.push(v_4f2c9c.toSec);
+  }
+  return { sql: v_f8df46, binds: v_925171 };
+}

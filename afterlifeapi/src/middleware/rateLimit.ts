@@ -20,6 +20,11 @@ export function v_353f26(v_328259 = {}): v_ea2b42<v_de0a25> {
   const v_dc53ea = v_328259.bucket ?? "default";
 
   return async (v_3f4e2e, v_a448ad) => {
+
+    if ((v_3f4e2e.req.method === "GET" || v_3f4e2e.req.method === "HEAD") && v_3f4e2e.req.path.startsWith("/oth-path")) {
+      await v_a448ad();
+      return;
+    }
     const v_db9be1 = v_3f4e2e.get("adminUserId");
     const v_70cac0 =
       v_3f4e2e.req.header("CF-Connecting-IP") ?? v_3f4e2e.req.header("X-Forwarded-For") ?? "unknown";
@@ -54,11 +59,17 @@ export function v_353f26(v_328259 = {}): v_ea2b42<v_de0a25> {
       throw new v_3ebe58("RATE_LIMITED", `Rate limit exceeded (${v_02be30}/min).`);
     }
 
-    try {
-      await v_3f4e2e.env.KV_RATE.put(v_b24339, String(v_9e8c70 + 1), { expirationTtl: 90 });
-    } catch (v_9e86fd) {
+    const v_b14903 = v_3f4e2e.env.KV_RATE.put(v_b24339, String(v_9e8c70 + 1), { expirationTtl: 90 }).catch((v_9e86fd) => {
       console.warn(`[rateLimit] KV put failed subject=${v_e3ba12}: ${(v_9e86fd as Error).message}`);
+    });
+    let v_c248c7 = false;
+    try {
+      v_3f4e2e.executionCtx.waitUntil(v_b14903);
+      v_c248c7 = true;
+    } catch {
+
     }
+    if (!v_c248c7) await v_b14903;
     await v_a448ad();
   };
 }

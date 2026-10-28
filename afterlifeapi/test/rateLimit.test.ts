@@ -15,6 +15,8 @@ function v_466992(v_dc53ea) {
   v_779914.onError(v_c6eab8);
   v_779914.use("*", v_353f26({ anon: 2, user: 4, internal: 3, bucket: v_dc53ea }));
   v_779914.get("/x", (v_3f4e2e) => v_3f4e2e.json({ ok: true }));
+  v_779914.get("/oth-path", (v_3f4e2e) => v_3f4e2e.json({ ok: true }));
+  v_779914.post("/oth-path", (v_3f4e2e) => v_3f4e2e.json({ ok: true }));
   return v_779914;
 }
 
@@ -66,5 +68,24 @@ v_469bf2("rateLimit 주체 판정", () => {
     const v_779914 = v_466992("t-internal");
     v_4d37e3(await v_715950(v_779914, 6, { Authorization: `Bearer ${v_43fd42}` })).toEqual([200, 200, 200, 200, 200, 200]);
     v_4d37e3(await v_715950(v_779914, 3)).toEqual([200, 200, 429]);
+  });
+
+  v_23805a("(2026-10-28) 공개 이미지 GET /oth-path 는 세지 않는다 — 같은 IP 의 다른 요청 몫도 안 쓴다", async () => {
+    const v_779914 = v_466992("t-files");
+    for (let v_ebec57 = 0; v_ebec57 < 5; v_ebec57++) {
+      const v_8f00b9 = await v_779914.request("http://localhost/oth-path", { headers: { "CF-Connecting-IP": "1.2.3.4" } }, v_9542f7);
+      v_4d37e3(v_8f00b9.status).toBe(200);
+    }
+    v_4d37e3(await v_715950(v_779914, 3)).toEqual([200, 200, 429]);
+  });
+
+  v_23805a("업로드 POST /oth-path 는 그대로 센다", async () => {
+    const v_779914 = v_466992("t-files-post");
+    const v_72c7a6 = [];
+    for (let v_ebec57 = 0; v_ebec57 < 3; v_ebec57++) {
+      const v_8f00b9 = await v_779914.request("http://localhost/oth-path", { method: "POST", headers: { "CF-Connecting-IP": "1.2.3.4" } }, v_9542f7);
+      v_72c7a6.push(v_8f00b9.status);
+    }
+    v_4d37e3(v_72c7a6).toEqual([200, 200, 429]);
   });
 });

@@ -69,3 +69,16 @@ v_469bf2("GET /oth-path?q=", () => {
     v_4d37e3((await v_38715b(v_ceb55a, "?q=1026")).json.items).toHaveLength(0);
   });
 });
+
+v_469bf2("GET /oth-path?from=&to= 기간", () => {
+  v_23805a("양끝 포함, 검색어와 AND", async () => {
+    const v_ceb55a = await v_bfb240();
+    await v_f7d470(v_ceb55a, v_44063a(2026, 10, 1), 3);
+    const v_779914 = await v_f7d470(v_ceb55a, v_44063a(2026, 10, 5), 777);
+    const v_148ff6 = await v_f7d470(v_ceb55a, v_44063a(2026, 10, 10), 888);
+    await v_f7d470(v_ceb55a, v_44063a(2026, 10, 11), 3);
+    const v_52e08b = async (v_212049) => (await v_38715b(v_ceb55a, `?tz=540${v_212049}`)).json.items.map((v_ebec57) => v_ebec57.exchangeId).sort();
+    v_4d37e3(await v_52e08b("&from=2026-10-05&to=2026-10-10")).toEqual([v_779914, v_148ff6].sort());
+    v_4d37e3(await v_52e08b("&from=2026-10-05&to=2026-10-10&q=777")).toEqual([v_779914]);
+  });
+});

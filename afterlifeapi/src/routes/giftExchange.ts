@@ -14,7 +14,7 @@ import {
 } from "../lib/appConfig";
 import { v_9bded0, v_cd69e7 } from "../lib/xrun";
 import { v_74defc } from "../lib/logger";
-import { v_232ace, v_bfd593, v_6f53a3, v_8d734d } from "../lib/searchQuery";
+import { v_232ace, v_bfd593, v_88281d, v_328f08, v_6f53a3, v_8d734d } from "../lib/searchQuery";
 
 export const v_7de069 = new v_b7c41b<v_de0a25>();
 
@@ -189,6 +189,13 @@ v_7de069.get("/history", v_6690d9, async (v_3f4e2e) => {
     }
     v_1fd8b7 = ` AND (${v_df32af.join(" OR ")})`;
   }
+
+  const v_cc25ad = v_88281d(
+    "(created_at / 1000)",
+    v_328f08(v_f71b56.searchParams.get("from"), v_f71b56.searchParams.get("to"), v_8d734d(v_f71b56.searchParams.get("tz"))),
+  );
+  v_1fd8b7 += v_cc25ad.sql;
+  v_894b6f.push(...v_cc25ad.binds);
   const v_18b8bf =
     (
       await v_3f4e2e.env.DB
