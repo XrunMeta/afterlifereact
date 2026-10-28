@@ -1228,6 +1228,8 @@
       "memlowTitle": "请挑选一份信件脚本进行录音",
       "recordStart": "开始录音",
       "recordStop": "停止录音",
+      "processing": "处理中...",
+      "recordAgain": "重新录音",
       "recordRange": "30~60s",
       "uploadFileMemlow": "上传音频文件",
       "sample": {

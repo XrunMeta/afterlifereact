@@ -1228,6 +1228,8 @@
       "memlowTitle": "Pick a letter script and record",
       "recordStart": "Start recording",
       "recordStop": "Stop recording",
+      "processing": "Processing...",
+      "recordAgain": "Record again",
       "recordRange": "30~60s",
       "uploadFileMemlow": "Upload audio file",
       "sample": {

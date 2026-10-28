@@ -1228,6 +1228,8 @@
       "memlowTitle": "편지 스크립트를 고르고, 녹음해 주십시오",
       "recordStart": "녹음 시작",
       "recordStop": "녹음 중지",
+      "processing": "처리 중...",
+      "recordAgain": "다시 녹음하기",
       "recordRange": "30~60s",
       "uploadFileMemlow": "오디오 파일 업로드",
       "sample": {

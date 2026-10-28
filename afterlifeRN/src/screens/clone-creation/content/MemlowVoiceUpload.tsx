@@ -11,6 +11,7 @@ import { v_1bfbd0, v_8b0c90, v_a9d3e9, v_e3d001 } from '../../../components/cons
 interface Props {
   draft: v_c2a674;
   onChange: (patch: Partial<v_c2a674>) => void;
+  onScrollToEnd?: () => void;
 }
 
 async function v_467998(

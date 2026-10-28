@@ -1228,6 +1228,8 @@
       "memlowTitle": "手紙のスクリプトを選び、録音してください",
       "recordStart": "録音開始",
       "recordStop": "録音停止",
+      "processing": "処理中...",
+      "recordAgain": "もう一度録音",
       "recordRange": "30~60s",
       "uploadFileMemlow": "オーディオファイルをアップロード",
       "sample": {
