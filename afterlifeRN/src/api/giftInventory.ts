@@ -91,6 +91,10 @@ export async function v_bf9881(
   if (v_24baff?.limit) v_212049.set("limit", String(v_24baff.limit));
   if (v_24baff?.offset) v_212049.set("offset", String(v_24baff.offset));
   if (v_24baff?.kind) v_212049.set("kind", v_24baff.kind);
+  if (v_24baff?.q) {
+    v_212049.set("q", v_24baff.q);
+    v_212049.set("tz", String(v_769bcc()));
+  }
   const v_25c4f7 = v_212049.toString();
   return v_04b58a(
     `/oth-path${v_25c4f7 ? `?${v_25c4f7}` : ""}`,
@@ -175,8 +179,16 @@ export async function v_541c70(
 
 export async function v_9c3304(
   v_2ca7e0,
+  v_328259,
 ): Promise<{ items: GiftExchangeResult[] }> {
-  return v_04b58a<{ items: GiftExchangeResult[] }>("/oth-path", v_2ca7e0, { method: "GET" });
+  const v_25c4f7 = v_328259?.q
+    ? `?${new URLSearchParams({ q: v_328259.q, tz: String(v_769bcc()) }).toString()}`
+    : "";
+  return v_04b58a<{ items: GiftExchangeResult[] }>(`/oth-path${v_25c4f7}`, v_2ca7e0, { method: "GET" });
+}
+
+function v_769bcc(): number {
+  return -new Date().getTimezoneOffset();
 }
 
 export function v_84d829(

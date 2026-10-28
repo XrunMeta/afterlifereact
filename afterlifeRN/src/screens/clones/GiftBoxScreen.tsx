@@ -1,7 +1,7 @@
 
 
 import { v_561bb6 } from "../../api/gifts";
-import v_a3453e, { v_de06a3, v_df9f57, v_5ab095 } from "bapkr";
+import v_a3453e, { v_de06a3, v_c4deb2, v_df9f57, v_5ab095 } from "bapkr";
 import {
   v_3094a2,
   v_19b633,
@@ -24,6 +24,7 @@ import { v_1bfbd0, v_8b0c90, v_d43669, v_c10a43 } from "../../components/constan
 import { v_1ed7d9 } from "../../stores/authStore";
 import {
   v_bf9881,
+  v_9c3304,
   v_0e29ae,
   v_c55c0b,
   v_6f0728,
@@ -33,6 +34,7 @@ import {
   type v_867a79,
 } from "../../api/giftInventory";
 import { v_61fb8c } from "../../hooks/useGiftExchange";
+import { v_de971e } from "../../lib/dateQuery";
 import { v_18f201 } from "../../lib/pangle";
 import { v_889fad } from "../../stores/dialogStore";
 import type { v_2d88fc, v_8ad91b } from "../../navigation/types";
@@ -145,6 +147,17 @@ function v_37bee9(v_6fc191): string {
 
 type PagedKind = "received" | "sent";
 type Paged = { items: v_407a6d[]; offset: number; done: boolean };
+type SearchPaged = Paged & { q: string };
+const v_0e564f = 300;
+
+function v_8e85cb<T>(v_3b402b, v_d799e2): T {
+  const [v_81e2ef, v_7a3ec2] = v_5ab095(v_3b402b);
+  v_c4deb2(() => {
+    const v_389afb = setTimeout(() => v_7a3ec2(v_3b402b), v_d799e2);
+    return () => clearTimeout(v_389afb);
+  }, [v_3b402b, v_d799e2]);
+  return v_81e2ef;
+}
 const v_459174 = { items: [], offset: 0, done: false };
 
 export default function v_8869a8() {
@@ -187,14 +200,14 @@ export default function v_8869a8() {
   );
 
   const v_088028 = v_de06a3(
-    async (v_94302c, v_a13c2e) => {
+    async (v_94302c, v_a13c2e, v_ab6401) => {
       const v_554070 = v_94302c === "received" ? v_6cfd25 : v_9f8b94;
       let v_3bbadf = v_a13c2e.offset;
       let v_2fb8cc = false;
       const rows: v_407a6d[] = [];
       let last: Awaited<ReturnType<typeof v_bf9881>> | null = null;
       for (let v_ebec57 = 0; v_ebec57 < 10 && !v_2fb8cc && v_18b8bf.length === 0; v_ebec57++) {
-        v_506e86 = await v_bf9881(v_2ca7e0!, { limit: v_951062, offset: v_3bbadf, kind: v_94302c });
+        v_506e86 = await v_bf9881(v_2ca7e0!, { limit: v_951062, offset: v_3bbadf, kind: v_94302c, q: v_ab6401 });
         v_18b8bf.push(...v_506e86.items.filter((v_206b88) => v_554070(v_206b88.kind)));
         v_3bbadf += v_506e86.items.length;
         v_2fb8cc = v_506e86.items.length < v_951062;
@@ -204,16 +217,51 @@ export default function v_8869a8() {
     [v_2ca7e0],
   );
 
+  const [v_89bb03, v_39f9a7] = v_5ab095<Record<PagedKind, string>>({ received: "", sent: "" });
+  const [v_eddf71, v_202edd] = v_5ab095<Record<PagedKind, SearchPaged | null>>({ received: null, sent: null });
+  const [v_4568f9, v_58158a] = v_5ab095<Record<PagedKind, boolean>>({ received: false, sent: false });
+  const v_f01172 = v_a3453e.useRef<Record<PagedKind, number>>({ received: 0, sent: 0 });
+  const v_1d6a6c = v_de06a3(
+    async (v_94302c, v_ab6401) => {
+      const v_a936b7 = ++v_f01172.current[v_94302c];
+      if (!v_ab6401 || !v_2ca7e0) {
+        v_202edd((v_ba2215) => ({ ...v_ba2215, [v_94302c]: null }));
+        v_58158a((v_ba2215) => ({ ...v_ba2215, [v_94302c]: false }));
+        return;
+      }
+      v_58158a((v_ba2215) => ({ ...v_ba2215, [v_94302c]: true }));
+      try {
+        const { paged: v_b2d23f } = await v_088028(v_94302c, v_459174, v_ab6401);
+        if (v_a936b7 === v_f01172.current[v_94302c]) v_202edd((v_ba2215) => ({ ...v_ba2215, [v_94302c]: { ...v_b2d23f, q: v_ab6401 } }));
+      } catch (v_49263d) {
+        console.warn("[GiftBox] search fail:", v_49263d);
+      } finally {
+        if (v_a936b7 === v_f01172.current[v_94302c]) v_58158a((v_ba2215) => ({ ...v_ba2215, [v_94302c]: false }));
+      }
+    },
+    [v_2ca7e0, v_088028],
+  );
+  const v_3bec84 = v_8e85cb(v_89bb03.received.trim(), v_0e564f);
+  const v_abae02 = v_8e85cb(v_89bb03.sent.trim(), v_0e564f);
+  const v_0d0a13 = v_a3453e.useRef<Record<PagedKind, string>>({ received: "", sent: "" });
+  v_0d0a13.current = { received: v_3bec84, sent: v_abae02 };
+  v_c4deb2(() => { void v_1d6a6c("received", v_3bec84); }, [v_3bec84, v_1d6a6c]);
+  v_c4deb2(() => { void v_1d6a6c("sent", v_abae02); }, [v_abae02, v_1d6a6c]);
+
   const v_132dae = v_de06a3(
     async (v_94302c) => {
-      const v_c3bc75 = v_94302c === "received" ? v_79f454 : v_f966e3;
-      if (!v_2ca7e0 || v_c3bc75.done || v_6f0b49.current) return;
+      const v_b48d3d = v_eddf71[v_94302c];
+      const v_c3bc75 = v_b48d3d ?? (v_94302c === "received" ? v_79f454 : v_f966e3);
+      if (!v_2ca7e0 || v_c3bc75.done || v_6f0b49.current || v_4568f9[v_94302c]) return;
       v_6f0b49.current = true;
       v_23061f(v_94302c);
       const v_a936b7 = v_8e5767.current;
+      const v_c7a020 = v_f01172.current[v_94302c];
       try {
-        const { paged: v_b2d23f } = await v_088028(v_94302c, v_c3bc75);
-        if (v_a936b7 === v_8e5767.current) (v_94302c === "received" ? v_588ee6 : v_835446)(v_b2d23f);
+        const { paged: v_b2d23f } = await v_088028(v_94302c, v_c3bc75, v_b48d3d?.q);
+        if (v_b48d3d) {
+          if (v_c7a020 === v_f01172.current[v_94302c]) v_202edd((v_ba2215) => ({ ...v_ba2215, [v_94302c]: { ...v_b2d23f, q: v_b48d3d.q } }));
+        } else if (v_a936b7 === v_8e5767.current) (v_94302c === "received" ? v_588ee6 : v_835446)(v_b2d23f);
       } catch (v_49263d) {
         console.warn("[GiftBox] load more fail:", v_49263d);
       } finally {
@@ -221,7 +269,7 @@ export default function v_8869a8() {
         v_23061f(null);
       }
     },
-    [v_2ca7e0, v_79f454, v_f966e3, v_088028],
+    [v_2ca7e0, v_79f454, v_f966e3, v_eddf71, v_4568f9, v_088028],
   );
 
   const {
@@ -251,6 +299,11 @@ export default function v_8869a8() {
         v_19e9c0(v_ed7fe5.last?.totalReceived ?? 0);
         v_0cc282(v_204494.last?.totalSent ?? null);
         v_c60f1e(v_ed7fe5.last?.currentOwned ?? v_204494.last?.currentOwned ?? 0);
+
+        for (const v_0eb677 of ["received", "sent"] as const) {
+          const v_ab6401 = v_0d0a13.current[v_0eb677];
+          if (v_ab6401) void v_1d6a6c(v_0eb677, v_ab6401);
+        }
         await v_308dd7();
       } catch (v_49263d) {
         console.warn("[GiftBox] load fail:", v_49263d);
@@ -269,8 +322,8 @@ export default function v_8869a8() {
     }, [v_92fdf2]),
   );
 
-  const v_8af8a0 = v_79f454.items;
-  const v_ccaf2e = v_f966e3.items;
+  const v_8af8a0 = v_eddf71.received?.items ?? v_79f454.items;
+  const v_ccaf2e = v_eddf71.sent?.items ?? v_f966e3.items;
 
   const v_bc3259 = v_df9f57(() => {
     const v_8dcb51 = new Map<string, v_407a6d[]>();
@@ -374,23 +427,29 @@ export default function v_8869a8() {
           {v_11083e === "received" && (
             <ReceivedTab
               items={v_8af8a0}
-              loadingMore={v_f34bc3 === "received"}
+              loadingMore={v_f34bc3 === "received" || v_4568f9.received}
+              search={v_89bb03.received}
+              onSearchChange={(v_81e2ef) => v_39f9a7((v_ba2215) => ({ ...v_ba2215, received: v_81e2ef }))}
               t={v_8d41d7}
               accessToken={v_2ca7e0}
               onReload={() => void v_92fdf2(true)}
-              onItemClaimed={(v_389afb, v_4f8ce8) =>
-                v_588ee6((v_ba2215) => ({
+              onItemClaimed={(v_389afb, v_4f8ce8) => {
+                const v_17dc8a = <P extends Paged>(v_ba2215): P => ({
                   ...v_ba2215,
                   items: v_ba2215.items.map((v_23805a) => (v_23805a.id === v_389afb ? { ...v_23805a, claimedAt: v_4f8ce8 } : v_23805a)),
-                }))
-              }
+                });
+                v_588ee6(v_17dc8a);
+                v_202edd((v_ba2215) => (v_ba2215.received ? { ...v_ba2215, received: v_17dc8a(v_ba2215.received) } : v_ba2215));
+              }}
             />
           )}
           {v_11083e === "sent" && (
             <SentTab
               items={v_ccaf2e}
               grouped={v_bc3259}
-              loadingMore={v_f34bc3 === "sent"}
+              loadingMore={v_f34bc3 === "sent" || v_4568f9.sent}
+              search={v_89bb03.sent}
+              onSearchChange={(v_81e2ef) => v_39f9a7((v_ba2215) => ({ ...v_ba2215, sent: v_81e2ef }))}
               t={v_8d41d7}
               onBrowseClones={() => {
                 v_f4c991.dispatch(
@@ -463,6 +522,8 @@ type ReceivedSubTab = "all" | "user" | "clone" | "referral";
 function v_6da59e({
   items: v_4622b9,
   loadingMore: v_f34bc3,
+  search: v_9875a1,
+  onSearchChange: v_2e7fc1,
   t: v_8d41d7,
   accessToken: v_2ca7e0,
   onReload: v_561465,
@@ -470,6 +531,8 @@ function v_6da59e({
 }: {
   items: v_407a6d[];
   loadingMore: boolean;
+  search: string;
+  onSearchChange: (v: string) => void;
   t: v_75de9d;
   accessToken: string | null;
   onReload: () => void;
@@ -507,7 +570,6 @@ function v_6da59e({
     [v_2ca7e0, v_56eae3, v_561465, v_42f19a, v_8d41d7],
   );
   const [v_4abce2, v_59fd10] = v_5ab095<ReceivedSubTab>("all");
-  const [v_9875a1, v_2e7fc1] = v_5ab095("");
   const v_ab6401 = v_9875a1.trim().toLowerCase();
 
   const v_9f6088 = v_df9f57(
@@ -530,7 +592,7 @@ function v_6da59e({
       const v_eddf67 = v_44c2cb(v_23805a, v_8d41d7).toLowerCase();
       const v_eb25ce = (v_23805a.cloneName || "").toLowerCase();
       const v_1ed516 = (v_23805a.cloneUsername || "").toLowerCase();
-      return v_eddf67.includes(v_ab6401) || v_eb25ce.includes(v_ab6401) || v_1ed516.includes(v_ab6401);
+      return v_eddf67.includes(v_ab6401) || v_eb25ce.includes(v_ab6401) || v_1ed516.includes(v_ab6401) || v_de971e(v_ab6401, v_23805a.createdAt);
     });
   }, [v_4622b9, v_4abce2, v_ab6401, v_8d41d7]);
 
@@ -714,12 +776,16 @@ function v_950e4a({
   items: v_4622b9,
   grouped: v_4d79ca,
   loadingMore: v_f34bc3,
+  search: v_9875a1,
+  onSearchChange: v_2e7fc1,
   t: v_8d41d7,
   onBrowseClones: v_9cb927,
 }: {
   items: v_407a6d[];
   grouped: [string, v_407a6d[]][];
   loadingMore: boolean;
+  search: string;
+  onSearchChange: (v: string) => void;
   t: v_75de9d;
   onBrowseClones: () => void;
 }) {
@@ -744,7 +810,6 @@ function v_950e4a({
     return { rose: v_272c28, people: v_fdd5c7.size };
   }, [v_4622b9]);
 
-  const [v_9875a1, v_2e7fc1] = v_5ab095("");
   const v_ab6401 = v_9875a1.trim().toLowerCase();
   const v_69b07f = v_de06a3(
     (item: v_407a6d) =>
@@ -756,7 +821,8 @@ function v_950e4a({
   const v_e4cf17 = v_df9f57(() => {
     if (!v_ab6401) return v_4622b9;
     return v_4622b9.filter((v_23805a) =>
-      [v_69b07f(v_23805a), v_23805a.cloneName || "", v_23805a.cloneUsername || ""].some((v_fd5f43) => v_fd5f43.toLowerCase().includes(v_ab6401)),
+      [v_69b07f(v_23805a), v_23805a.cloneName || "", v_23805a.cloneUsername || ""].some((v_fd5f43) => v_fd5f43.toLowerCase().includes(v_ab6401)) ||
+      v_de971e(v_ab6401, v_23805a.createdAt),
     );
   }, [v_4622b9, v_ab6401, v_69b07f]);
 
@@ -788,7 +854,7 @@ function v_950e4a({
           style={v_d81136.searchInput}
           value={v_9875a1}
           onChangeText={v_2e7fc1}
-          placeholder={v_8d41d7("giftBox.sentSearchPlaceholder", { defaultValue: "받은 사람, 클론 이름 검색" })}
+          placeholder={v_8d41d7("giftBox.sentSearchPlaceholder", { defaultValue: "받은 사람, 클론 이름, 날짜 검색" })}
           placeholderTextColor={v_1bfbd0.zinc400}
           returnKeyType="search"
           autoCorrect={false}
@@ -1081,11 +1147,30 @@ function v_36c8d0({
 }) {
   const [v_f21110, v_d217e7] = v_5ab095<ExchangeHistoryFilter>("all");
   const v_986caa = 3;
+
+  const [v_9875a1, v_2e7fc1] = v_5ab095("");
+  const v_ab6401 = v_9875a1.trim().toLowerCase();
+
+  const v_2ca7e0 = v_1ed7d9((v_72c7a6) => v_72c7a6.accessToken);
+  const v_f4d7fa = v_8e85cb(v_7c496a ? v_9875a1.trim() : "", v_0e564f);
+  const [v_014cb7, v_b12a57] = v_5ab095<{ q: string; items: v_867a79[] } | null>(null);
+  v_c4deb2(() => {
+    if (!v_f4d7fa || !v_2ca7e0) {
+      v_b12a57(null);
+      return;
+    }
+    let v_759436 = true;
+    v_9c3304(v_2ca7e0, { q: v_f4d7fa })
+      .then((v_cb35cb) => { if (v_759436) v_b12a57({ q: v_f4d7fa, items: v_cb35cb.items }); })
+      .catch((v_49263d) => console.warn("[GiftBox] exchange search fail:", v_49263d));
+    return () => { v_759436 = false; };
+  }, [v_f4d7fa, v_2ca7e0]);
+  const v_694b25 = v_014cb7 && v_014cb7.q === v_f4d7fa ? v_014cb7.items : v_10740d;
   const v_bc78c8 = v_df9f57(() => {
-    if (v_f21110 === "all") return v_10740d;
-    if (v_f21110 === "claimed") return v_10740d.filter((v_65a2cd) => v_65a2cd.rewardStatus === "claimed");
-    return v_10740d.filter((v_65a2cd) => v_65a2cd.rewardStatus === "pending_claim");
-  }, [v_10740d, v_f21110]);
+    if (v_f21110 === "all") return v_694b25;
+    if (v_f21110 === "claimed") return v_694b25.filter((v_65a2cd) => v_65a2cd.rewardStatus === "claimed");
+    return v_694b25.filter((v_65a2cd) => v_65a2cd.rewardStatus === "pending_claim");
+  }, [v_694b25, v_f21110]);
   const v_d1b432 = v_a4bef1
     ? v_bc78c8
     : v_7c496a
@@ -1104,8 +1189,6 @@ function v_36c8d0({
     { key: "pending", label: v_8d41d7("giftBox.filterPending", { defaultValue: "수령 대기" }) },
   ];
 
-  const [v_9875a1, v_2e7fc1] = v_5ab095("");
-  const v_ab6401 = v_9875a1.trim().toLowerCase();
   const v_d84144 = v_df9f57(() => {
     if (!v_7c496a) return null;
     if (!v_ab6401) return v_d1b432;
@@ -1115,7 +1198,7 @@ function v_36c8d0({
         v_8c0b26.exchangeNo || "",
         v_561bb6(v_8c0b26.giftName),
         v_37bee9(new Date(v_8c0b26.createdAt).toISOString()),
-      ].some((v_fd5f43) => v_fd5f43.toLowerCase().includes(v_ab6401)),
+      ].some((v_fd5f43) => v_fd5f43.toLowerCase().includes(v_ab6401)) || v_de971e(v_ab6401, v_8c0b26.createdAt),
     );
   }, [v_7c496a, v_d1b432, v_ab6401, v_80cae9]);
 
