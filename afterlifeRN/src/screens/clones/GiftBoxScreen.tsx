@@ -35,6 +35,8 @@ import {
 } from "../../api/giftInventory";
 import { v_61fb8c } from "../../hooks/useGiftExchange";
 import { v_de971e } from "../../lib/dateQuery";
+import type { v_e77dc2 } from "../../lib/dateRange";
+import { v_59a8d3, v_6e313b } from "../../components/gift/DateRangeSheet";
 import { v_18f201 } from "../../lib/pangle";
 import { v_889fad } from "../../stores/dialogStore";
 import type { v_2d88fc, v_8ad91b } from "../../navigation/types";
@@ -134,6 +136,10 @@ const v_951062 = 15;
 
 const v_ca9d61 = false;
 
+const v_94453e = false;
+
+const v_692168 = false;
+
 function v_739fef(v_6fc191): string {
   const v_d5dda0 = new Date(v_6fc191);
   if (Number.isNaN(v_d5dda0.getTime())) return "";
@@ -143,7 +149,7 @@ function v_739fef(v_6fc191): string {
 
 type PagedKind = "received" | "sent";
 type Paged = { items: v_407a6d[]; offset: number; done: boolean };
-type SearchPaged = Paged & { q: string };
+type SearchPaged = Paged & { q: string; range: v_e77dc2 | null };
 const v_0e564f = 300;
 
 function v_8e85cb<T>(v_3b402b, v_d799e2): T {
@@ -196,14 +202,21 @@ export default function v_8869a8() {
   );
 
   const v_088028 = v_de06a3(
-    async (v_94302c, v_a13c2e, v_ab6401) => {
+    async (v_94302c, v_a13c2e, v_ab6401, range?: v_e77dc2 | null) => {
       const v_554070 = v_94302c === "received" ? v_6cfd25 : v_9f8b94;
       let v_3bbadf = v_a13c2e.offset;
       let v_2fb8cc = false;
       const rows: v_407a6d[] = [];
       let last: Awaited<ReturnType<typeof v_bf9881>> | null = null;
       for (let v_ebec57 = 0; v_ebec57 < 10 && !v_2fb8cc && v_18b8bf.length === 0; v_ebec57++) {
-        v_506e86 = await v_bf9881(v_2ca7e0!, { limit: v_951062, offset: v_3bbadf, kind: v_94302c, q: v_ab6401 });
+        v_506e86 = await v_bf9881(v_2ca7e0!, {
+          limit: v_951062,
+          offset: v_3bbadf,
+          kind: v_94302c,
+          q: v_ab6401,
+          from: v_4f2c9c?.from,
+          to: v_4f2c9c?.to,
+        });
         v_18b8bf.push(...v_506e86.items.filter((v_206b88) => v_554070(v_206b88.kind)));
         v_3bbadf += v_506e86.items.length;
         v_2fb8cc = v_506e86.items.length < v_951062;
@@ -215,20 +228,22 @@ export default function v_8869a8() {
 
   const [v_89bb03, v_39f9a7] = v_5ab095<Record<PagedKind, string>>({ received: "", sent: "" });
   const [v_eddf71, v_202edd] = v_5ab095<Record<PagedKind, SearchPaged | null>>({ received: null, sent: null });
+
+  const [v_3998e5, v_ccc2fa] = v_5ab095<Record<PagedKind, v_e77dc2 | null>>({ received: null, sent: null });
   const [v_4568f9, v_58158a] = v_5ab095<Record<PagedKind, boolean>>({ received: false, sent: false });
   const v_f01172 = v_a3453e.useRef<Record<PagedKind, number>>({ received: 0, sent: 0 });
   const v_1d6a6c = v_de06a3(
-    async (v_94302c, v_ab6401) => {
+    async (v_94302c, v_ab6401, range: v_e77dc2 | null) => {
       const v_a936b7 = ++v_f01172.current[v_94302c];
-      if (!v_ab6401 || !v_2ca7e0) {
+      if ((!v_ab6401 && !v_4f2c9c) || !v_2ca7e0) {
         v_202edd((v_ba2215) => ({ ...v_ba2215, [v_94302c]: null }));
         v_58158a((v_ba2215) => ({ ...v_ba2215, [v_94302c]: false }));
         return;
       }
       v_58158a((v_ba2215) => ({ ...v_ba2215, [v_94302c]: true }));
       try {
-        const { paged: v_b2d23f } = await v_088028(v_94302c, v_459174, v_ab6401);
-        if (v_a936b7 === v_f01172.current[v_94302c]) v_202edd((v_ba2215) => ({ ...v_ba2215, [v_94302c]: { ...v_b2d23f, q: v_ab6401 } }));
+        const { paged: v_b2d23f } = await v_088028(v_94302c, v_459174, v_ab6401, v_4f2c9c);
+        if (v_a936b7 === v_f01172.current[v_94302c]) v_202edd((v_ba2215) => ({ ...v_ba2215, [v_94302c]: { ...v_b2d23f, q: v_ab6401, range: v_4f2c9c } }));
       } catch (v_49263d) {
         console.warn("[GiftBox] search fail:", v_49263d);
       } finally {
@@ -239,10 +254,16 @@ export default function v_8869a8() {
   );
   const v_3bec84 = v_8e85cb(v_89bb03.received.trim(), v_0e564f);
   const v_abae02 = v_8e85cb(v_89bb03.sent.trim(), v_0e564f);
-  const v_0d0a13 = v_a3453e.useRef<Record<PagedKind, string>>({ received: "", sent: "" });
-  v_0d0a13.current = { received: v_3bec84, sent: v_abae02 };
-  v_c4deb2(() => { void v_1d6a6c("received", v_3bec84); }, [v_3bec84, v_1d6a6c]);
-  v_c4deb2(() => { void v_1d6a6c("sent", v_abae02); }, [v_abae02, v_1d6a6c]);
+  const v_0d0a13 = v_a3453e.useRef<Record<PagedKind, { q: string; range: v_e77dc2 | null }>>({
+    received: { q: "", range: null },
+    sent: { q: "", range: null },
+  });
+  v_0d0a13.current = {
+    received: { q: v_3bec84, range: v_3998e5.received },
+    sent: { q: v_abae02, range: v_3998e5.sent },
+  };
+  v_c4deb2(() => { void v_1d6a6c("received", v_3bec84, v_3998e5.received); }, [v_3bec84, v_3998e5.received, v_1d6a6c]);
+  v_c4deb2(() => { void v_1d6a6c("sent", v_abae02, v_3998e5.sent); }, [v_abae02, v_3998e5.sent, v_1d6a6c]);
 
   const v_132dae = v_de06a3(
     async (v_94302c) => {
@@ -254,9 +275,10 @@ export default function v_8869a8() {
       const v_a936b7 = v_8e5767.current;
       const v_c7a020 = v_f01172.current[v_94302c];
       try {
-        const { paged: v_b2d23f } = await v_088028(v_94302c, v_c3bc75, v_b48d3d?.q);
+        const { paged: v_b2d23f } = await v_088028(v_94302c, v_c3bc75, v_b48d3d?.q, v_b48d3d?.range);
         if (v_b48d3d) {
-          if (v_c7a020 === v_f01172.current[v_94302c]) v_202edd((v_ba2215) => ({ ...v_ba2215, [v_94302c]: { ...v_b2d23f, q: v_b48d3d.q } }));
+          if (v_c7a020 === v_f01172.current[v_94302c])
+            v_202edd((v_ba2215) => ({ ...v_ba2215, [v_94302c]: { ...v_b2d23f, q: v_b48d3d.q, range: v_b48d3d.range } }));
         } else if (v_a936b7 === v_8e5767.current) (v_94302c === "received" ? v_588ee6 : v_835446)(v_b2d23f);
       } catch (v_49263d) {
         console.warn("[GiftBox] load more fail:", v_49263d);
@@ -297,8 +319,8 @@ export default function v_8869a8() {
         v_c60f1e(v_ed7fe5.last?.currentOwned ?? v_204494.last?.currentOwned ?? 0);
 
         for (const v_0eb677 of ["received", "sent"] as const) {
-          const v_ab6401 = v_0d0a13.current[v_0eb677];
-          if (v_ab6401) void v_1d6a6c(v_0eb677, v_ab6401);
+          const { q: v_ab6401, range: v_4f2c9c } = v_0d0a13.current[v_0eb677];
+          if (v_ab6401 || v_4f2c9c) void v_1d6a6c(v_0eb677, v_ab6401, v_4f2c9c);
         }
         await v_308dd7();
       } catch (v_49263d) {
@@ -426,6 +448,8 @@ export default function v_8869a8() {
               loadingMore={v_f34bc3 === "received" || v_4568f9.received}
               search={v_89bb03.received}
               onSearchChange={(v_81e2ef) => v_39f9a7((v_ba2215) => ({ ...v_ba2215, received: v_81e2ef }))}
+              range={v_3998e5.received}
+              onRangeChange={(v_cb35cb) => v_ccc2fa((v_ba2215) => ({ ...v_ba2215, received: v_cb35cb }))}
               t={v_8d41d7}
               accessToken={v_2ca7e0}
               onReload={() => void v_92fdf2(true)}
@@ -446,6 +470,8 @@ export default function v_8869a8() {
               loadingMore={v_f34bc3 === "sent" || v_4568f9.sent}
               search={v_89bb03.sent}
               onSearchChange={(v_81e2ef) => v_39f9a7((v_ba2215) => ({ ...v_ba2215, sent: v_81e2ef }))}
+              range={v_3998e5.sent}
+              onRangeChange={(v_cb35cb) => v_ccc2fa((v_ba2215) => ({ ...v_ba2215, sent: v_cb35cb }))}
               t={v_8d41d7}
               onBrowseClones={() => {
                 v_f4c991.dispatch(
@@ -520,6 +546,8 @@ function v_6da59e({
   loadingMore: v_f34bc3,
   search: v_9875a1,
   onSearchChange: v_2e7fc1,
+  range: v_4f2c9c,
+  onRangeChange: v_fead3b,
   t: v_8d41d7,
   accessToken: v_2ca7e0,
   onReload: v_561465,
@@ -529,6 +557,8 @@ function v_6da59e({
   loadingMore: boolean;
   search: string;
   onSearchChange: (v: string) => void;
+  range: v_e77dc2 | null;
+  onRangeChange: (r: v_e77dc2 | null) => void;
   t: v_75de9d;
   accessToken: string | null;
   onReload: () => void;
@@ -600,7 +630,7 @@ function v_6da59e({
   ];
 
   const v_6e7fc2 =
-    v_ab6401
+    v_ab6401 || v_4f2c9c
       ? v_8d41d7("giftBox.sentSearchNoMatch", { defaultValue: "검색 결과가 없어요" })
       : v_4abce2 === "all"
         ? v_8d41d7("dashboard.emptyGift", { defaultValue: "아직 받은 선물이 없어요" })
@@ -631,7 +661,9 @@ function v_6da59e({
             <Feather name="x" size={14} color={v_1bfbd0.zinc400} />
           </TouchableOpacity>
         ) : null}
+        <DateRangeButton value={v_4f2c9c} onChange={v_fead3b} />
       </View>
+      <DateRangeChip value={v_4f2c9c} onClear={() => v_fead3b(null)} />
 
       <ScrollView
         horizontal
@@ -774,6 +806,8 @@ function v_950e4a({
   loadingMore: v_f34bc3,
   search: v_9875a1,
   onSearchChange: v_2e7fc1,
+  range: v_4f2c9c,
+  onRangeChange: v_fead3b,
   t: v_8d41d7,
   onBrowseClones: v_9cb927,
 }: {
@@ -782,6 +816,8 @@ function v_950e4a({
   loadingMore: boolean;
   search: string;
   onSearchChange: (v: string) => void;
+  range: v_e77dc2 | null;
+  onRangeChange: (r: v_e77dc2 | null) => void;
   t: v_75de9d;
   onBrowseClones: () => void;
 }) {
@@ -826,23 +862,25 @@ function v_950e4a({
 
   return (
     <View>
-      <View style={v_d81136.sentSummaryCard}>
-        <View style={v_d81136.sentSummaryCol}>
-          <Text style={v_d81136.sentSummaryLabel}>
-            {v_8d41d7("giftBox.sentThisMonth", { defaultValue: "이번 달 보낸 선물" })}
-          </Text>
-          <RoseAmount count={v_cfb8ec.rose} size="lg" />
+      {v_94453e && (
+        <View style={v_d81136.sentSummaryCard}>
+          <View style={v_d81136.sentSummaryCol}>
+            <Text style={v_d81136.sentSummaryLabel}>
+              {v_8d41d7("giftBox.sentThisMonth", { defaultValue: "이번 달 보낸 선물" })}
+            </Text>
+            <RoseAmount count={v_cfb8ec.rose} size="lg" />
+          </View>
+          <View style={v_d81136.sentSummaryCol}>
+            <Text style={v_d81136.sentSummaryLabel}>
+              {v_8d41d7("giftBox.sentPeople", { defaultValue: "받은 사람" })}
+            </Text>
+            <Text style={v_d81136.sentSummaryPeople}>
+              {v_cfb8ec.people}
+              {v_8d41d7("giftBox.peopleUnit", { defaultValue: "명" })}
+            </Text>
+          </View>
         </View>
-        <View style={v_d81136.sentSummaryCol}>
-          <Text style={v_d81136.sentSummaryLabel}>
-            {v_8d41d7("giftBox.sentPeople", { defaultValue: "받은 사람" })}
-          </Text>
-          <Text style={v_d81136.sentSummaryPeople}>
-            {v_cfb8ec.people}
-            {v_8d41d7("giftBox.peopleUnit", { defaultValue: "명" })}
-          </Text>
-        </View>
-      </View>
+      )}
 
       <View style={v_d81136.searchBar}>
         <Feather name="search" size={14} color={v_1bfbd0.zinc400} />
@@ -861,12 +899,14 @@ function v_950e4a({
             <Feather name="x" size={14} color={v_1bfbd0.zinc400} />
           </TouchableOpacity>
         ) : null}
+        <DateRangeButton value={v_4f2c9c} onChange={v_fead3b} />
       </View>
+      <DateRangeChip value={v_4f2c9c} onClear={() => v_fead3b(null)} />
 
       {v_e4cf17.length === 0 ? (
         <View style={v_d81136.emptyBox}>
           <Text style={v_d81136.emptyText}>
-            {v_ab6401
+            {v_ab6401 || v_4f2c9c
               ? v_8d41d7("giftBox.sentSearchNoMatch", { defaultValue: "검색 결과가 없어요" })
               : v_8d41d7("giftBox.emptySent", { defaultValue: "아직 보낸 선물이 없어요" })}
           </Text>
@@ -906,16 +946,18 @@ function v_950e4a({
       )}
       {v_f34bc3 && <ActivityIndicator style={v_d81136.pageSpinner} color={v_1bfbd0.zinc500} />}
 
-      <View style={v_d81136.browseCta}>
-        <Text style={v_d81136.browseHint}>
-          {v_8d41d7("giftBox.browseHint", { defaultValue: "마음에 드는 클론에게 선물을 보내보세요" })}
-        </Text>
-        <TouchableOpacity style={v_d81136.browseBtn} onPress={v_9cb927} activeOpacity={0.8}>
-          <Text style={v_d81136.browseBtnText}>
-            {v_8d41d7("giftBox.browseClones", { defaultValue: "클론 둘러보기" })}
+      {v_692168 && (
+        <View style={v_d81136.browseCta}>
+          <Text style={v_d81136.browseHint}>
+            {v_8d41d7("giftBox.browseHint", { defaultValue: "마음에 드는 클론에게 선물을 보내보세요" })}
           </Text>
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity style={v_d81136.browseBtn} onPress={v_9cb927} activeOpacity={0.8}>
+            <Text style={v_d81136.browseBtnText}>
+              {v_8d41d7("giftBox.browseClones", { defaultValue: "클론 둘러보기" })}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 }
@@ -1149,19 +1191,22 @@ function v_36c8d0({
 
   const v_2ca7e0 = v_1ed7d9((v_72c7a6) => v_72c7a6.accessToken);
   const v_f4d7fa = v_8e85cb(v_7c496a ? v_9875a1.trim() : "", v_0e564f);
-  const [v_014cb7, v_b12a57] = v_5ab095<{ q: string; items: v_867a79[] } | null>(null);
+
+  const [v_4f2c9c, v_e1d84f] = v_5ab095<v_e77dc2 | null>(null);
+  const v_dd8157 = `${v_f4d7fa}|${v_4f2c9c?.from ?? ""}|${v_4f2c9c?.to ?? ""}`;
+  const [v_014cb7, v_b12a57] = v_5ab095<{ key: string; items: v_867a79[] } | null>(null);
   v_c4deb2(() => {
-    if (!v_f4d7fa || !v_2ca7e0) {
+    if ((!v_f4d7fa && !v_4f2c9c) || !v_2ca7e0) {
       v_b12a57(null);
       return;
     }
     let v_759436 = true;
-    v_9c3304(v_2ca7e0, { q: v_f4d7fa })
-      .then((v_cb35cb) => { if (v_759436) v_b12a57({ q: v_f4d7fa, items: v_cb35cb.items }); })
+    v_9c3304(v_2ca7e0, { q: v_f4d7fa || undefined, from: v_4f2c9c?.from, to: v_4f2c9c?.to })
+      .then((v_cb35cb) => { if (v_759436) v_b12a57({ key: v_dd8157, items: v_cb35cb.items }); })
       .catch((v_49263d) => console.warn("[GiftBox] exchange search fail:", v_49263d));
     return () => { v_759436 = false; };
-  }, [v_f4d7fa, v_2ca7e0]);
-  const v_694b25 = v_014cb7 && v_014cb7.q === v_f4d7fa ? v_014cb7.items : v_10740d;
+  }, [v_f4d7fa, v_4f2c9c, v_dd8157, v_2ca7e0]);
+  const v_694b25 = v_014cb7 && v_014cb7.key === v_dd8157 ? v_014cb7.items : v_10740d;
   const v_bc78c8 = v_df9f57(() => {
     if (v_f21110 === "all") return v_694b25;
     if (v_f21110 === "claimed") return v_694b25.filter((v_65a2cd) => v_65a2cd.rewardStatus === "claimed");
@@ -1219,8 +1264,10 @@ function v_36c8d0({
                 <Feather name="x" size={14} color={v_1bfbd0.zinc400} />
               </TouchableOpacity>
             ) : null}
+            <DateRangeButton value={v_4f2c9c} onChange={v_e1d84f} />
           </View>
       ) : null}
+      {v_7c496a ? <DateRangeChip value={v_4f2c9c} onClear={() => v_e1d84f(null)} /> : null}
       {v_a4bef1 ? (
         <View style={v_d81136.subTabRow}>
           {v_14233c.map((v_c3c9ed) => {
@@ -1259,7 +1306,7 @@ function v_36c8d0({
         {v_d84144.length === 0 ? (
           <View style={v_d81136.emptyBox}>
             <Text style={v_d81136.emptyText}>
-              {v_ab6401
+              {v_ab6401 || v_4f2c9c
                 ? v_8d41d7("giftBox.sentSearchNoMatch", { defaultValue: "검색 결과가 없어요" })
                 : v_8d41d7("giftBox.emptyExchangeHistory", { defaultValue: "최근 교환 내역이 없어요" })}
             </Text>
