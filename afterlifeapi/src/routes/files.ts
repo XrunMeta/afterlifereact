@@ -167,6 +167,17 @@ v_ff9685.get("/:id", async (v_3f4e2e) => {
     throw new v_3ebe58("VALIDATION_FAILED", "Invalid file id.");
   }
 
+  const v_a23604 = (globalThis as { caches?: { default?: Cache } }).caches?.default;
+  const v_7ac310 = new Request(`${new URL(v_3f4e2e.req.url).origin}/oth-path${v_389afb}`, { method: "GET" });
+  if (v_a23604) {
+    const v_715950 = await v_a23604.match(v_7ac310).catch(() => undefined);
+    if (v_715950) {
+      const v_8f00b9 = new Response(v_715950.body, v_715950);
+      v_8f00b9.headers.set("X-Edge-Cache", "hit");
+      return v_8f00b9;
+    }
+  }
+
   const v_3ac7e7 = await v_3f4e2e.env.DB
     .prepare(`SELECT r2_key, content_type FROM files WHERE id = ?`)
     .bind(v_389afb)
@@ -177,7 +188,7 @@ v_ff9685.get("/:id", async (v_3f4e2e) => {
   const v_8839e3 = await v_3f4e2e.env.R2_ARCHIVE.get(v_3ac7e7.r2_key);
   if (!v_8839e3) throw new v_3ebe58("NOT_FOUND", "Object missing in storage.");
 
-  return new Response(v_8839e3.body, {
+  const v_8f00b9 = new Response(v_8839e3.body, {
     headers: {
       "Content-Type": v_3ac7e7.content_type,
       "Cache-Control": "public, max-age=86400",
@@ -185,4 +196,16 @@ v_ff9685.get("/:id", async (v_3f4e2e) => {
       "Cross-Origin-Resource-Policy": "cross-origin",
     },
   });
+  if (v_a23604) {
+    const v_4abc91 = v_a23604.put(v_7ac310, v_8f00b9.clone()).catch((v_9e86fd) => {
+      console.warn(`[files] edge cache put failed id=${v_389afb}: ${(v_9e86fd as Error).message}`);
+    });
+    try {
+      v_3f4e2e.executionCtx.waitUntil(v_4abc91);
+    } catch {
+      await v_4abc91;
+    }
+  }
+  v_8f00b9.headers.set("X-Edge-Cache", "miss");
+  return v_8f00b9;
 });
