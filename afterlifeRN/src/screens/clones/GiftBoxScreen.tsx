@@ -134,6 +134,10 @@ const v_951062 = 15;
 
 const v_ca9d61 = false;
 
+const v_94453e = false;
+
+const v_692168 = false;
+
 function v_739fef(v_6fc191): string {
   const v_d5dda0 = new Date(v_6fc191);
   if (Number.isNaN(v_d5dda0.getTime())) return "";
@@ -826,23 +830,25 @@ function v_950e4a({
 
   return (
     <View>
-      <View style={v_d81136.sentSummaryCard}>
-        <View style={v_d81136.sentSummaryCol}>
-          <Text style={v_d81136.sentSummaryLabel}>
-            {v_8d41d7("giftBox.sentThisMonth", { defaultValue: "이번 달 보낸 선물" })}
-          </Text>
-          <RoseAmount count={v_cfb8ec.rose} size="lg" />
+      {v_94453e && (
+        <View style={v_d81136.sentSummaryCard}>
+          <View style={v_d81136.sentSummaryCol}>
+            <Text style={v_d81136.sentSummaryLabel}>
+              {v_8d41d7("giftBox.sentThisMonth", { defaultValue: "이번 달 보낸 선물" })}
+            </Text>
+            <RoseAmount count={v_cfb8ec.rose} size="lg" />
+          </View>
+          <View style={v_d81136.sentSummaryCol}>
+            <Text style={v_d81136.sentSummaryLabel}>
+              {v_8d41d7("giftBox.sentPeople", { defaultValue: "받은 사람" })}
+            </Text>
+            <Text style={v_d81136.sentSummaryPeople}>
+              {v_cfb8ec.people}
+              {v_8d41d7("giftBox.peopleUnit", { defaultValue: "명" })}
+            </Text>
+          </View>
         </View>
-        <View style={v_d81136.sentSummaryCol}>
-          <Text style={v_d81136.sentSummaryLabel}>
-            {v_8d41d7("giftBox.sentPeople", { defaultValue: "받은 사람" })}
-          </Text>
-          <Text style={v_d81136.sentSummaryPeople}>
-            {v_cfb8ec.people}
-            {v_8d41d7("giftBox.peopleUnit", { defaultValue: "명" })}
-          </Text>
-        </View>
-      </View>
+      )}
 
       <View style={v_d81136.searchBar}>
         <Feather name="search" size={14} color={v_1bfbd0.zinc400} />
@@ -906,16 +912,18 @@ function v_950e4a({
       )}
       {v_f34bc3 && <ActivityIndicator style={v_d81136.pageSpinner} color={v_1bfbd0.zinc500} />}
 
-      <View style={v_d81136.browseCta}>
-        <Text style={v_d81136.browseHint}>
-          {v_8d41d7("giftBox.browseHint", { defaultValue: "마음에 드는 클론에게 선물을 보내보세요" })}
-        </Text>
-        <TouchableOpacity style={v_d81136.browseBtn} onPress={v_9cb927} activeOpacity={0.8}>
-          <Text style={v_d81136.browseBtnText}>
-            {v_8d41d7("giftBox.browseClones", { defaultValue: "클론 둘러보기" })}
+      {v_692168 && (
+        <View style={v_d81136.browseCta}>
+          <Text style={v_d81136.browseHint}>
+            {v_8d41d7("giftBox.browseHint", { defaultValue: "마음에 드는 클론에게 선물을 보내보세요" })}
           </Text>
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity style={v_d81136.browseBtn} onPress={v_9cb927} activeOpacity={0.8}>
+            <Text style={v_d81136.browseBtnText}>
+              {v_8d41d7("giftBox.browseClones", { defaultValue: "클론 둘러보기" })}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 }
