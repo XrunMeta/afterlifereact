@@ -2495,7 +2495,7 @@
     "exchangeQtyLabel": "Swap 수량",
     "receiveQtyLabel": "받을 수량",
     "max": "MAX",
-    "feeExchangeNotice": "Swap 수수료 {{fee}} ROSE가 Swap 돼요",
+    "feeExchangeNotice": "수수료 {{fee}} ROSE가 Swap돼요",
     "exchangeNoCancel": "Swap 후에는 취소할 수 없어요.",
     "swapAction": "Swap",
     "swapFeeHint": "Swap 수수료 {{fee}} ROSE",

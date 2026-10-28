@@ -441,7 +441,7 @@ function v_622370({
           <View style={v_72c7a6.formFooter}>
             <Text style={v_72c7a6.feeNotice}>
               {v_8d41d7("giftBox.feeExchangeNotice", {
-                defaultValue: "Swap 수수료 {{fee}} ROSE가 Swap 돼요",
+                defaultValue: "수수료 {{fee}} ROSE가 Swap돼요",
                 fee: v_2d815e,
                 qty: v_4350f9,
               })}
