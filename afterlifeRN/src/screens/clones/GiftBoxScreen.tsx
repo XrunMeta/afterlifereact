@@ -649,7 +649,7 @@ function v_223c52({
   const v_9f1622 = v_eb96a8
     ? 
       v_8c0b26.counterpartName
-      ? v_8d41d7("giftBox.referralRewardNamed", { name: v_8c0b26.counterpartName, defaultValue: "{{name}} 추천인 보상" })
+      ? v_8d41d7("giftBox.referralRewardNamed", { name: v_8c0b26.counterpartName, defaultValue: "{{name}}" })
       : v_8d41d7("giftBox.referralRewardPlain", { defaultValue: "추천인 보상" })
     : 
       v_e5f5f1

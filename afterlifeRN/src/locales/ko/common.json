@@ -2423,7 +2423,7 @@
     "toUnknownClone": "클론에게",
     "adRewardSender": "광고 보상",
     "referralRewardSender": "추천 보상",
-    "referralRewardNamed": "{{name}} 추천인 보상",
+    "referralRewardNamed": "{{name}}",
     "referralRewardPlain": "추천인 보상",
     "referralRewardTitle": "추천인 코드로 가입해서 받았어요",
     "referralInviteTitle": "내 추천인 코드로 친구가 가입해서 받았어요",
