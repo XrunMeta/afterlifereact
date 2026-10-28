@@ -380,6 +380,12 @@ export default function v_8869a8() {
               t={v_8d41d7}
               accessToken={v_2ca7e0}
               onReload={() => void v_92fdf2(true)}
+              onItemClaimed={(v_389afb, v_4f8ce8) =>
+                v_588ee6((v_ba2215) => ({
+                  ...v_ba2215,
+                  items: v_ba2215.items.map((v_23805a) => (v_23805a.id === v_389afb ? { ...v_23805a, claimedAt: v_4f8ce8 } : v_23805a)),
+                }))
+              }
             />
           )}
           {v_11083e === "sent" && (
@@ -474,12 +480,14 @@ function v_6da59e({
   t: v_8d41d7,
   accessToken: v_2ca7e0,
   onReload: v_561465,
+  onItemClaimed: v_42f19a,
 }: {
   items: v_407a6d[];
   loadingMore: boolean;
   t: v_75de9d;
   accessToken: string | null;
   onReload: () => void;
+  onItemClaimed: (id: number, claimedAt: string) => void;
 }) {
 
   const [v_56eae3, v_0141c0] = v_5ab095<number | null>(null);
@@ -493,7 +501,8 @@ function v_6da59e({
           console.warn("[GiftBox] rewarded ad result:", v_cb35cb);
           return;
         }
-        await v_0e29ae(v_2ca7e0, v_8c0b26.id);
+        const v_8f00b9 = await v_0e29ae(v_2ca7e0, v_8c0b26.id);
+        v_42f19a(v_8c0b26.id, v_8f00b9.claimedAt);
         v_561465();
       } catch (v_49263d) {
         console.warn("[GiftBox] claim fail:", (v_49263d as Error)?.message);
@@ -509,7 +518,7 @@ function v_6da59e({
         v_0141c0(null);
       }
     },
-    [v_2ca7e0, v_56eae3, v_561465, v_8d41d7],
+    [v_2ca7e0, v_56eae3, v_561465, v_42f19a, v_8d41d7],
   );
   const [v_4abce2, v_59fd10] = v_5ab095<ReceivedSubTab>("all");
   const [v_9875a1, v_2e7fc1] = v_5ab095("");
