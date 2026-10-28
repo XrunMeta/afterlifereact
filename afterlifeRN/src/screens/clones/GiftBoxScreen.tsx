@@ -119,6 +119,7 @@ function v_9b9d5e(v_217d49, t: v_75de9d): string {
 }
 
 const v_1dee60 = require("../../../assets/images/rose-icon.png");
+const v_dae506 = require("../../../assets/images/xrun-round.png");
 
 function v_0d7182({ count: v_9e8c70, size: v_05b441 = "md" }: { count: number; size?: "md" | "lg" }) {
   const v_2d9767 = v_05b441 === "lg" ? v_d81136.roseIconLg : v_d81136.roseIcon;
@@ -1224,7 +1225,7 @@ function v_36c8d0({
               {v_d84144.map((v_8c0b26) => (
                 <View key={v_8c0b26.exchangeId} style={v_d81136.historyRoseCard}>
                   <View style={v_d81136.historyIcon}>
-                    <Text style={{ color: "#2563eb", fontWeight: "700", fontSize: 12 }}>X</Text>
+                    <Image source={v_dae506} style={v_d81136.historyXrunLogo} />
                   </View>
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <Text style={v_d81136.sentTitle} numberOfLines={1}>
@@ -1662,6 +1663,7 @@ const v_d81136 = v_472849.create({
     paddingVertical: 14,
   },
   historyRowBorder: { borderBottomWidth: v_472849.hairlineWidth, borderBottomColor: v_1bfbd0.zinc100 },
+  historyXrunLogo: { width: 36, height: 36, borderRadius: 18 },
   historyIcon: {
     width: 36,
     height: 36,
