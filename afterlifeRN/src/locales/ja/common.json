@@ -2487,7 +2487,7 @@
     "exchangeSearchPlaceholder": "数量・日付で検索",
     "successFeeLine": "手数料{{fee}} ROSE差し引き後に交換",
     "successRemaining": "残りローズ {{n}} ROSE",
-    "successWalletHint": "報酬はXRUNウォレット > Afterlifeで受け取れます。",
+    "successWalletHint": "XRUN Wallet > Afterlifeで確認できます。",
     "p4ReceiveReward": "XRUNで報酬を受け取る",
     "feeRule": "{{unit}}本ごとに{{fee}}本 · {{total}}本",
     "totalDeduct": "合計差し引き",
