@@ -1228,6 +1228,8 @@
       "memlowTitle": "Pilih skrip surat, lalu rekam",
       "recordStart": "Mulai Rekam",
       "recordStop": "Hentikan Rekaman",
+      "processing": "Memproses...",
+      "recordAgain": "Rekam ulang",
       "recordRange": "30~60d",
       "uploadFileMemlow": "Unggah File Audio",
       "sample": {
