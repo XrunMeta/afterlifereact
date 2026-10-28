@@ -2472,7 +2472,6 @@
     "exchangeQtyLabel": "Jumlah ditukar",
     "receiveQtyLabel": "Jumlah diterima",
     "max": "Maks",
-    "feeExchangeNotice": "{{qty}} ROSE ditukar setelah biaya {{fee}} ROSE",
     "exchangeNoCancel": "Penukaran tidak dapat dibatalkan.",
     "successFeeLine": "Ditukar setelah potong biaya {{fee}} ROSE",
     "successRemaining": "Sisa ROSE {{n}}",

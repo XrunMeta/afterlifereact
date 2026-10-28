@@ -257,7 +257,7 @@ export default function v_177da7({ visible: v_cf55be, onClose: v_0890f8, onChang
                 <ActivityIndicator size="large" color={v_1bfbd0.zinc900} />
                 <Text style={v_72c7a6.loadingText}>
                   {v_8d41d7("giftBox.exchangeLoading", {
-                    defaultValue: "교환 조건을 확인하고 있어요…",
+                    defaultValue: "Swap 조건을 확인하고 있어요…",
                   })}
                 </Text>
               </View>
@@ -290,7 +290,6 @@ export default function v_177da7({ visible: v_cf55be, onClose: v_0890f8, onChang
                 exchangeQty={v_eddb49}
                 exchangeMax={v_ea7b1e}
                 fee={v_2d815e}
-                rewardQty={v_64d803.rewardQty}
                 reward={v_36c043}
                 unitRate={v_cd229f}
                 submitting={v_cb66b4}
@@ -322,7 +321,6 @@ function v_622370({
   exchangeQty: v_eddb49,
   exchangeMax: v_ea7b1e,
   fee: v_2d815e,
-  rewardQty: v_4350f9,
   reward: v_36c043,
   unitRate: v_cd229f,
   submitting: v_cb66b4,
@@ -339,8 +337,6 @@ function v_622370({
   exchangeQty: number;
   exchangeMax: number;
   fee: number;
-
-  rewardQty: number;
   reward: number;
   unitRate: string;
   submitting: boolean;
@@ -439,13 +435,6 @@ function v_622370({
 
           {}
           <View style={v_72c7a6.formFooter}>
-            <Text style={v_72c7a6.feeNotice}>
-              {v_8d41d7("giftBox.feeExchangeNotice", {
-                defaultValue: "수수료 {{fee}} ROSE를 제외한 {{qty}} ROSE가 교환돼요",
-                fee: v_2d815e,
-                qty: v_4350f9,
-              })}
-            </Text>
             <TouchableOpacity
               style={[v_72c7a6.primaryBtn, v_cb66b4 && { opacity: 0.5 }]}
               onPress={v_3bfe4c}
@@ -687,13 +676,6 @@ const v_72c7a6 = v_472849.create({
     fontSize: 12,
     color: v_1bfbd0.zinc500,
     textAlign: "right",
-  },
-  feeNotice: {
-    marginTop: 14,
-    marginBottom: 16,
-    fontSize: 13,
-    color: v_1bfbd0.zinc500,
-    textAlign: "center",
   },
   primaryBtn: {
     alignSelf: "stretch",

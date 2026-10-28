@@ -2468,7 +2468,6 @@
     "exchangeQtyLabel": "兑换数量",
     "receiveQtyLabel": "到账数量",
     "max": "最大",
-    "feeExchangeNotice": "扣除手续费 {{fee}} ROSE 后，将兑换 {{qty}} ROSE",
     "exchangeNoCancel": "兑换后无法取消。",
     "successFeeLine": "扣除手续费 {{fee}} ROSE 后兑换",
     "successRemaining": "剩余 ROSE {{n}}",

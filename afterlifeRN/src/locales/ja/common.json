@@ -2475,7 +2475,6 @@
     "exchangeQtyLabel": "交換する数量",
     "receiveQtyLabel": "受け取る数量",
     "max": "最大",
-    "feeExchangeNotice": "手数料{{fee}} ROSEを除いた{{qty}} ROSEが交換されます",
     "exchangeNoCancel": "交換後はキャンセルできません。",
     "successFeeLine": "手数料{{fee}} ROSE差し引き後に交換",
     "successRemaining": "残りローズ {{n}} ROSE",
