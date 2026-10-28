@@ -889,9 +889,9 @@ function v_75c31a({ route: v_c7daf6, navigation: v_c65f5d, feed: v_2db2a5 }: Inn
           <SwipeDownSheet
             onClose={() => v_eda097(false)}
             style={[v_d81136.moreSheet, { paddingBottom: 24 + v_2b650d }]}
+            fitContent
           >
             <View style={v_d81136.moreSheetHandle} />
-            <Text style={v_d81136.moreTitle}>{v_8c0b26.author}</Text>
             {!v_799eb5 && (
               <>
                 {v_8c0b26.cloneOwnerId != null && (
@@ -1095,7 +1095,6 @@ const v_d81136 = v_472849.create({
     paddingTop: 0,
     paddingHorizontal: 16,
 
-    minHeight: 260,
   },
   moreSheetHandle: {
     width: 40,
@@ -1104,13 +1103,6 @@ const v_d81136 = v_472849.create({
     backgroundColor: "#cbd5e1",
     alignSelf: "center",
     marginVertical: 12,
-  },
-  moreTitle: {
-    fontSize: 13,
-    color: "#64748b",
-    fontWeight: "600",
-    marginBottom: 8,
-    paddingHorizontal: 4,
   },
   moreItem: {
     flexDirection: "row",

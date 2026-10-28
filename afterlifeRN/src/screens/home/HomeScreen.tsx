@@ -1013,9 +1013,9 @@ export default function v_c316d8() {
           <SwipeDownSheet
             onClose={() => v_949e66(null)}
             style={[v_d81136.moreSheet, { paddingBottom: 24 + v_2b650d }]}
+            fitContent
           >
             <View style={v_d81136.moreSheetHandle} />
-            <Text style={v_d81136.moreTitle}>{v_12fa22?.author}</Text>
 
             {v_12fa22?.isOwn ? (
 
@@ -1507,9 +1507,8 @@ const v_d81136 = v_472849.create({
 
   moreOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
 
-  moreSheet: { backgroundColor: v_1bfbd0.white, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingTop: 0, paddingHorizontal: 16, minHeight: 260 },
+  moreSheet: { backgroundColor: v_1bfbd0.white, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingTop: 0, paddingHorizontal: 16 },
   moreSheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: v_1bfbd0.zinc300, alignSelf: "center", marginVertical: 12 },
-  moreTitle: { fontSize: 13, color: v_1bfbd0.zinc500, textAlign: "center", paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: v_1bfbd0.zinc100 },
   moreItem: { flexDirection: "row", alignItems: "center", gap: 14, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: v_1bfbd0.zinc100 },
   moreItemText: { fontSize: 15, fontWeight: "500", color: v_1bfbd0.zinc900 },
 
