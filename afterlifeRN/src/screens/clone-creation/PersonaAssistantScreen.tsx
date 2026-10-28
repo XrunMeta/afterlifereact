@@ -240,18 +240,20 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
     }
   }, [v_2ca7e0]);
 
-  const v_45c941 = v_de06a3(async () => {
-    if (v_d00943.current || !v_2ca7e0) return;
+  const v_45c941 = v_de06a3(async (): Promise<v_c8af29[] | null> => {
+    if (!v_2ca7e0) return null;
+    if (v_d00943.current) return v_c3519b;
     v_d00943.current = true;
     try {
       const v_212049 = await v_61a853(v_2ca7e0);
       v_54a43f(v_212049);
       return v_212049;
-    } catch {
-      v_54a43f([]);
-      return [] as v_c8af29[];
+    } catch (v_9e86fd) {
+      console.warn('[PersonaAssistant] persona-questions failed:', v_9e86fd);
+      v_d00943.current = false;
+      return null;
     }
-  }, [v_2ca7e0]);
+  }, [v_2ca7e0, v_c3519b]);
 
   const v_cdd940 = v_de06a3(
     async (v_e86ad8, qs: v_c8af29[]) => {
@@ -328,6 +330,32 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
       await v_f76640(v_c28b95(v_ab6401.label), v_3d694a.length > 0 ? v_3d694a : undefined);
     },
     [v_6f7c85, v_fdd1bf, v_c65f5d, v_f76640, v_5795de],
+  );
+
+  const v_e823d6 = v_de06a3(
+    async (v_556427, v_e9723c) => {
+      v_08d488(true);
+      const v_212049 = await v_45c941();
+      v_08d488(false);
+      if (v_212049 === null) {
+        v_889fad(
+          v_8d41d7('create.assistant.questionsLoadFailedTitle', { defaultValue: '질문을 불러오지 못했어요' }),
+          v_8d41d7('create.assistant.questionsLoadFailedMsg', {
+            defaultValue: '네트워크를 확인하고 다시 보내 주세요.',
+          }),
+        );
+        return;
+      }
+      v_13cb29(v_e9723c);
+      v_03f138.current.username = v_556427;
+      v_5795de({ username: v_556427 });
+      v_c31db7('');
+      await v_f76640(v_0ac987.username, undefined, 400);
+
+      v_54a43f(v_212049);
+      await v_cdd940(0, v_212049);
+    },
+    [v_45c941, v_13cb29, v_f76640, v_5795de, v_8d41d7, v_cdd940],
   );
 
   v_c4deb2(() => {
@@ -412,21 +440,26 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
       if (v_dff7ca) return;
       if (v_9b6134.length === 0) {
 
-        const v_bff627 = v_b55477(v_03f138.current.name || 'user');
-        v_13cb29(
+        const v_1833e7 = v_03f138.current.name;
+        let v_bff627 = v_b55477(v_1833e7);
+        v_08d488(true);
+        try {
+          for (let v_ebec57 = 0; v_ebec57 < 5; v_ebec57++) {
+            const v_cb35cb = await v_6c3f29(v_bff627);
+            if (v_cb35cb.available) break;
+            v_bff627 = v_b55477(v_1833e7);
+          }
+        } catch {
+
+        } finally {
+          v_08d488(false);
+        }
+        await v_e823d6(
+          v_bff627,
           v_8d41d7('create.assistant.usernameAutoDerived', {
-            defaultValue: '(빈 칸 — 랜덤 아이디로 자동 생성)',
+            defaultValue: '(빈 칸 — 이름으로 아이디 자동 생성)',
           }),
         );
-        v_03f138.current.username = v_bff627;
-        v_5795de({ username: v_bff627 });
-        v_c31db7('');
-        await v_f76640(v_0ac987.username, undefined, 400);
-
-        const v_212049 = await v_45c941();
-        const v_bf751c = v_212049 ?? [];
-        v_54a43f(v_bf751c);
-        await v_cdd940(0, v_bf751c);
         return;
       }
       const v_479f05 = v_9b6134.toLowerCase();
@@ -477,16 +510,7 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
       } finally {
         v_08d488(false);
       }
-      v_13cb29(`@${v_479f05}`);
-      v_03f138.current.username = v_479f05;
-      v_5795de({ username: v_479f05 });
-      v_c31db7('');
-      await v_f76640(v_0ac987.username, undefined, 400);
-
-      const v_212049 = await v_45c941();
-      const v_bf751c = v_212049 ?? [];
-      v_54a43f(v_bf751c);
-      await v_cdd940(0, v_bf751c);
+      await v_e823d6(v_479f05, `@${v_479f05}`);
       return;
     }
 
@@ -523,7 +547,7 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
     v_5795de,
     v_8d41d7,
     v_cdd940,
-    v_45c941,
+    v_e823d6,
   ]);
 
   const v_bc9d5f = (() => {

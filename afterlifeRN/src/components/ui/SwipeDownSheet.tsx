@@ -13,6 +13,8 @@ interface Props {
   closeThreshold?: number;
 
   keyboardOffset?: number;
+
+  fitContent?: boolean;
 }
 
 export default function v_8e7ad4({
@@ -22,6 +24,7 @@ export default function v_8e7ad4({
   handleZoneHeight: v_0b30e9 = 48,
   closeThreshold: v_1f95e5 = 60,
   keyboardOffset: v_f92037 = 0,
+  fitContent: v_d8ece2 = false,
 }: Props) {
   const v_5aac04 = v_e662ae(new v_a2349e.Value(0)).current;
 
@@ -91,7 +94,7 @@ export default function v_8e7ad4({
       {
 
 }
-      <View style={{ flex: 1 }}>
+      <View style={v_d8ece2 ? undefined : { flex: 1 }}>
         {v_21f619}
       </View>
     </Animated.View>

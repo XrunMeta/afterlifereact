@@ -257,7 +257,7 @@ export default function v_177da7({ visible: v_cf55be, onClose: v_0890f8, onChang
                 <ActivityIndicator size="large" color={v_1bfbd0.zinc900} />
                 <Text style={v_72c7a6.loadingText}>
                   {v_8d41d7("giftBox.exchangeLoading", {
-                    defaultValue: "교환 조건을 확인하고 있어요…",
+                    defaultValue: "Swap 조건을 확인하고 있어요…",
                   })}
                 </Text>
               </View>
@@ -290,7 +290,6 @@ export default function v_177da7({ visible: v_cf55be, onClose: v_0890f8, onChang
                 exchangeQty={v_eddb49}
                 exchangeMax={v_ea7b1e}
                 fee={v_2d815e}
-                rewardQty={v_64d803.rewardQty}
                 reward={v_36c043}
                 unitRate={v_cd229f}
                 submitting={v_cb66b4}
@@ -322,7 +321,6 @@ function v_622370({
   exchangeQty: v_eddb49,
   exchangeMax: v_ea7b1e,
   fee: v_2d815e,
-  rewardQty: v_4350f9,
   reward: v_36c043,
   unitRate: v_cd229f,
   submitting: v_cb66b4,
@@ -339,8 +337,6 @@ function v_622370({
   exchangeQty: number;
   exchangeMax: number;
   fee: number;
-
-  rewardQty: number;
   reward: number;
   unitRate: string;
   submitting: boolean;
@@ -353,7 +349,7 @@ function v_622370({
     <View style={v_72c7a6.formRoot}>
       <View style={v_72c7a6.header}>
         <Text style={v_72c7a6.title}>
-          {v_8d41d7("giftBox.exchangeSheetTitleShort", { defaultValue: "교환" })}
+          {v_8d41d7("giftBox.exchangeSheetTitleShort", { defaultValue: "Swap" })}
         </Text>
         <TouchableOpacity onPress={v_0890f8} hitSlop={10} accessibilityLabel="close">
           <Feather name="x" size={22} color={v_1bfbd0.zinc900} />
@@ -371,7 +367,7 @@ function v_622370({
             showsVerticalScrollIndicator={false}
           >
             <Text style={v_72c7a6.fieldLabel}>
-              {v_8d41d7("giftBox.exchangeQtyLabel", { defaultValue: "교환할 수량" })}
+              {v_8d41d7("giftBox.exchangeQtyLabel", { defaultValue: "Swap 수량" })}
             </Text>
             <View style={v_72c7a6.box}>
               <View style={v_72c7a6.boxTop}>
@@ -402,7 +398,7 @@ function v_622370({
                   <Text style={v_72c7a6.ownedQty}>{v_ae840d.ownedQty}</Text>
                   <TouchableOpacity onPress={v_94ac5f} hitSlop={8} disabled={v_ea7b1e <= 0}>
                     <Text style={v_72c7a6.maxBtn}>
-                      {v_8d41d7("giftBox.max", { defaultValue: "최대" })}
+                      {v_8d41d7("giftBox.max", { defaultValue: "MAX" })}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -427,9 +423,9 @@ function v_622370({
                 <View style={v_72c7a6.receiveRight}>
                   <Text style={v_72c7a6.receiveAmount}>{v_b96919(v_36c043)}</Text>
                   <Text style={v_72c7a6.rateHint}>
-                    {v_8d41d7("giftBox.exchangeRateHint", {
-                      defaultValue: "1 ROSE = {{rate}} XRUN",
-                      rate: v_cd229f,
+                    {v_8d41d7("giftBox.swapFeeHint", {
+                      defaultValue: "Swap 수수료 {{fee}} ROSE",
+                      fee: v_ae840d.feeQty,
                     })}
                   </Text>
                 </View>
@@ -439,13 +435,6 @@ function v_622370({
 
           {}
           <View style={v_72c7a6.formFooter}>
-            <Text style={v_72c7a6.feeNotice}>
-              {v_8d41d7("giftBox.feeExchangeNotice", {
-                defaultValue: "수수료 {{fee}} ROSE를 제외한 {{qty}} ROSE가 교환돼요",
-                fee: v_2d815e,
-                qty: v_4350f9,
-              })}
-            </Text>
             <TouchableOpacity
               style={[v_72c7a6.primaryBtn, v_cb66b4 && { opacity: 0.5 }]}
               onPress={v_3bfe4c}
@@ -456,13 +445,13 @@ function v_622370({
                 <ActivityIndicator color={v_1bfbd0.white} />
               ) : (
                 <Text style={v_72c7a6.primaryBtnText}>
-                  {v_8d41d7("giftBox.exchangeAction", { defaultValue: "교환하기" })}
+                  {v_8d41d7("giftBox.swapAction", { defaultValue: "Swap" })}
                 </Text>
               )}
             </TouchableOpacity>
             <Text style={v_72c7a6.disclaimer}>
               {v_8d41d7("giftBox.exchangeNoCancel", {
-                defaultValue: "교환 후에는 취소할 수 없어요.",
+                defaultValue: "Swap 후에는 취소할 수 없어요.",
               })}
             </Text>
           </View>
@@ -491,7 +480,7 @@ function v_e83058({
         <Feather name="check" size={28} color="#2e7d32" />
       </View>
       <Text style={v_72c7a6.successTitle}>
-        {v_8d41d7("giftBox.p4Title", { defaultValue: "교환이 완료되었어요" })}
+        {v_8d41d7("giftBox.p4Title", { defaultValue: "Swap이 완료되었어요" })}
       </Text>
 
       <View style={v_72c7a6.successAssets}>
@@ -508,18 +497,7 @@ function v_e83058({
         </View>
       </View>
 
-      <Text style={v_72c7a6.successMeta}>
-        {v_8d41d7("giftBox.successFeeLine", {
-          defaultValue: "수수료 {{fee}} ROSE 차감 후 교환",
-          fee: v_8f00b9.feeQty,
-        })}
-      </Text>
-      <Text style={v_72c7a6.successMeta}>
-        {v_8d41d7("giftBox.successRemaining", {
-          defaultValue: "남은 로즈 {{n}} ROSE",
-          n: v_916658,
-        })}
-      </Text>
+      {}
 
       <View style={v_72c7a6.infoBox}>
         <Text style={v_72c7a6.infoBoxText}>
@@ -535,7 +513,7 @@ function v_e83058({
         </Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={v_72c7a6.confirmBtn} onPress={v_e2be2d} hitSlop={8}>
+      <TouchableOpacity style={v_72c7a6.confirmBtn} onPress={v_e2be2d} activeOpacity={0.85}>
         <Text style={v_72c7a6.confirmBtnText}>
           {v_8d41d7("common.confirm", { defaultValue: "확인" })}
         </Text>
@@ -688,13 +666,6 @@ const v_72c7a6 = v_472849.create({
     color: v_1bfbd0.zinc500,
     textAlign: "right",
   },
-  feeNotice: {
-    marginTop: 14,
-    marginBottom: 16,
-    fontSize: 13,
-    color: v_1bfbd0.zinc500,
-    textAlign: "center",
-  },
   primaryBtn: {
     alignSelf: "stretch",
     height: 52,
@@ -764,6 +735,17 @@ const v_72c7a6 = v_472849.create({
     textAlign: "center",
     lineHeight: 18,
   },
-  confirmBtn: { marginTop: 14, paddingVertical: 8 },
-  confirmBtnText: { fontSize: 15, fontWeight: "600", color: v_1bfbd0.zinc600 },
+
+  confirmBtn: {
+    alignSelf: "stretch",
+    height: 52,
+    marginTop: 10,
+    borderRadius: v_8b0c90.md,
+    borderWidth: 1,
+    borderColor: v_1bfbd0.zinc200,
+    backgroundColor: v_1bfbd0.white,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  confirmBtnText: { fontSize: 16, fontWeight: "700", color: v_1bfbd0.zinc900 },
 });

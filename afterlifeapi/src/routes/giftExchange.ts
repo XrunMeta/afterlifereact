@@ -14,6 +14,7 @@ import {
 } from "../lib/appConfig";
 import { v_9bded0, v_cd69e7 } from "../lib/xrun";
 import { v_74defc } from "../lib/logger";
+import { v_232ace, v_bfd593, v_6f53a3, v_8d734d } from "../lib/searchQuery";
 
 export const v_7de069 = new v_b7c41b<v_de0a25>();
 
@@ -173,17 +174,32 @@ function v_c8c448(v_cb35cb) {
 
 v_7de069.get("/history", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
+
+  const v_f71b56 = new URL(v_3f4e2e.req.url);
+  const v_ab6401 = v_6f53a3(v_f71b56.searchParams.get("q"));
+  let v_1fd8b7 = "";
+  const v_894b6f = [];
+  if (v_ab6401) {
+    const v_df32af = [`LOWER(printf('EX-%06d', id)) LIKE ? ESCAPE '\\'`, "CAST(qty AS TEXT) = ?"];
+    v_894b6f.push(v_bfd593(v_ab6401), v_ab6401);
+    const v_cc1738 = v_232ace("(created_at / 1000)", v_ab6401, v_8d734d(v_f71b56.searchParams.get("tz")));
+    if (v_cc1738) {
+      v_df32af.push(v_cc1738.sql);
+      v_894b6f.push(...v_cc1738.binds);
+    }
+    v_1fd8b7 = ` AND (${v_df32af.join(" OR ")})`;
+  }
   const v_18b8bf =
     (
       await v_3f4e2e.env.DB
         .prepare(
           `SELECT id, gift_id, gift_name, qty, fee_qty, reward_xrun, status, failure_reason, created_at, claimed_at
              FROM gift_exchanges
-            WHERE user_id = ? AND status != 'processing'
+            WHERE user_id = ? AND status != 'processing'${v_1fd8b7}
             ORDER BY created_at DESC, id DESC
             LIMIT 50`,
         )
-        .bind(v_43e90c)
+        .bind(v_43e90c, ...v_894b6f)
         .all<ExchangeRow>()
     ).results ?? [];
 

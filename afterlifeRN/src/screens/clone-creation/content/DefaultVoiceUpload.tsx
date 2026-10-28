@@ -66,6 +66,8 @@ type Mode = "record" | "preset" | "upload";
 
 const v_128633 = ["record", "preset", "upload"];
 
+const v_0b760e = 60_000;
+
 type VoicePick = Pick<
   v_c2a674,
   "voicePresetId" | "voiceCloneJobId" | "voiceFile" | "voiceSampleId"
@@ -88,6 +90,8 @@ export function v_2ba26d(d: v_c2a674): Mode {
 interface Props {
   draft: v_c2a674;
   onChange: (patch: Partial<v_c2a674>) => void;
+
+  onScrollToEnd?: () => void;
 }
 
 interface VoiceSource {
@@ -153,7 +157,7 @@ async function v_48cafb(
   };
 }
 
-function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
+function v_b0de9c({ draft: v_f04727, onChange: v_b187d9, onScrollToEnd: v_0c8c51 }: Props) {
   const { t: v_8d41d7, i18n: v_9c213b } = v_772971();
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
 
@@ -184,8 +188,12 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
 
   const [v_04e790, v_43f854] = v_5ab095<Partial<Record<Mode, VoiceSource>>>({});
   const [v_415c0c, v_2941d3] = v_5ab095<Partial<Record<Mode, boolean>>>({});
+  const v_a9f8e1 = v_e662ae(0);
 
   const v_a9e8f0 = async (v_35f85c, v_38d084) => {
+
+    const v_1923e2 = ++v_a9f8e1.current;
+    const v_718d60 = () => v_a9f8e1.current !== v_1923e2;
     v_43f854((v_ba2215) => ({ ...v_ba2215, [v_35f85c]: v_38d084 }));
     v_2941d3((v_ba2215) => ({ ...v_ba2215, [v_35f85c]: false }));
 
@@ -196,25 +204,36 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
       return;
     }
     v_bbded0(true);
+    const v_fe87ec = setTimeout(() => {
+      if (v_718d60()) return;
+      v_a9f8e1.current++; 
+      console.warn(`[DefaultVoice] ${v_35f85c} register stuck > ${v_0b760e}ms — 버튼 해제`);
+      v_0bda1d(false);
+      v_bbded0(false);
+      v_2941d3((v_ba2215) => ({ ...v_ba2215, [v_35f85c]: true }));
+    }, v_0b760e);
     try {
       const v_57ac81 = await v_7d2692(v_2ca7e0, v_38d084.uri, {
         purpose: "clone_voice",
         mimeType: v_38d084.mimeType,
         fileName: v_38d084.fileName,
       });
+      if (v_718d60()) return;
 
       v_0bda1d(true);
       let v_1b0e1d;
       try {
         v_1b0e1d = await v_8aa90d(v_2ca7e0, { src_file_id: v_57ac81.id });
       } catch (v_9e86fd) {
+        if (v_718d60()) return;
         console.warn(`[DefaultVoice] ${v_35f85c} analyze failed:`, v_9e86fd);
         v_889fad(v_8d41d7(v_7218f6), v_8d41d7(v_17fa33("ANALYZE_FAILED")));
         v_2941d3((v_ba2215) => ({ ...v_ba2215, [v_35f85c]: true }));
         return; 
       } finally {
-        v_0bda1d(false);
+        if (!v_718d60()) v_0bda1d(false);
       }
+      if (v_718d60()) return;
       if (!v_1b0e1d.ok) {
         v_889fad(v_8d41d7(v_7218f6), v_8d41d7(v_17fa33(v_1b0e1d.reason)));
         v_2941d3((v_ba2215) => ({ ...v_ba2215, [v_35f85c]: true }));
@@ -225,13 +244,16 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
         kind: "voice_clone",
         src_file_id: v_57ac81.id,
       });
+      if (v_718d60()) return;
       console.log(`[DefaultVoice] voice_clone job (${v_35f85c}) created:`, v_94abbb.job_id);
       v_4a4814(v_35f85c, { voiceFile: v_38d084.uri, voiceCloneJobId: v_94abbb.job_id });
     } catch (v_49263d) {
+      if (v_718d60()) return;
       console.warn(`[DefaultVoice] ${v_35f85c} upload/job failed:`, v_49263d);
       v_2941d3((v_ba2215) => ({ ...v_ba2215, [v_35f85c]: true }));
     } finally {
-      v_bbded0(false);
+      clearTimeout(v_fe87ec);
+      if (!v_718d60()) v_bbded0(false);
     }
   };
 
@@ -550,6 +572,17 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
   const v_97c26f = v_b599c8.isRecording;
   const v_614d75 = !v_97c26f && v_5ebce3.uri ? v_5ebce3.uri : null;
 
+  const v_17d1fe = v_34e5bb === "record" && !v_11c383 && !!v_f04727.voiceCloneJobId;
+
+  const v_d852e7 = v_34e5bb === "record" && v_614d75
+    ? v_11c383 ? "busy" : v_415c0c.record ? "failed" : v_f04727.voiceCloneJobId ? "ok" : "idle"
+    : null;
+  v_c4deb2(() => {
+    if (!v_d852e7) return;
+    const v_389afb = setTimeout(() => v_0c8c51?.(), 120);
+    return () => clearTimeout(v_389afb);
+  }, [v_d852e7, v_0c8c51]);
+
   const v_d849f9 = v_58b6a9.map((v_fd5f43) => {
     if (v_fd5f43.id === "s1")
       return {
@@ -670,15 +703,24 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
             style={[
               v_d81136.recordBtn,
               v_97c26f && v_d81136.recordBtnActive,
-              !v_0c0b03 && v_d81136.recordBtnDisabled,
+              v_17d1fe && !v_97c26f && v_d81136.recordBtnRedo,
+              ((!v_0c0b03 && !v_97c26f) || (v_11c383 && !v_97c26f)) && v_d81136.recordBtnDisabled,
             ]}
             onPress={v_97c26f ? v_f30df7 : v_4d3015}
-            disabled={!v_0c0b03 && !v_97c26f}
+            disabled={!v_97c26f && (!v_0c0b03 || v_11c383)}
           >
-            <View style={[v_d81136.recordDot, v_97c26f && v_d81136.recordDotPulse]} />
+            {v_11c383 && !v_97c26f ? (
+              <ActivityIndicator size="small" color={v_1bfbd0.white} />
+            ) : (
+              <View style={[v_d81136.recordDot, v_97c26f && v_d81136.recordDotPulse]} />
+            )}
             <Text style={v_d81136.recordBtnText}>
               {v_97c26f
                 ? v_8d41d7("create.voice.recordStop", { defaultValue: "녹음 중지" })
+                : v_11c383
+                ? v_8d41d7("create.voice.processing", { defaultValue: "처리 중..." })
+                : v_17d1fe
+                ? v_8d41d7("create.voice.recordAgain", { defaultValue: "다시 녹음하기" })
                 : v_8d41d7("create.voice.recordStart", { defaultValue: "녹음 시작" })}
             </Text>
           </TouchableOpacity>
@@ -857,6 +899,8 @@ const v_d81136 = v_472849.create({
   },
   recordBtnDisabled: { opacity: 0.4 },
   recordBtnActive: { backgroundColor: v_1bfbd0.zinc900 },
+
+  recordBtnRedo: { backgroundColor: v_1bfbd0.zinc600 },
   recordDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: v_1bfbd0.white },
   recordDotPulse: { backgroundColor: v_1bfbd0.error },
   recordBtnText: { fontSize: 15, fontWeight: "700", color: v_1bfbd0.white },

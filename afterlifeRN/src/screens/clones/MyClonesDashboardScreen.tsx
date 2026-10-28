@@ -978,7 +978,7 @@ export default function v_def15b() {
                     activeOpacity={0.7}
                   >
                     <Text style={v_fd5f43.giftDashViewAll}>
-                      {v_8d41d7("giftBox.exchangeHistoryLink", { defaultValue: "교환 내역" })}
+                      {v_8d41d7("giftBox.exchangeHistoryLink", { defaultValue: "Swap 내역" })}
                     </Text>
                     <Feather name="chevron-right" size={16} color={v_1bfbd0.zinc400} />
                   </TouchableOpacity>
@@ -993,7 +993,7 @@ export default function v_def15b() {
                     </Text>
                     <Text style={v_fd5f43.giftDashRoseFeeHint}>
                       {v_8d41d7("giftBox.feeDeductHint", {
-                        defaultValue: "교환 시 수수료 1 ROSE 차감",
+                        defaultValue: "XRUN으로 Swap 하세요.",
                       })}
                     </Text>
                   </View>
@@ -1003,7 +1003,7 @@ export default function v_def15b() {
                     onPress={() => v_b30c04(true)}
                   >
                     <Text style={v_fd5f43.giftDashExchangeBtnText}>
-                      {v_8d41d7("giftBox.exchangeShort", { defaultValue: "교환" })}
+                      {v_8d41d7("giftBox.exchangeShort", { defaultValue: "Swap" })}
                     </Text>
                   </TouchableOpacity>
                 </View>

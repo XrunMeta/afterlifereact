@@ -3,6 +3,7 @@
 import { v_cc9198 } from "../config/apiBase";
 import { v_84a859, type v_669377 } from "./auth";
 import { v_04b58a as v_3fc86a } from "../lib/authFetch";
+import { v_86ee62 } from "../lib/cloneUsername";
 import type { v_2c17b5 } from "../types/clone";
 import v_9c213b from "../i18n";
 
@@ -57,6 +58,9 @@ export interface CloneDetailResponse {
   clone: {
     id: number;
     ownerId: number;
+
+    ownerName?: string | null;
+    ownerAvatarUrl?: string | null;
     name: string;
     username: string;
     description: string | null;
@@ -140,27 +144,17 @@ export function v_96d757(v_479f05): string | null {
 }
 
 export function v_b55477(v_1833e7): string {
-  const v_8f0374 = v_1833e7
-    .toLowerCase()
-    .replace(/[^a-z0-9_]+/g, "_")
-    .replace(/_+/g, "_")
-    .replace(/^_|_$/g, "");
-  const v_694b25 = v_8f0374 && v_8f0374.length >= 3 ? v_8f0374 : "user";
-
-  const v_2f361a = v_694b25.slice(0, 19);
-  const v_fc3f08 = () => Math.random().toString(36).slice(2);
-  const v_ae8e76 = (v_fc3f08() + v_fc3f08()).slice(0, 10);
-  return `${v_2f361a}_${v_ae8e76}`;
+  return v_86ee62(v_1833e7);
 }
 
 export async function v_61a853(
   v_2ca7e0,
 ): Promise<import('../types/clone').PersonaQuestion[]> {
-  const v_8f00b9 = await fetch(`${v_cc9198}/oth-path`, {
-    headers: { Authorization: `Bearer ${v_2ca7e0}` },
-  });
-  if (!v_8f00b9.ok) throw new Error(`persona-questions ${v_8f00b9.status}`);
-  const v_4d33b2 = (await v_8f00b9.json()) as { questions: import('../types/clone').PersonaQuestion[] };
+
+  const v_4d33b2 = await v_3fc86a<{ questions?: import('../types/clone').PersonaQuestion[] }>(
+    '/oth-path',
+    v_2ca7e0,
+  );
   return v_4d33b2.questions ?? [];
 }
 
@@ -295,13 +289,11 @@ export async function v_4bf019(
   v_727031,
 ): Promise<Record<string, string[]>> {
   try {
-    const v_8f00b9 = await fetch(`${v_cc9198}/oth-path`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${v_2ca7e0}` },
-      body: JSON.stringify(v_727031),
-    });
-    if (!v_8f00b9.ok) return {};
-    const v_4d33b2 = (await v_8f00b9.json()) as { suggestions: Record<string, string[]> };
+    const v_4d33b2 = await v_3fc86a<{ suggestions?: Record<string, string[]> }>(
+      '/oth-path',
+      v_2ca7e0,
+      { method: 'POST', body: JSON.stringify(v_727031) },
+    );
     return v_4d33b2.suggestions ?? {};
   } catch {
     return {};
@@ -324,11 +316,7 @@ export interface CatalogVoice {
 }
 
 export async function v_3ee8c0(v_2ca7e0): Promise<CatalogVoice[]> {
-  const v_8f00b9 = await fetch(`${v_cc9198}/oth-path`, {
-    headers: { Authorization: `Bearer ${v_2ca7e0}` },
-  });
-  if (!v_8f00b9.ok) throw new Error(`getVoices ${v_8f00b9.status}`);
-  const v_4d33b2 = (await v_8f00b9.json()) as { voices: CatalogVoice[] };
+  const v_4d33b2 = await v_3fc86a<{ voices: CatalogVoice[] }>('/oth-path', v_2ca7e0);
   return v_4d33b2.voices;
 }
 
@@ -337,13 +325,11 @@ export async function v_be66ca(
   v_727031,
 ): Promise<string> {
   try {
-    const v_8f00b9 = await fetch(`${v_cc9198}/oth-path`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${v_2ca7e0}` },
-      body: JSON.stringify(v_727031),
-    });
-    if (!v_8f00b9.ok) return "";
-    const v_4d33b2 = (await v_8f00b9.json()) as { intro?: string };
+    const v_4d33b2 = await v_3fc86a<{ intro?: string }>(
+      "/oth-path",
+      v_2ca7e0,
+      { method: "POST", body: JSON.stringify(v_727031) },
+    );
     return typeof v_4d33b2.intro === "string" ? v_4d33b2.intro : "";
   } catch {
     return "";

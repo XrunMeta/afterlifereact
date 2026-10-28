@@ -665,7 +665,7 @@ v_f891e6.get("/search", async (v_3f4e2e) => {
 
   const v_013af2 = await v_efcb2d(v_3f4e2e);
 
-  const v_abcc8d = [v_74c502("c")];
+  const v_abcc8d = [v_74c502("c"), `c.visibility != 'private'`];
   const v_925171 = [];
   if (v_013af2) {
 
@@ -1365,10 +1365,17 @@ v_f891e6.get("/:id", async (v_3f4e2e) => {
     v_db2b0a = !!v_cb35cb;
   }
 
+  const v_257b90 = await v_3f4e2e.env.DB
+    .prepare(`SELECT name, avatar_url AS avatarUrl FROM users WHERE id = ?`)
+    .bind(v_eb25ce.owner_id)
+    .first<{ name: string | null; avatarUrl: string | null }>();
+
   return v_3f4e2e.json({
     clone: {
       id: v_eb25ce.id,
       ownerId: v_eb25ce.owner_id,
+      ownerName: v_257b90?.name ?? null,
+      ownerAvatarUrl: v_257b90?.avatarUrl ?? null,
       name: v_eb25ce.name,
       username: v_eb25ce.username,
       description: v_eb25ce.description,

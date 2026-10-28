@@ -1,5 +1,5 @@
-import v_a3453e from 'bapkr';
-import { v_3094a2, v_472849 } from 'rcmrninabrnb';
+import v_a3453e, { v_de06a3, v_e662ae } from 'bapkr';
+import { v_3094a2, v_472849, type v_122070 } from 'rcmrninabrnb';
 import { v_772971 } from 'jmpfvteuuztnp';
 import type { v_390fcc } from 'xpfgrcdafpntkgxfmgxpxnedjkvmtc';
 import type { v_2b51a5 } from '../../navigation/types';
@@ -23,6 +23,8 @@ export default function v_710783({ navigation: v_c65f5d }: Props) {
   const v_e93e18 = v_f04727.cloneType === 'memlow';
   const v_b94c69 = v_e93e18 ? v_95a2dd : v_872645;
   const v_04fddf = v_b94c69.validate(v_f04727);
+  const v_5ca6b8 = v_e662ae<v_122070>(null);
+  const v_6c7889 = v_de06a3(() => v_5ca6b8.current?.scrollToEnd({ animated: true }), []);
 
   const v_c3dcaf = () => {
     const v_9f1622 = v_8d41d7('create.voice.nextBlockedTitle', { defaultValue: '음성 등록 필요' });
@@ -67,8 +69,8 @@ export default function v_710783({ navigation: v_c65f5d }: Props) {
           else v_c65f5d.navigate('Step3');
         }}
       />
-      <SafeScrollView contentContainerStyle={v_d81136.content} showBottomBackground={false}>
-        <Content draft={v_f04727} onChange={v_5795de} />
+      <SafeScrollView ref={v_5ca6b8} contentContainerStyle={v_d81136.content} showBottomBackground={false}>
+        <Content draft={v_f04727} onChange={v_5795de} onScrollToEnd={v_6c7889} />
       </SafeScrollView>
       <View style={v_d81136.bottomBar}>
         <Button
