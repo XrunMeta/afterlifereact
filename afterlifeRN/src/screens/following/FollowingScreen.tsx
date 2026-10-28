@@ -915,7 +915,12 @@ export default function v_14b43e() {
           <Text style={v_fd5f43.msgTime} numberOfLines={1}>{v_375a17}</Text>
           <View style={v_fd5f43.msgRightBottomRow}>
             {v_a78249 > 0 ? (
-              <View style={v_fd5f43.msgUnreadBadge}>
+              <View
+                style={[
+                  v_fd5f43.msgUnreadBadge,
+                  v_a78249 > 99 ? v_fd5f43.msgUnreadBadgeLg : v_a78249 > 9 ? v_fd5f43.msgUnreadBadgeMd : null,
+                ]}
+              >
                 <Text style={v_fd5f43.msgUnreadText}>{v_a78249 > 99 ? "99+" : v_a78249}</Text>
               </View>
             ) : null}
@@ -1042,7 +1047,6 @@ export default function v_14b43e() {
       <PageHeader
         title={v_8d41d7("chat.listTitle", { defaultValue: "대화목록" })}
         hideBorder
-        titleStyle={{ fontSize: 28, fontWeight: "800", color: "#1A253D" }}
         rightAction={<NotificationBell />}
       />
 
@@ -1635,11 +1639,15 @@ const v_fd5f43 = v_472849.create({
   msgRightBottomRow: { flexDirection: "row", alignItems: "center", gap: 10 },
 
   msgUnreadBadge: {
-    minWidth: 22, height: 22, borderRadius: 11,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     backgroundColor: v_1bfbd0.secondary,
-    alignItems: "center", justifyContent: "center",
-    paddingHorizontal: 6,
+    alignItems: "center",
+    justifyContent: "center",
   },
+  msgUnreadBadgeMd: { width: 26, height: 26, borderRadius: 13 },
+  msgUnreadBadgeLg: { width: 30, height: 30, borderRadius: 15 },
   msgUnreadText: { fontSize: 11, fontWeight: "700", color: v_1bfbd0.white },
   msgCallBtn: {
     width: 36, height: 36, borderRadius: 10,
