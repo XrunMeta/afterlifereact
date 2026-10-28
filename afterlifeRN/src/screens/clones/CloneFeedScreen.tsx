@@ -93,6 +93,8 @@ export default function v_9887a2(v_b1927c) {
             avatarUrl: v_3f4e2e.avatarUrl,
             cloneType: v_3f4e2e.cloneType as v_d79d7f,
             visibility: v_3f4e2e.visibility as v_b0b271,
+            ownerName: v_3f4e2e.ownerName ?? null,
+            ownerAvatarUrl: v_3f4e2e.ownerAvatarUrl ?? null,
           },
           interests: v_3f4e2e.interests ?? [],
         });
@@ -164,6 +166,9 @@ function v_75c31a({ route: v_c7daf6, navigation: v_c65f5d, feed: v_2db2a5 }: Inn
     interests: v_2db2a5.interests,
     likes: String(v_58313d),
     comments: v_7c0a2d,
+
+    ownerName: v_2db2a5.clone.ownerName ?? null,
+    ownerAvatarUrl: v_2db2a5.clone.ownerAvatarUrl ?? null,
   };
 
   const [v_b84498, v_e24028] = v_5ab095<boolean>(v_2db2a5.likedByMe ?? v_632420.includes(v_6bbace));
@@ -884,9 +889,9 @@ function v_75c31a({ route: v_c7daf6, navigation: v_c65f5d, feed: v_2db2a5 }: Inn
           <SwipeDownSheet
             onClose={() => v_eda097(false)}
             style={[v_d81136.moreSheet, { paddingBottom: 24 + v_2b650d }]}
+            fitContent
           >
             <View style={v_d81136.moreSheetHandle} />
-            <Text style={v_d81136.moreTitle}>{v_8c0b26.author}</Text>
             {!v_799eb5 && (
               <>
                 {v_8c0b26.cloneOwnerId != null && (
@@ -1090,7 +1095,6 @@ const v_d81136 = v_472849.create({
     paddingTop: 0,
     paddingHorizontal: 16,
 
-    minHeight: 260,
   },
   moreSheetHandle: {
     width: 40,
@@ -1099,13 +1103,6 @@ const v_d81136 = v_472849.create({
     backgroundColor: "#cbd5e1",
     alignSelf: "center",
     marginVertical: 12,
-  },
-  moreTitle: {
-    fontSize: 13,
-    color: "#64748b",
-    fontWeight: "600",
-    marginBottom: 8,
-    paddingHorizontal: 4,
   },
   moreItem: {
     flexDirection: "row",
