@@ -2470,7 +2470,6 @@
     "exchangeQtyLabel": "Swap数量",
     "receiveQtyLabel": "到账数量",
     "max": "MAX",
-    "feeExchangeNotice": "Swap手续费 {{fee}} ROSE",
     "exchangeNoCancel": "Swap后无法取消。",
     "swapAction": "Swap",
     "swapFeeHint": "Swap手续费 {{fee}} ROSE",

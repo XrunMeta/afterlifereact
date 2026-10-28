@@ -2474,7 +2474,6 @@
     "exchangeQtyLabel": "Jumlah Swap",
     "receiveQtyLabel": "Jumlah diterima",
     "max": "MAX",
-    "feeExchangeNotice": "Biaya Swap {{fee}} ROSE",
     "exchangeNoCancel": "Swap tidak dapat dibatalkan.",
     "swapAction": "Swap",
     "swapFeeHint": "Biaya Swap {{fee}} ROSE",

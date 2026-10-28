@@ -35,7 +35,6 @@ import {
 import { v_61fb8c } from "../../hooks/useGiftExchange";
 import { v_18f201 } from "../../lib/pangle";
 import { v_889fad } from "../../stores/dialogStore";
-import v_177da7 from "../../components/gift/GiftExchangeSheet";
 import type { v_2d88fc, v_8ad91b } from "../../navigation/types";
 
 type TabKey = "received" | "sent" | "exchange";
@@ -177,7 +176,6 @@ export default function v_8869a8() {
   const [v_5da798, v_19e9c0] = v_5ab095(0);
   const [v_fcc796, v_0cc282] = v_5ab095<number | null>(null);
   const [v_b09797, v_c60f1e] = v_5ab095(0);
-  const [v_084403, v_4710bd] = v_5ab095(false);
 
   v_cf763b(
     v_de06a3(() => {
@@ -415,7 +413,6 @@ export default function v_8869a8() {
               onSubmit={() => void v_d037c4()}
               historyOnly={v_24baff?.view === "exchange"}
               ownedFallback={v_b09797}
-              onOpenExchangeSheet={() => v_4710bd(true)}
             />
           )}
         </ScrollView>
@@ -424,17 +421,6 @@ export default function v_8869a8() {
         <View style={v_d81136.toast} pointerEvents="none">
           <Text style={v_d81136.toastText}>{v_da74fa}</Text>
         </View>
-      ) : null}
-      {v_24baff?.view === "exchange" ? (
-        <GiftExchangeSheet
-          visible={v_084403}
-          onClose={() => v_4710bd(false)}
-          onChanged={() => void v_92fdf2(true)}
-          onGoHome={() => {
-            v_4710bd(false);
-            v_f4c991.dispatch(v_650cfa.navigate({ name: "HomeTab" }));
-          }}
-        />
       ) : null}
     </SafeView>
   );
@@ -885,7 +871,6 @@ function v_1bc5d1({
   onSubmit: v_3bfe4c,
   historyOnly: v_ec3c62,
   ownedFallback: v_758ca4,
-  onOpenExchangeSheet: v_160f98,
 }: {
   elig: v_02ed3c | null;
   history: v_867a79[];
@@ -900,7 +885,6 @@ function v_1bc5d1({
 
   historyOnly: boolean;
   ownedFallback: number;
-  onOpenExchangeSheet: () => void;
 }) {
   const [v_71921b, v_7ca8ec] = v_5ab095(false);
   v_a3453e.useEffect(() => {
@@ -909,11 +893,6 @@ function v_1bc5d1({
 
   if (v_ec3c62) {
     const v_2461e1 = v_ae840d?.ownedQty ?? v_758ca4;
-    const v_cd229f =
-      v_ae840d?.priceSegments?.[0]?.price != null
-        ? v_35c0e0(Number(v_ae840d.priceSegments[0].price))
-        : "0.1";
-    const v_3cda59 = v_ae840d?.feeQty ?? 1;
     return (
       <View>
         <View style={v_d81136.myRoseCard}>
@@ -931,29 +910,6 @@ function v_1bc5d1({
               </Text>
             </View>
           </View>
-          <View style={v_d81136.myRoseMetaRow}>
-            <Text style={v_d81136.myRoseMeta}>
-              {v_8d41d7("giftBox.exchangeRateHint", {
-                defaultValue: "교환 비율 1 ROSE = {{rate}} XRUN",
-                rate: v_cd229f,
-              })}
-            </Text>
-            <Text style={v_d81136.myRoseMeta}>
-              {v_8d41d7("giftBox.feePerExchange", {
-                defaultValue: "수수료 {{fee}} ROSE / 회",
-                fee: v_3cda59,
-              })}
-            </Text>
-          </View>
-          <TouchableOpacity
-            style={v_d81136.myRoseExchangeBtn}
-            activeOpacity={0.85}
-            onPress={v_160f98}
-          >
-            <Text style={v_d81136.myRoseExchangeBtnText}>
-              {v_8d41d7("giftBox.exchangeToXrun", { defaultValue: "XRUN으로 교환" })}
-            </Text>
-          </TouchableOpacity>
         </View>
 
         <ExchangeHistory
@@ -1208,7 +1164,7 @@ function v_36c8d0({
         <View style={v_d81136.historyHeader}>
           <Text style={[v_d81136.sectionLabel, { marginBottom: 0 }]}>
             {v_7c496a
-              ? v_8d41d7("giftBox.exchangeHistoryTitle", { defaultValue: "교환 내역" })
+              ? v_8d41d7("giftBox.exchangeHistoryTitle", { defaultValue: "Swap 내역" })
               : v_8d41d7("giftBox.recentExchange", { defaultValue: "최근 교환 내역" })}
           </Text>
           {v_7c496a ? null : v_10740d.length > v_986caa && !v_ebda8f ? (
@@ -1476,7 +1432,7 @@ const v_d81136 = v_472849.create({
     padding: 16,
     marginBottom: 20,
   },
-  myRoseTop: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 12 },
+  myRoseTop: { flexDirection: "row", alignItems: "center", gap: 12 },
   myRoseIcon: {
     width: 52,
     height: 52,
@@ -1490,15 +1446,6 @@ const v_d81136 = v_472849.create({
     fontVariant: ["tabular-nums"],
   },
   myRoseUnit: { fontSize: 18, fontWeight: "800" },
-  myRoseMetaRow: { gap: 4, marginBottom: 14 },
-  myRoseMeta: { fontSize: 12, color: v_1bfbd0.zinc500 },
-  myRoseExchangeBtn: {
-    ...v_d43669.md,
-    backgroundColor: v_1bfbd0.zinc900,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  myRoseExchangeBtnText: { ...v_c10a43.md, color: v_1bfbd0.white },
   historyRoseCard: {
     flexDirection: "row",
     alignItems: "center",
