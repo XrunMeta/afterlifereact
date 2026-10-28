@@ -665,7 +665,7 @@ v_f891e6.get("/search", async (v_3f4e2e) => {
 
   const v_013af2 = await v_efcb2d(v_3f4e2e);
 
-  const v_abcc8d = [v_74c502("c")];
+  const v_abcc8d = [v_74c502("c"), `c.visibility != 'private'`];
   const v_925171 = [];
   if (v_013af2) {
 
