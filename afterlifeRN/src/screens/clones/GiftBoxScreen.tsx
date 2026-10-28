@@ -84,14 +84,10 @@ function v_e4bf58(v_6fc191, t: v_75de9d): string {
   return `${v_5e39a0} ${v_02de88}:${String(v_35f85c).padStart(2, "0")}`;
 }
 
-function v_514b67(v_217d49): string {
+function v_26fb3b(v_217d49): string {
   const v_d5dda0 = typeof v_217d49 === "number" ? new Date(v_217d49) : new Date(v_217d49);
   if (Number.isNaN(v_d5dda0.getTime())) return "";
-  return [
-    String(v_d5dda0.getHours()).padStart(2, "0"),
-    String(v_d5dda0.getMinutes()).padStart(2, "0"),
-    String(v_d5dda0.getSeconds()).padStart(2, "0"),
-  ].join(":");
+  return [String(v_d5dda0.getHours()).padStart(2, "0"), String(v_d5dda0.getMinutes()).padStart(2, "0")].join(":");
 }
 
 function v_9b9d5e(v_217d49, t: v_75de9d): string {
@@ -138,11 +134,11 @@ const v_951062 = 15;
 
 const v_ca9d61 = false;
 
-function v_37bee9(v_6fc191): string {
+function v_739fef(v_6fc191): string {
   const v_d5dda0 = new Date(v_6fc191);
   if (Number.isNaN(v_d5dda0.getTime())) return "";
   const v_b3d1d6 = `${v_d5dda0.getFullYear()}.${String(v_d5dda0.getMonth() + 1).padStart(2, "0")}.${String(v_d5dda0.getDate()).padStart(2, "0")}`;
-  return `${v_b3d1d6} ${v_514b67(v_6fc191)}`;
+  return `${v_b3d1d6} ${v_26fb3b(v_6fc191)}`;
 }
 
 type PagedKind = "received" | "sent";
@@ -744,7 +740,7 @@ function v_223c52({
               {v_3fd4b5}
             </Text>
           </View>
-          <Text style={v_d81136.metaTime}>{v_37bee9(v_8c0b26.createdAt)}</Text>
+          <Text style={v_d81136.metaTime}>{v_739fef(v_8c0b26.createdAt)}</Text>
         </View>
       </View>
       {v_6e3315 && v_8c0b26.claimable === false ? (
@@ -897,7 +893,7 @@ function v_950e4a({
                       {v_9f1622}
                     </Text>
                     <Text style={v_d81136.meta}>
-                      {v_37bee9(v_8c0b26.createdAt)}
+                      {v_739fef(v_8c0b26.createdAt)}
                       {" · "}
                       {v_8d41d7("giftBox.delivered", { defaultValue: "전달 완료" })}
                     </Text>
@@ -1197,7 +1193,7 @@ function v_36c8d0({
         `${v_8c0b26.qty} ${v_80cae9} → ${v_8c0b26.reward} XRUN`,
         v_8c0b26.exchangeNo || "",
         v_561bb6(v_8c0b26.giftName),
-        v_37bee9(new Date(v_8c0b26.createdAt).toISOString()),
+        v_739fef(new Date(v_8c0b26.createdAt).toISOString()),
       ].some((v_fd5f43) => v_fd5f43.toLowerCase().includes(v_ab6401)) || v_de971e(v_ab6401, v_8c0b26.createdAt),
     );
   }, [v_7c496a, v_d1b432, v_ab6401, v_80cae9]);
@@ -1280,7 +1276,7 @@ function v_36c8d0({
                       {v_8c0b26.qty} {v_80cae9} → {v_8c0b26.reward} XRUN
                     </Text>
                     <Text style={v_d81136.meta}>
-                      {v_37bee9(new Date(v_8c0b26.createdAt).toISOString())}
+                      {v_739fef(new Date(v_8c0b26.createdAt).toISOString())}
                       {" · "}
                       {v_8d41d7("giftBox.feeShort", {
                         defaultValue: "수수료 {{fee}} ROSE",
