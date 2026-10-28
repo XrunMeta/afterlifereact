@@ -2403,7 +2403,7 @@
     "emptyReferralGift": "まだ紹介報酬はありません",
     "adRewardSender": "広告リワード",
     "referralRewardSender": "紹介報酬",
-    "referralRewardNamed": "{{name}} 紹介報酬",
+    "referralRewardNamed": "{{name}}",
     "referralRewardPlain": "紹介報酬",
     "referralRewardTitle": "紹介コードで登録して受け取りました",
     "referralInviteTitle": "あなたの紹介コードで友達が登録して受け取りました",

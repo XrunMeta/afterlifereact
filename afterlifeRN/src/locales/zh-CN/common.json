@@ -2396,7 +2396,7 @@
     "emptyReferralGift": "还没有推荐奖励",
     "adRewardSender": "广告奖励",
     "referralRewardSender": "推荐奖励",
-    "referralRewardNamed": "{{name}} 推荐奖励",
+    "referralRewardNamed": "{{name}}",
     "referralRewardPlain": "推荐奖励",
     "referralRewardTitle": "使用推荐码注册获得",
     "referralInviteTitle": "好友使用你的推荐码注册获得",
