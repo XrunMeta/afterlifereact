@@ -11,6 +11,7 @@ import { v_0edc13, v_866cbe } from "../lib/appConfig";
 import { v_e82478 } from "../lib/referralReward";
 import { v_2d8130 } from "../lib/giftLots";
 import { v_74defc } from "../lib/logger";
+import { v_232ace, v_bfd593, v_6f53a3, v_8d734d } from "../lib/searchQuery";
 
 export const v_0bc486 = new v_b7c41b<v_de0a25>();
 
@@ -216,6 +217,21 @@ v_0bc486.get("/activity-log", v_6690d9, async (v_3f4e2e) => {
   const v_28c2de = v_bf1264(v_f71b56.searchParams.get("kind"));
   const v_8b630e = v_28c2de.map(() => "?").join(", ");
 
+  const v_ab6401 = v_6f53a3(v_f71b56.searchParams.get("q"));
+  let v_1fd8b7 = "";
+  const v_894b6f = [];
+  if (v_ab6401) {
+    const v_2a1d60 = v_bfd593(v_ab6401);
+    const v_16c519 = ["LOWER(cp.name) LIKE ? ESCAPE '\\'", "LOWER(c.name) LIKE ? ESCAPE '\\'", "LOWER(c.username) LIKE ? ESCAPE '\\'"];
+    v_894b6f.push(v_2a1d60, v_2a1d60, v_2a1d60);
+    const v_cc1738 = v_232ace("e.created_at", v_ab6401, v_8d734d(v_f71b56.searchParams.get("tz")));
+    if (v_cc1738) {
+      v_16c519.push(v_cc1738.sql);
+      v_894b6f.push(...v_cc1738.binds);
+    }
+    v_1fd8b7 = ` AND (${v_16c519.join(" OR ")})`;
+  }
+
   const v_18b8bf = await v_3f4e2e.env.DB
     .prepare(
       `SELECT e.id                        AS id,
@@ -240,11 +256,11 @@ v_0bc486.get("/activity-log", v_6690d9, async (v_3f4e2e) => {
          FROM gift_inventory_events e
          LEFT JOIN users  cp ON cp.id = e.counterpart_user_id
          LEFT JOIN clones c  ON c.id  = e.clone_id
-        WHERE e.user_id = ? AND e.kind IN (${v_8b630e})
+        WHERE e.user_id = ? AND e.kind IN (${v_8b630e})${v_1fd8b7}
         ORDER BY e.created_at DESC, e.id DESC
         LIMIT ? OFFSET ?`,
     )
-    .bind(v_43e90c, ...v_28c2de, v_02be30, v_3bbadf)
+    .bind(v_43e90c, ...v_28c2de, ...v_894b6f, v_02be30, v_3bbadf)
     .all<{
       id: number;
       kind: string;
@@ -269,10 +285,13 @@ v_0bc486.get("/activity-log", v_6690d9, async (v_3f4e2e) => {
 
   const v_679404 = await v_3f4e2e.env.DB
     .prepare(
-      `SELECT COUNT(*) AS n FROM gift_inventory_events
-        WHERE user_id = ? AND kind IN (${v_8b630e})`,
+      `SELECT COUNT(*) AS n
+         FROM gift_inventory_events e
+         LEFT JOIN users  cp ON cp.id = e.counterpart_user_id
+         LEFT JOIN clones c  ON c.id  = e.clone_id
+        WHERE e.user_id = ? AND e.kind IN (${v_8b630e})${v_1fd8b7}`,
     )
-    .bind(v_43e90c, ...v_28c2de)
+    .bind(v_43e90c, ...v_28c2de, ...v_894b6f)
     .first<{ n: number }>();
 
   const v_e52c8b = await v_3f4e2e.env.DB
