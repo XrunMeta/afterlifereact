@@ -70,7 +70,9 @@ import {
   v_8be472,
   v_9d1db1,
   type v_17d27f,
+  type v_10c8c8,
 } from "../../api/chat";
+import { v_5401ae } from "../../testIDs";
 
 type RootNav = v_390fcc<v_8ad91b>;
 const { width: v_437248 } = v_700696.get("window");
@@ -144,6 +146,22 @@ export default function v_14b43e() {
   const v_7aa778 = v_8a85e2(v_f4fb5e);
   const [v_002f27, v_ff797f] = v_5ab095<v_17d27f[] | null>(null);
 
+  const [v_11c493, v_16c7d8] = v_5ab095(false);
+  const v_dd77e6 = v_de06a3((res: v_10c8c8 | null) => {
+
+    if (v_8f00b9 && Array.isArray(v_8f00b9.items)) {
+      v_ff797f(v_8f00b9.items);
+      v_16c7d8(false);
+    } else {
+      v_16c7d8(true);
+    }
+  }, []);
+  const v_c91267 = async () => {
+    if (!v_2ca7e0) return;
+    v_16c7d8(false); 
+    v_dd77e6(await v_e36429(v_2ca7e0));
+  };
+
   const [v_612e9f, v_575aad] = v_5ab095(false);
   const { onLayout: v_e8db2a, listBottomPad: v_936ba7 } = v_ba6725();
   const v_0cde43 = async () => {
@@ -152,7 +170,10 @@ export default function v_14b43e() {
     try {
       if (v_7aa778) {
         const v_8f00b9 = await v_e36429(v_2ca7e0);
-        v_ff797f(v_8f00b9?.items ?? []);
+        v_dd77e6(v_8f00b9);
+        if (!v_8f00b9 && v_002f27 !== null) {
+          v_15c939(v_8d41d7("chat.listRefreshFailed", { defaultValue: "목록을 새로고침하지 못했어요" }));
+        }
       }
 
     } finally {
@@ -175,12 +196,12 @@ export default function v_14b43e() {
     let v_2008a4 = false;
     (async () => {
       const v_8f00b9 = await v_e36429(v_2ca7e0);
-      if (!v_2008a4) v_ff797f(v_8f00b9?.items ?? []);
+      if (!v_2008a4) v_dd77e6(v_8f00b9);
     })();
     return () => {
       v_2008a4 = true;
     };
-  }, [v_7aa778, v_2ca7e0]);
+  }, [v_7aa778, v_2ca7e0, v_dd77e6]);
 
   v_cf763b(
     v_de06a3(() => {
@@ -188,7 +209,7 @@ export default function v_14b43e() {
       let v_2008a4 = false;
       const v_f6f5de = async () => {
         const v_8f00b9 = await v_e36429(v_2ca7e0);
-        if (!v_2008a4) v_ff797f(v_8f00b9?.items ?? []);
+        if (!v_2008a4) v_dd77e6(v_8f00b9);
       };
       void v_f6f5de();
 
@@ -197,7 +218,7 @@ export default function v_14b43e() {
         v_2008a4 = true;
         clearTimeout(v_826279);
       };
-    }, [v_7aa778, v_2ca7e0]),
+    }, [v_7aa778, v_2ca7e0, v_dd77e6]),
   );
 
   const v_7cf37a = async (v_6e0fd3, v_c09aa8) => {
@@ -888,7 +909,13 @@ export default function v_14b43e() {
           );
         }}
       >
-      <TouchableOpacity style={v_fd5f43.msgRow} activeOpacity={0.7} onPress={v_6629cb} onLongPress={v_e513d1}>
+      <TouchableOpacity
+        testID={`${v_5401ae.chatList.item}-${v_8c0b26.persona.id}`}
+        style={v_fd5f43.msgRow}
+        activeOpacity={0.7}
+        onPress={v_6629cb}
+        onLongPress={v_e513d1}
+      >
         {
 
 }
@@ -906,7 +933,7 @@ export default function v_14b43e() {
 
         {}
         <View style={v_fd5f43.msgBody}>
-          <Text style={v_fd5f43.msgName} numberOfLines={1}>{v_1833e7}</Text>
+          <Text testID={`${v_5401ae.chatList.item}-${v_8c0b26.persona.id}-name`} style={v_fd5f43.msgName} numberOfLines={1}>{v_1833e7}</Text>
           <Text style={v_fd5f43.msgSub} numberOfLines={2}>{v_cf0109}</Text>
         </View>
 
@@ -916,6 +943,7 @@ export default function v_14b43e() {
           <View style={v_fd5f43.msgRightBottomRow}>
             {v_a78249 > 0 ? (
               <View
+                testID={`${v_5401ae.chatList.item}-${v_8c0b26.persona.id}-unread`}
                 style={[
                   v_fd5f43.msgUnreadBadge,
                   v_a78249 > 99 ? v_fd5f43.msgUnreadBadgeLg : v_a78249 > 9 ? v_fd5f43.msgUnreadBadgeMd : null,
@@ -925,6 +953,7 @@ export default function v_14b43e() {
               </View>
             ) : null}
             <TouchableOpacity
+              testID={`${v_5401ae.chatList.item}-${v_8c0b26.persona.id}-call`}
               style={v_fd5f43.msgCallBtn}
               onPress={v_c1d70c}
               hitSlop={8}
@@ -1052,6 +1081,7 @@ export default function v_14b43e() {
 
       {}
       <FlatList
+        testID={v_5401ae.chatList.list}
         data={v_066fa2}
         keyExtractor={(v_8c0b26) => String(v_8c0b26.persona.id)}
         renderItem={v_4a5736}
@@ -1095,11 +1125,14 @@ export default function v_14b43e() {
             <PangleBannerAd adUnitId={v_60086b("messages")} style={v_fd5f43.subAdBanner} />
             {}
             <View style={v_fd5f43.subSectionHeader}>
-              <Text style={v_fd5f43.subSectionCount}>
-                {v_8d41d7("chat.listCount", {
-                  defaultValue: "대화목록 {{count}}",
-                  count: v_066fa2.length,
-                })}
+              {}
+              <Text testID={v_5401ae.chatList.count} style={v_fd5f43.subSectionCount}>
+                {v_7aa778 && v_002f27 === null
+                  ? ""
+                  : v_8d41d7("chat.listCount", {
+                      defaultValue: "대화목록 {{count}}",
+                      count: v_066fa2.length,
+                    })}
               </Text>
               <TouchableOpacity hitSlop={8} onPress={() => v_538ca9(true)}>
                 <Text style={v_fd5f43.subSectionSort}>
@@ -1111,16 +1144,38 @@ export default function v_14b43e() {
         }
         ListEmptyComponent={
 
-          (v_7aa778 ? v_002f27 === null : !!v_2ca7e0 && v_d92a4c === null) ? (
-            <View style={v_fd5f43.emptyWrap}>
+          v_7aa778 && v_002f27 === null && v_11c493 ? (
+            <View testID={v_5401ae.chatList.error} style={v_fd5f43.emptyWrap}>
+              <Feather name="wifi-off" size={40} color={v_1bfbd0.zinc300} />
+              <Text style={v_fd5f43.emptyTitle}>
+                {v_8d41d7("chat.listLoadFailed", { defaultValue: "대화목록을 불러오지 못했어요" })}
+              </Text>
+              <TouchableOpacity
+                testID={v_5401ae.chatList.retry}
+                style={v_fd5f43.retryBtn}
+                onPress={() => void v_c91267()}
+                activeOpacity={0.8}
+              >
+                <Text style={v_fd5f43.retryBtnText}>{v_8d41d7("common.retry", { defaultValue: "다시 시도" })}</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (v_7aa778 ? v_002f27 === null : !!v_2ca7e0 && v_d92a4c === null) ? (
+            <View testID={v_5401ae.chatList.loading} style={v_fd5f43.emptyWrap}>
               <ActivityIndicator color={v_1bfbd0.zinc400} />
               <Text style={v_fd5f43.emptyDesc}>{v_8d41d7("common.loading", { defaultValue: "불러오는 중..." })}</Text>
             </View>
+          ) : v_9e799c.trim() ? (
+            <View testID={v_5401ae.chatList.searchEmpty} style={v_fd5f43.emptyWrap}>
+              <Text style={v_fd5f43.emptyDesc}>{v_8d41d7("giftBox.sentSearchNoMatch", { defaultValue: "검색 결과가 없어요" })}</Text>
+            </View>
           ) : (
-            <View style={v_fd5f43.emptyWrap}>
+            <View testID={v_5401ae.chatList.empty} style={v_fd5f43.emptyWrap}>
               <Feather name="message-circle" size={48} color={v_1bfbd0.zinc300} />
-              <Text style={v_fd5f43.emptyTitle}>{v_8d41d7("feed.followingEmpty")}</Text>
-              <Text style={v_fd5f43.emptyDesc}>{v_8d41d7("feed.followingEmptyHint")}</Text>
+              {}
+              <Text style={v_fd5f43.emptyTitle}>{v_8d41d7("chat.listEmptyTitle", { defaultValue: "아직 대화가 없어요" })}</Text>
+              <Text style={v_fd5f43.emptyDesc}>
+                {v_8d41d7("chat.listEmptyHint", { defaultValue: "홈에서 마음에 드는 클론과 대화를 시작해 보세요" })}
+              </Text>
             </View>
           )
         }
@@ -1768,6 +1823,8 @@ const v_fd5f43 = v_472849.create({
   emptyWrap: { alignItems: "center", justifyContent: "center", paddingVertical: 80, paddingHorizontal: 32, gap: 12 },
   emptyTitle: { fontSize: 16, fontWeight: "600", color: v_1bfbd0.zinc700 },
   emptyDesc: { fontSize: 13, color: v_1bfbd0.zinc500, textAlign: "center" },
+  retryBtn: { marginTop: 4, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10, backgroundColor: v_1bfbd0.zinc900 },
+  retryBtnText: { fontSize: 14, fontWeight: "600", color: v_1bfbd0.white },
 
   eventsSheet: {
     backgroundColor: v_1bfbd0.white,

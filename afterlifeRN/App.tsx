@@ -68,6 +68,8 @@ const linking: v_4c916c<v_8ad91b> = {
       },
       Main: {
         screens: {
+
+          ShortsTab: "chats",
           ClonesTab: {
 
             screens: {

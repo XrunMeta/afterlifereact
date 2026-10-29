@@ -18,6 +18,7 @@
     "web": "expo start --web",
     "test": "jest",
     "test:watch": "jest --watch",
+    "e2e:states": "cross-env E2E_MOCK_API=1 playwright test e2e/list-states",
     "postinstall": "patch-package"
   },
   "dependencies": {
