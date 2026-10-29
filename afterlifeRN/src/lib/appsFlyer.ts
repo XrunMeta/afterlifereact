@@ -50,6 +50,8 @@ export function v_7cb644(): void {
       appId: v_326be8.OS === "ios" ? v_babc51() : undefined,
       onInstallConversionDataListener: true,
       onDeepLinkListener: false,
+
+      timeToWaitForATTUserAuthorization: v_326be8.OS === "ios" ? 10 : undefined,
     },
     () => console.log("[AppsFlyer] initSdk 완료"),
     (v_49263d) => console.warn("[AppsFlyer] initSdk 실패:", v_49263d),
