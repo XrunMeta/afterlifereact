@@ -407,7 +407,8 @@
     "listTitle": "Daftar chat",
     "listCount": "Daftar chat {{count}}",
     "timelineLoadFailed": "Gagal memuat percakapan",
-    "olderLoadFailed": "Gagal memuat pesan sebelumnya · Coba lagi"
+    "olderLoadFailed": "Gagal memuat pesan sebelumnya · Coba lagi",
+    "sendA11y": "Kirim"
   },
   "call": {
     "calling": "Menghubungkan...",
@@ -598,7 +599,8 @@
     "send": "Kirim Hadiah",
     "paymentPending": "Pembayaran sedang dipersiapkan",
     "giftLoadFailed": "Gagal memuat daftar hadiah",
-    "giftEmpty": "Belum ada hadiah yang bisa dikirim"
+    "giftEmpty": "Belum ada hadiah yang bisa dikirim",
+    "backToDashboard": "Ke halaman saya"
   },
   "edit": {
     "title": "Edit Klon",
@@ -1081,7 +1083,9 @@
       "googleTitle": "Daftar dengan Google",
       "ageRange": "Kelompok usia",
       "countrySearch": "Cari negara",
-      "regionSearch": "Cari wilayah"
+      "regionSearch": "Cari wilayah",
+      "termsServiceTitle": "Ketentuan Layanan",
+      "termsPrivacyTitle": "Kebijakan Privasi"
     },
     "emailVerify": {
       "title": "Verifikasi Email",
@@ -1931,7 +1935,7 @@
     "later": "Tambahkan Nanti"
   },
   "errors": {
-    "faceConsentRequired": "Diperlukan persetujuan pengenalan wajah. Aktifkan 'Izinkan pengenalan wajah (data biometrik)' di Pengaturan.",
+    "faceConsentRequired": "Persetujuan untuk menyimpan data wajah diperlukan.",
     "accountDeleted": "Akun ini sudah dihapus.",
     "accountSuspended": "Akun Anda ditangguhkan karena melanggar kebijakan layanan.\nKontak: oth-staff@example.invalid",
     "accountSuspendedForPersona": "Akun Anda dinonaktifkan sementara karena laporan yang menumpuk, sehingga tidak bisa membuat clone.",
@@ -2002,7 +2006,6 @@
     "vectorInvalidShape": "Format vektor wajah tidak valid.",
     "vectorsInvalidShape": "Vektor wajah harus berjumlah 1 sampai 5 entri yang valid.",
     "personNotFound": "Orang tidak ditemukan.",
-    "faceConsentRequired": "Persetujuan untuk menyimpan data wajah diperlukan.",
     "faceVectorSaveFailed": "Gagal menyimpan vektor wajah.",
     "enrolledViaInvalid": "Metode pendaftaran tidak valid.",
     "displayNameNotString": "Nama tampilan harus berupa string.",
@@ -2397,7 +2400,7 @@
     "ownedCountTitle": "Jumlah dimiliki",
     "ownedCountLabel": "Jumlah dimiliki",
     "historyView": "Lihat riwayat",
-    "sentSearchPlaceholder": "Cari nama klon",
+    "sentSearchPlaceholder": "Cari penerima, nama klon, tanggal",
     "sentSearchNoMatch": "Tidak ada hasil",
     "subTabAll": "Semua",
     "flowerUnit": "",
@@ -2499,7 +2502,6 @@
     "swapAction": "Swap",
     "swapFeeHint": "Biaya Swap {{fee}} ROSE",
     "receivedSearchPlaceholder": "Cari pengirim, nama klon, tanggal",
-    "sentSearchPlaceholder": "Cari penerima, nama klon, tanggal",
     "exchangeSearchPlaceholder": "Cari jumlah, tanggal",
     "successFeeLine": "Ditukar setelah potong biaya {{fee}} ROSE",
     "successRemaining": "Sisa ROSE {{n}}",
@@ -2512,7 +2514,26 @@
     "noGiftTitle": "Tidak ada hadiah untuk ditukar",
     "noGiftBody": "Anda bisa mendapat hadiah dengan menelepon persona.\nMau menelepon sekarang?",
     "goHome": "Buka",
-    "notEnoughBody": "Anda punya {{owned}} ROSE.\nKumpulkan lebih banyak hadiah lewat panggilan."
+    "notEnoughBody": "Anda punya {{owned}} ROSE.\nKumpulkan lebih banyak hadiah lewat panggilan.",
+    "exchangeHistoryLink": "Riwayat Swap",
+    "badgeFromClone": "Dari klon",
+    "badgeFromUser": "Dari pengguna",
+    "exchangeHistoryCount": "Total {{n}} kali",
+    "exchangeHistoryTitle": "Riwayat Swap",
+    "exchangeShort": "Swap",
+    "feeDeductHint": "Swap ke XRUN.",
+    "feeShort": "Biaya {{fee}} ROSE",
+    "myRoseTitle": "ROSE saya",
+    "ownedShort": "Saldo",
+    "receivedFromCloneTitle": "Diterima saat ngobrol dengan klon {{name}}",
+    "receivedFromUserTitle": "{{name}} mengirim ke klon {{clone}} milikmu",
+    "roseUnit": "ROSE",
+    "sentToCloneTitle": "Dikirim ke klon milik {{name}}",
+    "sentToUserTitle": "Dikirim ke {{name}}",
+    "subTabFromClone": "Dari klon",
+    "subTabFromUser": "Dari pengguna",
+    "todayWithDate": "Hari ini · {{ymd}}",
+    "ymdWeek": "{{ymd}} ({{w}})"
   },
   "sso": {
     "reconsent": {
@@ -2550,6 +2571,32 @@
     "xrunTitle": "XRUN",
     "xrunSub": "Dompet · hadiah · login",
     "clubxTitle": "ClubX",
-    "clubxSub": "Klub · item"
+    "clubxSub": "Klub · item",
+    "clubxEyebrow": "METAVERSE CLUB",
+    "clubxIosSoon": "Segera hadir di App Store. Coba dulu di Android ya.",
+    "clubxSlide1": "Klub virtual",
+    "clubxSlide2": "Pesta · sosial",
+    "clubxSlide3": "Dansa · item",
+    "open": "Buka",
+    "xrunEyebrow": "REWARD APP",
+    "xrunSlide1": "Aplikasi penghasil uang",
+    "xrunSlide2": "Dompet",
+    "xrunSlide3": "Hadiah",
+    "xrunSlide4": "Login terhubung"
+  },
+  "accountFace": {
+    "title": "Pendaftaran wajah",
+    "subtitle": "Daftarkan wajahmu sekali untuk melindungi akun. Gerakkan kepala sesuai petunjuk dan foto akan diambil otomatis.",
+    "privacyNote": "Satu foto wajah depan disimpan terenkripsi dan hanya dipakai untuk memeriksa pendaftaran ganda oleh orang yang sama.",
+    "permission": "Akses kamera diperlukan untuk mendaftarkan wajah. Izinkan kamera di Pengaturan.",
+    "retry": "Ambil ulang",
+    "err": {
+      "expired": "Waktu habis. Silakan ambil foto lagi.",
+      "generic": "Gagal mendaftar. Coba lagi sebentar lagi.",
+      "multiFace": "Pastikan hanya satu orang yang terlihat di layar.",
+      "noFace": "Wajahmu kurang terlihat jelas. Coba lagi di tempat yang lebih terang.",
+      "notFrontal": "Untuk foto pertama, lihat lurus ke kamera.",
+      "steps": "Putar kepalamu perlahan sesuai arah yang ditunjukkan."
+    }
   }
 }

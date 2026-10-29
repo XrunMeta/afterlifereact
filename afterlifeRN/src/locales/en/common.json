@@ -407,7 +407,8 @@
     "listTitle": "Chats",
     "listCount": "Chats {{count}}",
     "timelineLoadFailed": "Couldn't load the conversation",
-    "olderLoadFailed": "Couldn't load earlier messages · Retry"
+    "olderLoadFailed": "Couldn't load earlier messages · Retry",
+    "sendA11y": "Send"
   },
   "call": {
     "calling": "Connecting...",
@@ -598,7 +599,8 @@
     "send": "Send Gift",
     "paymentPending": "Preparing payment...",
     "giftLoadFailed": "Couldn't load gifts",
-    "giftEmpty": "No gifts available right now"
+    "giftEmpty": "No gifts available right now",
+    "backToDashboard": "Back to My Page"
   },
   "edit": {
     "title": "Edit Clone",
@@ -1081,7 +1083,9 @@
       "googleTitle": "Sign up with Google",
       "ageRange": "Age group",
       "countrySearch": "Search country",
-      "regionSearch": "Search region"
+      "regionSearch": "Search region",
+      "termsServiceTitle": "Terms of Service",
+      "termsPrivacyTitle": "Privacy Policy"
     },
     "emailVerify": {
       "title": "Verify Email",
@@ -1934,7 +1938,7 @@
     "later": "Add later"
   },
   "errors": {
-    "faceConsentRequired": "Face recognition consent is required. Please turn on 'Allow face recognition (biometric data)' in Settings.",
+    "faceConsentRequired": "Consent to store face data is required.",
     "accountDeleted": "This account has been deleted.",
     "accountSuspended": "Your account has been suspended for violating our service policy.\nContact: oth-staff@example.invalid",
     "accountSuspendedForPersona": "Your account is temporarily disabled due to repeated reports, so you can't create a clone right now.",
@@ -2005,7 +2009,6 @@
     "vectorInvalidShape": "The face vector format is invalid.",
     "vectorsInvalidShape": "Face vectors must be 1 to 5 valid entries.",
     "personNotFound": "Person not found.",
-    "faceConsentRequired": "Consent to store face data is required.",
     "faceVectorSaveFailed": "Failed to save the face vector.",
     "enrolledViaInvalid": "The enrollment method is invalid.",
     "displayNameNotString": "Display name must be a string.",
@@ -2421,7 +2424,7 @@
     "ownedCountTitle": "My ROSE",
     "ownedCountLabel": "Balance",
     "historyView": "Exchange history",
-    "sentSearchPlaceholder": "Search clone name",
+    "sentSearchPlaceholder": "Search recipient, clone or date",
     "sentSearchNoMatch": "No results",
     "subTabAll": "All",
     "flowerUnit": "ROSE",
@@ -2520,7 +2523,6 @@
     "exchangeNoCancel": "Swaps cannot be canceled.",
     "swapAction": "Swap",
     "swapFeeHint": "Swap fee {{fee}} ROSE",
-    "sentSearchPlaceholder": "Search recipient, clone or date",
     "exchangeSearchPlaceholder": "Search amount or date",
     "successFeeLine": "Exchanged after deducting a {{fee}} ROSE fee",
     "successRemaining": "{{n}} ROSE remaining",
@@ -2533,7 +2535,8 @@
     "noGiftTitle": "No gifts to exchange",
     "noGiftBody": "You can receive gifts by calling personas.\nWant to start a call now?",
     "goHome": "Go",
-    "notEnoughBody": "You have {{owned}} ROSE.\nCollect more gifts through calls."
+    "notEnoughBody": "You have {{owned}} ROSE.\nCollect more gifts through calls.",
+    "exchangeHistoryLink": "Swap history"
   },
   "sso": {
     "reconsent": {
@@ -2581,5 +2584,20 @@
     "clubxSlide2": "Party · social",
     "clubxSlide3": "Dance · items",
     "clubxIosSoon": "App Store coming soon. Please try on Android first."
+  },
+  "accountFace": {
+    "title": "Face registration",
+    "subtitle": "Register your face once to protect your account. Turn your head as guided and the photos are taken automatically.",
+    "privacyNote": "One front-facing photo is stored encrypted and used only to check for duplicate sign-ups by the same person.",
+    "permission": "Camera access is needed to register your face. Please allow the camera in Settings.",
+    "retry": "Retake",
+    "err": {
+      "expired": "Time ran out. Please take the photos again.",
+      "generic": "Couldn't register. Please try again in a moment.",
+      "multiFace": "Make sure only one person is on screen.",
+      "noFace": "We couldn't see your face clearly. Please try again somewhere brighter.",
+      "notFrontal": "For the first photo, please look straight at the camera.",
+      "steps": "Please turn your head slowly in the direction shown."
+    }
   }
 }
