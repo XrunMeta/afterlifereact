@@ -21,7 +21,7 @@ from aiohttp import web
 
 from clone_dialog.bundle_client import fetch_bundle
 from clone_dialog.conversation_history import ConversationHistory
-from clone_dialog.lang_tag import lang_instruction, normalize_lang, split_lang_tag
+from clone_dialog.lang_tag import emo_tag_enabled, emotion_instruction, lang_instruction, normalize_lang, split_reply_tags
 from clone_dialog.llm_client import chat_once
 from clone_dialog.persona_prompt import bundle_to_messages
 
@@ -72,7 +72,12 @@ def build_chat_messages(
         role = "user" if m.get("role") == "user" else "assistant" if m.get("role") == "clone" else None
         if role:
             convo.append({"role": role, "content": t})
-    lang_rule = [{"role": "system", "content": lang_instruction(user_lang)}]
+    rule = lang_instruction(user_lang)
+    if user_lang and emo_tag_enabled():
+        # AFL-1067: 감정 태그 지시는 언어 규칙과 한 메시지로(통화와 같은 규칙).
+        #   앱 언어를 안 보내는 구 앱은 지시 없이 지금 그대로(통화 _lang_rule 과 같은 기준).
+        rule += "\n\n" + emotion_instruction()
+    lang_rule = [{"role": "system", "content": rule}]
     return list(persona_messages) + prior_msgs + convo + lang_rule + [{"role": "user", "content": text}]
 
 
@@ -127,13 +132,14 @@ async def chat_reply(req: web.Request) -> web.Response:
     except Exception as e:  # noqa: BLE001
         log.exception("chat reply LLM 실패 clone=%s: %s", clone_id, e)
         return web.json_response({"error": "llm_failed"}, status=502)
-    lang, reply = split_lang_tag(raw or "", user_lang)
+    lang, _ask, emotion, reply = split_reply_tags(raw or "", user_lang)
     reply = reply[:_MAX_REPLY_CHARS]
     if not reply:
         return web.json_response({"error": "empty_reply"}, status=502)
-    log.info("chat reply clone=%s model=%s prior=%d recent=%d chars=%d lang=%s user_lang=%s",
-             clone_id, model or "default", len(prior), len(recent), len(reply), lang, user_lang or "-")
-    return web.json_response({"reply": reply, "lang": lang})
+    log.info("chat reply clone=%s model=%s prior=%d recent=%d chars=%d lang=%s emo=%s user_lang=%s",
+             clone_id, model or "default", len(prior), len(recent), len(reply), lang, emotion,
+             user_lang or "-")
+    return web.json_response({"reply": reply, "lang": lang, "emotion": emotion})
 
 
 def register_chat_reply_routes(app: web.Application) -> None:

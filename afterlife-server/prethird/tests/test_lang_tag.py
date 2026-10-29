@@ -149,3 +149,155 @@ def test_opening_word_tag_kept_and_lt_text_kept():
     s = LangTagStream("ko")
     out = "".join(s.feed(p) for p in ["<lang=ko>", "a < b 이고 ", "<3"]) + s.finish()
     assert out == "a < b 이고 <3"
+
+
+# AFL-1067 <emo=…> 감정 태그 — 언어(·ask) 태그 뒤에 하나. TTS 견본 선택용 파라미터.
+from clone_dialog.lang_tag import DEFAULT_EMOTION, EMOTIONS, emotion_instruction, normalize_emotion, split_reply_tags  # noqa: E402
+
+
+def test_emo_6종_기본_neutral():
+    assert EMOTIONS == ("neutral", "calm", "happy", "sad", "angry", "warm")
+    assert DEFAULT_EMOTION == "neutral"
+
+
+def test_normalize_emotion():
+    assert normalize_emotion("SAD") == "sad"
+    assert normalize_emotion(" warm ") == "warm"
+    assert normalize_emotion("excited") is None
+    assert normalize_emotion(None) is None
+
+
+def test_emo_after_lang():
+    assert split_reply_tags("<lang=ko><emo=sad>보고 싶었어.") == ("ko", None, "sad", "보고 싶었어.")
+
+
+def test_emo_after_ask():
+    assert split_reply_tags("<lang=ko><ask=who><emo=calm>카메라 봐줄래?") == ("ko", "who", "calm", "카메라 봐줄래?")
+
+
+def test_emo_before_lang_순서_바뀌어도_인정():
+    assert split_reply_tags("<emo=happy><lang=en>Great!", "ko") == ("en", None, "happy", "Great!")
+
+
+def test_emo_without_lang_구앱():
+    assert split_reply_tags("<emo=warm>괜찮아.") == ("ko", None, "warm", "괜찮아.")
+
+
+def test_emo_없으면_neutral():
+    assert split_reply_tags("<lang=ko>응.") == ("ko", None, "neutral", "응.")
+
+
+def test_emo_모르는_값은_neutral_본문에서_제거():
+    assert split_reply_tags("<lang=ko><emo=excited>와!") == ("ko", None, "neutral", "와!")
+
+
+def test_emo_중간_닫는태그_지우고_플래그로_안씀():
+    assert split_reply_tags("<lang=ko>안녕 <emo=sad>잘 가.</emo>") == ("ko", None, "neutral", "안녕 잘 가.")
+
+
+def test_split_head_tags_emo_있어도_3튜플_그대로():
+    assert split_head_tags("<lang=ko><emo=sad>응") == ("ko", None, "응")
+    assert split_lang_tag("<lang=ja><emo=happy>はい") == ("ja", "はい")
+
+
+def test_stream_emo_조각으로_와도_판정():
+    s = LangTagStream("ko")
+    parts = ["<lang=ko>", "<e", "mo=s", "ad>", "보고", " 싶었어."]
+    out = "".join(s.feed(p) for p in parts) + s.finish()
+    assert (s.lang, s.ask, s.emo, out) == ("ko", None, "sad", "보고 싶었어.")
+
+
+def test_stream_emo_판정전엔_본문_안흘림():
+    s = LangTagStream("ko")
+    assert s.feed("<lang=ko><emo=wa") == ""
+    assert s.emo is None
+    assert s.feed("rm>괜찮아") == "괜찮아"
+    assert s.emo == "warm"
+
+
+def test_stream_ask_then_emo():
+    s = LangTagStream("ko")
+    out = s.feed("<lang=ko><ask=who>") + s.feed("<emo=calm>잠깐") + s.finish()
+    assert (s.ask, s.emo, out) == ("who", "calm", "잠깐")
+
+
+def test_stream_emo_없으면_neutral_으로_확정():
+    s = LangTagStream("ko")
+    assert s.feed("<lang=ko>응") == "응"
+    assert s.emo == "neutral"
+
+
+def test_stream_emo_끊긴채_끝나면_버림():
+    s = LangTagStream("ko")
+    out = s.feed("<lang=ko>") + s.feed("<emo=sa") + s.finish()
+    assert (s.emo, out) == ("neutral", "")
+
+
+def test_stream_본문_중간_emo_지움():
+    s = LangTagStream("ko")
+    out = "".join(s.feed(p) for p in ["<lang=ko><emo=happy>좋아", " <emo", "=sad>", "진짜."]) + s.finish()
+    assert (s.emo, out) == ("happy", "좋아 진짜.")
+
+
+def test_emotion_instruction_값과_예시():
+    txt = emotion_instruction()
+    for e in EMOTIONS:
+        assert e in txt
+    assert "<emo=" in txt and "neutral" in txt
+
+
+# sion 리뷰(2026-10-30): 감정 값 형식이 벗어나도 값 꼬리가 본문으로 새면 안 된다.
+def test_emo_값_변형은_통째로_지우고_neutral():
+    for raw in ["<emo=warm!>", "<emo=행복>", "<emo=ABCDEFGHIJKLMNOP>", "<emo=happy.>", "<emo=warm, 기쁘게>",
+                "<emo=>", "<emo>", "<emo = sad >"]:
+        lang, ask, emo, body = split_reply_tags("<lang=ko>" + raw + "안녕", "ja")
+        assert body == "안녕", raw
+        assert emo == ("sad" if "sad" in raw else "neutral"), raw
+
+
+def test_emo_중간_값_변형도_통째로_지움():
+    assert split_reply_tags("<lang=ko>좋아 <emo=신남!> 진짜.")[3] == "좋아  진짜."
+
+
+def test_emo_닫는꺾쇠_없으면_본문을_먹지_않음():
+    assert split_reply_tags("<lang=ko>안녕 <emo=sad 그리고 많이 보고 싶었어")[3] == "안녕 그리고 많이 보고 싶었어"
+
+
+def test_stream_emo_글자단위_분할():
+    raw = "<lang=ko><emo=happy>와, 잘됐다!"
+    s = LangTagStream("ko")
+    out = "".join(s.feed(c) for c in raw) + s.finish()
+    assert (s.lang, s.emo, out) == ("ko", "happy", "와, 잘됐다!")
+
+
+def test_stream_emo_값_변형_꼬리_안샘():
+    for raw in ["<emo=warm!>", "<emo=행복>", "<emo=warm, 기쁘게>"]:
+        s = LangTagStream("ko")
+        out = "".join(s.feed(c) for c in "<lang=ko>" + raw + "안녕") + s.finish()
+        assert (s.emo, out) == ("neutral", "안녕"), raw
+
+
+def test_emo_뒤의_ask_는_인정안함_순서고정():
+    assert split_reply_tags("<lang=ko><emo=warm><ask=who>좋아") == ("ko", None, "warm", "좋아")
+
+
+# sion 재검증(2026-10-30): 닫는 `>` 없는 `<emo=` 뒤 본문이 스트림에서 통째로 사라지면 안 된다.
+def test_stream_emo_닫는꺾쇠_없어도_본문_유지():
+    for raw, want in [("<lang=ko><emo=sad 응.", "응."), ("<lang=ko><emo=sad 괜찮아, 많이 힘들었지?", "괜찮아, 많이 힘들었지?"),
+                      ("<lang=ko>x <emo=sad 그래서 말이야", "x 그래서 말이야")]:
+        s = LangTagStream("ko")
+        out = s.feed(raw) + s.finish()
+        assert out == split_reply_tags(raw)[3] == want, raw
+
+
+def test_emo_긴_값도_꼬리_안샘():
+    raw = "<lang=ko><emo=" + "x" * 30 + ">안녕"
+    assert split_reply_tags(raw)[3] == "안녕"
+    s = LangTagStream("ko")
+    assert s.feed(raw) + s.finish() == "안녕"
+
+
+def test_등호없는_emo_본문은_보존():
+    assert split_reply_tags("<lang=ko>안녕 <emo 설명 텍스트> 끝")[3] == "안녕 <emo 설명 텍스트> 끝"
+    assert split_reply_tags("<lang=ko>x<emo 좋아")[3] == "x<emo 좋아"
+    assert split_reply_tags("<lang=ko>a <emotion> b")[3] == "a <emotion> b"

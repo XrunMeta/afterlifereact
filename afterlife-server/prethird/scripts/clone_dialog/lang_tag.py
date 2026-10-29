@@ -4,9 +4,13 @@
 - 태그는 **맨 앞에서만** 인정. 중간에 나온 `<lang=…>` 는 지우고 플래그로 쓰지 않는다.
 - 태그가 없거나 · 깨졌거나 · 모르는 코드면 → 사용자 언어 → `ko`.
 - 코드는 짧은 형식(ko·en·ja·zh·es·fr·id … ISO 639-1 두 글자).
+
+AFL-1067: 머리 태그에 `<emo=감정>` 을 더한다(EMOTIONS 6종). 답 하나에 하나, 순서는 상관없이 머리에서만
+인정하고 없거나 모르는 값이면 neutral. TTS 에는 텍스트가 아니라 파라미터로 넘긴다(감정 견본 선택용).
 """
 from __future__ import annotations
 
+import os
 import re
 
 DEFAULT_LANG = "ko"
@@ -20,18 +24,27 @@ _HEAD_RE = re.compile(r"^\s*<\s*lang\s*=\s*([A-Za-z]{2,3})(?:[-_][A-Za-z]{2,4})?
 #   `</final` 이 붙어 화면·TTS 로 갔다. 닫는 꼴만 — 여는 `<word>` 는 본문일 수 있어 건드리지 않는다.
 _ANY_RE = re.compile(
     r"<\s*/?\s*lang\b\s*(?:=\s*[A-Za-z_-]{0,10}\s*)?>?|<\s*/?\s*ask\b\s*(?:=\s*[^>\s<]{0,24}\s*)?>?"
+    # AFL-1067: `<emo=…>` 는 값이 무엇이든(기호·한글·쉼표) `>` 까지 지운다(값 꼬리가 TTS 로 새지 않게).
+    #   `>` 가 없으면 값 앞부분만(본문을 먹지 않게). `=` 없는 `<emo 설명>` 같은 본문은 건드리지 않는다.
+    r"|<\s*emo\s*=[^<>\n]{0,40}>|<\s*/?\s*emo\s*>|<\s*emo\s*=\s*[A-Za-z_-]{0,12}\s*"
     r"|<\s*/\s*[A-Za-z_][A-Za-z0-9_-]{0,15}\s*>?",
     re.I,
 )
-# 스트림 조각 끝에 걸린 태그 앞부분(`<`·`</as`·`<lang=k` …) — 다음 조각과 붙여 판정하려고 붙잡는다.
+# 스트림 조각 끝에 걸린 태그 앞부분(`<`·`</as`·`<lang=k`·`<emo=s` …) — 다음 조각과 붙여 판정하려고 붙잡는다.
 _TAG_PREFIX_RE = re.compile(
-    r"<\s*/?\s*(?:l(?:a(?:n(?:g(?:\s*=\s*[A-Za-z_-]{0,10}\s*)?)?)?)?|a(?:s(?:k(?:\s*=\s*[^>\s<]{0,24}\s*)?)?)?)?"
+    r"<\s*/?\s*(?:l(?:a(?:n(?:g(?:\s*=\s*[A-Za-z_-]{0,10}\s*)?)?)?)?|a(?:s(?:k(?:\s*=\s*[^>\s<]{0,24}\s*)?)?)?"
+    r"|e(?:m(?:o(?:\s*(?:=[^<>\n]{0,40})?)?)?)?)?"
     r"|<\s*/\s*[A-Za-z_][A-Za-z0-9_-]{0,15}\s*",
     re.I,
 )
 # AFL-1039: `<lang=xx>` 바로 뒤의 `<ask=who>` 만 플래그로 인정. 그 밖의 값(이름 등)은 플래그 없이 지운다.
 _ASK_RE = re.compile(r"^\s*<\s*ask\s*=\s*(who)\s*>\s*", re.I)
 ASK_VALUES = frozenset({"who"})
+# AFL-1067: 머리의 `<emo=값>`(값이 깨졌으면 플래그 없이 지운다).
+# 값 칸은 넓게 받아(`>` 까지) 통째로 떼고, EMOTIONS 밖이면 neutral.
+_EMO_RE = re.compile(r"^\s*<\s*emo\s*=([^<>\n]{0,40})>\s*", re.I)
+EMOTIONS = ("neutral", "calm", "happy", "sad", "angry", "warm")
+DEFAULT_EMOTION = "neutral"
 
 # ISO 639-1 두 글자만 인정(오탈자·임의 문자열 차단). 필요한 언어가 늘면 여기에 더한다.
 KNOWN_LANGS = frozenset({
@@ -48,23 +61,67 @@ def normalize_lang(code: str | None) -> str | None:
     return base if base in KNOWN_LANGS else None
 
 
-def split_head_tags(text: str, fallback: str | None = None) -> tuple[str, str | None, str]:
-    """완성된 답에서 (lang, ask, 태그를 뗀 본문). ask 는 lang 태그 바로 뒤 `<ask=who>` 일 때만 "who"."""
+def normalize_emotion(value: str | None) -> str | None:
+    """'SAD'·' warm ' → 'sad'·'warm'. 모르는 값이면 None."""
+    if not isinstance(value, str):
+        return None
+    v = value.strip().lower()
+    return v if v in EMOTIONS else None
+
+
+class _HeadTags:
+    """머리 태그 판정 상태 — split_reply_tags(완성본)와 LangTagStream(스트림)이 같은 규칙을 쓴다.
+
+    lang: 머리 어디서든 1회 · ask: lang 태그 바로 뒤에서만 · emo: 머리 어디서든 1회.
+    """
+
+    def __init__(self) -> None:
+        self.lang: str | None = None
+        self.ask: str | None = None
+        self.emo: str | None = None
+        self.seen_lang = False
+        self.seen_emo = False
+        self._ask_ok = False    # 직전에 lang 태그를 뗐을 때만 ask 를 본다
+
+    def take(self, s: str) -> int:
+        """s 맨 앞의 머리 태그 하나를 떼면 그 길이, 아니면 0."""
+        if not self.seen_lang:
+            m = _HEAD_RE.match(s)
+            if m:
+                self.lang, self.seen_lang, self._ask_ok = normalize_lang(m.group(1)), True, True
+                return m.end()
+        if self._ask_ok:
+            am = _ASK_RE.match(s)
+            if am:
+                v = am.group(1).lower()
+                self.ask, self._ask_ok = (v if v in ASK_VALUES else None), False
+                return am.end()
+        if not self.seen_emo:
+            em = _EMO_RE.match(s)
+            if em:
+                self.emo, self.seen_emo, self._ask_ok = normalize_emotion(em.group(1)), True, False
+                return em.end()
+        return 0
+
+
+def split_reply_tags(text: str, fallback: str | None = None) -> tuple[str, str | None, str, str]:
+    """완성된 답에서 (lang, ask, emo, 태그를 뗀 본문). emo 는 없거나 모르는 값이면 neutral."""
     fb = normalize_lang(fallback) or DEFAULT_LANG
     s = text or ""
-    lang = None
-    ask = None
-    m = _HEAD_RE.match(s)
-    if m:
-        lang = normalize_lang(m.group(1))
-        s = s[m.end():]
-        am = _ASK_RE.match(s)
-        if am:
-            v = am.group(1).lower()
-            ask = v if v in ASK_VALUES else None
-            s = s[am.end():]
+    h = _HeadTags()
+    while True:
+        n = h.take(s)
+        if not n:
+            break
+        s = s[n:]
     s = _ANY_RE.sub("", s).strip()
-    return (lang or fb), ask, s
+    return (h.lang or fb), h.ask, (h.emo or DEFAULT_EMOTION), s
+
+
+def split_head_tags(text: str, fallback: str | None = None) -> tuple[str, str | None, str]:
+    """완성된 답에서 (lang, ask, 태그를 뗀 본문). ask 는 lang 태그 바로 뒤 `<ask=who>` 일 때만 "who"."""
+    lang, ask, _emo, body = split_reply_tags(text, fallback)
+    return lang, ask, body
 
 
 def split_lang_tag(text: str, fallback: str | None = None) -> tuple[str, str]:
@@ -74,11 +131,12 @@ def split_lang_tag(text: str, fallback: str | None = None) -> tuple[str, str]:
 
 
 class LangTagStream:
-    """스트리밍용 — 첫 조각들에서 태그를 기다렸다가 언어가 정해지면 본문만 흘린다.
+    """스트리밍용 — 첫 조각들에서 머리 태그를 기다렸다가 정해지면 본문만 흘린다.
 
     feed(chunk) → 지금 내보낼 본문(아직 태그 판정 중이면 "").
     lang       → 정해진 언어(판정 전이면 None). finish() 후엔 항상 값이 있다.
     ask        → lang 태그 바로 뒤 `<ask=who>` 가 있으면 "who", 아니면 None (finish() 후 확정).
+    emo        → AFL-1067 머리의 `<emo=…>`(없거나 모르는 값이면 neutral). 머리가 끝나기 전엔 None.
     """
 
     # 태그가 이 길이 안에 안 끝나면 태그 없는 답으로 본다.
@@ -89,8 +147,10 @@ class LangTagStream:
         self._buf = ""
         self.lang: str | None = None
         self.ask: str | None = None
-        # lang 확정 직후 `<ask=…>` 가 올 수 있는 구간 — 판정 전까지 본문을 붙잡는다.
-        self._ask_pending = False
+        self.emo: str | None = None
+        self._head = _HeadTags()
+        # 머리 태그 판정이 끝났는지 — 끝나기 전엔 본문을 붙잡는다.
+        self._head_done = False
         # 본문 중 조각 경계에 걸린 태그 앞부분(_body 참고).
         self._hold = ""
 
@@ -104,59 +164,48 @@ class LangTagStream:
             self._hold, s = s[i:], s[:i]
         return _ANY_RE.sub("", s)
 
-    def _feed_ask(self, chunk: str) -> str:
-        self._buf += chunk or ""
-        am = _ASK_RE.match(self._buf)
-        if am:
-            self.ask = am.group(1).lower()
-            rest, self._buf, self._ask_pending = self._buf[am.end():], "", False
-            return self._body(rest)
-        head = self._buf.lstrip()
-        if not head:
-            return ""
-        if head.startswith("<") and ">" not in head and len(head) < self._MAX_HEAD:
-            return ""
-        rest, self._buf, self._ask_pending = self._buf, "", False
-        return self._body(rest)
-
-    def feed(self, chunk: str) -> str:
-        if self.lang is not None:
-            if self._ask_pending:
-                return self._feed_ask(chunk)
-            return self._body(chunk)
-        self._buf += chunk or ""
-        head = self._buf.lstrip()
-        if not head:
-            return ""
-        m = _HEAD_RE.match(self._buf)
-        if m:
-            self.lang = normalize_lang(m.group(1)) or self._fb
-            rest, self._buf = self._buf[m.end():], ""
-            self._ask_pending = True
-            return self._feed_ask(rest)
-        # '<' 로 시작했는데 아직 '>' 가 안 왔으면 태그가 만들어지는 중 — 더 기다린다.
-        if head.startswith("<") and ">" not in head and len(head) < self._MAX_HEAD:
-            return ""
-        self.lang = self._fb
+    def _consume_head(self, final: bool) -> str:
+        """버퍼 맨 앞의 머리 태그를 하나씩 뗀다. 본문이 시작되면 머리를 닫고 본문을 내보낸다."""
+        h = self._head
+        while True:
+            n = h.take(self._buf)
+            if n:
+                self._buf = self._buf[n:]
+                if h.seen_lang and self.lang is None:
+                    self.lang = h.lang or self._fb
+                if h.ask:
+                    self.ask = h.ask
+                continue
+            head = self._buf.lstrip()
+            if not head and not final:
+                return ""
+            # '<' 로 시작했는데 아직 '>' 가 안 왔으면 태그가 만들어지는 중 — 더 기다린다.
+            if not final and head.startswith("<") and ">" not in head and len(head) < self._MAX_HEAD:
+                return ""
+            break
+        self._head_done = True
+        if self.lang is None:
+            self.lang = self._fb
+        self.emo = h.emo or DEFAULT_EMOTION
         rest, self._buf = self._buf, ""
         return self._body(rest)
 
+    def feed(self, chunk: str) -> str:
+        if self._head_done:
+            return self._body(chunk)
+        self._buf += chunk or ""
+        return self._consume_head(final=False)
+
     def finish(self) -> str:
-        """스트림 끝 — 남은 버퍼를 내보내고 언어를 확정한다."""
-        if self.lang is None:
-            lang, ask, rest = split_head_tags(self._buf, self._fb)
-            self.lang, self.ask, self._buf = lang, ask, ""
-            return rest
-        if self._ask_pending:
-            # ask 판정 중에 스트림이 끝남 — 남은 버퍼를 같은 규칙으로 정리.
-            _l, self.ask, rest = split_head_tags("<lang=xx>" + self._buf, self._fb)
-            tail = self._buf.strip().lower().replace(" ", "")
-            self._buf, self._ask_pending = "", False
-            # 끊긴 `<as` 같은 태그 앞부분은 사용자에게 내보내지 않는다.
-            return "" if tail and "<ask=who>".startswith(tail) else rest
-        # 끝까지 붙잡힌 태그 앞부분 — `<` 하나면 본문 글자로 돌려주고, 그보다 길면 끊긴 태그라 버린다.
+        """스트림 끝 — 남은 버퍼를 내보내고 언어·감정을 확정한다."""
+        out = "" if self._head_done else self._consume_head(final=True)
+        # 끝까지 붙잡힌 태그 앞부분 — 태그 꼴만 지우고 나머지는 본문으로 돌려준다.
+        #   (`<` 하나는 그대로 · `</as`·`<lang=fr` 은 사라짐 · `<emo=sad 응.` 은 "응." 이 남는다)
         held, self._hold = self._hold, ""
-        return held if held == "<" else ""
+        rest = _ANY_RE.sub("", held)
+        if rest != "<" and _TAG_PREFIX_RE.fullmatch(rest):
+            rest = ""   # 끊긴 태그 이름(`<as`·`<e`)만 남았다 — 버린다
+        return out + rest
 
 
 # AFL-1034: 통화에서 목소리로 말할 수 있는 언어(TTS 지원). ko·en·ja·zh = CosyVoice2 · es = CosyVoice3.
@@ -190,4 +239,24 @@ def lang_instruction(user_lang: str | None, allowed: tuple[str, ...] | None = No
         "반말이면 친근한 말투, 존댓말이면 정중한 말투로 답하고 사투리는 쓰지 마.\n"
         "- 답의 **맨 앞**에 답한 언어를 `<lang=코드>` 로 붙여(코드: ko·en·ja·zh·es·fr·id 등 두 글자). "
         "예: `<lang=ja>こんにちは！` · `<lang=ko>안녕!` — 태그는 맨 앞에 한 번만."
+    )
+
+
+def emo_tag_enabled() -> bool:
+    """AFL-1067: 감정 태그 지시문을 넣을지(env PRETHIRD_EMO_TAG, 기본 켬 · "0" 이면 끔).
+    꺼도 파서는 그대로 — 태그가 와도 지우고 neutral 로 본다."""
+    return os.environ.get("PRETHIRD_EMO_TAG", "1") != "0"
+
+
+def emotion_instruction() -> str:
+    """AFL-1067: 답 머리에 말투 감정 `<emo=값>` 을 붙이라는 지시. 언어 규칙 뒤에 이어 붙인다."""
+    return (
+        "[감정 태그]\n"
+        "- 언어 태그 바로 뒤에(`<ask=who>` 를 붙일 땐 그 뒤에) 이번 답을 말할 목소리의 감정을 "
+        "`<emo=값>` 으로 하나 붙여.\n"
+        "- 값: neutral(평소) · calm(차분) · happy(기쁨·신남) · sad(슬픔·그리움) · angry(화남·짜증) · "
+        "warm(다정·위로).\n"
+        "- 대화 내용이 아니라 **네가 지금 어떤 감정으로 말하는지**로 골라. 애매하면 neutral.\n"
+        "- 답 전체에 하나만, 맨 앞에만. 본문 중간이나 끝에 쓰지 말고 닫는 태그(`</emo>`)도 쓰지 마.\n"
+        "- 예: `<lang=ko><emo=warm>괜찮아, 내가 있잖아.` · `<lang=ko><emo=happy>와, 진짜 잘됐다!`"
     )

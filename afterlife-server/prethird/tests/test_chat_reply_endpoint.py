@@ -84,7 +84,7 @@ async def test_reply_uses_bundle_persona_and_default_llm(monkeypatch):
                   "prior": [], "recent": []},
         )
         assert resp.status == 200
-        assert (await resp.json()) == {"reply": "오냐, 잘 왔다", "lang": "ko"}
+        assert (await resp.json()) == {"reply": "오냐, 잘 왔다", "lang": "ko", "emotion": "neutral"}
     assert seen["bundle"] == (9043, "T")
     assert seen["model"] is None          # 통화와 같은 기본 모델
     assert seen["messages"][-1] == {"role": "user", "content": "할아버지"}
@@ -139,7 +139,7 @@ async def test_reply_strips_lang_tag_and_uses_user_lang(monkeypatch):
             json={"clone_id": 1, "user_token": "T", "text": "こんにちは", "user_lang": "ja-JP"},
         )
         assert resp.status == 200
-        assert (await resp.json()) == {"reply": "こんにちは！", "lang": "ja"}
+        assert (await resp.json()) == {"reply": "こんにちは！", "lang": "ja", "emotion": "neutral"}
     assert "`ja`" in seen["messages"][-2]["content"]
 
 
@@ -172,3 +172,64 @@ async def test_reply_uses_model_from_worker(monkeypatch):
             assert resp.status == 200, model
     # 이상한 값(공백·특수문자·너무 김·문자열 아님·빈 값)은 무시하고 기본 모델(None)로 답한다.
     assert seen == ["gpt-5-nano", "openai:gpt-4o-mini", None, None, None, None]
+
+
+@pytest.mark.asyncio
+async def test_reply_returns_emotion_and_strips_emo_tag(monkeypatch):
+    """AFL-1067: 답 머리 <emo=…> 를 떼어 emotion 으로 · 감정 지시는 언어 규칙과 같은 메시지."""
+    monkeypatch.setattr(cr, "_CHAT_SECRET", "S")
+    monkeypatch.delenv("PRETHIRD_EMO_TAG", raising=False)
+    seen = {}
+
+    async def fake_fetch_bundle(api_base, clone_id, token):
+        return {"personaBundle": {"cloneId": str(clone_id), "persona": {"displayName": "할배"}}}
+
+    async def fake_chat_once(messages, model=None, temperature=None, fmt=None, num_predict=None):
+        seen["messages"] = messages
+        return "<lang=ko><emo=warm>괜찮다, 내가 있다."
+
+    monkeypatch.setattr(cr, "fetch_bundle", fake_fetch_bundle)
+    monkeypatch.setattr(cr, "chat_once", fake_chat_once)
+    async with TestClient(TestServer(_app())) as client:
+        resp = await client.post(
+            "/chat/reply",
+            headers={"X-Internal-Secret": "S"},
+            json={"clone_id": 1, "user_token": "T", "text": "힘들어", "user_lang": "ko"},
+        )
+        assert resp.status == 200
+        assert (await resp.json()) == {"reply": "괜찮다, 내가 있다.", "lang": "ko", "emotion": "warm"}
+    rule = seen["messages"][-2]["content"]
+    assert "<lang=" in rule and "<emo=" in rule
+
+
+def test_build_messages_emo_tag_off(monkeypatch):
+    monkeypatch.setenv("PRETHIRD_EMO_TAG", "0")
+    msgs = cr.build_chat_messages([], [], [], "응", max_chars=0, user_lang="ko")
+    assert "<lang=" in msgs[-2]["content"] and "<emo=" not in msgs[-2]["content"]
+
+
+def test_build_messages_구앱은_감정지시_없이_기존과_동일(monkeypatch):
+    """AFL-1067: user_lang 없는 구 앱 — 규칙 문구가 언어 규칙 그대로(감정 지시 없음)."""
+    monkeypatch.delenv("PRETHIRD_EMO_TAG", raising=False)
+    msgs = cr.build_chat_messages([], [], [], "응", max_chars=0)
+    assert msgs[-2]["content"] == cr.lang_instruction(None)
+
+
+@pytest.mark.asyncio
+async def test_reply_emo_tag_off_still_strips_tag(monkeypatch):
+    """지시를 꺼도 LLM 이 태그를 달면 지운다."""
+    monkeypatch.setattr(cr, "_CHAT_SECRET", "S")
+    monkeypatch.setenv("PRETHIRD_EMO_TAG", "0")
+
+    async def fake_fetch_bundle(api_base, clone_id, token):
+        return {"personaBundle": {"cloneId": str(clone_id), "persona": {"displayName": "할배"}}}
+
+    async def fake_chat_once(messages, model=None, temperature=None, fmt=None, num_predict=None):
+        return "<lang=ko><emo=sad>그랬구나."
+
+    monkeypatch.setattr(cr, "fetch_bundle", fake_fetch_bundle)
+    monkeypatch.setattr(cr, "chat_once", fake_chat_once)
+    async with TestClient(TestServer(_app())) as client:
+        resp = await client.post("/chat/reply", headers={"X-Internal-Secret": "S"},
+                                 json={"clone_id": 1, "user_token": "T", "text": "슬퍼", "user_lang": "ko"})
+        assert (await resp.json())["reply"] == "그랬구나."
