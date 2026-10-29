@@ -77,6 +77,24 @@ export async function v_4dd1c9(): Promise<string | null> {
   return v_360aa6;
 }
 
+export const v_8132bb = 20_000;
+
+async function v_524194(v_f71b56, v_00cfc6): Promise<{ res: Response; text: string }> {
+  const v_bfe9b9 = (v_00cfc6.method ?? "GET").toUpperCase();
+  if (v_bfe9b9 !== "GET" || v_00cfc6.signal) {
+    const v_8f00b9 = await fetch(v_f71b56, v_00cfc6);
+    return { res: v_8f00b9, text: await v_8f00b9.text() };
+  }
+  const v_57bcd5 = new AbortController();
+  const v_cb36b1 = setTimeout(() => v_57bcd5.abort(), v_8132bb);
+  try {
+    const v_8f00b9 = await fetch(v_f71b56, { ...v_00cfc6, signal: v_57bcd5.signal });
+    return { res: v_8f00b9, text: await v_8f00b9.text() };
+  } finally {
+    clearTimeout(v_cb36b1);
+  }
+}
+
 export async function v_04b58a<T>(
   v_9fe22d,
   v_2ca7e0,
@@ -100,8 +118,7 @@ export async function v_04b58a<T>(
   const v_f71b56 = `${v_cc9198}${v_9fe22d}`;
   const v_bfe9b9 = v_00cfc6.method ?? "GET";
 
-  const v_8f00b9 = await fetch(v_f71b56, { ...v_00cfc6, headers: v_bdc6fc(v_2ca7e0) });
-  const v_9b6134 = await v_8f00b9.text();
+  const { res: v_8f00b9, text: v_9b6134 } = await v_524194(v_f71b56, { ...v_00cfc6, headers: v_bdc6fc(v_2ca7e0) });
 
   let v_8decf8 = null;
   try {
@@ -136,8 +153,7 @@ export async function v_04b58a<T>(
       throw new v_84a859(401, v_c99bd2, v_3be591(v_c99bd2, v_a8cd21), v_4d33b2?.error?.details);
     }
 
-    const v_48bbbd = await fetch(v_f71b56, { ...v_00cfc6, headers: v_bdc6fc(v_4094c3) });
-    const v_e0f89e = await v_48bbbd.text();
+    const { res: v_48bbbd, text: v_e0f89e } = await v_524194(v_f71b56, { ...v_00cfc6, headers: v_bdc6fc(v_4094c3) });
     let v_7fcbbc = null;
     try {
       v_7fcbbc = v_e0f89e ? JSON.parse(v_e0f89e) : null;

@@ -30,6 +30,8 @@ const v_a70c97 = {
   'react-native-worklets-core': v_9ecc2c('stub-worklets-core.js'),
   '@react-native-google-signin/google-signin': v_9ecc2c('stub-google-signin.js'),
 
+  'react-native-filament': v_9ecc2c('stub-filament.js'),
+
   'react-native-vision-camera': v_9ecc2c('vision-camera-stub.js'),
 };
 
