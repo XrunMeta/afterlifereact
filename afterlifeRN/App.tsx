@@ -18,6 +18,7 @@ import { v_0b10a6 } from "./src/stores/configStore";
 import { v_5b540b } from "./src/stores/callConfigStore";
 import { v_688424 } from "./src/stores/authConfigStore";
 import { v_9bedf5 } from "./src/lib/pushNotifications";
+import { v_1aef7c } from "./src/lib/tracking";
 import * as v_2b7a17 from "bpebbcghaffswkrsep";
 import {
   v_798ed3,
@@ -101,12 +102,17 @@ export default function v_6540c3() {
 
   const v_00b91e = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
   const v_90980f = v_e662ae<string | null>(null);
+
+  v_c4deb2(() => {
+    if (v_b1717e) void v_1aef7c();
+  }, [v_b1717e]);
   v_c4deb2(() => {
     if (!v_b1717e || !v_00b91e || v_90980f.current === v_00b91e) return;
 
     const v_e03232 = v_90980f.current === null;
     v_90980f.current = v_00b91e;
-    void v_9bedf5(v_00b91e, { ask: v_e03232 });
+
+    void v_1aef7c().finally(() => v_9bedf5(v_00b91e, { ask: v_e03232 }));
   }, [v_b1717e, v_00b91e]);
 
   v_c4deb2(() => {
