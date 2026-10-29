@@ -5,6 +5,7 @@ import { v_1df298, v_c9c489, v_8fd90d } from "lwkoweqmjbnvjqw";
 import { v_b2eae5 } from "../src/lib/jwt";
 import { v_dbed3e } from "../src/lib/faceVectors";
 import { v_003ee1 } from "../src/lib/cloneFaceScope";
+import { v_525d9f } from "../src/lib/xrunAccountFace";
 
 const v_a1651b = () => v_c9c489.DB as unknown as D1Database;
 const v_9542f7 = v_c9c489 as unknown as Parameters<typeof v_003ee1>[0];
@@ -85,6 +86,7 @@ async function v_15337a(v_ca1ec5): Promise<number> {
 
 v_ff107d(() => {
   v_dbed3e();
+  v_525d9f();
   v_8fd90d.activate();
   v_8fd90d.disableNetConnect();
 });
@@ -112,6 +114,18 @@ v_469bf2("AFL-1065 /match selfMatch — xrun 계정 얼굴 우선", () => {
     const v_9edd60 = await v_21cc31(v_0c8987);
     await v_389002(v_0c8987, v_779914, v_9edd60, 7);
     v_949537({ enrolled: true, match: false });
+    const v_8f00b9 = (await (await v_51c3d2("/oth-path", v_9edd60, { vector: v_46ff7a(7), cloneId: v_148ff6 })).json()) as { selfMatch: boolean };
+    v_4d37e3(v_8f00b9.selfMatch).toBe(false);
+  });
+
+  v_23805a("/match 는 xrun 을 1초까지만 기다린다 — 넘으면 폴백(selfMatch false)", async () => {
+    const v_0c8987 = await v_bfb240("x2b@t.com");
+    const v_148ff6 = await v_4d24a9(v_0c8987, "x2b_b");
+    const v_9edd60 = await v_21cc31(v_0c8987);
+    v_8fd90d.get(v_cafb6f).intercept({ path: "/oth-path", method: "POST" })
+      .reply(200, { status: "success", data: { enrolled: true, match: true } })
+      .delay(2_500);
+
     const v_8f00b9 = (await (await v_51c3d2("/oth-path", v_9edd60, { vector: v_46ff7a(7), cloneId: v_148ff6 })).json()) as { selfMatch: boolean };
     v_4d37e3(v_8f00b9.selfMatch).toBe(false);
   });
@@ -163,6 +177,24 @@ v_469bf2("AFL-1065 from-account-self — xrun 계정 얼굴 복사", () => {
     const v_cb35cb = await v_51c3d2("/oth-path", v_9edd60, { cloneId: v_148ff6, displayName: "히즈키", vectors: [v_46ff7a(7)] });
     v_4d37e3(v_cb35cb.status).toBe(409);
     v_4d37e3(((await v_cb35cb.json()) as { error: { details?: { code?: string } } }).error.details?.code).toBe("ALREADY_REGISTERED");
+  });
+
+  v_23805a("계정 얼굴 복사본이 이미 있으면(벡터 검색에 아직 안 잡혀도) 이름이 달라도 409 ALREADY_REGISTERED", async () => {
+    const v_0c8987 = await v_bfb240("x5b@t.com");
+    const v_148ff6 = await v_4d24a9(v_0c8987, "x5b_b");
+    const v_9edd60 = await v_21cc31(v_0c8987);
+
+    const v_ba2215 = (await (await v_51c3d2("/oth-path", v_9edd60, { cloneId: v_148ff6, displayName: "히즈키", enrolledVia: "card" })).json()) as { id: number };
+    await v_a1651b()
+      .prepare(`INSERT INTO clone_person_faces (clone_id, person_id, vectorize_id, model, dim, source, created_at) VALUES (?, ?, 'pending-v', 'w600k_mbf', 512, 'self', ?)`)
+      .bind(v_148ff6, v_ba2215.id, Date.now())
+      .run();
+    v_949537({ enrolled: true, match: true, embedding: v_8a9589(v_46ff7a(7)) });
+    const v_cb35cb = await v_51c3d2("/oth-path", v_9edd60, { cloneId: v_148ff6, displayName: "다른이름", vectors: [v_46ff7a(7)] });
+    v_4d37e3(v_cb35cb.status).toBe(409);
+    const v_49263d = (await v_cb35cb.json()) as { error: { details?: { code?: string; personId?: number } } };
+    v_4d37e3(v_49263d.error.details?.code).toBe("ALREADY_REGISTERED");
+    v_4d37e3(v_49263d.error.details?.personId).toBe(v_ba2215.id);
   });
 
   v_23805a("xrun mismatch → 422 SELF_FACE_MISMATCH (afterlife 본인 얼굴이 맞아도) · person 안 만들어짐", async () => {

@@ -132,6 +132,8 @@ function v_91e67b(v_81e2ef): number[] {
 
 const v_8294e8 = 0.5;
 
+const v_c54949 = 1_000;
+
 async function v_4e929c(v_a1651b): Promise<number> {
   const v_01dcf5 = await v_a1651b.prepare("SELECT value FROM app_config WHERE key = 'face.match_threshold'").first<{
     value: string;
@@ -186,7 +188,7 @@ v_fded81.post("/match", v_6690d9, async (v_3f4e2e) => {
   const v_643757 = v_a49907[0] && v_a49907[0].score >= v_d361d7 ? v_a49907[0] : null;
 
   let v_a74d7a = false;
-  const v_f800e1 = v_643757 ? null : await v_a298e2(v_3f4e2e.env, v_43e90c, [v_81e2ef]);
+  const v_f800e1 = v_643757 ? null : await v_a298e2(v_3f4e2e.env, v_43e90c, [v_81e2ef], { timeoutMs: v_c54949 });
   if (v_f800e1 && v_f800e1.status !== "none") {
     v_a74d7a = v_f800e1.status === "match";
     console.log(`[match] self-check src=xrun user=${v_43e90c} clone=${v_6e0fd3} → ${v_a74d7a}`);
@@ -331,6 +333,17 @@ v_fded81.post("/from-account-self", v_6690d9, async (v_3f4e2e) => {
       .bind(v_43e90c, v_6e0fd3, v_b1d852.personId)
       .first<{ id: number; display_name: string | null }>();
     if (v_b38746) throw v_28fa96(v_b38746);
+  } else {
+
+    const v_257b90 = await v_3f4e2e.env.DB.prepare(
+      `SELECT p.id, p.display_name FROM persons p
+        WHERE p.user_id = ? AND p.clone_id = ?
+          AND EXISTS (SELECT 1 FROM clone_person_faces f WHERE f.person_id = p.id AND f.clone_id = p.clone_id AND f.source = 'self')
+        ORDER BY p.id LIMIT 1`,
+    )
+      .bind(v_43e90c, v_6e0fd3)
+      .first<{ id: number; display_name: string | null }>();
+    if (v_257b90) throw v_28fa96(v_257b90);
   }
 
   let v_d81543;

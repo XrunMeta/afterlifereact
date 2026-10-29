@@ -2,7 +2,7 @@
 
 import { v_469bf2, v_23805a, v_4d37e3, v_ff107d, v_719203 } from "xualxe";
 import { v_c9c489, v_8fd90d } from "lwkoweqmjbnvjqw";
-import { v_a298e2, v_a43ce1 } from "../src/lib/xrunAccountFace";
+import { v_525d9f, v_a298e2, v_a43ce1 } from "../src/lib/xrunAccountFace";
 
 const v_a1651b = () => v_c9c489.DB as unknown as D1Database;
 const v_9542f7 = v_c9c489 as unknown as Parameters<typeof v_a298e2>[0];
@@ -47,10 +47,14 @@ function v_84f079(v_9fe22d, v_754331) {
 }
 
 v_ff107d(() => {
+  v_525d9f();
   v_8fd90d.activate();
   v_8fd90d.disableNetConnect();
 });
-v_719203(() => v_8fd90d.deactivate());
+v_719203(() => {
+  v_8fd90d.assertNoPendingInterceptors();
+  v_8fd90d.deactivate();
+});
 
 v_469bf2("matchXrunAccountFace", () => {
   v_23805a("match + 대표 벡터 → status match · embedding 512 왕복", async () => {
@@ -86,12 +90,15 @@ v_469bf2("matchXrunAccountFace", () => {
     const v_0c8987 = await v_bfb240("m3@x.test", 2857);
     v_84f079("/oth-path").reply(500, { status: "error" });
     v_4d37e3((await v_a298e2(v_9542f7, v_0c8987, [v_80cae9(1)])).status).toBe("none");
+    v_525d9f(); 
     v_84f079("/oth-path").replyWithError(new Error("boom"));
     v_4d37e3((await v_a298e2(v_9542f7, v_0c8987, [v_80cae9(1)])).status).toBe("none");
+    v_525d9f();
     v_84f079("/oth-path")
       .reply(200, { status: "success", data: { enrolled: true, match: true } })
       .delay(500);
     v_4d37e3((await v_a298e2(v_9542f7, v_0c8987, [v_80cae9(1)], { timeoutMs: 100 })).status).toBe("none");
+    v_525d9f();
     v_84f079("/oth-path").reply(200, {
       status: "success",
       data: { enrolled: true, match: true, embedding: v_4c4400(v_80cae9(1).slice(0, 511)) },
@@ -105,6 +112,22 @@ v_469bf2("matchXrunAccountFace", () => {
     const v_cb35cb = await v_a298e2(v_9542f7, v_0c8987, [v_80cae9(1)]);
     v_4d37e3(v_cb35cb.status).toBe("none");
     v_8fd90d.assertNoPendingInterceptors();
+  });
+});
+
+v_469bf2("xrun 얼굴 없음 기억", () => {
+  v_23805a("enrolled=false·오류는 잠깐 기억해 다시 묻지 않는다(얼굴 없는 계정이 대부분) · match/mismatch 는 기억 안 함", async () => {
+    const v_0c8987 = await v_bfb240("c1@x.test", 2870);
+    v_84f079("/oth-path").reply(200, { status: "success", data: { enrolled: false, match: false } });
+    v_4d37e3((await v_a298e2(v_9542f7, v_0c8987, [v_80cae9(1)])).status).toBe("none");
+
+    v_84f079("/oth-path").reply(200, { status: "success", data: { enrolled: true, match: true } });
+    v_4d37e3((await v_a298e2(v_9542f7, v_0c8987, [v_80cae9(1)])).status).toBe("none");
+    v_525d9f();
+    v_4d37e3((await v_a298e2(v_9542f7, v_0c8987, [v_80cae9(1)])).status).toBe("match");
+
+    v_84f079("/oth-path").reply(200, { status: "success", data: { enrolled: true, match: false } });
+    v_4d37e3((await v_a298e2(v_9542f7, v_0c8987, [v_80cae9(1)])).status).toBe("mismatch");
   });
 });
 
