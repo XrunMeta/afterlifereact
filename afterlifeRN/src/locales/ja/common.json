@@ -39,7 +39,8 @@
       "viewDetails": "詳しく見る"
     },
     "unknown": "名前なし",
-    "retryLater": "しばらくしてからもう一度お試しください。"
+    "retryLater": "しばらくしてからもう一度お試しください。",
+    "refreshFailed": "更新できませんでした"
   },
   "tabs": {
     "home": "ホーム",
@@ -404,7 +405,9 @@
     "imageApiUnavailable": "写真送信の準備中です。しばらくしてからお試しください。",
     "typingA11y": "入力中",
     "listTitle": "トーク一覧",
-    "listCount": "トーク一覧 {{count}}"
+    "listCount": "トーク一覧 {{count}}",
+    "timelineLoadFailed": "会話を読み込めませんでした",
+    "olderLoadFailed": "以前の会話を読み込めませんでした · 再試行"
   },
   "call": {
     "calling": "接続中...",
@@ -593,7 +596,9 @@
     "giftDesc": "クローンに特別なギフトを贈ってみてください",
     "balance": "保有XRUN",
     "send": "ギフトを贈る",
-    "paymentPending": "決済準備中です"
+    "paymentPending": "決済準備中です",
+    "giftLoadFailed": "ギフト一覧を読み込めませんでした",
+    "giftEmpty": "今送れるギフトはありません"
   },
   "edit": {
     "title": "クローン編集",
@@ -723,7 +728,8 @@
     "giftLogOpenFailDesc": "XRUNアプリをインストールしてください。",
     "giftKindReceived": "受け取り",
     "giftKindSent": "送信",
-    "giftKindExchanged": "交換"
+    "giftKindExchanged": "交換",
+    "loadFailed": "マイクローンを読み込めませんでした"
   },
   "learn": {
     "title": "学習する",
@@ -1917,7 +1923,9 @@
     "noResults": "検索結果がありません",
     "noClones": "一致するクローンはありません",
     "noAccounts": "一致するアカウントはありません",
-    "noTags": "一致するタグはありません"
+    "noTags": "一致するタグはありません",
+    "exploreLoadFailed": "クローンを読み込めませんでした",
+    "exploreEmpty": "まだ見られるクローンがありません"
   },
   "assetsHint": {
     "title": "少々お待ちください、追加情報が必要です",

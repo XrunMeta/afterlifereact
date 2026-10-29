@@ -66,13 +66,24 @@ const linking: v_4c916c<v_8ad91b> = {
         path: "clone/:cloneId",
         parse: { cloneId: (v_389afb) => Number(v_389afb) },
       },
+
+      Chat: {
+        path: "chat/:cloneId",
+        parse: { cloneId: (v_389afb) => Number(v_389afb) },
+      },
       Main: {
         screens: {
 
           ShortsTab: "chats",
+          SearchTab: "explore",
           ClonesTab: {
 
             screens: {
+              Dashboard: "my-clones",
+              CloneDetail: {
+                path: "clone/:cloneId/detail",
+                parse: { cloneId: (v_389afb) => Number(v_389afb) },
+              },
               CloneEdit: {
                 path: "clone/:cloneId/edit",
                 parse: { cloneId: (v_389afb) => Number(v_389afb) },

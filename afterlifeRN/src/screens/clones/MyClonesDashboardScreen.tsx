@@ -59,6 +59,8 @@ import { v_7d2692 } from "../../api/files";
 import { v_1bfbd0, v_9b1a04, v_8b0c90, v_a9d3e9, v_d43669, v_c10a43, v_119e65 } from "../../components/constants";
 import type { v_affcc0, v_b0b271 } from "../../types/clone";
 import v_177da7 from "../../components/gift/GiftExchangeSheet";
+import { v_1c036d } from "../../components/common/ListStateViews";
+import { v_5401ae } from "../../testIDs";
 import type { v_2d88fc } from "../../navigation/types";
 import type { v_8ad91b } from "../../navigation/types";
 
@@ -93,6 +95,8 @@ export default function v_def15b() {
   const v_1e752a = v_b4902e((v_fd5f43) => v_fd5f43.follows);
 
   const [v_8a7926, v_d42991] = v_5ab095<v_affcc0[] | null>(null);
+  const v_68ed98 = v_e662ae(v_8a7926);
+  v_68ed98.current = v_8a7926;
 
   const [v_612e9f, v_575aad] = v_5ab095(false);
   const { onLayout: v_e8db2a, listBottomPad: v_936ba7 } = v_ba6725();
@@ -124,6 +128,7 @@ export default function v_def15b() {
 
   const [v_deb5c7, v_9093a8] = v_5ab095(0);
 
+  const [v_558552, v_2877f7] = v_5ab095(false);
   const v_8e46f5 = v_de06a3(async (v_cc88f5 = false) => {
     if (!v_2ca7e0) {
       v_d42991(null);
@@ -134,6 +139,7 @@ export default function v_def15b() {
       const v_8f00b9 = await v_d60cdf(v_2ca7e0);
       const v_a15a8b = v_8f00b9.items.map(v_a8d790);
       v_d42991(v_a15a8b);
+      v_2877f7(false);
 
       v_7a98d1(v_a15a8b);
 
@@ -143,6 +149,10 @@ export default function v_def15b() {
       }
     } catch (v_49263d) {
       console.warn("[Dashboard] listMyClones failed:", v_49263d);
+      v_2877f7(true);
+      if (v_cc88f5 && v_68ed98.current !== null) {
+        v_b816d4(v_8d41d7("common.refreshFailed", { defaultValue: "새로고침하지 못했어요" }));
+      }
 
       if (!v_cc88f5) {
 
@@ -150,7 +160,7 @@ export default function v_def15b() {
     } finally {
       if (v_cc88f5) v_575aad(false);
     }
-  }, [v_2ca7e0, v_7a98d1]);
+  }, [v_2ca7e0, v_7a98d1, v_8d41d7]);
 
   v_c4deb2(() => {
     v_8e46f5();
@@ -807,13 +817,25 @@ export default function v_def15b() {
       />
 
       {}
-      {v_2ca7e0 && v_8a7926 === null ? (
-        <View style={v_fd5f43.dashLoading}>
+      {v_2ca7e0 && v_8a7926 === null && v_558552 ? (
+        <ListErrorView
+          testID={v_5401ae.myClones.error}
+          retryTestID={v_5401ae.myClones.retry}
+          style={{ flex: 1 }}
+          title={v_8d41d7("dashboard.loadFailed", { defaultValue: "내 클론을 불러오지 못했어요" })}
+          onRetry={() => {
+            v_2877f7(false); 
+            void v_8e46f5(false);
+          }}
+        />
+      ) : v_2ca7e0 && v_8a7926 === null ? (
+        <View testID={v_5401ae.myClones.loading} style={v_fd5f43.dashLoading}>
           <ActivityIndicator color={v_1bfbd0.violet600} size="large" />
           <Text style={v_fd5f43.dashLoadingText}>{v_8d41d7("common.loading")}</Text>
         </View>
       ) : (
       <FlatList
+        testID={v_5401ae.myClones.list}
         ref={v_9fd982}
         data={v_fc7f92}
         keyExtractor={(v_8c0b26) => String(v_8c0b26.id)}
@@ -830,7 +852,7 @@ export default function v_def15b() {
           />
         }
         ListEmptyComponent={
-          <View style={v_fd5f43.dashEmpty}>
+          <View testID={v_5401ae.myClones.empty} style={v_fd5f43.dashEmpty}>
             <View style={v_fd5f43.dashEmptyIconWrap}>
               <Feather name="user-plus" size={32} color={v_1bfbd0.zinc400} />
             </View>

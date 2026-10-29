@@ -39,7 +39,8 @@
       "viewDetails": "자세히 보기"
     },
     "unknown": "이름 없음",
-    "retryLater": "잠시 후 다시 시도해 주세요."
+    "retryLater": "잠시 후 다시 시도해 주세요.",
+    "refreshFailed": "새로고침하지 못했어요"
   },
   "tabs": {
     "home": "홈",
@@ -404,7 +405,9 @@
     "imageApiUnavailable": "사진 보내기 준비 중이에요. 잠시 후 다시 시도해 주세요.",
     "typingA11y": "상대가 입력 중",
     "listTitle": "대화목록",
-    "listCount": "대화목록 {{count}}"
+    "listCount": "대화목록 {{count}}",
+    "timelineLoadFailed": "대화를 불러오지 못했어요",
+    "olderLoadFailed": "이전 대화를 불러오지 못했어요 · 다시 시도"
   },
   "call": {
     "calling": "연결 중...",
@@ -593,7 +596,9 @@
     "giftDesc": "클론에게 특별한 선물을 보내보십시오",
     "balance": "보유 XRUN",
     "send": "선물 보내기",
-    "paymentPending": "결제 준비 중입니다"
+    "paymentPending": "결제 준비 중입니다",
+    "giftLoadFailed": "선물 목록을 불러오지 못했어요",
+    "giftEmpty": "지금 보낼 수 있는 선물이 없어요"
   },
   "edit": {
     "title": "클론 수정",
@@ -723,7 +728,8 @@
     "giftLogOpenFailDesc": "XRUN 앱을 설치해 주세요.",
     "giftKindReceived": "받음",
     "giftKindSent": "보냄",
-    "giftKindExchanged": "교환"
+    "giftKindExchanged": "교환",
+    "loadFailed": "내 클론을 불러오지 못했어요"
   },
   "learn": {
     "title": "학습하기",
@@ -1914,7 +1920,9 @@
     "noResults": "검색 결과가 없습니다",
     "noClones": "일치하는 클론이 없습니다",
     "noAccounts": "일치하는 계정이 없습니다",
-    "noTags": "일치하는 태그가 없습니다"
+    "noTags": "일치하는 태그가 없습니다",
+    "exploreLoadFailed": "클론을 불러오지 못했어요",
+    "exploreEmpty": "아직 둘러볼 클론이 없어요"
   },
   "assetsHint": {
     "title": "잠깐, 추가 정보가 필요합니다",
