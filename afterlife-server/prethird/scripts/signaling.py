@@ -1437,7 +1437,12 @@ def _make_dc_handler(sess, channel):
             # 문장 세그먼트 push 시작 → 클론 발화 자막(additive — 구 클라이언트는 무시).
             if channel is not None and getattr(channel, "readyState", None) == "open":
                 try:
-                    channel.send(_json.dumps({"type": "speech_text", "text": text, "seq": seq}))
+                    _payload = {"type": "speech_text", "text": text, "seq": seq}
+                    # AFL-1067: 이번 답 감정(앱 개발용 감정 박스) — 판정 전·모르는 pipeline 이면 생략(additive).
+                    _emo = getattr(getattr(sess, "pipeline", None), "reply_emotion", None)
+                    if isinstance(_emo, str) and _emo:
+                        _payload["emotion"] = _emo
+                    channel.send(_json.dumps(_payload))
                 except Exception as exc:
                     log.warning("session %s speech_text send failed: %s",
                                 sess.session_id, exc)

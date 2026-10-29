@@ -140,6 +140,7 @@ import { CallTimingHUD } from "../../components/call/CallTimingHUD";
 import { CallStateHUD } from "../../components/call/CallStateHUD";
 
 import { FaceTrackHUD } from "../../components/call/FaceTrackHUD";
+import { EmotionHUD } from "../../components/call/EmotionHUD";
 import {
   publishFaceTracks,
   publishFaceDiag,
@@ -426,6 +427,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const hudTiming = useCallHudVisible("timing");
   const hudState = useCallHudVisible("state");
   const hudFaceTrack = useCallHudVisible("faceTrack");
+  const hudEmotion = useCallHudVisible("emotion");
 
   const [cameraFacing, setCameraFacing] = useState<"front" | "back">("front");
   const [isMuted, setIsMuted] = useState(false);
@@ -1873,6 +1875,13 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     }
   }, [lastSignal]);
 
+  const [cloneEmotion, setCloneEmotion] = useState<string | null>(null);
+  useEffect(() => {
+    if (lastSignal?.type === 'speech_text' && lastSignal.emotion) {
+      setCloneEmotion(lastSignal.emotion);
+    }
+  }, [lastSignal]);
+
   const emoteFiredThisTurn = useRef(false);
 
   const pendingEmoteRef = useRef<{ key: EmoteKey; emoji: string; label: string } | null>(null);
@@ -3243,6 +3252,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       {
 }
       {hudFaceTrack && FACE_DIAG_ENABLED ? <FaceTrackHUD /> : null}
+      {}
+      {hudEmotion && liveState === "live" ? <EmotionHUD emotion={cloneEmotion} top={insets.top + 8} /> : null}
       {showCallDev && liveState === "live" ? (
 
         <View

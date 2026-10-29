@@ -359,7 +359,9 @@ export function v_3d8d48(v_328259): v_b01667 {
           if (typeof v_35f85c.text === 'string' && v_35f85c.text) {
 
             if (__DEV__) console.log(`[Call][transcript] clone: ${v_35f85c.text}`);
-            v_f35bd6({ type: 'speech_text', seq: v_35f85c.seq, ts: v_67e77e(), text: v_35f85c.text });
+
+            const v_1842ef = typeof v_35f85c.emotion === 'string' && v_35f85c.emotion ? v_35f85c.emotion : undefined;
+            v_f35bd6({ type: 'speech_text', seq: v_35f85c.seq, ts: v_67e77e(), text: v_35f85c.text, emotion: v_1842ef });
           }
         } else if (v_35f85c.type === 'enroll_suggest') {
 

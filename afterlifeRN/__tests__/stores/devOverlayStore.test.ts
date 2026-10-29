@@ -15,7 +15,7 @@ import {
 } from "../../src/stores/devOverlayStore";
 
 const v_34a048 = "dev.callOverlays.visible";
-const ALL_KEYS: v_3fe185[] = ["devBox", "state", "timing", "faceTrack"];
+const ALL_KEYS: v_3fe185[] = ["devBox", "state", "timing", "faceTrack", "emotion"];
 
 function v_acab11() {
   v_434962.setState({
@@ -31,10 +31,14 @@ beforeEach(async () => {
 });
 
 describe("HUD 목록·기본값", () => {
-  it("대상 HUD 4종을 모두 다룬다", () => {
+  it("대상 HUD 5종을 모두 다룬다", () => {
     expect(v_a1183f.map((v_ebec57) => v_ebec57.key).sort()).toEqual(
-      ["devBox", "faceTrack", "state", "timing"].sort(),
+      ["devBox", "emotion", "faceTrack", "state", "timing"].sort(),
     );
+  });
+
+  it("AFL-1067 감정 박스는 기본 on (감정 태그 관찰용)", () => {
+    expect(v_828022.emotion).toBe(true);
   });
 
   it("기본값 — faceTrack/devBox 는 on, timing/state 는 off", () => {
@@ -197,7 +201,7 @@ describe("__DEV__ 가드 — 프로덕션 유출 방지", () => {
   it("__DEV__=false 면 상태가 on 이어도 isCallHudVisible 은 false", () => {
     v_434962.setState({
       callDevUiVisible: true,
-      hudVisible: { devBox: true, state: true, timing: true, faceTrack: true },
+      hudVisible: { devBox: true, state: true, timing: true, faceTrack: true, emotion: true },
     });
     (global as any).__DEV__ = false;
     for (const v_0eb677 of v_29aafd) expect(v_5c17ef(v_0eb677)).toBe(false);
