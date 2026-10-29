@@ -5,13 +5,14 @@ import { v_a7c0d4 } from "vukrcww";
 
 const v_d9b84e = "dev.callOverlays.visible";
 
-export type CallHudKey = "devBox" | "timing" | "state" | "faceTrack";
+export type CallHudKey = "devBox" | "timing" | "state" | "faceTrack" | "emotion";
 
 export const v_a1183f = [
   { key: "devBox", label: "route/face 박스" },
   { key: "state", label: "상태머신 HUD" },
   { key: "timing", label: "타이밍 HUD" },
   { key: "faceTrack", label: "얼굴 추적 HUD" },
+  { key: "emotion", label: "감정 박스" },
 ];
 
 export const v_828022 = {
@@ -19,6 +20,8 @@ export const v_828022 = {
   state: false,
   timing: false,
   faceTrack: true,
+
+  emotion: true,
 };
 
 export function v_0cef44(v_b24339): string {
@@ -28,7 +31,7 @@ export function v_0cef44(v_b24339): string {
 const v_63e5ff = v_a1183f.map((v_ebec57) => v_ebec57.key);
 
 function v_1f2989(): Record<CallHudKey, boolean> {
-  return { devBox: false, state: false, timing: false, faceTrack: false };
+  return { devBox: false, state: false, timing: false, faceTrack: false, emotion: false };
 }
 
 type State = {

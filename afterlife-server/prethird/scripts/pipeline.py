@@ -1153,6 +1153,11 @@ class DialoguePipeline:
             content += "\n\n" + emotion_instruction()
         return [{"role": "system", "content": content}]
 
+    @property
+    def reply_emotion(self) -> str | None:
+        """AFL-1067: 지금 말하는 답의 감정(머리 태그 판정 전이면 None) — 자막 신호에 실어 개발용 박스에 쓴다."""
+        return self._reply_emo
+
     def _feed_lang(self, lts: "LangTagStream", tok) -> str:
         """스트리밍 토큰을 태그 파서에 통과시키고, 언어·감정이 정해지면 이번 답 것으로 잡는다.
         tok=None 이면 스트림 끝(남은 버퍼 반환)."""

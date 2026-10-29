@@ -153,3 +153,12 @@ def test_speak_은_직전_답_감정을_물려받지_않음():
     said.clear()
     _run(pipe.speak("공지 안내입니다."))
     assert said and all(emo == "neutral" for _, _, emo in said)
+
+
+def test_reply_emotion_은_지금_답_감정():
+    said, cap = [], []
+    pipe = _make(["<lang=ko><emo=happy>", "잘됐다!"], said, cap)
+    pipe.user_lang = "ko"
+    assert pipe.reply_emotion is None
+    _run(pipe.say("합격했어"))
+    assert pipe.reply_emotion == "happy"
