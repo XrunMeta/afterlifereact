@@ -29,22 +29,22 @@ const v_7c0430 = {
   left: {
     labelKey: "faceEnroll.step.leftLabel", label: "왼쪽",
     hintKey: "faceEnroll.step.leftHint", hint: "고개를 왼쪽으로 돌려주세요",
-    check: (v_64877a, v_e2a85c) => v_64877a > 18 && Math.abs(v_e2a85c) < 20, sfx: 1,
+    check: (v_64877a, v_e2a85c) => v_64877a > 18 && v_64877a < 40 && Math.abs(v_e2a85c) < 20, sfx: 1,
   },
   right: {
     labelKey: "faceEnroll.step.rightLabel", label: "오른쪽",
     hintKey: "faceEnroll.step.rightHint", hint: "고개를 오른쪽으로 돌려주세요",
-    check: (v_64877a, v_e2a85c) => v_64877a < -18 && Math.abs(v_e2a85c) < 20, sfx: 2,
+    check: (v_64877a, v_e2a85c) => v_64877a < -18 && v_64877a > -40 && Math.abs(v_e2a85c) < 20, sfx: 2,
   },
   down: {
     labelKey: "faceEnroll.step.downLabel", label: "아래",
     hintKey: "faceEnroll.step.downHint", hint: "고개를 아래로 숙여주세요",
-    check: (v_64877a, v_e2a85c) => v_e2a85c < -10 && Math.abs(v_64877a) < 20, sfx: 3,
+    check: (v_64877a, v_e2a85c) => v_e2a85c < -10 && v_e2a85c > -30 && Math.abs(v_64877a) < 20, sfx: 3,
   },
   up: {
     labelKey: "faceEnroll.step.upLabel", label: "위",
     hintKey: "faceEnroll.step.upHint", hint: "고개를 위로 들어주세요",
-    check: (v_64877a, v_e2a85c) => v_e2a85c > 10 && Math.abs(v_64877a) < 20, sfx: 4,
+    check: (v_64877a, v_e2a85c) => v_e2a85c > 10 && v_e2a85c < 30 && Math.abs(v_64877a) < 20, sfx: 4,
   },
 };
 
