@@ -83,3 +83,4 @@ docs/voices/
 
 # E2E 자동화 실행 산출물 (실패 시 trace/스크린샷 — 커밋하지 않는다)
 e2e-automation/runs/
+e2e-automation/screenshots/

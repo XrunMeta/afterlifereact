@@ -1,5 +1,12 @@
 import { v_556c5b, v_d6d0ff } from '../../src/lib/personaPrompt';
 import type { v_c2a674 } from '../../src/types/clone';
+import v_04a966 from '../../src/locales/ko/common.json';
+
+const v_78e332 = (v_b24339): string => {
+  const v_81e2ef = v_b24339.split('.').reduce<unknown>((v_b6c474, v_0eb677) => (v_b6c474 as Record<string, unknown> | undefined)?.[v_0eb677], v_04a966);
+  if (typeof v_81e2ef !== 'string') throw new Error(`ko 로케일에 없는 키: ${v_b24339}`);
+  return v_81e2ef;
+};
 
 describe('draftToL1Profile', () => {
   test('returns undefined when nothing entered', () => {
@@ -34,15 +41,23 @@ describe('formatPersonaPrompt', () => {
     expect(v_d6d0ff({})).toBe('(클론 정보가 비어 있음)');
   });
 
-  test('renders name + meta + personalities + interests', () => {
-    const v_c70495 = v_d6d0ff({
-      name: '할머니',
-      l1: { attrs: { age: '60대 이상', gender: '여성', mbti: 'ENFP', personalities: 'extrovert,calm' } },
-      interests: ['요리', '텃밭'],
-    });
+  const v_6c5e53 = {
+    name: '할머니',
+    l1: { attrs: { age: '60대 이상', gender: '여성', mbti: 'ENFP', personalities: 'extrovert,calm' } },
+    interests: ['요리', '텃밭'],
+  };
+
+  test('renders name + meta + personalities + interests (ko t)', () => {
+    const v_c70495 = v_d6d0ff(v_6c5e53, v_78e332);
     expect(v_c70495).toContain('할머니 (60대 이상, 여성, ENFP)');
-    expect(v_c70495).toContain('성격: 외향적인, 평온한');
-    expect(v_c70495).toContain('관심사: 요리, 텃밭');
+    expect(v_c70495).toContain(`${v_78e332('create.persona.typeShort')}: 외향적인, 평온한`);
+    expect(v_c70495).toContain(`${v_78e332('create.basicInfo.interestsLabel')}: 요리, 텃밭`);
+  });
+
+  test('t 없이 부르면 라벨은 영어 기본값', () => {
+    const v_c70495 = v_d6d0ff(v_6c5e53);
+    expect(v_c70495).toContain('Personality: 외향적인, 평온한');
+    expect(v_c70495).toContain('Interests: 요리, 텃밭');
   });
 
   test('mbti 모름 is omitted from header', () => {
@@ -54,9 +69,13 @@ describe('formatPersonaPrompt', () => {
     expect(v_c70495).not.toContain('모름');
   });
 
-  test('relation label maps korean', () => {
-    const v_c70495 = v_d6d0ff({ name: '엄마', relation: 'mother' });
-    expect(v_c70495).toContain('고인과의 관계: 어머니');
+  test('relation label maps korean (ko t)', () => {
+    const v_c70495 = v_d6d0ff({ name: '엄마', relation: 'mother' }, v_78e332);
+    expect(v_c70495).toContain(`${v_78e332('create.basicInfo.relationLabel')}: ${v_78e332('create.relations.mother')}`);
+  });
+
+  test('t 없이 부르면 관계는 키 그대로', () => {
+    expect(v_d6d0ff({ name: '엄마', relation: 'mother' })).toContain('Relation: mother');
   });
 
   test('notes appears as own paragraph', () => {
