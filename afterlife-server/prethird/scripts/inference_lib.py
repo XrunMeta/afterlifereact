@@ -35,6 +35,7 @@ from musetalk.utils.preprocessing import get_landmark_and_bbox, read_imgs, coord
 
 
 from unet_bucket import bucket_size, bucket_sizes
+from frame_rotation import MASK_CACHE_TAG, mask_cache_index
 
 # 이 프로세스에서 튜닝을 마친 배치 크기. cudnn 캐시가 프로세스 단위라 모듈 전역으로 둔다.
 _WARMED_SIZES: set = set()
@@ -367,7 +368,9 @@ def run_inference(args, models, frame_callback=None, timing_out=None, batch_emit
             # 호출하던 부분이 진짜 병목이었다. coord_list_cycle 길이만큼만 unique 한
             # bbox/crop_box 이므로 mask_array+crop_box 를 cycle index 별로 캐시한다.
             # 같은 reference video 면 디스크 pkl 캐시 (saved_coord 와 동일 정책).
-            mask_cache_path = os.path.join(args.result_dir, "../", input_basename + f".mask_{args.parsing_mode}_em{args.extra_margin}_lc{args.left_cheek_width}_rc{args.right_cheek_width}.pkl")
+            # 2026-10-29: 캐시는 회전 전 원래 프레임 번호로 저장한다(frame_rotation.py).
+            #   옛 파일은 회전된 번호로 저장돼 있어 MASK_CACHE_TAG 로 이름을 바꿔 새로 만든다.
+            mask_cache_path = os.path.join(args.result_dir, "../", input_basename + f".mask_{args.parsing_mode}_em{args.extra_margin}_lc{args.left_cheek_width}_rc{args.right_cheek_width}_{MASK_CACHE_TAG}.pkl")
             mask_cache_list = None
             _mask_n_initial = 0  # 029-F-latency2: load 시점 채워진 수 — 저장 조건 판단(불필요한 241MB write 방지)
             if getattr(args, "use_saved_coord", True) and os.path.exists(mask_cache_path):
@@ -447,7 +450,8 @@ def run_inference(args, models, frame_callback=None, timing_out=None, batch_emit
                 _t_resize_acc += time.time() - _ts
 
                 # Merge results with version-specific parameters
-                cached_entry = mask_cache_list[cyc_idx]
+                _mask_idx = mask_cache_index(cyc_idx, _rot, len(mask_cache_list))
+                cached_entry = mask_cache_list[_mask_idx]
                 if cached_entry is None:
                     if args.version == "v15":
                         mask_array, crop_box = get_image_prepare_material(
@@ -457,7 +461,7 @@ def run_inference(args, models, frame_callback=None, timing_out=None, batch_emit
                         mask_array, crop_box = get_image_prepare_material(
                             ori_frame, [x1, y1, x2, y2], fp=fp
                         )
-                    mask_cache_list[cyc_idx] = (mask_array, crop_box)
+                    mask_cache_list[_mask_idx] = (mask_array, crop_box)
                 else:
                     mask_array, crop_box = cached_entry
                 _ts = time.time()
