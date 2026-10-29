@@ -30,6 +30,9 @@ import {
   v_1e6592,
   v_52acfb,
   v_b61290,
+  v_f88fcd,
+  v_fd2863,
+  type v_0ca22d,
   v_dc0a0b,
   v_88bb3b,
   v_1f7eef,
@@ -128,6 +131,26 @@ v_b7f2b4.patch("/config/signup-free-credits", v_c0a297, async (v_3f4e2e) => {
   const v_e2c945 = Math.floor(v_f4e98d);
   await v_b61290(v_3f4e2e.env, v_e2c945);
   return v_3f4e2e.json({ ok: true, credits: v_e2c945 });
+});
+
+v_b7f2b4.get("/config/auth-login", v_c0a297, async (v_3f4e2e) => {
+  return v_3f4e2e.json(await v_f88fcd(v_3f4e2e.env));
+});
+v_b7f2b4.patch("/config/auth-login", v_c0a297, async (v_3f4e2e) => {
+  const v_4d33b2 = await v_3f4e2e.req.json<Record<string, unknown>>().catch(() => ({} as Record<string, unknown>));
+  const patch: Partial<v_0ca22d> = {};
+  for (const v_0eb677 of ["googleIos", "googleAndroid", "appleIos"] as const) {
+    if (v_4d33b2[v_0eb677] === undefined) continue;
+    if (typeof v_4d33b2[v_0eb677] !== "boolean") {
+      throw new v_3ebe58("VALIDATION_FAILED", `${v_0eb677} must be a boolean.`);
+    }
+    v_17dc8a[v_0eb677] = v_4d33b2[v_0eb677] as boolean;
+  }
+  if (Object.keys(v_17dc8a).length === 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "No fields to update.");
+  }
+  const v_11a21a = await v_fd2863(v_3f4e2e.env, v_17dc8a);
+  return v_3f4e2e.json({ ok: true, ...v_11a21a });
 });
 
 const v_46964b = 16000;

@@ -109,3 +109,58 @@ test('refresh: 비200 응답도 false 로 확정', async () => {
 
   expect(v_688424.getState().googleEnabled).toBe(false);
 });
+
+describe('appleEnabled (iOS 애플 로그인 원격 토글)', () => {
+  beforeEach(() => v_688424.setState({ appleEnabled: true }));
+
+  test('기본값은 true (원래 항상 노출 · 4.8 안전)', () => {
+    expect(v_688424.getState().appleEnabled).toBe(true);
+  });
+
+  test('refresh: appleEnabled.ios=false 면 숨기고 캐시에 저장', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        googleEnabled: { ios: false, android: true },
+        appleEnabled: { ios: false },
+        updatedAt: 1,
+      }),
+    }) as unknown as typeof fetch;
+
+    await v_688424.getState().refresh();
+
+    expect(v_688424.getState().appleEnabled).toBe(false);
+    const v_e2a6a6 = await v_e84827.getItem('afterlife.authConfig.apple');
+    expect(JSON.parse(v_e2a6a6 as string)).toEqual({ ios: false });
+  });
+
+  test('refresh: 구버전 API(appleEnabled 필드 없음)면 true 유지', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ googleEnabled: { ios: true, android: true }, updatedAt: 1 }),
+    }) as unknown as typeof fetch;
+
+    await v_688424.getState().refresh();
+
+    expect(v_688424.getState().appleEnabled).toBe(true);
+  });
+
+  test('refresh 실패: true 유지 (구글처럼 fail-closed 하지 않는다)', async () => {
+    global.fetch = jest.fn().mockRejectedValue(new Error('network')) as unknown as typeof fetch;
+    await v_688424.getState().refresh();
+    expect(v_688424.getState().appleEnabled).toBe(true);
+  });
+
+  test('hydrate: 애플 캐시가 false 면 즉시 숨김', async () => {
+    await v_e84827.setItem('afterlife.authConfig.apple', JSON.stringify({ ios: false }));
+    await v_688424.getState().hydrate();
+    expect(v_688424.getState().appleEnabled).toBe(false);
+  });
+
+  test('hydrate: refresh 가 먼저 끝났으면 오래된 애플 캐시로 덮지 않는다', async () => {
+    v_688424.setState({ appleEnabled: true, loadedFrom: 'remote' });
+    await v_e84827.setItem('afterlife.authConfig.apple', JSON.stringify({ ios: false }));
+    await v_688424.getState().hydrate();
+    expect(v_688424.getState().appleEnabled).toBe(true);
+  });
+});

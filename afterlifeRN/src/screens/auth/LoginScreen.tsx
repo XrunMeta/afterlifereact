@@ -65,6 +65,9 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
 
   const v_c39df9 = v_688424((v_fd5f43) => v_fd5f43.googleEnabled);
 
+  const v_f7ec3f = v_688424((v_fd5f43) => v_fd5f43.appleEnabled);
+  const v_000afb = v_326be8.OS === "ios" && v_f7ec3f;
+
   v_c4deb2(() => {
     if (v_688424.getState().loadedFrom === 'default') {
       void v_688424.getState().refresh();
@@ -511,7 +514,7 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
 
 }
           {}
-          {(v_326be8.OS === "ios" || v_c39df9 !== false) && (
+          {(v_000afb || v_c39df9 !== false) && (
             <View style={v_d81136.divider}>
               <View style={v_d81136.dividerLine} />
               <Text style={v_d81136.dividerText}>—</Text>
@@ -523,7 +526,7 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
 }
           {v_c39df9 === null ? (
             <View style={v_d81136.googleButtonPlaceholder} />
-          ) : (
+          ) : !v_c39df9 && !v_000afb ? null : (
             <View style={v_d81136.snsLoginContainer}>
               <Text style={v_d81136.snsLoginLabel}>{v_8d41d7("auth.login.googleBtn")}</Text>
               <View style={v_d81136.snsButtonContainer}>
@@ -537,7 +540,7 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
                     <SvgXml xml={v_eb1004} width={22} height={22} />
                   </TouchableOpacity>
                 )}
-                {v_326be8.OS === "ios" && (
+                {v_000afb && (
                   <TouchableOpacity
                     style={v_d81136.snsButton}
                     onPress={() => v_78c15c("apple")}
