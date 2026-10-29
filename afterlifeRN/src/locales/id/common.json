@@ -39,7 +39,8 @@
       "viewDetails": "Lihat detail"
     },
     "unknown": "Tanpa nama",
-    "retryLater": "Silakan coba lagi nanti."
+    "retryLater": "Silakan coba lagi nanti.",
+    "refreshFailed": "Gagal memuat ulang"
   },
   "tabs": {
     "home": "Beranda",
@@ -404,7 +405,9 @@
     "imageApiUnavailable": "Fitur kirim foto belum siap. Coba lagi sebentar.",
     "typingA11y": "Sedang mengetik",
     "listTitle": "Daftar chat",
-    "listCount": "Daftar chat {{count}}"
+    "listCount": "Daftar chat {{count}}",
+    "timelineLoadFailed": "Gagal memuat percakapan",
+    "olderLoadFailed": "Gagal memuat pesan sebelumnya · Coba lagi"
   },
   "call": {
     "calling": "Menghubungkan...",
@@ -593,7 +596,9 @@
     "giftDesc": "Kirim hadiah spesial untuk klon Anda",
     "balance": "XRUN yang Dimiliki",
     "send": "Kirim Hadiah",
-    "paymentPending": "Pembayaran sedang dipersiapkan"
+    "paymentPending": "Pembayaran sedang dipersiapkan",
+    "giftLoadFailed": "Gagal memuat daftar hadiah",
+    "giftEmpty": "Belum ada hadiah yang bisa dikirim"
   },
   "edit": {
     "title": "Edit Klon",
@@ -723,7 +728,8 @@
     "giftLogOpenFailDesc": "Silakan pasang aplikasi XRUN.",
     "giftKindReceived": "Diterima",
     "giftKindSent": "Dikirim",
-    "giftKindExchanged": "Ditukar"
+    "giftKindExchanged": "Ditukar",
+    "loadFailed": "Gagal memuat klon Anda"
   },
   "learn": {
     "title": "Latih",
@@ -1914,7 +1920,9 @@
     "noResults": "Tidak ada hasil pencarian",
     "noClones": "Tidak ada klon yang cocok",
     "noAccounts": "Tidak ada akun yang cocok",
-    "noTags": "Tidak ada tag yang cocok"
+    "noTags": "Tidak ada tag yang cocok",
+    "exploreLoadFailed": "Gagal memuat klon",
+    "exploreEmpty": "Belum ada klon untuk dijelajahi"
   },
   "assetsHint": {
     "title": "Sebentar, kami butuh informasi tambahan",

@@ -39,7 +39,8 @@
       "viewDetails": "View details"
     },
     "unknown": "No name",
-    "retryLater": "Please try again later."
+    "retryLater": "Please try again later.",
+    "refreshFailed": "Couldn't refresh"
   },
   "tabs": {
     "home": "Home",
@@ -404,7 +405,9 @@
     "imageApiUnavailable": "Photo send isn't ready yet. Please try again shortly.",
     "typingA11y": "Other person is typing",
     "listTitle": "Chats",
-    "listCount": "Chats {{count}}"
+    "listCount": "Chats {{count}}",
+    "timelineLoadFailed": "Couldn't load the conversation",
+    "olderLoadFailed": "Couldn't load earlier messages · Retry"
   },
   "call": {
     "calling": "Connecting...",
@@ -593,7 +596,9 @@
     "giftDesc": "Send a special gift to this clone",
     "balance": "XRUN Balance",
     "send": "Send Gift",
-    "paymentPending": "Preparing payment..."
+    "paymentPending": "Preparing payment...",
+    "giftLoadFailed": "Couldn't load gifts",
+    "giftEmpty": "No gifts available right now"
   },
   "edit": {
     "title": "Edit Clone",
@@ -723,7 +728,8 @@
     "giftLogOpenFailDesc": "Please install the XRUN app.",
     "giftKindReceived": "Received",
     "giftKindSent": "Sent",
-    "giftKindExchanged": "Exchanged"
+    "giftKindExchanged": "Exchanged",
+    "loadFailed": "Couldn't load your clones"
   },
   "learn": {
     "title": "Learn",
@@ -1917,7 +1923,9 @@
     "noResults": "No results found",
     "noClones": "No matching clones",
     "noAccounts": "No matching accounts",
-    "noTags": "No matching tags"
+    "noTags": "No matching tags",
+    "exploreLoadFailed": "Couldn't load clones",
+    "exploreEmpty": "No clones to explore yet"
   },
   "assetsHint": {
     "title": "Wait, we need a bit more info",
