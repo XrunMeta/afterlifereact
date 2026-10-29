@@ -47,6 +47,7 @@ import { v_9e7c53 } from "./routes/iapWebhooks";
 import { v_4f6450 } from "./lib/freeDecay";
 import { v_b9c00c } from "./routes/notifications";
 import { v_fded81 } from "./routes/persons";
+import { v_acf120 } from "./routes/faceAccount";
 import { v_cbf5ec, v_e0a537 } from "./routes/agreements";
 import { v_074a9b } from "./routes/call-config";
 import { v_110512 } from "./routes/pricing-config";
@@ -185,6 +186,8 @@ v_466992.route("/oth-path", v_a58945);
 v_466992.route("/oth-path", v_87e8b2);
 v_466992.route("/oth-path", v_19f1fa);
 v_466992.route("/oth-path", v_fded81);
+
+v_466992.route("/oth-path", v_acf120);
 
 v_466992.route("/oth-path", v_cbf5ec);
 v_466992.route("/oth-path", v_e0a537);

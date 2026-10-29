@@ -210,6 +210,32 @@ v_dda4b9.delete("/me", v_6690d9, async (v_3f4e2e) => {
     `[deletion.me] clones cascade: softDeleted=${v_f891e6.softDeleted} transferred=${v_f891e6.transferred}`,
   );
 
+  try {
+    const v_e98932 = await v_3f4e2e.env.DB
+      .prepare(
+        `SELECT credits, (SELECT COALESCE(SUM(count), 0) FROM user_gift_inventory WHERE user_id = ?) AS gifts
+           FROM users WHERE id = ?`,
+      )
+      .bind(v_43e90c, v_43e90c)
+      .first<{ credits: number; gifts: number }>();
+    await v_3f4e2e.env.DB.batch([
+      v_3f4e2e.env.DB
+        .prepare(`UPDATE users SET credits = 0, credits_free = 0, credits_sub = 0, credits_topup = 0 WHERE id = ?`)
+        .bind(v_43e90c),
+      v_3f4e2e.env.DB.prepare(`UPDATE user_gift_inventory SET count = 0 WHERE user_id = ? AND count > 0`).bind(v_43e90c),
+      v_3f4e2e.env.DB.prepare(`UPDATE user_gift_lots SET count_remaining = 0 WHERE user_id = ? AND count_remaining > 0`).bind(v_43e90c),
+    ]);
+    if ((v_e98932?.credits ?? 0) > 0 || (v_e98932?.gifts ?? 0) > 0) {
+      await v_74defc(v_3f4e2e, {
+        userId: v_43e90c,
+        action: "account.withdraw.forfeit",
+        details: { credits: v_e98932?.credits ?? 0, gifts: v_e98932?.gifts ?? 0 },
+      });
+    }
+  } catch (v_49263d) {
+    console.error(`[deletion.me] balance forfeit FAILED for user ${v_43e90c}: ${(v_49263d as Error).message}`);
+  }
+
   const v_ab75ce = await v_3f4e2e.env.DB
     .prepare(`DELETE FROM user_follows WHERE follower_id = ? OR followee_id = ?`)
     .bind(v_43e90c, v_43e90c)

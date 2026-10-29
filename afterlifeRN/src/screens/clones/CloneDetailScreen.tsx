@@ -24,6 +24,8 @@ import { v_694b7f } from "../../api/source";
 import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
 
 import { v_599b97, v_561bb6, type v_83f27d } from "../../api/gifts";
+import { v_1c036d, v_d030b7 } from "../../components/common/ListStateViews";
+import { v_5401ae } from "../../testIDs";
 
 import { v_003cf2 } from "../../api/clones";
 import type { v_affcc0 } from "../../types/clone";
@@ -79,16 +81,25 @@ export default function v_51ae06({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const v_2b650d = Math.max(v_033e14.bottom, v_f9771e, v_ad9bbd);
   const [v_a7e879, v_88d896] = v_5ab095(false);
   const [v_8282fa, v_15c939] = v_5ab095<string | null>(null);
-  const [v_68bb66, v_3bae81] = v_5ab095<v_83f27d[]>([]);
+
+  const [v_68bb66, v_3bae81] = v_5ab095<v_83f27d[] | null>(null);
+  const [v_262a19, v_bf3102] = v_5ab095(false);
+  const [v_d0ce6e, v_e89494] = v_5ab095(0);
   v_c4deb2(() => {
     let v_2008a4 = false;
-    void v_599b97().then((v_4622b9) => {
-      if (!v_2008a4) v_3bae81(v_4622b9);
-    });
+    v_bf3102(false);
+    v_599b97({ throwOnError: true })
+      .then((v_4622b9) => {
+        if (!v_2008a4) v_3bae81(v_4622b9);
+      })
+      .catch((v_49263d) => {
+        console.warn("[CloneDetail] gift catalog failed:", v_49263d);
+        if (!v_2008a4) v_bf3102(true);
+      });
     return () => {
       v_2008a4 = true;
     };
-  }, []);
+  }, [v_d0ce6e]);
 
   v_c4deb2(() => {
     if (!v_8282fa) return;
@@ -231,6 +242,7 @@ export default function v_51ae06({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         {}
         <TouchableOpacity
           style={v_fd5f43.giftBtn}
+          testID={v_5401ae.giftPicker.open}
           onPress={() => v_88d896(true)}
           activeOpacity={0.8}
         >
@@ -261,15 +273,33 @@ export default function v_51ae06({ route: v_c7daf6, navigation: v_c65f5d }: Prop
             {}
 
             {}
-            <FlatList
-              data={v_68bb66}
-              keyExtractor={(v_8c0b26) => v_8c0b26.id}
-              renderItem={v_992a8f}
-              numColumns={2}
-              columnWrapperStyle={v_fd5f43.giftRow}
-              contentContainerStyle={v_fd5f43.giftGrid}
-              scrollEnabled={false}
-            />
+            {v_262a19 && v_68bb66 === null ? (
+              <ListErrorView
+                dark
+                testID={v_5401ae.giftPicker.error}
+                retryTestID={v_5401ae.giftPicker.retry}
+                title={v_8d41d7("detail.giftLoadFailed", { defaultValue: "선물 목록을 불러오지 못했어요" })}
+                onRetry={() => v_e89494((v_f4e98d) => v_f4e98d + 1)}
+              />
+            ) : v_68bb66 === null ? (
+              <ListLoadingView testID={v_5401ae.giftPicker.loading} />
+            ) : v_68bb66.length === 0 ? (
+              <View testID={v_5401ae.giftPicker.empty} style={v_fd5f43.giftEmpty}>
+                <Text style={v_fd5f43.giftEmptyText}>
+                  {v_8d41d7("detail.giftEmpty", { defaultValue: "지금 보낼 수 있는 선물이 없어요" })}
+                </Text>
+              </View>
+            ) : (
+              <FlatList
+                data={v_68bb66}
+                keyExtractor={(v_8c0b26) => v_8c0b26.id}
+                renderItem={v_992a8f}
+                numColumns={2}
+                columnWrapperStyle={v_fd5f43.giftRow}
+                contentContainerStyle={v_fd5f43.giftGrid}
+                scrollEnabled={false}
+              />
+            )}
 
             {}
             <TouchableOpacity style={v_fd5f43.sendGiftBtn} activeOpacity={0.8} onPress={v_368174}>
@@ -290,6 +320,8 @@ export default function v_51ae06({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 }
 
 const v_fd5f43 = v_472849.create({
+  giftEmpty: { alignItems: "center", paddingVertical: 32 },
+  giftEmptyText: { fontSize: 14, color: v_1bfbd0.zinc500, textAlign: "center" },
   container: {
     flex: 1,
     backgroundColor: v_1bfbd0.zinc950,

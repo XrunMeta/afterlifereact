@@ -41,9 +41,23 @@ export function v_561bb6(v_1833e7, v_96f93d): string {
   return v_8c0b26?.names?.[v_5254bf] ?? v_0debf4;
 }
 
-export async function v_599b97(): Promise<GiftCatalogItem[]> {
+export async function v_599b97(v_328259): Promise<GiftCatalogItem[]> {
 
   const v_f71b56 = `${v_cc9198}/oth-path?_=${Date.now()}`;
+  if (v_328259?.throwOnError) {
+    const v_57bcd5 = new AbortController();
+    const v_cb36b1 = setTimeout(() => v_57bcd5.abort(), 20_000);
+    try {
+      const v_8f00b9 = await fetch(v_f71b56, { cache: "no-store", signal: v_57bcd5.signal });
+      if (!v_8f00b9.ok) throw new Error(`gift catalog HTTP ${v_8f00b9.status}`);
+      const v_9390e8 = (await v_8f00b9.json()) as { items?: GiftCatalogItem[] };
+      if (!Array.isArray(v_9390e8.items)) throw new Error("gift catalog: items 없음");
+      if (v_9390e8.items.length > 0) v_5cde7e = v_9390e8.items;
+      return v_9390e8.items;
+    } finally {
+      clearTimeout(v_cb36b1);
+    }
+  }
   const v_8f00b9 = await fetch(v_f71b56, { cache: "no-store" });
   if (!v_8f00b9.ok) return [];
   const v_9390e8 = (await v_8f00b9.json()) as { items?: GiftCatalogItem[] };

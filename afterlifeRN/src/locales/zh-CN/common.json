@@ -39,7 +39,8 @@
       "viewDetails": "查看详情"
     },
     "unknown": "未命名",
-    "retryLater": "请稍后再试。"
+    "retryLater": "请稍后再试。",
+    "refreshFailed": "无法刷新"
   },
   "tabs": {
     "home": "首页",
@@ -404,7 +405,9 @@
     "imageApiUnavailable": "照片发送功能准备中，请稍后再试。",
     "typingA11y": "对方正在输入",
     "listTitle": "对话列表",
-    "listCount": "对话列表 {{count}}"
+    "listCount": "对话列表 {{count}}",
+    "timelineLoadFailed": "无法加载对话",
+    "olderLoadFailed": "无法加载更早的对话 · 重试"
   },
   "call": {
     "calling": "连接中...",
@@ -593,7 +596,9 @@
     "giftDesc": "向克隆送上一份特别的礼物",
     "balance": "持有 XRUN",
     "send": "赠送礼物",
-    "paymentPending": "正在准备支付"
+    "paymentPending": "正在准备支付",
+    "giftLoadFailed": "无法加载礼物列表",
+    "giftEmpty": "目前没有可赠送的礼物"
   },
   "edit": {
     "title": "编辑克隆",
@@ -723,7 +728,8 @@
     "giftLogOpenFailDesc": "请安装 XRUN 应用。",
     "giftKindReceived": "收到",
     "giftKindSent": "送出",
-    "giftKindExchanged": "兑换"
+    "giftKindExchanged": "兑换",
+    "loadFailed": "无法加载我的克隆"
   },
   "learn": {
     "title": "学习",
@@ -1910,7 +1916,9 @@
     "noResults": "没有搜索结果",
     "noClones": "没有匹配的克隆",
     "noAccounts": "没有匹配的账户",
-    "noTags": "没有匹配的标签"
+    "noTags": "没有匹配的标签",
+    "exploreLoadFailed": "无法加载克隆",
+    "exploreEmpty": "暂时没有可浏览的克隆"
   },
   "assetsHint": {
     "title": "稍等，还需要一些信息",

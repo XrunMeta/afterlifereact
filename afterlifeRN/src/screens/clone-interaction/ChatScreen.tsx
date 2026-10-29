@@ -64,6 +64,8 @@ import {
 } from "../../lib/chatLocalImages";
 import * as v_3c288d from "bxoplsnixpmvnirxbbkstg";
 import * as v_fba5a0 from "hfxxehldoiokdq";
+import { v_1c036d, v_d030b7 } from "../../components/common/ListStateViews";
+import { v_5401ae } from "../../testIDs";
 
 type ActionItem = {
   label: string;
@@ -138,6 +140,10 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const [v_2810d7, v_7f73ef] = v_5ab095<v_29686e[] | null>(null);
   const [v_a981b7, v_94405c] = v_5ab095<string | null>(null);
   const [v_dec728, v_a7c3b5] = v_5ab095(false);
+
+  const [v_612751, v_ca35f0] = v_5ab095(false);
+  const [v_730bdf, v_8b79d4] = v_5ab095(false);
+  const [v_c6db14, v_589832] = v_5ab095(0);
   const [v_c5607b, v_1e756c] = v_5ab095<string | null>(null);
   const [v_5e23ec, v_10837f] = v_5ab095(false);
   const v_c157ce = v_e662ae(false);
@@ -191,20 +197,23 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     if (!v_e721a8 || !v_2ca7e0) return;
     let v_2008a4 = false;
     v_a7c3b5(true);
+    v_ca35f0(false);
     (async () => {
       const v_8f00b9 = await v_22ca9b(v_6e0fd3, v_2ca7e0, { limit: 30 });
       if (v_2008a4) return;
       v_a7c3b5(false);
-      if (v_8f00b9) {
+      if (v_8f00b9 && Array.isArray(v_8f00b9.items)) {
         v_7f73ef(v_8f00b9.items);
         v_94405c(v_8f00b9.nextCursor);
         if (typeof v_8f00b9.intimacy === "number") v_b31b79(v_8f00b9.intimacy);
+      } else {
+        v_ca35f0(true);
       }
     })();
     return () => {
       v_2008a4 = true;
     };
-  }, [v_e721a8, v_2ca7e0, v_6e0fd3]);
+  }, [v_e721a8, v_2ca7e0, v_6e0fd3, v_c6db14]);
 
   const v_e6ff86 = async (v_02be30 = 10) => {
     if (!v_2ca7e0) return;
@@ -350,15 +359,19 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     }
   };
 
-  const v_747b23 = async () => {
-    if (!v_e721a8 || !v_2ca7e0 || !v_a981b7 || v_dec728) return;
+  const v_747b23 = async (v_476dbe = false) => {
+    if (!v_e721a8 || !v_2ca7e0 || !v_a981b7 || v_dec728 || (v_730bdf && !v_476dbe)) return;
+    if (v_476dbe) v_8b79d4(false);
     v_a7c3b5(true);
     const v_8f00b9 = await v_22ca9b(v_6e0fd3, v_2ca7e0, {
       limit: 30,
       cursor: v_a981b7,
     });
     v_a7c3b5(false);
-    if (!v_8f00b9) return;
+    if (!v_8f00b9 || !Array.isArray(v_8f00b9.items)) {
+      v_8b79d4(true);
+      return;
+    }
     v_7f73ef((v_ba2215) => [...(v_ba2215 ?? []), ...v_8f00b9.items]);
     v_94405c(v_8f00b9.nextCursor);
   };
@@ -742,8 +755,31 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         {
 
 }
+        {v_e721a8 && v_2810d7 === null && (
+          v_612751 ? (
+            <ListErrorView
+              testID={v_5401ae.chatRoom.error}
+              retryTestID={v_5401ae.chatRoom.retry}
+              title={v_8d41d7("chat.timelineLoadFailed", { defaultValue: "대화를 불러오지 못했어요" })}
+              onRetry={() => v_589832((v_f4e98d) => v_f4e98d + 1)}
+            />
+          ) : (
+            <ListLoadingView testID={v_5401ae.chatRoom.loading} />
+          )
+        )}
         {v_e721a8 && v_2810d7 !== null && (
           <>
+            {v_730bdf && (
+              <TouchableOpacity
+                testID={v_5401ae.chatRoom.olderError}
+                onPress={() => void v_747b23(true)}
+                activeOpacity={0.7}
+              >
+                <Text style={v_d81136.loadingText}>
+                  {v_8d41d7("chat.olderLoadFailed", { defaultValue: "이전 대화를 불러오지 못했어요 · 다시 시도" })}
+                </Text>
+              </TouchableOpacity>
+            )}
             {v_dec728 && (
               <Text style={v_d81136.loadingText}>{v_8d41d7("chat.loadingPrev")}</Text>
             )}
@@ -1003,7 +1039,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           </View>
         )}
         {v_e721a8 && v_2810d7 !== null && v_2810d7.length === 0 && !v_dec728 && (
-          <View style={v_d81136.emptyWrap}>
+          <View testID={v_5401ae.chatRoom.empty} style={v_d81136.emptyWrap}>
             <Text style={v_d81136.emptyText}>{v_8d41d7("chat.emptyConversation")}</Text>
           </View>
         )}

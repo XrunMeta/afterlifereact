@@ -36,6 +36,8 @@ import { v_a78ecc, type v_268e9e } from "../../api/recommendedKeywords";
 import { v_cbe7de } from "../../lib/similarity";
 import { v_1bfbd0, v_8b0c90, v_8f28b1 } from "../../components/constants";
 import type { v_97a9a8, v_8ad91b } from "../../navigation/types";
+import { v_1c036d } from "../../components/common/ListStateViews";
+import { v_5401ae } from "../../testIDs";
 
 type TabNav = v_34614d<
   v_5b8240<v_97a9a8>,
@@ -173,6 +175,8 @@ export default function v_5db6c6() {
   }, []);
 
   const [v_a71470, v_e11929] = v_5ab095(false);
+
+  const [v_b46ce6, v_1e5dc4] = v_5ab095(false);
   const v_ba9047 = v_e662ae(false);
   const v_00778f = v_e662ae(0);
   const v_b0ad70 = v_de06a3(async (v_34e5bb = "focus") => {
@@ -186,10 +190,14 @@ export default function v_5db6c6() {
       });
 
       if (v_1923e2 !== v_00778f.current) return;
+      if (!Array.isArray(v_8f00b9?.items)) throw new Error("discover: items 없음");
       v_ba9047.current = true;
       v_5593fb(v_8f00b9.items);
+      v_1e5dc4(false);
     } catch (v_49263d) {
       console.warn("[Search] discover fetch failed:", v_49263d);
+
+      if (v_1923e2 === v_00778f.current && !v_ba9047.current) v_1e5dc4(true);
     } finally {
       if (v_1923e2 === v_00778f.current) {
         v_dbbd5d(false);
@@ -631,10 +639,30 @@ export default function v_5db6c6() {
       ) : (
 
         v_9debb9 ? (
-          <ActivityIndicator style={v_fd5f43.loader} color={v_1bfbd0.zinc500} />
+          <ActivityIndicator testID={v_5401ae.explore.loading} style={v_fd5f43.loader} color={v_1bfbd0.zinc500} />
         ) : (
           <FlatList
-            data={v_632473}
+            testID={v_5401ae.explore.list}
+            data={v_b46ce6 ? [] : v_632473}
+            ListEmptyComponent={
+              v_b46ce6 ? (
+                <ListErrorView
+                  testID={v_5401ae.explore.error}
+                  retryTestID={v_5401ae.explore.retry}
+                  title={v_8d41d7("search.exploreLoadFailed", { defaultValue: "클론을 불러오지 못했어요" })}
+                  onRetry={() => {
+                    v_1e5dc4(false);
+                    void v_b0ad70("focus");
+                  }}
+                />
+              ) : (
+                <View testID={v_5401ae.explore.empty} style={v_fd5f43.exploreEmpty}>
+                  <Text style={v_fd5f43.exploreEmptyText}>
+                    {v_8d41d7("search.exploreEmpty", { defaultValue: "아직 둘러볼 클론이 없어요" })}
+                  </Text>
+                </View>
+              )
+            }
             keyExtractor={(v_23805a) => String(v_23805a.id)}
             renderItem={v_71d43d}
             numColumns={v_f229b8}
@@ -651,6 +679,8 @@ export default function v_5db6c6() {
 }
 
 const v_fd5f43 = v_472849.create({
+  exploreEmpty: { alignItems: "center", paddingVertical: 64, paddingHorizontal: 32 },
+  exploreEmptyText: { fontSize: 14, color: v_1bfbd0.zinc500, textAlign: "center" },
   searchWrap: {
     paddingHorizontal: 16,
     paddingBottom: 10,
