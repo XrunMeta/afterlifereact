@@ -261,6 +261,62 @@ export async function v_508dab(env: v_273a0c): Promise<GoogleEnabled> {
   }
 }
 
+const v_695af4 = "auth.apple_enabled_ios";
+const v_2084d8 = true;
+
+export interface AppleEnabled {
+  ios: boolean;
+  updatedAt: number;
+}
+
+export async function v_191156(env: v_273a0c): Promise<AppleEnabled> {
+  try {
+    const v_3ac7e7 = await v_c9c489.DB.prepare(
+      `SELECT value, updated_at FROM app_config WHERE key = ? LIMIT 1`,
+    )
+      .bind(v_695af4)
+      .first<{ value: string; updated_at: number }>();
+    return {
+      ios: v_1ded13(v_3ac7e7?.value, v_2084d8),
+      updatedAt: v_3ac7e7?.updated_at ?? 0,
+    };
+  } catch {
+    return { ios: v_2084d8, updatedAt: 0 };
+  }
+}
+
+export interface AuthLoginToggles {
+  googleIos: boolean;
+  googleAndroid: boolean;
+  appleIos: boolean;
+}
+
+export async function v_f88fcd(env: v_273a0c): Promise<AuthLoginToggles> {
+  const [v_206b88, v_779914] = await Promise.all([v_508dab(v_c9c489), v_191156(v_c9c489)]);
+  return { googleIos: v_206b88.ios, googleAndroid: v_206b88.android, appleIos: v_779914.ios };
+}
+
+export async function v_fd2863(
+  env: v_273a0c,
+  v_17dc8a,
+): Promise<AuthLoginToggles> {
+  const v_2c3bd9 = {
+    googleIos: v_72d058,
+    googleAndroid: v_250179,
+    appleIos: v_695af4,
+  };
+  const v_3e6264 = (Object.keys(v_17dc8a) as (keyof AuthLoginToggles)[])
+    .filter((v_0eb677) => typeof v_17dc8a[v_0eb677] === "boolean")
+    .map((v_0eb677) =>
+      v_c9c489.DB.prepare(
+        `INSERT INTO app_config (key, value, updated_at) VALUES (?, ?, unixepoch())
+           ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = unixepoch()`,
+      ).bind(v_2c3bd9[v_0eb677], v_17dc8a[v_0eb677] ? "1" : "0"),
+    );
+  if (v_3e6264.length > 0) await v_c9c489.DB.batch(v_3e6264);
+  return v_f88fcd(v_c9c489);
+}
+
 const v_efcd03 = {
   serverStatus: "system.server_status",
   minVersionIos: "system.min_version_ios",
