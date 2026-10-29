@@ -3,6 +3,7 @@
 import { v_b7c41b, type v_437670 } from "zmui";
 import type { v_de0a25 } from "../lib/env";
 import { v_6690d9 } from "../middleware/auth";
+import { v_769690 } from "../lib/xrunAccountFace";
 
 export const v_acf120 = new v_b7c41b<v_de0a25>();
 
@@ -11,14 +12,6 @@ const v_b9cb1f = 2_000_000;
 const v_21bb34 = new Set(["afl_signup", "login"]);
 
 type XrunJson = { status?: string; code?: string | number; message?: string; data?: unknown };
-
-async function v_769690(c: v_437670<v_de0a25>): Promise<number | null> {
-  const v_3ac7e7 = await v_3f4e2e.env.DB
-    .prepare(`SELECT xrun_member_id FROM users WHERE id = ? AND deleted_at IS NULL`)
-    .bind(v_3f4e2e.get("userId")!)
-    .first<{ xrun_member_id: number | null }>();
-  return v_3ac7e7?.xrun_member_id ? Number(v_3ac7e7.xrun_member_id) : null;
-}
 
 async function v_0bb1df(c: v_437670<v_de0a25>, v_8f00b9) {
   let v_7ecfd1 = null;
@@ -46,7 +39,7 @@ function v_9765c6(c: v_437670<v_de0a25>, v_7ecfd1): Record<string, string> {
 
 async function v_68d2b9(c: v_437670<v_de0a25>): Promise<number | Response> {
   if (!v_3f4e2e.env.XRUN_INTERNAL_SECRET) return v_d5bb0f(v_3f4e2e, "FACE_DISABLED", 503);
-  const v_660822 = await v_769690(v_3f4e2e);
+  const v_660822 = await v_769690(v_3f4e2e.env.DB, v_3f4e2e.get("userId")!);
   if (!v_660822) return v_d5bb0f(v_3f4e2e, "NO_XRUN_ACCOUNT", 409);
   return v_660822;
 }
