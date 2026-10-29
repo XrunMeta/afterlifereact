@@ -8,6 +8,9 @@ import v_6d377c from "../permissions/PermissionGateScreen";
 import { v_2f5414 } from "../hooks/useSsoReconsentGate";
 import v_ac767f from "../screens/auth/SsoReconsentScreen";
 
+import { v_c9b96f } from "../hooks/useAccountFaceGate";
+import v_5b71e1 from "../screens/face-enroll/AccountFaceEnrollScreen";
+
 import v_bfe02f from "../components/consent/FirstLoginConsentModal";
 
 import { v_54ca39 } from "../lib/iap";
@@ -60,6 +63,7 @@ export default function v_3b950c() {
   const { decision: v_403b73, loading: v_decd98 } = v_b5d684();
 
   const v_65e1e2 = v_2f5414();
+  const v_075310 = v_c9b96f();
 
   const v_8a15d2 = v_042a8b && (v_decd98 || !v_403b73.pass);
 
@@ -70,6 +74,10 @@ export default function v_3b950c() {
   if (v_8a15d2) {
 
     return <PermissionGateScreen />;
+  }
+
+  if (v_042a8b && !v_075310.loading && v_075310.needs) {
+    return <AccountFaceEnrollScreen onDone={v_075310.refresh} />;
   }
 
   return (
