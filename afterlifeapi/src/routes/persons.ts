@@ -15,7 +15,9 @@ import {
   v_1bffe3,
   v_e7a6ec,
   v_a4a855,
+  v_a783f9,
 } from "../lib/cloneFaceScope";
+import { v_a298e2, v_a43ce1 } from "../lib/xrunAccountFace";
 import { v_a752e9 } from "../lib/personaBundle";
 import { v_74defc } from "../lib/logger";
 import { v_94652e } from "../lib/faceApiConsent";
@@ -184,7 +186,11 @@ v_fded81.post("/match", v_6690d9, async (v_3f4e2e) => {
   const v_643757 = v_a49907[0] && v_a49907[0].score >= v_d361d7 ? v_a49907[0] : null;
 
   let v_a74d7a = false;
-  if (!v_643757) {
+  const v_f800e1 = v_643757 ? null : await v_a298e2(v_3f4e2e.env, v_43e90c, [v_81e2ef]);
+  if (v_f800e1 && v_f800e1.status !== "none") {
+    v_a74d7a = v_f800e1.status === "match";
+    console.log(`[match] self-check src=xrun user=${v_43e90c} clone=${v_6e0fd3} → ${v_a74d7a}`);
+  } else if (!v_643757) {
     const v_1e6df3 = Math.min(v_d361d7, v_8294e8);
     const v_b1d852 = await v_e7a6ec(v_3f4e2e.env, { userId: v_43e90c, cloneId: v_6e0fd3, vector: v_81e2ef, threshold: v_1e6df3 }).catch((v_9e86fd) => {
       console.error(`[match] self-match check failed: ${(v_9e86fd as Error).message}`);
@@ -256,7 +262,8 @@ v_fded81.get("/face-gallery", v_6690d9, async (v_3f4e2e) => {
 v_fded81.get("/self-face", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
   const v_b1d852 = await v_1bffe3(v_3f4e2e.env, v_43e90c);
-  return v_3f4e2e.json({ hasSelfFace: v_b1d852 !== null });
+
+  return v_3f4e2e.json({ hasSelfFace: v_b1d852 !== null || (await v_a43ce1(v_3f4e2e.env, v_43e90c)) });
 });
 
 v_fded81.post("/from-account-self", v_6690d9, async (v_3f4e2e) => {
@@ -279,23 +286,37 @@ v_fded81.post("/from-account-self", v_6690d9, async (v_3f4e2e) => {
   if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "클론을 찾을 수 없습니다.");
 
   await v_5996cb(v_3f4e2e.env, v_43e90c);
-
-  const v_b1d852 = await v_1bffe3(v_3f4e2e.env, v_43e90c);
-  if (!v_b1d852) throw new v_3ebe58("NOT_FOUND", "등록된 본인 얼굴이 없습니다.", { code: "NO_SELF_FACE" });
-  if (v_b1d852.cloneId === v_6e0fd3)
-    throw new v_3ebe58("VALIDATION_FAILED", "본인 얼굴이 이미 이 클론에 등록되어 있습니다.");
-
+  const v_c3b0ef = () =>
+    new v_3ebe58("VALIDATION_FAILED", "본인 얼굴과 일치하지 않습니다.", { code: "SELF_FACE_MISMATCH" });
   const v_d361d7 = Math.min(await v_4e929c(v_3f4e2e.env.DB), v_8294e8);
-  let v_9e1f58 = 0;
-  for (const v_81e2ef of v_f94e64) {
-    const v_715950 = (await v_97be02(v_3f4e2e.env, { userId: v_43e90c, cloneId: v_b1d852.cloneId, vector: v_81e2ef })).find(
-      (v_65a2cd) => v_65a2cd.personId === v_b1d852.personId,
-    );
-    if (v_715950 && v_715950.score > v_9e1f58) v_9e1f58 = v_715950.score;
+
+  const v_f800e1 = await v_a298e2(v_3f4e2e.env, v_43e90c, v_f94e64, { withEmbedding: true });
+  if (v_f800e1.status === "mismatch") {
+    console.log(`[from-account-self] src=xrun user=${v_43e90c} clone=${v_6e0fd3} vectors=${v_f94e64.length} → mismatch`);
+    throw v_c3b0ef();
   }
-  console.log(`[from-account-self] user=${v_43e90c} clone=${v_6e0fd3} vectors=${v_f94e64.length} best=${v_9e1f58.toFixed(3)} min=${v_d361d7}`);
-  if (v_9e1f58 < v_d361d7)
-    throw new v_3ebe58("VALIDATION_FAILED", "본인 얼굴과 일치하지 않습니다.", { code: "SELF_FACE_MISMATCH" });
+  const v_a2c7b8 = v_f800e1.status === "match" ? v_f800e1.embedding ?? null : null;
+
+  const v_b1d852 = v_a2c7b8 ? null : await v_1bffe3(v_3f4e2e.env, v_43e90c);
+  if (!v_a2c7b8) {
+    if (!v_b1d852) throw new v_3ebe58("NOT_FOUND", "등록된 본인 얼굴이 없습니다.", { code: "NO_SELF_FACE" });
+    if (v_b1d852.cloneId === v_6e0fd3)
+      throw new v_3ebe58("VALIDATION_FAILED", "본인 얼굴이 이미 이 클론에 등록되어 있습니다.");
+  }
+
+  if (v_b1d852) {
+    let v_9e1f58 = 0;
+    for (const v_81e2ef of v_f94e64) {
+      const v_715950 = (await v_97be02(v_3f4e2e.env, { userId: v_43e90c, cloneId: v_b1d852.cloneId, vector: v_81e2ef })).find(
+        (v_65a2cd) => v_65a2cd.personId === v_b1d852.personId,
+      );
+      if (v_715950 && v_715950.score > v_9e1f58) v_9e1f58 = v_715950.score;
+    }
+    console.log(`[from-account-self] src=afl user=${v_43e90c} clone=${v_6e0fd3} vectors=${v_f94e64.length} best=${v_9e1f58.toFixed(3)} min=${v_d361d7}`);
+    if (v_9e1f58 < v_d361d7) throw v_c3b0ef();
+  } else {
+    console.log(`[from-account-self] src=xrun user=${v_43e90c} clone=${v_6e0fd3} vectors=${v_f94e64.length} → match`);
+  }
 
   const v_28fa96 = (v_3ac7e7) =>
     new v_3ebe58("CONFLICT", "이미 이 클론에 등록된 얼굴입니다.", {
@@ -303,12 +324,14 @@ v_fded81.post("/from-account-self", v_6690d9, async (v_3f4e2e) => {
       personId: v_3ac7e7.id,
       displayName: v_3ac7e7.display_name,
     });
-  const v_b38746 = await v_3f4e2e.env.DB.prepare(
-    `SELECT id, display_name FROM persons WHERE user_id = ? AND clone_id = ? AND source_person_id = ? ORDER BY id LIMIT 1`,
-  )
-    .bind(v_43e90c, v_6e0fd3, v_b1d852.personId)
-    .first<{ id: number; display_name: string | null }>();
-  if (v_b38746) throw v_28fa96(v_b38746);
+  if (v_b1d852) {
+    const v_b38746 = await v_3f4e2e.env.DB.prepare(
+      `SELECT id, display_name FROM persons WHERE user_id = ? AND clone_id = ? AND source_person_id = ? ORDER BY id LIMIT 1`,
+    )
+      .bind(v_43e90c, v_6e0fd3, v_b1d852.personId)
+      .first<{ id: number; display_name: string | null }>();
+    if (v_b38746) throw v_28fa96(v_b38746);
+  }
 
   let v_d81543;
   for (const v_81e2ef of v_f94e64) {
@@ -329,14 +352,24 @@ v_fded81.post("/from-account-self", v_6690d9, async (v_3f4e2e) => {
 
   let v_43c42e;
   try {
-
     const v_5c2f9f = Date.now();
-    v_43c42e = await v_3f4e2e.env.DB.prepare(
-      `INSERT INTO persons (user_id, clone_id, display_name, consent_state, consent_at, enrolled_via, created_at, source_person_id)
-       SELECT user_id, ?, ?, 'granted', ?, enrolled_via, ?, id FROM persons WHERE id = ? AND user_id = ?`,
-    )
-      .bind(v_6e0fd3, v_8a1355, v_5c2f9f, v_5c2f9f, v_b1d852.personId, v_43e90c)
-      .run();
+    v_43c42e = v_b1d852
+      ? 
+
+        await v_3f4e2e.env.DB.prepare(
+          `INSERT INTO persons (user_id, clone_id, display_name, consent_state, consent_at, enrolled_via, created_at, source_person_id)
+           SELECT user_id, ?, ?, 'granted', ?, enrolled_via, ?, id FROM persons WHERE id = ? AND user_id = ?`,
+        )
+          .bind(v_6e0fd3, v_8a1355, v_5c2f9f, v_5c2f9f, v_b1d852.personId, v_43e90c)
+          .run()
+      : 
+
+        await v_3f4e2e.env.DB.prepare(
+          `INSERT INTO persons (user_id, clone_id, display_name, consent_state, consent_at, enrolled_via, created_at, source_person_id)
+           VALUES (?, ?, ?, 'granted', ?, 'card', ?, NULL)`,
+        )
+          .bind(v_43e90c, v_6e0fd3, v_8a1355, v_5c2f9f, v_5c2f9f)
+          .run();
   } catch (v_49263d) {
     if (/UNIQUE constraint failed/i.test((v_49263d as Error).message ?? "")) {
       throw new v_3ebe58("VALIDATION_FAILED", "이미 등록된 이름입니다.");
@@ -347,11 +380,13 @@ v_fded81.post("/from-account-self", v_6690d9, async (v_3f4e2e) => {
 
   v_3f4e2e.executionCtx.waitUntil(
     (async () => {
-      const v_a72ab3 = await v_a4a855(v_3f4e2e.env, { userId: v_43e90c, cloneId: v_6e0fd3, copyPersonId: v_389afb, self: v_b1d852 });
+      const v_a72ab3 = v_b1d852
+        ? await v_a4a855(v_3f4e2e.env, { userId: v_43e90c, cloneId: v_6e0fd3, copyPersonId: v_389afb, self: v_b1d852 })
+        : await v_a783f9(v_3f4e2e.env, { userId: v_43e90c, cloneId: v_6e0fd3, copyPersonId: v_389afb, vector: v_a2c7b8! });
 
       if (v_a72ab3 > 0) {
         const v_0a2cd1 = await v_a752e9(v_3f4e2e.env.DB, v_6e0fd3, v_43e90c, v_389afb).catch(() => false);
-        if (v_0a2cd1) console.log(JSON.stringify({ event: "l2.owner_face.claim", cloneId: v_6e0fd3, personId: v_389afb, via: "account-self" }));
+        if (v_0a2cd1) console.log(JSON.stringify({ event: "l2.owner_face.claim", cloneId: v_6e0fd3, personId: v_389afb, via: v_b1d852 ? "account-self" : "xrun-account" }));
       }
     })().catch((v_9e86fd) => {
       console.error(`[from-account-self] seed failed user=${v_43e90c} clone=${v_6e0fd3}: ${(v_9e86fd as Error).message}`);

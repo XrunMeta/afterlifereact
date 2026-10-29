@@ -340,3 +340,18 @@ export async function v_a4a855(
   await v_003ee1(v_c9c489, { userId: v_43e90c, cloneId: v_6e0fd3, personId: v_847abc, vectors: v_f94e64, landmarkRatios: v_bef6f8, source: "self" });
   return v_f94e64.length;
 }
+
+export async function v_a783f9(
+  env: v_273a0c,
+  v_328259,
+): Promise<number> {
+  const { userId: v_43e90c, cloneId: v_6e0fd3, copyPersonId: v_847abc, vector: v_f9a45c } = v_328259;
+  if (v_f9a45c.length !== 512) return 0;
+
+  const v_759436 = await v_c9c489.DB.prepare(`SELECT 1 AS ok FROM persons WHERE id = ? AND user_id = ? AND clone_id = ?`)
+    .bind(v_847abc, v_43e90c, v_6e0fd3)
+    .first();
+  if (!v_759436) return 0;
+  await v_003ee1(v_c9c489, { userId: v_43e90c, cloneId: v_6e0fd3, personId: v_847abc, vectors: [v_f9a45c], source: "self" });
+  return 1;
+}
