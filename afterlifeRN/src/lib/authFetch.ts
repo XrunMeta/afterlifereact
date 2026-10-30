@@ -10,10 +10,16 @@ const v_d331e7 = "/oth-path";
 
 let v_360aa6 = null;
 
+let v_1a3e5d = false;
+export function v_04c88c(): boolean {
+  return v_1a3e5d;
+}
+
 export async function v_4dd1c9(): Promise<string | null> {
   if (v_360aa6) return v_360aa6;
 
   v_360aa6 = (async (): Promise<string | null> => {
+    v_1a3e5d = false;
     try {
 
       const { useAuthStore: v_1ed7d9 } = await import("../stores/authStore");
@@ -33,6 +39,7 @@ export async function v_4dd1c9(): Promise<string | null> {
         if (!v_8f00b9.ok) {
           const v_9b6134 = await v_8f00b9.text();
           console.warn("[authFetch] refresh/token failed:", v_8f00b9.status, v_9b6134.slice(0, 200));
+          v_1a3e5d = v_8f00b9.status === 401 || v_8f00b9.status === 403;
           return null;
         }
         const v_9390e8 = (await v_8f00b9.json()) as {
@@ -52,6 +59,7 @@ export async function v_4dd1c9(): Promise<string | null> {
         });
         if (!v_8f00b9.ok) {
           console.warn("[authFetch] cookie refresh failed:", v_8f00b9.status);
+          v_1a3e5d = v_8f00b9.status === 401 || v_8f00b9.status === 403;
           return null;
         }
         const v_9390e8 = (await v_8f00b9.json()) as { accessToken: string; accessExpiresIn: number };
@@ -141,9 +149,14 @@ export async function v_04b58a<T>(
 
     const v_4094c3 = await v_4dd1c9();
 
+    if (!v_4094c3 && !v_1a3e5d) {
+
+      console.warn("[authFetch] refresh failed (transient) — keeping session");
+      throw new v_84a859(503, "NETWORK_ERROR", v_3be591("NETWORK_ERROR", "Network error"), null);
+    }
     if (!v_4094c3) {
 
-      console.warn("[authFetch] refresh failed — logging out");
+      console.warn("[authFetch] refresh rejected — logging out");
       try {
         const { useAuthStore: v_1ed7d9 } = await import("../stores/authStore");
         await v_1ed7d9.getState().apiLogout();
