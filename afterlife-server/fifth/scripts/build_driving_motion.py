@@ -45,14 +45,16 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--video", required=True, type=Path)
     ap.add_argument("--out", required=True, type=Path)
-    ap.add_argument("--crop", default="560:560:280:0", help="ffmpeg crop w:h:x:y (얼굴 중심, 고개 숙인 프레임까지 들어오게)")
+    ap.add_argument("--crop", default="560:560:280:0",
+                    help="ffmpeg crop w:h:x:y — 가로 1280 으로 맞춘 뒤 기준(얼굴 중심, 고개 숙인 프레임까지 들어오게)")
     args = ap.parse_args()
 
     with tempfile.TemporaryDirectory() as tmp:
         tmp = Path(tmp)
         crop = tmp / f"{args.video.stem}.mp4"
         subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(args.video),
-                        "-vf", f"crop={args.crop},scale=512:512", "-c:v", "libx264", "-crf", "16",
+                        # Higgsfield 모델마다 해상도가 달라(1280x716 · 2560x1440) 크롭 기준을 가로 1280 으로 통일
+                        "-vf", f"scale=1280:-2,crop={args.crop},scale=512:512", "-c:v", "libx264", "-crf", "16",
                         "-pix_fmt", "yuv420p", "-an", str(crop)], check=True)
         first = tmp / "first.png"
         subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(crop), "-frames:v", "1", str(first)], check=True)
