@@ -75,7 +75,7 @@ describe('통화 HUD 섹션', () => {
   test('HUD 4종 토글 행이 메뉴에 뜬다', () => {
     v_624657(<DevFloatingBall />);
     v_77aa68.press(v_53746a.getByLabelText('dev-ball-button'));
-    for (const v_b24339 of ['devBox', 'state', 'timing', 'faceTrack']) {
+    for (const v_b24339 of ['devBox', 'state', 'timing', 'faceTrack', 'emotion']) {
       expect(v_53746a.getByLabelText(`dev-hud-toggle-${v_b24339}`)).toBeTruthy();
     }
   });
