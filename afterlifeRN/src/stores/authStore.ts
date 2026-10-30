@@ -69,19 +69,28 @@ export const v_1ed7d9 = v_a7c0d4<AuthState>((v_bb8024, v_38715b) => ({
       if (v_21cc31) {
 
         v_bb8024({ accessToken: v_21cc31, refreshToken: v_2474a1, sessionPersisted: true });
-        try {
-          const v_8f00b9 = await v_7ef860(v_21cc31);
-          v_b113dd = v_8f00b9.user;
 
-          const v_fd5f43 = v_38715b();
-          v_21cc31 = v_fd5f43.accessToken ?? v_21cc31;
-          v_2474a1 = v_fd5f43.refreshToken ?? v_2474a1;
-        } catch {
+        for (let v_bc21cd = 0; v_bc21cd < 3; v_bc21cd++) {
+          try {
+            const v_8f00b9 = await v_7ef860(v_21cc31);
+            v_b113dd = v_8f00b9.user;
 
-          await v_e84827.removeItem(v_1278db);
-          await v_e84827.removeItem(v_a19d89);
-          v_21cc31 = null;
-          v_2474a1 = null;
+            const v_fd5f43 = v_38715b();
+            v_21cc31 = v_fd5f43.accessToken ?? v_21cc31;
+            v_2474a1 = v_fd5f43.refreshToken ?? v_2474a1;
+            break;
+          } catch (v_49263d) {
+            const v_d308b5 = (v_49263d as { status?: number })?.status;
+            if (v_d308b5 === 401 || v_d308b5 === 403) {
+
+              await v_e84827.removeItem(v_1278db);
+              await v_e84827.removeItem(v_a19d89);
+              v_21cc31 = null;
+              v_2474a1 = null;
+              break;
+            }
+            if (v_bc21cd < 2) await new Promise((v_cb35cb) => setTimeout(v_cb35cb, 1500 * (v_bc21cd + 1)));
+          }
         }
       }
     }
