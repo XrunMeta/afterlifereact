@@ -164,6 +164,22 @@ def _build_pipeline_factory():
                 )
             return renderer.infer(wav, cb, video_path=_src)
 
+        # AFL-1064: 감정 영상 통화(signaling 이 허용 클론·자산 확인 후 sess.emo_video 를 단다).
+        # 답 감정에 맞는 클립 + 정해진 시작 위치로 렌더하고, 무감정 답이면 idle 이 끝 위치를 이어받는다.
+        _emo_video = getattr(sess, "emo_video", None) if renderer_name != "fifth" else None
+        _pipe_ref: list = []
+
+        def _infer_emo(wav, cb, render_mode: str | None = None):
+            p = _pipe_ref[0] if _pipe_ref else None
+            seq, emo = getattr(p, "reply_seq", 0), getattr(p, "reply_emotion", None)
+            path, rot = _emo_video.segment(seq, emo, sess.video_track.idle_position())
+            n = renderer.infer(wav, cb, video_path=path, start_rot=rot)
+            _emo_video.advance(n or 0)
+            sess.video_track.set_idle_offset(_emo_video.idle_resume_pos())
+            log.info("[AFL-1064] reply=%s emo=%s clip=%s rot=%d frames=%s idle_next=%d",
+                     seq, emo, _emo_video.clip, rot, n, _emo_video.idle_resume_pos())
+            return n
+
         # idle prebake: clone idle mp4 미적용 시에만 폴백 실행(_should_prebake 참조).
         # clone idle mp4가 이미 적용됐으면(sess.idle_video_applied) 좋은 영상 유지 —
         # 무음 prebake(나쁜 표정)로 덮지 않는다. 없을 때만 클론 얼굴 폴백.
@@ -177,17 +193,19 @@ def _build_pipeline_factory():
             _tmp = os.environ.get("TMPDIR", "/tmp")
             start_prebake(renderer, _src, sess.video_track, wav_dir=_tmp)
 
-        return DialoguePipeline(
+        pipeline = DialoguePipeline(
             video_track=sess.video_track,
             audio_track=sess.audio_track,
             chat_fn=chat_stream,
             say_fn=tts_say,
             decode_wav_fn=_decode_wav,
-            infer_fn=_infer_fn,
+            infer_fn=_infer_emo if _emo_video is not None else _infer_fn,
             persona_messages=persona_messages,
             se_path=se_path,
             clone_locked=getattr(sess, "clone_id", None) is not None,
         )
+        _pipe_ref.append(pipeline)
+        return pipeline
 
     return factory
 

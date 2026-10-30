@@ -1,0 +1,112 @@
+"""AFL-1064 감정 태그 → 감정 영상 클립 · 한 시계 재생 위치."""
+import os
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
+
+import emotion_video as ev  # noqa: E402
+from emotion_video import CLIP_FOR_EMO, EmotionVideo, enabled_for, find_assets  # noqa: E402
+
+
+def _assets(tmp_path, clone="9232", clips=("neutral", "idle", "warm_calm", "agreement", "serious", "disagreement")):
+    d = tmp_path / clone / "emo"
+    d.mkdir(parents=True)
+    for c in clips:
+        (d / f"{clone}-emo-{c}.mp4").write_bytes(b"x")
+    return tmp_path
+
+
+def test_연결표는_6종_감정을_모두_덮는다():
+    from clone_dialog.lang_tag import EMOTIONS
+    assert set(CLIP_FOR_EMO) == set(EMOTIONS)
+    assert CLIP_FOR_EMO["neutral"] == CLIP_FOR_EMO["calm"] == "neutral"
+    assert CLIP_FOR_EMO["warm"] == "warm_calm"
+    assert CLIP_FOR_EMO["happy"] == "agreement"
+    assert CLIP_FOR_EMO["sad"] == "serious"
+    assert CLIP_FOR_EMO["angry"] == "disagreement"
+
+
+def test_클론_허용목록(monkeypatch):
+    monkeypatch.delenv("PRETHIRD_EMO_VIDEO_CLONES", raising=False)
+    assert not enabled_for(9232)
+    monkeypatch.setenv("PRETHIRD_EMO_VIDEO_CLONES", "9232, 9075")
+    assert enabled_for(9232) and enabled_for("9075")
+    assert not enabled_for(9194) and not enabled_for(None)
+
+
+def test_자산은_무감정과_idle_이_있어야_쓴다(tmp_path):
+    root = _assets(tmp_path)
+    a = find_assets(str(root), "9232")
+    assert a["neutral"].endswith("9232/emo/9232-emo-neutral.mp4")
+    assert set(a) == {"neutral", "idle", "warm_calm", "agreement", "serious", "disagreement"}
+    assert find_assets(str(_assets(tmp_path / "b", clips=("neutral", "warm_calm"))), "9232") is None
+
+
+def test_감정_클립이_없으면_무감정으로(tmp_path):
+    a = find_assets(str(_assets(tmp_path, clips=("neutral", "idle"))), "9232")
+    v = EmotionVideo(a, cycle_len=588)
+    path, rot = v.segment(reply_seq=1, emo="angry", idle_pos=10)
+    assert path == a["neutral"] and rot == 10
+
+
+def test_감정_클립은_0번부터_조각마다_이어진다(tmp_path):
+    a = find_assets(str(_assets(tmp_path)), "9232")
+    v = EmotionVideo(a, cycle_len=588)
+    path, rot = v.segment(reply_seq=1, emo="angry", idle_pos=300)
+    assert path == a["disagreement"] and rot == 0
+    v.advance(55)
+    path, rot = v.segment(reply_seq=1, emo="angry", idle_pos=999)
+    assert path == a["disagreement"] and rot == 55   # 같은 답의 다음 문장 조각은 이어서
+    v.advance(30)
+    assert v.idle_resume_pos() == 0                  # 감정 답 뒤 idle 은 처음(중립)부터
+
+
+def test_감정_클립은_길이가_달라도_위치를_누적한다(tmp_path):
+    # 감정 클립(193프레임 → 사이클 386)은 무감정 사이클(588)과 길이가 다르다.
+    # 위치를 588 로 접으면 긴 답에서 조각 사이가 튄다 → 누적값을 주고 접기는 MuseTalk 가 자기 사이클로 한다.
+    a = find_assets(str(_assets(tmp_path)), "9232")
+    v = EmotionVideo(a, cycle_len=588)
+    v.segment(reply_seq=1, emo="sad", idle_pos=0)
+    v.advance(500)
+    v.advance(200)
+    _, rot = v.segment(reply_seq=1, emo="sad", idle_pos=0)
+    assert rot == 700
+
+
+def test_무감정은_idle_위치에서_시작하고_idle_이_말끝에서_이어받는다(tmp_path):
+    a = find_assets(str(_assets(tmp_path)), "9232")
+    v = EmotionVideo(a, cycle_len=588)
+    path, rot = v.segment(reply_seq=1, emo="neutral", idle_pos=120)
+    assert path == a["neutral"] and rot == 120
+    v.advance(500)
+    assert v.idle_resume_pos() == (120 + 500) % 588
+
+
+def test_새_답이면_다시_고른다(tmp_path):
+    a = find_assets(str(_assets(tmp_path)), "9232")
+    v = EmotionVideo(a, cycle_len=588)
+    v.segment(reply_seq=1, emo="warm", idle_pos=0)
+    v.advance(40)
+    path, rot = v.segment(reply_seq=2, emo="calm", idle_pos=77)
+    assert path == a["neutral"] and rot == 77
+
+
+def test_감정_모름은_무감정(tmp_path):
+    a = find_assets(str(_assets(tmp_path)), "9232")
+    v = EmotionVideo(a, cycle_len=588)
+    path, _ = v.segment(reply_seq=1, emo=None, idle_pos=0)
+    assert path == a["neutral"]
+    path, _ = v.segment(reply_seq=2, emo="surprised", idle_pos=0)
+    assert path == a["neutral"]
+
+
+def test_idle_위치_오프셋():
+    from idle import _select_idle_frame
+    frames = list(range(100))
+    f, t0 = _select_idle_frame(10.0, 0.0, 0.5, frames, 0.0, None, offset=30)
+    assert f == 30 and t0 == 10.0
+    f, _ = _select_idle_frame(11.0, 0.0, 0.5, frames, t0, None, offset=30)
+    assert f == 55
+    f, _ = _select_idle_frame(11.0, 0.0, 0.5, frames, t0, None)   # 기본은 지금과 같다
+    assert f == 25
+    assert ev  # noqa
