@@ -322,6 +322,9 @@ def run_inference(args, models, frame_callback=None, timing_out=None, batch_emit
             # 매 turn 다른 시작점 · blink 이 담길 확률 up.
             import time as _t_rot
             _rot = int(_t_rot.time() * 25) % len(frame_list_cycle)
+            # AFL-1064: 감정 영상 통화는 시작 위치를 정해서 준다(한 답 안 조각 연속·한 시계).
+            if getattr(args, "start_rot", None) is not None:
+                _rot = int(args.start_rot) % len(frame_list_cycle)
             if _rot > 0:
                 frame_list_cycle = frame_list_cycle[_rot:] + frame_list_cycle[:_rot]
                 coord_list_cycle = coord_list_cycle[_rot:] + coord_list_cycle[:_rot]

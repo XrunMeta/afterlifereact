@@ -394,6 +394,8 @@ class DialoguePipeline:
         # AFL-1067: 이번 답의 감정(LLM 답 머리 <emo=…>) · 인사 생성 시의 감정.
         self._reply_emo: str | None = None
         self._greeting_emo: str | None = None
+        # AFL-1064: 답 번호 — 감정 영상이 "새 답이면 클립·위치를 다시 고른다"를 판정한다.
+        self._reply_seq = 0
         self.decode_wav_fn = decode_wav_fn
         self.infer_fn = infer_fn
         self.persona_messages = persona_messages or []
@@ -961,6 +963,7 @@ class DialoguePipeline:
             # AFL-1034: 답 맨 앞 <lang=…> 를 떼고 언어를 정한다 — 정해지기 전엔 TTS 로 안 보낸다.
             lts = LangTagStream(self.user_lang)
             self._reply_emo = None   # AFL-1067: 이전 답 감정이 이번 답으로 묻지 않게
+            self._reply_seq += 1     # AFL-1064
             async for tok in self.chat_fn(messages):
                 t = self._feed_lang(lts, tok)
                 if not t:
@@ -1019,6 +1022,7 @@ class DialoguePipeline:
         turn.append_token(text)
         # AFL-1067: 감정 태그가 없는 발화 — 직전 답 감정(angry 등)을 물려받지 않게 neutral.
         self._reply_emo = DEFAULT_EMOTION
+        self._reply_seq += 1   # AFL-1064
 
         async def produce(q: asyncio.Queue):
             for s in parts:
@@ -1112,6 +1116,7 @@ class DialoguePipeline:
             sb = self._sb_factory()
             lts = LangTagStream(self.user_lang)   # AFL-1034
             self._reply_emo = None   # AFL-1067
+            self._reply_seq += 1     # AFL-1064
             async for tok in self.chat_fn(messages):
                 t = self._feed_lang(lts, tok)
                 if not t:
@@ -1157,6 +1162,11 @@ class DialoguePipeline:
     def reply_emotion(self) -> str | None:
         """AFL-1067: 지금 말하는 답의 감정(머리 태그 판정 전이면 None) — 자막 신호에 실어 개발용 박스에 쓴다."""
         return self._reply_emo
+
+    @property
+    def reply_seq(self) -> int:
+        """AFL-1064: 답 번호(답이 시작될 때마다 1 증가)."""
+        return self._reply_seq
 
     def _feed_lang(self, lts: "LangTagStream", tok) -> str:
         """스트리밍 토큰을 태그 파서에 통과시키고, 언어·감정이 정해지면 이번 답 것으로 잡는다.

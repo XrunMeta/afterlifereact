@@ -245,6 +245,7 @@ class MuseTalkInproc:
         wav_path: str,
         on_frame: Callable,
         video_path: str | None = None,
+        start_rot: int | None = None,
     ) -> int:
         """wav_path 음성 → frame 생성 즉시 on_frame(rgb_ndarray) 호출.
 
@@ -253,6 +254,7 @@ class MuseTalkInproc:
             on_frame: RGB ndarray 를 받는 콜백. AvatarVideoTrack.push_ndarray 와 호환.
             video_path: 이 호출에서만 사용할 클론 영상 경로. 생략 시 self.video_path(기본 halbae).
                         모델(self._models)은 재로드하지 않는다. 좌표 캐시는 video stem 별 자동.
+            start_rot: AFL-1064 사이클 시작 위치. None 이면 지금처럼 시각 기반 랜덤.
 
         Returns:
             총 프레임 수 (frame_callback 호출 횟수).
@@ -300,6 +302,7 @@ class MuseTalkInproc:
         args.inference_config = str(cfg_path)
         args.result_dir = str(RESULT_DIR)
         args.skip_mp4_output = True  # 디스크 IO 없음
+        args.start_rot = start_rot
 
         # 프레임 카운터
         _frame_count = [0]
