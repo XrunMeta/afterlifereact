@@ -56,6 +56,8 @@ class SynthReq(BaseModel):
     se_path: str | None = None
     # AFL-1034: 답 언어(ko·en·ja·zh·es). 숫자 한글 수사 변환은 ko(또는 미지정 = 옛 호출)에만.
     lang: str | None = None
+    # AFL-1067 답 감정(neutral·calm·happy·sad·angry·warm). 감정 은행(AFL-1069)이 켜져 있을 때만 쓴다.
+    emotion: str | None = None
 
 
 @app.post("/tts/kr")
@@ -97,7 +99,8 @@ def synth(req: SynthReq):
         opts = {k: getattr(req, k, None) for k in SYNTH_OPT_KEYS}
         opts = {k: v for k, v in opts.items() if v is not None}
         wav = eng.synth(txt, clone_id=clone_id, voice_wav=voice_wav,
-                        ref_text=ref_text, speed=req.speed, opts=opts or None)
+                        ref_text=ref_text, speed=req.speed, opts=opts or None,
+                        emotion=req.emotion)
     except ValueError as exc:
         log.warning("synth fail clone '%s': %s", clone_id, exc)
         raise HTTPException(503, f"synth failed for clone '{clone_id}': {exc}")
