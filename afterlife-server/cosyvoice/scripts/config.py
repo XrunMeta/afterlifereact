@@ -76,6 +76,28 @@ SAMPLING_TOP_P = float(os.environ.get("COSYVOICE_SAMPLING_TOP_P", "0.8"))
 # 조합 escape ≈ P(top5 폭주)×P(greedy 폭주)^retries = 0.5×0.2^3 ≈ 0.4%.
 RAMBLE_FALLBACK_TOP_K = int(os.environ.get("COSYVOICE_RAMBLE_FALLBACK_TOP_K", "1"))
 
+# 감정 은행(AFL-1069) — TTS 요청의 emotion(AFL-1067 LLM 감정 태그)으로 은행 견본을 골라
+# 말투(LLM 단계)는 은행 견본, 음색(flow 단계)은 클론 견본으로 합성한다. 기본 OFF.
+# 은행 = EMO_BANK_DIR 의 <이름>.wav + <이름>.txt(대사 원문). 맵에 없는 감정(neutral·calm 등)은 클론만.
+EMO_BANK_ENABLED = os.environ.get("COSYVOICE_EMO_BANK", "0") == "1"
+EMO_BANK_DIR = os.environ.get("COSYVOICE_EMO_BANK_DIR", "/data/emo_bank_20261030")
+
+
+def parse_emo_bank_map(spec: str) -> dict:
+    """'happy=happy_ainsley,sad=sad_hana' → {감정: 은행 이름}. 빈 칸·잘못된 조각은 버린다."""
+    out = {}
+    for part in spec.split(","):
+        emo, _, name = part.partition("=")
+        emo, name = emo.strip().lower(), name.strip()
+        if emo and name:
+            out[emo] = name
+    return out
+
+
+# 2026-10-30 sungjius 청취로 확정: 기쁨·다정·화남=Ainsley, 슬픔=Hana(ElevenLabs 한국어).
+EMO_BANK_MAP = parse_emo_bank_map(os.environ.get(
+    "COSYVOICE_EMO_BANK_MAP", "happy=happy_ainsley,sad=sad_hana,warm=warm_ainsley,angry=angry_ainsley"))
+
 # 시드 고정(AFL-746, 2026-09-18 라이브에서 직접 추가된 것을 AFL-1002 에서 repo 로 흡수).
 # 같은 (clone_id, text, 재시도 회차)는 늘 같은 소리 → 발음 문제를 재현할 수 있다. 0 이면 끔.
 SEED_LOCK = os.environ.get("COSYVOICE_SEED_LOCK", "1") == "1"

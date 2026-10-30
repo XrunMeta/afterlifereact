@@ -15,6 +15,11 @@ from lead_trim import cap_lead_silence, longest_inner_silence
 
 log = logging.getLogger("cosyvoice")
 
+# 감정 은행(AFL-1069): 이 키들은 음색을 정하는 flow 단계 입력이라 클론 것을 쓴다.
+# 나머지(prompt_text·llm 토큰·llm_embedding)는 말투·감정을 정하는 LLM 단계 입력이라 은행 것을 쓴다.
+FLOW_KEYS = ("flow_prompt_speech_token", "flow_prompt_speech_token_len",
+             "prompt_speech_feat", "prompt_speech_feat_len", "flow_embedding")
+
 
 def seed_for(clone_id: str, text: str, attempt: int) -> int:
     """합성 시드. 같은 (clone_id, text, attempt) 는 늘 같은 소리 — 발음 문제 재현용(AFL-746).
@@ -43,6 +48,10 @@ class CosyEngine:
         self.sr = None
         # clone_id → 등록한 견본의 서명(경로·크기·수정시각·텍스트). 서명이 바뀌면 다시 등록한다.
         self._registered: dict[str, tuple] = {}
+        # 감정 은행 이름 → 등록한 화자 캐시 id(파일이 없으면 None — 다시 찾지 않는다).
+        self._banks: dict[str, str | None] = {}
+        # "emo-mix:<클론>:<감정>" → 섞을 때 쓴 (클론 견본 서명, 은행 id). 클론 견본이 바뀌면 다시 섞는다.
+        self._mixed: dict[str, tuple] = {}
         self._reg_lock = threading.Lock()     # 클론 등록 직렬화
         self._synth_lock = threading.Lock()   # GPU 합성 직렬화(동시통화 음성 섞임 방지)
         os.makedirs(config.PROMPT_CACHE_DIR, exist_ok=True)
@@ -79,6 +88,10 @@ class CosyEngine:
             ras_sampling, top_p=_p, top_k=top_k, win_size=10, tau_r=0.1)
 
     def warmup(self):
+        if config.EMO_BANK_ENABLED:
+            # 은행 견본 전처리는 기동 때 한 번 — 첫 감정 답이 견본 처리 시간만큼 늦지 않게.
+            for name in sorted(set(config.EMO_BANK_MAP.values())):
+                self._bank_or_none(name)
         wc = config.WARMUP_CLONE
         if not wc:
             return
@@ -137,6 +150,85 @@ class CosyEngine:
             self._registered[clone_id] = sig
             log.info("prompt cached: clone=%s (%.1fs, icl=%s)", clone_id, len(data) / sr, ref_text is not None)
 
+    def _ensure_bank(self, name: str) -> str | None:
+        """감정 은행 견본을 화자 캐시에 등록하고 그 id 를 준다. 파일·대사가 없으면 None(한 번만 경고).
+        은행은 기동 때 한 번만 읽는다 — 은행 파일을 바꾸면 서비스를 재시작해야 반영된다."""
+        if name in self._banks:
+            return self._banks[name]
+        with self._reg_lock:
+            if name in self._banks:
+                return self._banks[name]
+            wav = os.path.join(config.EMO_BANK_DIR, name + ".wav")
+            txt = os.path.join(config.EMO_BANK_DIR, name + ".txt")
+            if not (os.path.isfile(wav) and os.path.isfile(txt)):
+                log.warning("[emo-bank] 은행 %s 없음(%s) → 이 감정은 클론 견본만", name, config.EMO_BANK_DIR)
+                self._banks[name] = None
+                return None
+            with open(txt, encoding="utf-8") as f:
+                text = f.read().strip()
+            if not text:
+                log.warning("[emo-bank] 은행 %s 대사(.txt)가 비어 있음 → 이 감정은 클론 견본만", name)
+                self._banks[name] = None
+                return None
+            data, sr = sf.read(wav, dtype="float32")
+            if data.ndim > 1:
+                data = data[:, 0]
+            if data.size == 0:
+                raise ValueError(f"empty bank wav: {wav!r}")
+            # 은행 견본(ElevenLabs)은 말소리가 끝까지 찬 채 끊겨 있다 — 클론 voice.wav 폴백과 같은
+            # 끝 무음 패딩으로 하드컷 경계 아티팩트를 막는다(_ensure_prompt 주석의 lead-RMS 실측).
+            if config.PROMPT_TAIL_SILENCE_MS > 0:
+                tail = np.zeros(int(config.PROMPT_TAIL_SILENCE_MS / 1000 * sr), dtype=data.dtype)
+                data = np.concatenate([data, tail])
+            ppath = os.path.join(config.PROMPT_CACHE_DIR, f"emo-bank_{name}_prompt.wav")
+            sf.write(ppath, data, sr, format="WAV")
+            spk = f"emo-bank:{name}"
+            self.model.add_zero_shot_spk(config.PROMPT_TEXT_PREFIX + text, ppath, spk)
+            self._banks[name] = spk
+            log.info("[emo-bank] 은행 등록: %s", name)
+            return spk
+
+    def _bank_or_none(self, name: str) -> str | None:
+        """_ensure_bank 의 예외(깨진 wav 등)를 삼켜 None 으로 — 감정 때문에 합성이 실패하지 않게.
+        실패도 None 으로 기억해 요청마다 다시 시도하지 않는다."""
+        if name in self._banks:
+            return self._banks[name]
+        try:
+            return self._ensure_bank(name)
+        except Exception as e:
+            log.warning("[emo-bank] 은행 %s 등록 실패 → 이 감정은 클론 견본만: %s", name, e)
+            self._banks[name] = None
+            return None
+
+    def _voice_for(self, clone_id: str, emotion: str | None) -> str:
+        """이번 합성에 쓸 화자 캐시 id. 은행이 있는 감정이면 "emo-mix:<클론>:<감정>"(말투=은행·음색=클론).
+
+        스위치가 꺼졌거나·감정이 없거나·맵에 없는 감정(neutral·calm)이거나·은행 파일이 없으면
+        지금처럼 클론 id 그대로 — 합성이 감정 때문에 실패하는 일은 없다.
+        """
+        if not config.EMO_BANK_ENABLED or not emotion:
+            return clone_id
+        emo = emotion.strip().lower()
+        name = config.EMO_BANK_MAP.get(emo)
+        if not name:
+            return clone_id
+        bank = self._bank_or_none(name)
+        if bank is None:
+            return clone_id
+        # 클론 id 는 디렉터리 이름이라 형식 제한이 없다 — 접두어로 클론 항목과 이름공간을 나눈다.
+        mixed = f"emo-mix:{clone_id}:{emo}"
+        sig = (self._registered.get(clone_id), bank)
+        if self._mixed.get(mixed) != sig:
+            with self._reg_lock:
+                info = self.model.frontend.spk2info
+                entry = dict(info[bank])
+                for k in FLOW_KEYS:
+                    entry[k] = info[clone_id][k]
+                info[mixed] = entry
+                self._mixed[mixed] = sig
+            log.info("[emo-bank] 섞음: clone=%s emotion=%s bank=%s", clone_id, emo, name)
+        return mixed
+
     def _synth_once(self, text: str, clone_id: str, speed: float, top_k: int | None = None,
                     top_p: float | None = None, attempt: int = 0):
         """1회 합성 → float32 [T] numpy (빈 텍스트면 None). GPU 직렬화.
@@ -169,9 +261,13 @@ class CosyEngine:
         return torch.concat(chunks, dim=1).squeeze(0).cpu().numpy().astype(np.float32)
 
     def synth(self, text: str, clone_id: str, voice_wav: str,
-              ref_text: str | None, speed: float = 1.0, opts: dict | None = None) -> bytes:
-        """opts: per-request 파라미터(lab-tuner). None/빈 dict 면 config 기본값 = 회귀 0."""
+              ref_text: str | None, speed: float = 1.0, opts: dict | None = None,
+              emotion: str | None = None) -> bytes:
+        """opts: per-request 파라미터(lab-tuner). None/빈 dict 면 config 기본값 = 회귀 0.
+        emotion: 답 감정(AFL-1067). 감정 은행이 켜져 있고 은행이 있는 감정이면 그 말투로(AFL-1069)."""
         self._ensure_prompt(clone_id, voice_wav, ref_text)
+        # 은행이 없는 경우 spk == clone_id 라 시드·캐시가 지금과 같다(회귀 0).
+        spk = self._voice_for(clone_id, emotion)
 
         from synth_opts import resolve_opts
         o = resolve_opts(opts, config)
@@ -196,7 +292,7 @@ class CosyEngine:
             # 1차=기본(또는 요청) 샘플링, 재합성=폴백 top_k(greedy 1, 폭주율↓).
             tk = _req_tk if attempt == 0 else o["ramble_fallback_top_k"]
             tp = _req_tp if attempt == 0 else None
-            audio = self._synth_once(text, clone_id, speed, top_k=tk, top_p=tp, attempt=attempt)
+            audio = self._synth_once(text, spk, speed, top_k=tk, top_p=tp, attempt=attempt)
             if audio is None:
                 # 정규화 후 빈 텍스트(문장부호·이모지) → 짧은 무음(스트리밍 무중단·503 방지).
                 log.info("empty audio clone=%s text=%r → 무음 반환", clone_id, text[:40])
