@@ -2,15 +2,6 @@
   "name": "afterlifern",
   "version": "1.0.0",
   "main": "index.ts",
-  "expo": {
-    "autolinking": {
-      "ios": {
-        "exclude": [
-          "react-native-vision-camera-face-detector"
-        ]
-      }
-    }
-  },
   "scripts": {
     "start": "cross-env NODE_OPTIONS=--max-old-space-size=8192 expo start",
     "android": "expo run:android",
