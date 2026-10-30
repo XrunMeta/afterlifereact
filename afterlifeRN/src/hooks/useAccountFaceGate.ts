@@ -3,6 +3,7 @@
 import { v_c4deb2, v_5ab095 } from "bapkr";
 import { v_1ed7d9 } from "../stores/authStore";
 import { v_31ecf2 } from "../api/faceAccount";
+import { v_f8fbcf } from "../face/safeFaceDetector";
 
 export function v_c9b96f(): { needs: boolean; loading: boolean; refresh: () => void } {
   const v_042a8b = v_1ed7d9((v_fd5f43) => v_fd5f43.isLoggedIn);
@@ -12,7 +13,8 @@ export function v_c9b96f(): { needs: boolean; loading: boolean; refresh: () => v
   const [v_9a5f22, v_6d48d1] = v_5ab095(0);
 
   v_c4deb2(() => {
-    if (!v_042a8b || !v_2ca7e0) {
+
+    if (!v_042a8b || !v_2ca7e0 || !v_f8fbcf()) {
       v_0bc5b7(false);
       v_34a50a(false);
       return;
