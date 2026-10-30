@@ -63,7 +63,8 @@ import {
   useFrameProcessor,
 } from "react-native-vision-camera";
 import { Worklets } from "react-native-worklets-core";
-import { useFaceDetector } from "react-native-vision-camera-face-detector";
+
+import { useSafeFaceDetector as useFaceDetector } from "../../face/safeFaceDetector";
 import type { Face as DetectorFace } from "react-native-vision-camera-face-detector";
 import { useTensorflowModel } from "react-native-fast-tflite";
 import { useResizePlugin } from "vision-camera-resize-plugin";

@@ -8,7 +8,8 @@ import { v_e82960, v_0e491a } from "qmmwyqbwrg";
 import * as v_3c288d from "bxoplsnixpmvnirxbbkstg";
 import { v_862296 as v_628d75, v_db5a6b, v_b08ef3 } from "mkqptszwrsxiemcjrtdlshyxlm";
 import { v_d73d29, v_fc0657 } from "fkysyevuehkssftyrtweoolhfw";
-import { v_ac8611 } from "gegbzaufjmeglxlxrodgpkwzmpoxabawfpabkiqb";
+
+import { v_fd3d66 as v_ac8611 } from "../../face/safeFaceDetector";
 import { v_772971 } from "jmpfvteuuztnp";
 import type { v_75de9d } from "zqqvxke";
 import { v_e74bab } from "../../face/largestFace";
