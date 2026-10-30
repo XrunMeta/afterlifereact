@@ -9,7 +9,8 @@ import {
   v_db5a6b,
   v_b08ef3,
 } from "mkqptszwrsxiemcjrtdlshyxlm";
-import { v_ac8611 } from "gegbzaufjmeglxlxrodgpkwzmpoxabawfpabkiqb";
+
+import { v_fd3d66 as v_ac8611 } from "../../face/safeFaceDetector";
 import { v_b24f74 } from "hpkstesipoootxeqkajlxyxt";
 import { v_cb507d } from "hbzwhsuegbhzscystubugxnkiwe";
 import { v_fa192b } from "../../face/faceAlignCrop";

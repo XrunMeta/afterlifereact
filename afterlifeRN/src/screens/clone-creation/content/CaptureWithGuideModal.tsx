@@ -17,7 +17,8 @@ import {
   type v_862296 as v_6c59f3,
 } from "mkqptszwrsxiemcjrtdlshyxlm";
 import { v_d73d29 } from "fkysyevuehkssftyrtweoolhfw";
-import { v_ac8611 } from "gegbzaufjmeglxlxrodgpkwzmpoxabawfpabkiqb";
+
+import { v_fd3d66 as v_ac8611 } from "../../../face/safeFaceDetector";
 import type { v_ab3a39 as v_1faf6a } from "gegbzaufjmeglxlxrodgpkwzmpoxabawfpabkiqb";
 import { v_516d20, v_91a3cf } from "bxoplsnixpmvnirxbbkstg";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
@@ -64,7 +65,7 @@ export default function v_e0961f({ visible: v_cf55be, onCapture: v_94e3dc, onCan
   const [v_67358b, v_e335db] = v_5ab095(false);
 
   const { faceState: v_bbb3d3, onFaces: v_dfbd9a } = v_b83839();
-  const { detectFaces: v_de4d76, stopListeners: v_62fe07 } = v_ac8611({
+  const { detectFaces: v_de4d76, stopListeners: v_62fe07, available: v_065b5f } = v_ac8611({
     performanceMode: "fast",
     trackingEnabled: true,
   });
@@ -143,7 +144,7 @@ export default function v_e0961f({ visible: v_cf55be, onCapture: v_94e3dc, onCan
     v_f61235 <= v_061968 &&
     v_c0023c >= v_b9889b &&
     v_c0023c <= v_892cc8;
-  const v_b85511 = v_3c43bd && v_3fa3e2;
+  const v_b85511 = !v_065b5f || (v_3c43bd && v_3fa3e2);
 
   const v_405d38 = !v_7c2f5d
     ? v_8d41d7("create.image.faceGuideHint")
