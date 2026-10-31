@@ -1338,7 +1338,16 @@
       "recordQualitySilenceMsg": "The recording has a lot of silence. Please re-record the whole sentence clearly in a quiet place.",
       "recordQualityNoiseMsg": "Background noise got into the recording. Re-recording in a quiet place will make the voice sound much more natural.",
       "registeredFile": "Your voice file has been registered.",
-      "registeredRecording": "Your recording has been registered."
+      "registeredRecording": "Your recording has been registered.",
+      "myTakesTitle": "My recordings",
+      "myTakesHint": "Listen and choose the recording to use for the next step.",
+      "myFilesTitle": "My files",
+      "myFilesHint": "Listen and choose the file to use for the next step.",
+      "takeFileFallback": "File {{n}}",
+      "takeLabel": "Recording {{n}}",
+      "takeLatest": "Latest",
+      "listen": "Play",
+      "listenStop": "Stop"
     },
     "visibility": {
       "memlowLocked": "Memorial clones are private only. Visible only to co-admins.",

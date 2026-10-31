@@ -100,6 +100,14 @@ interface VoiceSource {
   fileName: string;
 }
 
+interface VoiceTake {
+  no: number; 
+  uri: string;
+  jobId: string;
+  name?: string; 
+}
+type TakeMode = "record" | "upload";
+
 async function v_48cafb(
   v_8d41d7,
 ): Promise<VoiceSource | null> {
@@ -190,6 +198,19 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9, onScrollToEnd: v_0c8c51
   const [v_415c0c, v_2941d3] = v_5ab095<Partial<Record<Mode, boolean>>>({});
   const v_a9f8e1 = v_e662ae(0);
 
+  const [v_2a77e0, v_2e2cbf] = v_5ab095<Record<TakeMode, VoiceTake[]>>(() => {
+    const v_b56a36 = { record: [], upload: [] };
+    const v_35f85c = v_2ba26d(v_f04727);
+    if ((v_35f85c === "record" || v_35f85c === "upload") && v_f04727.voiceFile && v_f04727.voiceCloneJobId) {
+      const v_25c4f7 = v_f04727.voiceFile.split("/").pop() ?? "";
+      let v_1833e7 = v_25c4f7;
+      try { v_1833e7 = decodeURIComponent(v_25c4f7); } catch {  }
+      v_b56a36[v_35f85c] = [{ no: 1, uri: v_f04727.voiceFile, jobId: v_f04727.voiceCloneJobId, name: v_1833e7 }];
+    }
+    return v_b56a36;
+  });
+  const v_f72708 = v_e662ae<Record<TakeMode, number>>({ record: v_2a77e0.record.length, upload: v_2a77e0.upload.length });
+
   const v_a9e8f0 = async (v_35f85c, v_38d084) => {
 
     const v_1923e2 = ++v_a9f8e1.current;
@@ -247,6 +268,16 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9, onScrollToEnd: v_0c8c51
       if (v_718d60()) return;
       console.log(`[DefaultVoice] voice_clone job (${v_35f85c}) created:`, v_94abbb.job_id);
       v_4a4814(v_35f85c, { voiceFile: v_38d084.uri, voiceCloneJobId: v_94abbb.job_id });
+      if (v_35f85c === "record" || v_35f85c === "upload") {
+
+        v_2e2cbf((v_ba2215) => {
+          const v_ef8ab1 = v_ba2215[v_35f85c];
+          const v_a448ad = v_ef8ab1.some((v_62c214) => v_62c214.uri === v_38d084.uri)
+            ? v_ef8ab1.map((v_62c214) => (v_62c214.uri === v_38d084.uri ? { ...v_62c214, jobId: v_94abbb.job_id } : v_62c214))
+            : [{ no: ++v_f72708.current[v_35f85c], uri: v_38d084.uri, jobId: v_94abbb.job_id, name: v_38d084.fileName }, ...v_ef8ab1];
+          return { ...v_ba2215, [v_35f85c]: v_a448ad };
+        });
+      }
     } catch (v_49263d) {
       if (v_718d60()) return;
       console.warn(`[DefaultVoice] ${v_35f85c} upload/job failed:`, v_49263d);
@@ -258,6 +289,9 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9, onScrollToEnd: v_0c8c51
   };
 
   const v_d211a6 = (): string => {
+
+    const v_07fb2e = v_2a77e0.upload.find((v_62c214) => v_62c214.uri === v_f04727.voiceFile)?.name;
+    if (v_07fb2e) return v_07fb2e;
     const v_1833e7 = v_04e790.upload?.fileName;
     if (v_1833e7) return v_1833e7;
     const v_25c4f7 = (v_f04727.voiceFile ?? "").split(/[\/]/).pop() ?? "";
@@ -270,6 +304,11 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9, onScrollToEnd: v_0c8c51
   };
 
   const v_69341a = (v_35f85c) => {
+
+    if (typeof v_cf954d === "string") {
+      try { v_86394a.pause(); } catch {  }
+      v_a4d7cc(null);
+    }
     v_038d7f(v_35f85c);
     v_b187d9({ ...(v_404fe1[v_35f85c] ?? v_884e4d), voiceMode: v_35f85c });
   };
@@ -285,7 +324,8 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9, onScrollToEnd: v_0c8c51
 
   const v_86394a = v_407393();
   const v_af221f = v_3488be(v_86394a);
-  const [v_cf954d, v_a4d7cc] = v_5ab095<number | null>(null);
+
+  const [v_cf954d, v_a4d7cc] = v_5ab095<number | string | null>(null);
 
   v_c4deb2(() => {
     if (
@@ -469,6 +509,27 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9, onScrollToEnd: v_0c8c51
     }
   };
 
+  const v_1dedc8 = (v_cd1446) => {
+    if (v_cf954d === v_cd1446) {
+      try { v_86394a.pause(); } catch {  }
+      v_a4d7cc(null);
+      return;
+    }
+    try {
+      v_86394a.replace({ uri: v_cd1446 });
+      v_86394a.play();
+      v_a4d7cc(v_cd1446);
+    } catch (v_49263d) {
+      console.warn("[DefaultVoice] 내 음성 재생 실패:", v_49263d);
+      v_a4d7cc(null);
+    }
+  };
+
+  const v_880163 = (v_35f85c, v_04326c) => {
+    v_2941d3((v_ba2215) => ({ ...v_ba2215, [v_35f85c]: false }));
+    v_4a4814(v_35f85c, { voiceFile: v_04326c.uri, voiceCloneJobId: v_04326c.jobId });
+  };
+
   v_c4deb2(() => {
     let v_759436 = true;
     (async () => {
@@ -503,6 +564,9 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9, onScrollToEnd: v_0c8c51
       );
       return;
     }
+
+    try { v_86394a.pause(); } catch {  }
+    v_a4d7cc(null);
     try {
       const v_d60769 = await v_66d7d4();
       if (!v_d60769.granted) {
@@ -602,6 +666,68 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9, onScrollToEnd: v_0c8c51
       text: v_8d41d7("create.voice.scripts.s3Text", { defaultValue: v_fd5f43.text }),
     };
   });
+
+  const v_1fab74 = (v_35f85c) => {
+    const v_ef8ab1 = v_2a77e0[v_35f85c];
+    if (v_ef8ab1.length === 0) return null;
+    const v_076be5 = v_97c26f || v_11c383;
+    return (
+      <View style={[v_d81136.takesBox, v_076be5 && v_d81136.takesBoxDisabled]} pointerEvents={v_076be5 ? "none" : "auto"}>
+        <Text style={v_d81136.takesTitle}>
+          {v_35f85c === "record"
+            ? v_8d41d7("create.voice.myTakesTitle", { defaultValue: "내 녹음" })
+            : v_8d41d7("create.voice.myFilesTitle", { defaultValue: "내 파일" })}
+        </Text>
+        {v_ef8ab1.length > 1 && (
+          <Text style={v_d81136.takesHint}>
+            {v_35f85c === "record"
+              ? v_8d41d7("create.voice.myTakesHint", { defaultValue: "들어 보고 다음 단계에 쓸 녹음을 골라 주세요." })
+              : v_8d41d7("create.voice.myFilesHint", { defaultValue: "들어 보고 다음 단계에 쓸 파일을 골라 주세요." })}
+          </Text>
+        )}
+        {v_ef8ab1.map((v_9edd60, v_ebec57) => {
+          const v_0c6150 = v_f04727.voiceCloneJobId === v_9edd60.jobId;
+          const v_398075 = v_cf954d === v_9edd60.uri;
+          const v_2869c1 = v_35f85c === "record"
+            ? v_8d41d7("create.voice.takeLabel", { n: v_9edd60.no, defaultValue: `녹음 ${v_9edd60.no}` })
+            : v_9edd60.name || v_8d41d7("create.voice.takeFileFallback", { n: v_9edd60.no, defaultValue: `파일 ${v_9edd60.no}` });
+          return (
+            <TouchableOpacity
+              key={v_9edd60.uri}
+              style={[v_d81136.takeRow, v_0c6150 && v_d81136.takeRowActive]}
+              onPress={() => v_880163(v_35f85c, v_9edd60)}
+              disabled={v_076be5}
+            >
+              <Feather name={v_0c6150 ? "check-circle" : "circle"} size={18} color={v_0c6150 ? v_a9d3e9 : v_1bfbd0.zinc400} />
+              <Text
+                style={[v_d81136.takeLabel, v_0c6150 && v_d81136.takeLabelActive]}
+                numberOfLines={1}
+                ellipsizeMode={v_35f85c === "upload" ? "middle" : "tail"}
+              >
+                {v_2869c1}
+                {v_35f85c === "record" && v_ebec57 === 0 && v_ef8ab1.length > 1
+                  ? ` · ${v_8d41d7("create.voice.takeLatest", { defaultValue: "최근" })}`
+                  : ""}
+              </Text>
+              <TouchableOpacity
+                style={v_d81136.listenBtn}
+                onPress={(v_9e86fd) => { v_9e86fd.stopPropagation(); v_1dedc8(v_9edd60.uri); }}
+                disabled={v_076be5}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Feather name={v_398075 ? "pause" : "play"} size={14} color={v_a9d3e9} />
+                <Text style={v_d81136.listenText}>
+                  {v_398075
+                    ? v_8d41d7("create.voice.listenStop", { defaultValue: "정지" })
+                    : v_8d41d7("create.voice.listen", { defaultValue: "듣기" })}
+                </Text>
+              </TouchableOpacity>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    );
+  };
 
   return (
     <View style={v_d81136.wrap}>
@@ -762,6 +888,9 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9, onScrollToEnd: v_0c8c51
               </TouchableOpacity>
             </View>
           )}
+
+          {}
+          {v_1fab74("record")}
         </View>
       )}
 
@@ -825,6 +954,9 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9, onScrollToEnd: v_0c8c51
               </TouchableOpacity>
             </View>
           )}
+
+          {}
+          {v_1fab74("upload")}
         </View>
       )}
     </View>
@@ -924,6 +1056,37 @@ const v_d81136 = v_472849.create({
     backgroundColor: v_1bfbd0.white,
   },
   retryBtnText: { fontSize: 14, color: v_1bfbd0.zinc900, fontWeight: "600" },
+
+  takesBox: { gap: 8, marginTop: 4 },
+  takesBoxDisabled: { opacity: 0.4 },
+  takesTitle: { fontSize: 14, fontWeight: "700", color: v_1bfbd0.zinc900 },
+  takesHint: { fontSize: 12, color: v_1bfbd0.zinc500 },
+  takeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: v_8b0c90.md,
+    borderWidth: 1,
+    borderColor: v_1bfbd0.zinc200,
+    backgroundColor: v_1bfbd0.white,
+  },
+  takeRowActive: v_e3d001.cardTint,
+  takeLabel: { flex: 1, fontSize: 14, fontWeight: "600", color: v_1bfbd0.zinc800 },
+  takeLabelActive: v_e3d001.accentText,
+  listenBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: v_8b0c90.full,
+    borderWidth: 1,
+    ...v_e3d001.accentBorder,
+    backgroundColor: v_1bfbd0.white,
+  },
+  listenText: { fontSize: 12, fontWeight: "600", ...v_e3d001.accentText },
   disabledNote: {
     fontSize: 12,
     color: v_1bfbd0.zinc500,

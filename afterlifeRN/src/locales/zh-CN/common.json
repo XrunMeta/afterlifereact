@@ -1338,7 +1338,16 @@
       "recordQualitySilenceMsg": "录音中静音部分较多。请在安静的地方清晰地重新录制整句话。",
       "recordQualityNoiseMsg": "录音中混入了环境噪音。在安静的地方重新录制，声音会自然得多。",
       "registeredFile": "语音文件已成功登记。",
-      "registeredRecording": "录制的语音已成功登记。"
+      "registeredRecording": "录制的语音已成功登记。",
+      "myTakesTitle": "我的录音",
+      "myTakesHint": "试听后选择下一步要使用的录音。",
+      "myFilesTitle": "我的文件",
+      "myFilesHint": "试听后选择下一步要使用的文件。",
+      "takeFileFallback": "文件 {{n}}",
+      "takeLabel": "录音 {{n}}",
+      "takeLatest": "最新",
+      "listen": "试听",
+      "listenStop": "停止"
     },
     "visibility": {
       "memlowLocked": "追思克隆固定为不公开。仅共同管理员可见。",
