@@ -17,6 +17,8 @@ export interface SpeechSignal {
 
   text?: string;
 
+  emotion?: string;
+
   remainingMs?: number;
 }
 

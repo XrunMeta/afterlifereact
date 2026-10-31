@@ -48,14 +48,15 @@ def _dummy_rgb_frame(elapsed: float) -> np.ndarray:
     return arr
 
 
-def _select_idle_frame(now, last_real_ts, grace, idle_frames, idle_t0, last_frame, fps=25):
+def _select_idle_frame(now, last_real_ts, grace, idle_frames, idle_t0, last_frame, fps=25, offset=0):
     """029-H: 큐 빔(timeout) 시 송출 frame 결정 — 시간 기반(recv 빈도 무관 일정 25fps).
     grace 경과 + idle_frames 있으면 idle loop frame, 아니면 last_frame hold.
     반환: (frame, new_idle_t0). idle_t0=0 이면 첫 진입(now 로 고정), hold 시 0 리셋.
+    offset: AFL-1064 한 시계 — idle 진입 시 이 위치부터(기본 0 = 지금과 같다).
     """
     if idle_frames and (now - last_real_ts) >= grace:
         t0 = idle_t0 if idle_t0 > 0 else now
-        idx = int((now - t0) * fps) % len(idle_frames)
+        idx = (int((now - t0) * fps) + int(offset)) % len(idle_frames)
         return idle_frames[idx], t0
     return last_frame, 0.0
 

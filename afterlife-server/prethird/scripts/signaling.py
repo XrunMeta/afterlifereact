@@ -12,6 +12,7 @@ from prebuild import prebuild_handler
 from voice_analyze import voice_analyze_handler
 from recorder import make_recorder
 from idle_policy import clone_mp4_enabled, filler_order_pre_speak
+import emotion_video
 from json import dumps as _json_dumps
 from call_lifecycle import call_greeted
 from credit_guard import CreditGuard, DEFAULT_WARN_OFFSETS_SEC
@@ -1437,7 +1438,12 @@ def _make_dc_handler(sess, channel):
             # 문장 세그먼트 push 시작 → 클론 발화 자막(additive — 구 클라이언트는 무시).
             if channel is not None and getattr(channel, "readyState", None) == "open":
                 try:
-                    channel.send(_json.dumps({"type": "speech_text", "text": text, "seq": seq}))
+                    _payload = {"type": "speech_text", "text": text, "seq": seq}
+                    # AFL-1067: 이번 답 감정(앱 개발용 감정 박스) — 판정 전·모르는 pipeline 이면 생략(additive).
+                    _emo = getattr(getattr(sess, "pipeline", None), "reply_emotion", None)
+                    if isinstance(_emo, str) and _emo:
+                        _payload["emotion"] = _emo
+                    channel.send(_json.dumps(_payload))
                 except Exception as exc:
                     log.warning("session %s speech_text send failed: %s",
                                 sess.session_id, exc)
@@ -1860,6 +1866,22 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
                         except Exception as e:
                             log.warning("idle video pull 실패 clone=%s: %s", clone_id, e)
                             # halbae fallback — sess.video_path = None 유지
+
+                    # AFL-1064: 감정 영상 — 허용 클론이고 자산(무감정·MuseTalk 무음 idle)이 있으면
+                    # idle·기본 영상을 감정 영상 세트로 바꾼다. 이 대입도 pipeline_factory(sess) 이전이어야 한다.
+                    if emotion_video.enabled_for(clone_id):
+                        _ev_assets = emotion_video.find_assets(VIDEO_REF_ROOT, clone_id)
+                        if _ev_assets:
+                            sess.video_track.set_idle_video(_ev_assets["idle"])
+                            sess.video_track.set_idle_offset(0)
+                            sess.video_path = _ev_assets["neutral"]
+                            sess.idle_video_applied = True
+                            sess.emo_video = emotion_video.EmotionVideo(
+                                _ev_assets, cycle_len=len(sess.video_track._idle_frames))
+                            log.info("[AFL-1064] 감정 영상 적용 clone=%s clips=%s cycle=%d",
+                                     clone_id, sorted(_ev_assets), sess.emo_video.cycle_len)
+                        else:
+                            log.warning("[AFL-1064] 감정 영상 허용 클론이나 자산 없음 clone=%s — 기존 영상", clone_id)
 
                     # [F7] filler: PRETHIRD_FILLER on + clone_id 있을 때만 다운로드 + FillerPlayer 구성.
                     # off면 이 블록 전체 skip → offer 처리 시간 회귀 0 (spec §4.B I-3).

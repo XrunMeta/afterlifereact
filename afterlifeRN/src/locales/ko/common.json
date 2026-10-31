@@ -407,7 +407,8 @@
     "listTitle": "대화목록",
     "listCount": "대화목록 {{count}}",
     "timelineLoadFailed": "대화를 불러오지 못했어요",
-    "olderLoadFailed": "이전 대화를 불러오지 못했어요 · 다시 시도"
+    "olderLoadFailed": "이전 대화를 불러오지 못했어요 · 다시 시도",
+    "sendA11y": "보내기"
   },
   "call": {
     "calling": "연결 중...",
@@ -598,7 +599,8 @@
     "send": "선물 보내기",
     "paymentPending": "결제 준비 중입니다",
     "giftLoadFailed": "선물 목록을 불러오지 못했어요",
-    "giftEmpty": "지금 보낼 수 있는 선물이 없어요"
+    "giftEmpty": "지금 보낼 수 있는 선물이 없어요",
+    "backToDashboard": "마이페이지로"
   },
   "edit": {
     "title": "클론 수정",
@@ -1081,7 +1083,9 @@
       "googleTitle": "Google 회원가입",
       "ageRange": "연령대",
       "countrySearch": "국가 검색",
-      "regionSearch": "지역 검색"
+      "regionSearch": "지역 검색",
+      "termsServiceTitle": "서비스 약관",
+      "termsPrivacyTitle": "개인정보 약관"
     },
     "emailVerify": {
       "title": "이메일 인증",
@@ -1334,7 +1338,16 @@
       "recordQualitySilenceMsg": "녹음에 무음 구간이 많아요. 조용한 곳에서 문장 전체를 또렷하게 다시 녹음해 주세요.",
       "recordQualityNoiseMsg": "녹음에 주변 소음이 섞였어요. 조용한 곳에서 다시 녹음해 주시면 클론 목소리가 훨씬 자연스러워집니다.",
       "registeredFile": "음성 파일이 정상적으로 등록되었습니다.",
-      "registeredRecording": "녹음한 음성이 정상적으로 등록되었습니다."
+      "registeredRecording": "녹음한 음성이 정상적으로 등록되었습니다.",
+      "myTakesTitle": "내 녹음",
+      "myTakesHint": "들어 보고 다음 단계에 쓸 녹음을 골라 주세요.",
+      "myFilesTitle": "내 파일",
+      "myFilesHint": "들어 보고 다음 단계에 쓸 파일을 골라 주세요.",
+      "takeFileFallback": "파일 {{n}}",
+      "takeLabel": "녹음 {{n}}",
+      "takeLatest": "최근",
+      "listen": "듣기",
+      "listenStop": "정지"
     },
     "visibility": {
       "memlowLocked": "추모 클론은 비공개로 고정됩니다. 공동관리자만 볼 수 있습니다.",
@@ -1931,7 +1944,7 @@
     "later": "나중에 추가"
   },
   "errors": {
-    "faceConsentRequired": "얼굴 인식 동의가 필요합니다. 설정에서 '얼굴 인식(생체정보) 허용'을 켜 주세요.",
+    "faceConsentRequired": "얼굴정보 저장 동의가 필요합니다.",
     "accountDeleted": "이미 탈퇴한 계정입니다.",
     "accountSuspended": "서비스 운영 정책 위반으로 계정 이용이 정지되었습니다.\n문의: oth-staff@example.invalid",
     "accountSuspendedForPersona": "신고 누적으로 계정이 일시 비활성화되어 클론을 생성할 수 없습니다.",
@@ -2002,7 +2015,6 @@
     "vectorInvalidShape": "얼굴 벡터 형식이 올바르지 않습니다.",
     "vectorsInvalidShape": "얼굴 벡터가 1~5개의 올바른 형식이어야 합니다.",
     "personNotFound": "인물을 찾을 수 없습니다.",
-    "faceConsentRequired": "얼굴정보 저장 동의가 필요합니다.",
     "faceVectorSaveFailed": "얼굴 벡터 저장에 실패했습니다.",
     "enrolledViaInvalid": "등록 방식이 올바르지 않습니다.",
     "displayNameNotString": "표시 이름은 문자열이어야 합니다.",
@@ -2418,7 +2430,7 @@
     "ownedCountTitle": "내 ROSE",
     "ownedCountLabel": "보유",
     "historyView": "교환 내역",
-    "sentSearchPlaceholder": "클론 이름 검색",
+    "sentSearchPlaceholder": "받은 사람, 클론 이름, 날짜 검색",
     "sentSearchNoMatch": "검색 결과가 없어요",
     "subTabAll": "전체",
     "flowerUnit": "ROSE",
@@ -2517,7 +2529,6 @@
     "exchangeNoCancel": "Swap 후에는 취소할 수 없어요.",
     "swapAction": "Swap",
     "swapFeeHint": "Swap 수수료 {{fee}} ROSE",
-    "sentSearchPlaceholder": "받은 사람, 클론 이름, 날짜 검색",
     "exchangeSearchPlaceholder": "수량, 날짜 검색",
     "successFeeLine": "수수료 {{fee}} ROSE 차감 후 교환",
     "successRemaining": "남은 로즈 {{n}} ROSE",
@@ -2530,7 +2541,8 @@
     "noGiftTitle": "교환할 선물이 없어요",
     "noGiftBody": "페르소나와 통화하면 선물을 받을 수 있어요.\n지금 통화하러 가볼까요?",
     "goHome": "바로가기",
-    "notEnoughBody": "지금 {{owned}} ROSE를 갖고 있어요.\n통화로 선물을 더 모아보세요."
+    "notEnoughBody": "지금 {{owned}} ROSE를 갖고 있어요.\n통화로 선물을 더 모아보세요.",
+    "exchangeHistoryLink": "Swap 내역"
   },
   "sso": {
     "reconsent": {
@@ -2578,5 +2590,20 @@
     "clubxSlide2": "파티 · 소셜",
     "clubxSlide3": "댄스 · 아이템",
     "clubxIosSoon": "App Store 준비 중입니다. Android에서 먼저 이용해 주세요."
+  },
+  "accountFace": {
+    "title": "얼굴 등록",
+    "subtitle": "계정 보호를 위해 한 번만 얼굴을 등록해 주세요. 안내에 따라 고개를 돌리면 자동으로 찍혀요.",
+    "privacyNote": "정면 사진 1장은 암호화해 보관하고, 같은 사람의 중복 가입 확인에만 써요.",
+    "permission": "얼굴 등록에 카메라 권한이 필요해요. 설정에서 카메라를 허용해 주세요.",
+    "retry": "다시 찍기",
+    "err": {
+      "expired": "시간이 지났어요. 다시 찍어 주세요.",
+      "generic": "등록하지 못했어요. 잠시 후 다시 시도해 주세요.",
+      "multiFace": "화면에 한 사람만 보이게 해 주세요.",
+      "noFace": "얼굴이 잘 보이지 않았어요. 밝은 곳에서 다시 찍어 주세요.",
+      "notFrontal": "첫 장은 카메라를 정면으로 봐 주세요.",
+      "steps": "안내한 방향대로 고개를 천천히 돌려 주세요."
+    }
   }
 }

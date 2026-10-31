@@ -153,7 +153,13 @@
           }
         }
       ],
-      "expo-asset"
+      "expo-asset",
+      [
+        "expo-tracking-transparency",
+        {
+          "userTrackingPermission": "맞춤 광고를 보여 드리고 광고·앱 설치 경로 성과를 측정하는 데 기기 식별자를 사용합니다. 허용하지 않아도 모든 기능을 그대로 이용할 수 있어요."
+        }
+      ]
     ],
     "web": {
       "favicon": "./assets/favicon.png"

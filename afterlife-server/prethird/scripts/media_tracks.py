@@ -62,6 +62,8 @@ class AvatarVideoTrack(VideoStreamTrack):
         # 029-H idle: 큐 빔 grace 후 사전 생성 idle mp4 loop (freeze 대체, 시간 기반 25fps)
         self._idle_frames = get_idle_frames(IDLE_MP4_PATH)
         self._idle_t0 = 0.0
+        # AFL-1064 한 시계: idle 진입 시 시작 위치(기본 0 = 지금과 같다). 감정 영상 통화만 바꾼다.
+        self._idle_offset = 0
         self._last_real_ts = time.time()
         self._idle_grace = float(os.environ.get("IDLE_GRACE_SEC", "0.5"))
         # 말이 끝난 뒤(_stream_ended)에 쓸 별도 grace. 문장 **중간** 갭은 길게 버텨
@@ -176,6 +178,17 @@ class AvatarVideoTrack(VideoStreamTrack):
         if frames:
             self._idle_frames = frames
             log.info("[idle] fifth prebake 주입: frames=%d", len(frames))
+
+    def set_idle_offset(self, pos: int) -> None:
+        """AFL-1064: 다음 idle 진입을 이 위치부터 재생(무감정 답이 끝난 위치를 이어받는다)."""
+        self._idle_offset = int(pos)
+
+    def idle_position(self) -> int:
+        """AFL-1064: 지금 idle 이 보여 주는(또는 다음에 보여 줄) 위치."""
+        n = len(self._idle_frames) or 1
+        if self._idle_t0 > 0:
+            return (int((time.time() - self._idle_t0) * 25) + self._idle_offset) % n
+        return self._idle_offset % n
 
     def _apply_idle_blend(self, idle_arr: np.ndarray, was_idle: bool) -> np.ndarray:
         """idle 진입 직후 _idle_blend_n 프레임 동안 직전 발화 프레임→idle 로 dissolve.
@@ -359,7 +372,7 @@ class AvatarVideoTrack(VideoStreamTrack):
                     _now, self._last_real_ts,
                     # 턴이 끝났으면 짧은 grace — 말 끝난 뒤 입 모양을 물고 있지 않게 한다.
                     (self._idle_grace_end if self._stream_ended else self._idle_grace),
-                    self._idle_frames, self._idle_t0, self._last_frame,
+                    self._idle_frames, self._idle_t0, self._last_frame, offset=self._idle_offset,
                 )
                 arr_source = "idle" if self._idle_t0 > 0 else ("last_frame" if arr is self._last_frame else "none")
                 if self._idle_t0 > 0:

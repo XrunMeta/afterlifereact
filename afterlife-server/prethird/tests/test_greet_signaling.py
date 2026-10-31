@@ -153,3 +153,20 @@ def test_채널이_닫혀_speech_end_를_못_보내면_WARNING(caplog):
         _run_handler(sess, ch, {"type": "say", "text": "안녕", "seq": 22})
     warns = [r for r in caplog.records if r.levelname == "WARNING" and "speech_end" in r.getMessage()]
     assert warns and "seq=22" in warns[0].getMessage() and "closed" in warns[0].getMessage()
+
+
+def test_speech_text_carries_reply_emotion():
+    """AFL-1067: pipeline.reply_emotion 이 있으면 speech_text 에 emotion 을 싣는다(앱 개발용 감정 박스)."""
+    sess, ch = _Sess(), _Channel()
+    sess.pipeline.reply_emotion = "warm"
+    _run_handler(sess, ch, {"type": "say", "text": "힘들어", "seq": 11})
+    texts = [m for m in ch.sent if m["type"] == "speech_text"]
+    assert texts and all(m.get("emotion") == "warm" for m in texts)
+
+
+def test_speech_text_without_emotion_unchanged():
+    """reply_emotion 이 없는 pipeline(구 구현·판정 전)이면 필드 자체를 생략한다."""
+    sess, ch = _Sess(), _Channel()
+    _run_handler(sess, ch, {"type": "say", "text": "안녕", "seq": 12})
+    texts = [m for m in ch.sent if m["type"] == "speech_text"]
+    assert texts and all("emotion" not in m for m in texts)

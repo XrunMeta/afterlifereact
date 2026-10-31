@@ -301,6 +301,18 @@ describe('greet/speak/lastSignal', () => {
     expect(v_43c42e.current.lastSignal).toBeNull();
   });
 
+  it('AFL-1067 speech_text 의 emotion 을 lastSignal 에 싣는다 · 문자열 아니면 생략', async () => {
+    const { dc: v_32dc97, pc: v_12cd99 } = v_1d3fbb();
+    const { result: v_43c42e } = v_0da18b(() =>
+      v_3d8d48({ cloneId: 1, accessToken: 't', deps: v_3a122d(v_12cd99) as never }));
+    await v_be73a0(async () => { await v_43c42e.current.start(); });
+    v_be73a0(() => { v_32dc97.emitMessage(JSON.stringify({ type: 'speech_text', text: '보고 싶었어.', seq: 1, emotion: 'sad' })); });
+    expect(v_43c42e.current.lastSignal?.emotion).toBe('sad');
+    v_be73a0(() => { v_32dc97.emitMessage(JSON.stringify({ type: 'speech_text', text: '응.', seq: 2, emotion: 3 })); });
+    expect(v_43c42e.current.lastSignal?.text).toBe('응.');
+    expect(v_43c42e.current.lastSignal?.emotion).toBeUndefined();
+  });
+
   it('연속 동일 타입 신호도 ts 로 구분(새 객체)', async () => {
     const { dc: v_32dc97, pc: v_12cd99 } = v_1d3fbb();
     const { result: v_43c42e } = v_0da18b(() =>

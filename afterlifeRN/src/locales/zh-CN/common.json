@@ -407,7 +407,8 @@
     "listTitle": "对话列表",
     "listCount": "对话列表 {{count}}",
     "timelineLoadFailed": "无法加载对话",
-    "olderLoadFailed": "无法加载更早的对话 · 重试"
+    "olderLoadFailed": "无法加载更早的对话 · 重试",
+    "sendA11y": "发送"
   },
   "call": {
     "calling": "连接中...",
@@ -598,7 +599,8 @@
     "send": "赠送礼物",
     "paymentPending": "正在准备支付",
     "giftLoadFailed": "无法加载礼物列表",
-    "giftEmpty": "目前没有可赠送的礼物"
+    "giftEmpty": "目前没有可赠送的礼物",
+    "backToDashboard": "返回我的页面"
   },
   "edit": {
     "title": "编辑克隆",
@@ -1081,7 +1083,9 @@
       "googleTitle": "使用 Google 注册",
       "ageRange": "年龄段",
       "countrySearch": "搜索国家",
-      "regionSearch": "搜索地区"
+      "regionSearch": "搜索地区",
+      "termsServiceTitle": "服务条款",
+      "termsPrivacyTitle": "隐私政策"
     },
     "emailVerify": {
       "title": "邮箱验证",
@@ -1334,7 +1338,16 @@
       "recordQualitySilenceMsg": "录音中静音部分较多。请在安静的地方清晰地重新录制整句话。",
       "recordQualityNoiseMsg": "录音中混入了环境噪音。在安静的地方重新录制，声音会自然得多。",
       "registeredFile": "语音文件已成功登记。",
-      "registeredRecording": "录制的语音已成功登记。"
+      "registeredRecording": "录制的语音已成功登记。",
+      "myTakesTitle": "我的录音",
+      "myTakesHint": "试听后选择下一步要使用的录音。",
+      "myFilesTitle": "我的文件",
+      "myFilesHint": "试听后选择下一步要使用的文件。",
+      "takeFileFallback": "文件 {{n}}",
+      "takeLabel": "录音 {{n}}",
+      "takeLatest": "最新",
+      "listen": "试听",
+      "listenStop": "停止"
     },
     "visibility": {
       "memlowLocked": "追思克隆固定为不公开。仅共同管理员可见。",
@@ -1578,6 +1591,10 @@
         "moderation": {
           "label": "举报处理结果",
           "desc": "关于你的账号或角色的举报处理结果（警告、停用等）"
+        },
+        "messages": {
+          "label": "消息",
+          "desc": "错过角色的回复时"
         }
       },
       "saveFailed": "无法保存设置，请重试。",
@@ -1927,7 +1944,7 @@
     "later": "稍后添加"
   },
   "errors": {
-    "faceConsentRequired": "需要同意人脸识别。请在设置中开启“允许人脸识别(生物识别信息)”。",
+    "faceConsentRequired": "需要同意保存人脸信息。",
     "accountDeleted": "该账号已注销。",
     "accountSuspended": "由于违反服务运营政策，您的账号已被暂停使用。\n联系: oth-staff@example.invalid",
     "accountSuspendedForPersona": "由于举报累积账号已被暂时停用,无法创建 克隆。",
@@ -1998,7 +2015,6 @@
     "vectorInvalidShape": "人脸向量格式不正确。",
     "vectorsInvalidShape": "人脸向量必须为 1~5 个正确格式。",
     "personNotFound": "未找到人物。",
-    "faceConsentRequired": "需要同意保存人脸信息。",
     "faceVectorSaveFailed": "人脸向量保存失败。",
     "enrolledViaInvalid": "注册方式无效。",
     "displayNameNotString": "显示名称必须为字符串。",
@@ -2393,7 +2409,7 @@
     "ownedCountTitle": "持有数量",
     "ownedCountLabel": "持有数量",
     "historyView": "查看记录",
-    "sentSearchPlaceholder": "搜索克隆名称",
+    "sentSearchPlaceholder": "搜索接收人、克隆名称、日期",
     "sentSearchNoMatch": "没有结果",
     "subTabAll": "全部",
     "flowerUnit": "朵",
@@ -2495,7 +2511,6 @@
     "swapAction": "Swap",
     "swapFeeHint": "Swap手续费 {{fee}} ROSE",
     "receivedSearchPlaceholder": "搜索发送人、克隆名称、日期",
-    "sentSearchPlaceholder": "搜索接收人、克隆名称、日期",
     "exchangeSearchPlaceholder": "搜索数量、日期",
     "successFeeLine": "扣除手续费 {{fee}} ROSE 后兑换",
     "successRemaining": "剩余 ROSE {{n}}",
@@ -2508,7 +2523,26 @@
     "noGiftTitle": "没有可兑换的礼物",
     "noGiftBody": "与角色通话即可获得礼物。\n现在去通话吗？",
     "goHome": "前往",
-    "notEnoughBody": "您目前有 {{owned}} ROSE。\n通过通话收集更多礼物吧。"
+    "notEnoughBody": "您目前有 {{owned}} ROSE。\n通过通话收集更多礼物吧。",
+    "exchangeHistoryLink": "Swap 记录",
+    "badgeFromClone": "来自克隆",
+    "badgeFromUser": "来自用户",
+    "exchangeHistoryCount": "共 {{n}} 次",
+    "exchangeHistoryTitle": "Swap 记录",
+    "exchangeShort": "Swap",
+    "feeDeductHint": "请 Swap 为 XRUN。",
+    "feeShort": "手续费 {{fee}} ROSE",
+    "myRoseTitle": "我的 ROSE",
+    "ownedShort": "持有",
+    "receivedFromCloneTitle": "与 {{name}} 克隆聊天时收到",
+    "receivedFromUserTitle": "{{name}} 送给了我的 {{clone}} 克隆",
+    "roseUnit": "ROSE",
+    "sentToCloneTitle": "已送给 {{name}} 的克隆",
+    "sentToUserTitle": "已送给 {{name}}",
+    "subTabFromClone": "来自克隆",
+    "subTabFromUser": "来自用户",
+    "todayWithDate": "今天 · {{ymd}}",
+    "ymdWeek": "{{ymd}}（{{w}}）"
   },
   "sso": {
     "reconsent": {
@@ -2546,6 +2580,32 @@
     "xrunTitle": "XRUN",
     "xrunSub": "钱包 · 奖励 · 登录联动",
     "clubxTitle": "ClubX",
-    "clubxSub": "俱乐部 · 道具"
+    "clubxSub": "俱乐部 · 道具",
+    "clubxEyebrow": "METAVERSE CLUB",
+    "clubxIosSoon": "App Store 版本即将推出，请先在 Android 上使用。",
+    "clubxSlide1": "虚拟俱乐部",
+    "clubxSlide2": "派对 · 社交",
+    "clubxSlide3": "舞蹈 · 道具",
+    "open": "打开",
+    "xrunEyebrow": "REWARD APP",
+    "xrunSlide1": "赚钱应用",
+    "xrunSlide2": "钱包",
+    "xrunSlide3": "奖励",
+    "xrunSlide4": "登录关联"
+  },
+  "accountFace": {
+    "title": "人脸登记",
+    "subtitle": "为了保护账号，请登记一次人脸。按照提示转动头部即可自动拍摄。",
+    "privacyNote": "一张正面照片会加密保存，仅用于确认同一人是否重复注册。",
+    "permission": "登记人脸需要相机权限，请在设置中允许使用相机。",
+    "retry": "重新拍摄",
+    "err": {
+      "expired": "已超时，请重新拍摄。",
+      "generic": "登记失败，请稍后重试。",
+      "multiFace": "请确保画面中只有一个人。",
+      "noFace": "没能看清你的脸，请到明亮的地方重新拍摄。",
+      "notFrontal": "第一张请正对相机。",
+      "steps": "请按提示方向慢慢转动头部。"
+    }
   }
 }

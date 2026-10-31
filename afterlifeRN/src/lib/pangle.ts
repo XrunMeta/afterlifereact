@@ -3,6 +3,7 @@
 import { v_80fa10, v_0cafec, v_326be8 } from "rcmrninabrnb";
 import { v_51e8dd } from "tgjb";
 import { v_8827ec } from "./errorReporting/report";
+import { v_1aef7c } from "./tracking";
 
 export function v_1507f7(v_2ae4e7, v_f91f33 = {}): void {
   if (__DEV__) return;
@@ -99,6 +100,8 @@ export async function v_f095b0(): Promise<boolean> {
   }
   v_d40535 = true;
   try {
+
+    await v_1aef7c();
     const v_3ed4c3 = await v_d57f84.initialize();
     v_c9f274 = v_3ed4c3;
     return v_3ed4c3;

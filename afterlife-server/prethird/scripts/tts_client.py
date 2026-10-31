@@ -24,12 +24,16 @@ def tts_url_for(lang: str | None) -> str:
             return url
     return TTS_URL
 
-async def say(text: str, se_path: str | None = None, lang: str | None = None) -> bytes:
+async def say(text: str, se_path: str | None = None, lang: str | None = None,
+              emotion: str | None = None) -> bytes:
     """text → TTS wav bytes. MeloTTS(KR) base → OpenVoice ToneColorConverter(se_path).
     testbed/lib/tts.js 와 동일 계약(/tts/kr, speed/sdp_ratio/noise_scale/noise_scale_w).
 
     AFL-1034: lang = 답 언어(ko·en·ja·zh·es). 엔진 선택(tts_url_for) + 본문에 실어 보낸다
-    (CosyVoice 어댑터가 숫자 한글 수사 변환을 ko 에만 건다). 옛 어댑터는 lang 을 무시한다."""
+    (CosyVoice 어댑터가 숫자 한글 수사 변환을 ko 에만 건다). 옛 어댑터는 lang 을 무시한다.
+
+    AFL-1067: emotion = 답 감정(neutral·calm·happy·sad·angry·warm). 본문에 실어 보내고,
+    감정 견본이 없는 어댑터는 무시한다(텍스트에는 섞지 않는다)."""
     body = {
         "text": text,
         "speed": float(os.environ.get("PRETHIRD_TTS_SPEED", "1.0")),
@@ -42,6 +46,8 @@ async def say(text: str, se_path: str | None = None, lang: str | None = None) ->
         body["se_path"] = se
     if lang:
         body["lang"] = lang
+    if emotion:
+        body["emotion"] = emotion
     timeout = aiohttp.ClientTimeout(total=_timeout_s())
     async with aiohttp.ClientSession(timeout=timeout) as sess:
         async with sess.post(f"{tts_url_for(lang)}{TTS_PATH}", json=body) as resp:

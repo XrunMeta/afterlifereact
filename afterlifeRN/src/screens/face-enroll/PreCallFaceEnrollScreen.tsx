@@ -31,6 +31,7 @@ import { v_fd3d66 as v_ac8611 } from "../../face/safeFaceDetector";
 import { v_b24f74 } from "hpkstesipoootxeqkajlxyxt";
 import { v_cb507d } from "hbzwhsuegbhzscystubugxnkiwe";
 import { v_e74bab } from "../../face/largestFace";
+import { v_6d7550 } from "../../face/selfFormName";
 import { v_fa192b } from "../../face/faceAlignCrop";
 import { v_6efd56, type v_90e668 } from "../../face/faceLandmarkRatios";
 import { v_a40fe8 } from "../../face/frameTimestamp";
@@ -212,7 +213,7 @@ export default function v_8640b9() {
   const [v_f9508a, v_9abbbd] = v_5ab095<(v_90e668 | null)[]>([]);
   const [v_cb66b4, v_ee9ec1] = v_5ab095(false);
 
-  const [v_595acb, v_9ad9a9] = v_5ab095("");
+  const [v_595acb, v_9ad9a9] = v_5ab095(() => v_6d7550(v_389872, v_625c74?.name));
   const [v_d7d38d, v_23c9e5] = v_5ab095("");
   const [v_056b4f, v_342bf2] = v_5ab095<string | null>(null);
 
@@ -711,6 +712,8 @@ export default function v_8640b9() {
 
             v_5d7bbf.current = null;
             v_95c8bf(false);
+
+            v_9ad9a9((v_f4e98d) => (v_f4e98d === v_6d7550(true, v_625c74?.name) ? "" : v_f4e98d));
             v_023cc4(true);
             v_342bf2(null);
             v_ee9ec1(false);

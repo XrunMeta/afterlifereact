@@ -407,7 +407,8 @@
     "listTitle": "トーク一覧",
     "listCount": "トーク一覧 {{count}}",
     "timelineLoadFailed": "会話を読み込めませんでした",
-    "olderLoadFailed": "以前の会話を読み込めませんでした · 再試行"
+    "olderLoadFailed": "以前の会話を読み込めませんでした · 再試行",
+    "sendA11y": "送信"
   },
   "call": {
     "calling": "接続中...",
@@ -598,7 +599,8 @@
     "send": "ギフトを贈る",
     "paymentPending": "決済準備中です",
     "giftLoadFailed": "ギフト一覧を読み込めませんでした",
-    "giftEmpty": "今送れるギフトはありません"
+    "giftEmpty": "今送れるギフトはありません",
+    "backToDashboard": "マイページへ"
   },
   "edit": {
     "title": "クローン編集",
@@ -1081,7 +1083,9 @@
       "googleTitle": "Googleで新規登録",
       "ageRange": "年代",
       "countrySearch": "国を検索",
-      "regionSearch": "地域を検索"
+      "regionSearch": "地域を検索",
+      "termsServiceTitle": "サービス利用規約",
+      "termsPrivacyTitle": "プライバシーポリシー"
     },
     "emailVerify": {
       "title": "メール認証",
@@ -1334,7 +1338,16 @@
       "recordQualitySilenceMsg": "録音に無音部分が多くあります。静かな場所で文全体をはっきりと録り直してください。",
       "recordQualityNoiseMsg": "録音に周囲の雑音が入っています。静かな場所で録り直すと、声がずっと自然になります。",
       "registeredFile": "音声ファイルが正常に登録されました。",
-      "registeredRecording": "録音した音声が正常に登録されました。"
+      "registeredRecording": "録音した音声が正常に登録されました。",
+      "myTakesTitle": "自分の録音",
+      "myTakesHint": "聞いてみて、次のステップで使う録音を選んでください。",
+      "myFilesTitle": "自分のファイル",
+      "myFilesHint": "聞いてみて、次のステップで使うファイルを選んでください。",
+      "takeFileFallback": "ファイル {{n}}",
+      "takeLabel": "録音 {{n}}",
+      "takeLatest": "最新",
+      "listen": "聞く",
+      "listenStop": "停止"
     },
     "visibility": {
       "memlowLocked": "追悼クローンは非公開に固定されます。共同管理者のみ閲覧できます。",
@@ -1934,7 +1947,7 @@
     "later": "後で追加"
   },
   "errors": {
-    "faceConsentRequired": "顔認識への同意が必要です。設定で「顔認識(生体情報)を許可」をオンにしてください。",
+    "faceConsentRequired": "顔情報の保存への同意が必要です。",
     "accountDeleted": "このアカウントは既に退会しています。",
     "accountSuspended": "サービス運営ポリシー違反により、アカウントの利用が停止されました。\nお問い合わせ: oth-staff@example.invalid",
     "accountSuspendedForPersona": "通報の累積によりアカウントが一時的に無効になっているため、クローンを作成できません。",
@@ -2005,7 +2018,6 @@
     "vectorInvalidShape": "顔ベクトルの形式が正しくありません。",
     "vectorsInvalidShape": "顔ベクトルは 1〜5 個の正しい形式である必要があります。",
     "personNotFound": "人物が見つかりません。",
-    "faceConsentRequired": "顔情報の保存への同意が必要です。",
     "faceVectorSaveFailed": "顔ベクトルの保存に失敗しました。",
     "enrolledViaInvalid": "登録方法が正しくありません。",
     "displayNameNotString": "表示名は文字列である必要があります。",
@@ -2400,7 +2412,7 @@
     "ownedCountTitle": "所持数",
     "ownedCountLabel": "所持数",
     "historyView": "履歴を見る",
-    "sentSearchPlaceholder": "クローン名を検索",
+    "sentSearchPlaceholder": "受取人・クローン名・日付で検索",
     "sentSearchNoMatch": "検索結果がありません",
     "subTabAll": "すべて",
     "flowerUnit": "輪",
@@ -2502,7 +2514,6 @@
     "swapAction": "Swap",
     "swapFeeHint": "Swap手数料 {{fee}} ROSE",
     "receivedSearchPlaceholder": "送り主・クローン名・日付で検索",
-    "sentSearchPlaceholder": "受取人・クローン名・日付で検索",
     "exchangeSearchPlaceholder": "数量・日付で検索",
     "successFeeLine": "手数料{{fee}} ROSE差し引き後に交換",
     "successRemaining": "残りローズ {{n}} ROSE",
@@ -2515,7 +2526,26 @@
     "noGiftTitle": "交換できるギフトがありません",
     "noGiftBody": "ペルソナと通話するとギフトがもらえます。\n今から通話してみますか？",
     "goHome": "移動する",
-    "notEnoughBody": "現在{{owned}} ROSEお持ちです。\n通話でギフトをもっと集めましょう。"
+    "notEnoughBody": "現在{{owned}} ROSEお持ちです。\n通話でギフトをもっと集めましょう。",
+    "exchangeHistoryLink": "Swap履歴",
+    "badgeFromClone": "クローンから",
+    "badgeFromUser": "ユーザーから",
+    "exchangeHistoryCount": "計{{n}}回",
+    "exchangeHistoryTitle": "Swap履歴",
+    "exchangeShort": "Swap",
+    "feeDeductHint": "XRUNにSwapしてください。",
+    "feeShort": "手数料 {{fee}} ROSE",
+    "myRoseTitle": "マイROSE",
+    "ownedShort": "保有",
+    "receivedFromCloneTitle": "{{name}} クローンとの会話中に受け取りました",
+    "receivedFromUserTitle": "{{name}}さんが私の {{clone}} クローンに送りました",
+    "roseUnit": "ROSE",
+    "sentToCloneTitle": "{{name}}さんのクローンに送りました",
+    "sentToUserTitle": "{{name}}さんに送りました",
+    "subTabFromClone": "クローンから",
+    "subTabFromUser": "ユーザーから",
+    "todayWithDate": "今日 · {{ymd}}",
+    "ymdWeek": "{{ymd}}（{{w}}）"
   },
   "sso": {
     "reconsent": {
@@ -2553,6 +2583,32 @@
     "xrunTitle": "XRUN",
     "xrunSub": "ウォレット · 報酬 · ログイン連携",
     "clubxTitle": "ClubX",
-    "clubxSub": "クラブ · アイテム"
+    "clubxSub": "クラブ · アイテム",
+    "clubxEyebrow": "METAVERSE CLUB",
+    "clubxIosSoon": "App Storeは準備中です。まずはAndroidでご利用ください。",
+    "clubxSlide1": "バーチャルクラブ",
+    "clubxSlide2": "パーティー · ソーシャル",
+    "clubxSlide3": "ダンス · アイテム",
+    "open": "開く",
+    "xrunEyebrow": "REWARD APP",
+    "xrunSlide1": "稼げるアプリ",
+    "xrunSlide2": "ウォレット",
+    "xrunSlide3": "報酬",
+    "xrunSlide4": "ログイン連携"
+  },
+  "accountFace": {
+    "title": "顔の登録",
+    "subtitle": "アカウント保護のため、顔を一度だけ登録してください。案内に従って顔を動かすと自動で撮影されます。",
+    "privacyNote": "正面の写真1枚は暗号化して保管し、同一人物による重複登録の確認にのみ使用します。",
+    "permission": "顔の登録にはカメラへのアクセスが必要です。設定でカメラを許可してください。",
+    "retry": "撮り直す",
+    "err": {
+      "expired": "時間切れです。もう一度撮影してください。",
+      "generic": "登録できませんでした。しばらくしてからもう一度お試しください。",
+      "multiFace": "画面に一人だけ映るようにしてください。",
+      "noFace": "顔がよく見えませんでした。明るい場所でもう一度撮影してください。",
+      "notFrontal": "1枚目はカメラを正面から見てください。",
+      "steps": "案内した方向にゆっくり顔を向けてください。"
+    }
   }
 }
