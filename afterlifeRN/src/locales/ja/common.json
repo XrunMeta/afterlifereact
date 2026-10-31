@@ -1338,7 +1338,16 @@
       "recordQualitySilenceMsg": "録音に無音部分が多くあります。静かな場所で文全体をはっきりと録り直してください。",
       "recordQualityNoiseMsg": "録音に周囲の雑音が入っています。静かな場所で録り直すと、声がずっと自然になります。",
       "registeredFile": "音声ファイルが正常に登録されました。",
-      "registeredRecording": "録音した音声が正常に登録されました。"
+      "registeredRecording": "録音した音声が正常に登録されました。",
+      "myTakesTitle": "自分の録音",
+      "myTakesHint": "聞いてみて、次のステップで使う録音を選んでください。",
+      "myFilesTitle": "自分のファイル",
+      "myFilesHint": "聞いてみて、次のステップで使うファイルを選んでください。",
+      "takeFileFallback": "ファイル {{n}}",
+      "takeLabel": "録音 {{n}}",
+      "takeLatest": "最新",
+      "listen": "聞く",
+      "listenStop": "停止"
     },
     "visibility": {
       "memlowLocked": "追悼クローンは非公開に固定されます。共同管理者のみ閲覧できます。",

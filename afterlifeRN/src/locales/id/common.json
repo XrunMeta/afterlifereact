@@ -1338,7 +1338,16 @@
       "recordQualitySilenceMsg": "Rekaman memiliki banyak bagian hening. Mohon rekam ulang seluruh kalimat dengan jelas di tempat yang tenang.",
       "recordQualityNoiseMsg": "Rekaman tercampur suara bising. Merekam ulang di tempat yang tenang akan membuat suara jauh lebih alami.",
       "registeredFile": "File suara berhasil didaftarkan.",
-      "registeredRecording": "Rekaman suara berhasil didaftarkan."
+      "registeredRecording": "Rekaman suara berhasil didaftarkan.",
+      "myTakesTitle": "Rekaman saya",
+      "myTakesHint": "Dengarkan lalu pilih rekaman yang akan dipakai di langkah berikutnya.",
+      "myFilesTitle": "File saya",
+      "myFilesHint": "Dengarkan lalu pilih file yang akan dipakai di langkah berikutnya.",
+      "takeFileFallback": "File {{n}}",
+      "takeLabel": "Rekaman {{n}}",
+      "takeLatest": "Terbaru",
+      "listen": "Putar",
+      "listenStop": "Berhenti"
     },
     "visibility": {
       "memlowLocked": "Klon Kenangan diatur sebagai pribadi. Hanya ko-admin yang dapat melihat.",
