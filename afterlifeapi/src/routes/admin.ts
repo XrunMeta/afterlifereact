@@ -3181,6 +3181,77 @@ v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
   }
 });
 
+const v_225647 = /^[a-z]+_[a-z0-9]+$/;
+
+async function v_db93ec(c: v_437670<v_de0a25>): Promise<string> {
+  const v_389afb = v_3f4e2e.get("adminUserId");
+  if (!v_389afb) return "xrun-admin"; 
+  const v_3ac7e7 = await v_3f4e2e.env.DB
+    .prepare("SELECT email FROM admin_users WHERE id = ?")
+    .bind(v_389afb)
+    .first<{ email: string }>()
+    .catch(() => null);
+  return v_3ac7e7?.email ?? `admin:${v_389afb}`;
+}
+
+async function v_05fdfb(
+  c: v_437670<v_de0a25>,
+  v_9fe22d,
+  v_00cfc6 = { method: "GET" },
+): Promise<Response> {
+  const v_43fd42 = v_3f4e2e.env.LEARN_SECRET ?? "";
+  if (!v_43fd42) return v_3f4e2e.json({ error: "LEARN_SECRET not configured" }, 500);
+  const v_694b25 = v_3f4e2e.env.CALL_PRETHIRD_BASE || "https://rtc.example.invalid/prethird";
+  try {
+    const v_3f4675 = { Authorization: `Bearer ${v_43fd42}` };
+    if (v_00cfc6.body !== undefined) v_3f4675["Content-Type"] = "application/json";
+    const v_eb792a = await fetch(`${v_694b25.replace(/\/$/, "")}${v_9fe22d}`, {
+      method: v_00cfc6.method,
+      headers: v_3f4675,
+      body: v_00cfc6.body,
+      signal: AbortSignal.timeout(15000),
+    });
+
+    if (v_eb792a.status === 401 || v_eb792a.status === 403) {
+      console.error(`[emotion-admin] prethird auth rejected: ${v_eb792a.status}`);
+      return v_3f4e2e.json({ error: "prethird 인증 실패(서버 비밀 설정 확인)" }, 502);
+    }
+    if (v_eb792a.status >= 500) {
+      console.error(`[emotion-admin] prethird ${v_eb792a.status}: ${(await v_eb792a.text().catch(() => "")).slice(0, 200)}`);
+      return v_3f4e2e.json({ error: "감정 설정 서버 응답 없음" }, 502);
+    }
+
+    return new Response(v_eb792a.body, {
+      status: v_eb792a.status,
+      headers: {
+        "Content-Type": v_eb792a.headers.get("Content-Type") ?? "application/json",
+        "Cache-Control": "no-store",
+      },
+    });
+  } catch (v_9e86fd) {
+    console.error(`[emotion-admin] upstream failure: ${String(v_9e86fd)}`);
+    return v_3f4e2e.json({ error: "감정 설정 서버 응답 없음" }, 502);
+  }
+}
+
+v_b7f2b4.get("/emotion-config", v_c0a297, (v_3f4e2e) => v_05fdfb(v_3f4e2e, "/oth-path"));
+
+v_b7f2b4.put("/emotion-config", v_c0a297, async (v_3f4e2e) => {
+  const v_479f05 = await v_3f4e2e.req.json().catch(() => null);
+  if (!v_479f05 || typeof v_479f05 !== "object" || Array.isArray(v_479f05)) {
+    return v_3f4e2e.json({ error: "invalid body" }, 400);
+  }
+
+  const v_4d33b2 = { ...(v_479f05 as Record<string, unknown>), updated_by: await v_db93ec(v_3f4e2e) };
+  return v_05fdfb(v_3f4e2e, "/oth-path", { method: "PUT", body: JSON.stringify(v_4d33b2) });
+});
+
+v_b7f2b4.get("/emotion-bank/sample/:id", v_c0a297, (v_3f4e2e) => {
+  const v_389afb = v_3f4e2e.req.param("id");
+  if (!v_225647.test(v_389afb)) return v_3f4e2e.json({ error: "invalid sample id" }, 400);
+  return v_05fdfb(v_3f4e2e, `/oth-path${v_389afb}`);
+});
+
 v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
   const v_062ae9 = Number(v_3f4e2e.req.param("id"));
   if (!Number.isFinite(v_062ae9)) return v_3f4e2e.json({ error: "invalid clone id" }, 400);

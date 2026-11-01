@@ -114,7 +114,7 @@ def test_은행_파일_없으면_클론으로_되돌리고_다시_찾지_않는�
     assert eng._voice_for("c1", "angry") == "c1"
     assert eng._voice_for("c1", "angry") == "c1"
     assert not any(spk.startswith("emo-bank:") for spk, _ in eng.model.calls)
-    assert eng._banks["angry_ainsley"] is None
+    assert "angry_ainsley" not in eng._banks  # 파일 없음은 캐시하지 않는다
 
 
 def test_은행_등록은_한_번(eng, tmp_path):
@@ -204,7 +204,7 @@ def test_빈_wav_은행은_클론으로(eng, bank_dir):
 def test_빈_대사_은행은_클론으로(eng, bank_dir):
     (bank_dir / "sad_hana.txt").write_text("  \n", encoding="utf-8")
     assert eng._voice_for("c1", "sad") == "c1"
-    assert eng._banks["sad_hana"] is None
+    assert "sad_hana" not in eng._banks  # 비어 있음도 캐시 안 함 — 채워지면 다음 호출에 등록
 
 
 def test_warmup_클론이_없어도_은행은_미리_등록(eng, monkeypatch):
@@ -212,7 +212,7 @@ def test_warmup_클론이_없어도_은행은_미리_등록(eng, monkeypatch):
     eng.warmup()
     assert eng._banks["happy_ainsley"] == "emo-bank:happy_ainsley"
     assert eng._banks["sad_hana"] == "emo-bank:sad_hana"
-    assert eng._banks["angry_ainsley"] is None
+    assert "angry_ainsley" not in eng._banks  # 파일 없음은 캐시하지 않는다
 
 
 def test_섞은_항목은_클론_이름공간과_겹치지_않는다(eng, tmp_path):
@@ -221,3 +221,113 @@ def test_섞은_항목은_클론_이름공간과_겹치지_않는다(eng, tmp_pa
     spk = eng._voice_for("c1", "happy")
     assert spk != "c1@happy"
     assert eng.model.frontend.spk2info["c1@happy"]["flow_embedding"] == "c1@happy:flow_embedding"
+
+
+# ---- AFL-1072: 관리자 설정 파일(emotion_config.json) ----
+
+import json  # noqa: E402
+import os  # noqa: E402
+
+
+def _cfg(path, enabled=True, choice=None):
+    path.write_text(json.dumps({"voice": {"enabled": enabled, "choice": choice or {}},
+                                "video": {"mode": "off", "clones": []}}), encoding="utf-8")
+    return path
+
+
+@pytest.fixture
+def cfg_path(tmp_path, monkeypatch):
+    p = tmp_path / "emotion_config.json"
+    monkeypatch.setattr(config, "EMOTION_CONFIG_PATH", str(p))
+    config._emo_cfg_cache.update(key=None, path=None, value=None)
+    return p
+
+
+def test_설정_파일_없으면_env_폴백(eng, cfg_path):
+    assert config.emo_bank_settings() == (True, config.EMO_BANK_MAP)
+    assert eng._voice_for("c1", "happy") == "emo-mix:c1:happy"
+
+
+def test_파일로_끄기(eng, cfg_path):
+    _cfg(cfg_path, enabled=False, choice={"happy": "happy_ainsley"})
+    assert eng._voice_for("c1", "happy") == "c1"
+
+
+def test_파일로_후보_교체하면_섞은_항목이_새_은행으로(eng, cfg_path, bank_dir):
+    _wav(bank_dir / "happy_hana.wav")
+    (bank_dir / "happy_hana.txt").write_text("신나요!", encoding="utf-8")
+    _cfg(cfg_path, choice={"happy": "happy_ainsley"})
+    assert eng._voice_for("c1", "happy") == "emo-mix:c1:happy"
+    assert eng.model.frontend.spk2info["emo-mix:c1:happy"]["prompt_text"] == "emo-bank:happy_ainsley:prompt_text"
+    _cfg(cfg_path, choice={"happy": "happy_hana"})
+    os.utime(cfg_path, ns=(1, 2_000_000_000))  # 같은 초 안 재작성에도 mtime 이 달라지게
+    assert eng._voice_for("c1", "happy") == "emo-mix:c1:happy"
+    assert eng.model.frontend.spk2info["emo-mix:c1:happy"]["prompt_text"] == "emo-bank:happy_hana:prompt_text"
+
+
+def test_null_감정은_클론_그대로(eng, cfg_path):
+    _cfg(cfg_path, choice={"happy": None, "sad": "sad_hana"})
+    assert config.emo_bank_settings() == (True, {"sad": "sad_hana"})
+    assert eng._voice_for("c1", "happy") == "c1"
+    assert eng._voice_for("c1", "sad") == "emo-mix:c1:sad"
+
+
+def test_깨진_JSON은_env_폴백(eng, cfg_path, caplog):
+    cfg_path.write_text("{not json", encoding="utf-8")
+    with caplog.at_level("WARNING"):
+        assert config.emo_bank_settings() == (True, config.EMO_BANK_MAP)
+        config.emo_bank_settings()
+    assert sum("읽기 실패" in r.message for r in caplog.records) == 1  # 경고 1회
+    assert eng._voice_for("c1", "happy") == "emo-mix:c1:happy"
+
+
+def test_스키마_위반도_env_폴백(cfg_path):
+    cfg_path.write_text(json.dumps({"voice": {"enabled": "yes", "choice": {}}}), encoding="utf-8")
+    assert config.emo_bank_settings() == (config.EMO_BANK_ENABLED, config.EMO_BANK_MAP)
+
+
+def test_mtime_안_바뀌면_재파싱_안하고_바뀌면_반영(cfg_path):
+    _cfg(cfg_path, choice={"sad": "sad_hana"})
+    first = config.emo_bank_settings()
+    assert config.emo_bank_settings() is first  # 캐시된 같은 객체
+    _cfg(cfg_path, enabled=False, choice={"sad": "sad_hana"})
+    os.utime(cfg_path, ns=(1, 3_000_000_000))
+    assert config.emo_bank_settings() == (False, {"sad": "sad_hana"})
+
+
+def test_warmup_은행_디렉터리_후보_전부_프리로드(eng, cfg_path, bank_dir, monkeypatch):
+    _wav(bank_dir / "happy_hana.wav")
+    (bank_dir / "happy_hana.txt").write_text("신나요!", encoding="utf-8")
+    monkeypatch.setattr(config, "WARMUP_CLONE", "")
+    _cfg(cfg_path, choice={"sad": "sad_hana"})
+    eng.warmup()
+    assert {"emo-bank:happy_ainsley", "emo-bank:happy_hana", "emo-bank:sad_hana"} <= set(eng.model.paths)
+
+
+def test_처음_없다가_파일_생기면_은행_사용(eng, bank_dir, caplog):
+    with caplog.at_level("WARNING"):
+        assert eng._voice_for("c1", "angry") == "c1"
+        assert eng._voice_for("c1", "angry") == "c1"
+    assert sum("angry_ainsley" in r.message for r in caplog.records) == 1  # 경고 이름당 1회
+    _wav(bank_dir / "angry_ainsley.wav")
+    (bank_dir / "angry_ainsley.txt").write_text("화났어요", encoding="utf-8")
+    assert eng._voice_for("c1", "angry") == "emo-mix:c1:angry"
+
+
+def test_예외로_실패한_은행은_None_영구_캐시(eng, bank_dir):
+    (bank_dir / "angry_ainsley.wav").write_bytes(b"not a wav")
+    (bank_dir / "angry_ainsley.txt").write_text("화났어요", encoding="utf-8")
+    assert eng._voice_for("c1", "angry") == "c1"
+    assert eng._banks["angry_ainsley"] is None
+
+
+def test_같은_mtime_으로_교체돼도_반영(eng, cfg_path, tmp_path):
+    _cfg(cfg_path, choice={"sad": "sad_hana"})
+    st = os.stat(cfg_path)
+    assert config.emo_bank_settings() == (True, {"sad": "sad_hana"})
+    new = tmp_path / "new.json"
+    _cfg(new, enabled=False, choice={"sad": "sad_hana"})
+    os.utime(new, ns=(st.st_atime_ns, st.st_mtime_ns))  # mtime 동일
+    os.replace(new, cfg_path)
+    assert os.stat(cfg_path).st_mtime_ns == st.st_mtime_ns
+    assert config.emo_bank_settings() == (False, {"sad": "sad_hana"})
