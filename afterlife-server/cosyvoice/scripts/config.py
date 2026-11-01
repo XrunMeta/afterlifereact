@@ -98,6 +98,59 @@ def parse_emo_bank_map(spec: str) -> dict:
 EMO_BANK_MAP = parse_emo_bank_map(os.environ.get(
     "COSYVOICE_EMO_BANK_MAP", "happy=happy_ainsley,sad=sad_hana,warm=warm_ainsley,angry=angry_ainsley"))
 
+# 관리자 화면(AFL-1072)이 쓰는 공용 설정 파일 — 있으면 은행 스위치·맵을 env 대신 이 파일에서 읽는다.
+# prethird 관리자 endpoint 가 원자적으로 써 두면 mtime 이 바뀐 다음 요청부터 재시작 없이 반영된다.
+EMOTION_CONFIG_PATH = os.environ.get("EMOTION_CONFIG_PATH", "/data/emotion_config.json")
+_emo_cfg_cache = {"key": None, "path": None, "value": None}
+
+
+def _read_emo_cfg(path: str):
+    """파일 → (enabled, mapping). 구조가 틀리면 ValueError. choice 의 null 은 맵에서 뺀다."""
+    import json
+    with open(path, encoding="utf-8") as f:
+        data = json.load(f)
+    voice = data["voice"]
+    enabled = voice["enabled"]
+    choice = voice["choice"]
+    if not isinstance(enabled, bool) or not isinstance(choice, dict):
+        raise ValueError("voice.enabled/choice 형식 오류")
+    mapping = {}
+    for emo, name in choice.items():
+        if name is None:
+            continue
+        if not isinstance(emo, str) or not isinstance(name, str):
+            raise ValueError("voice.choice 값 형식 오류")
+        emo, name = emo.strip().lower(), name.strip()
+        if emo and name:
+            mapping[emo] = name
+    return enabled, mapping
+
+
+def emo_bank_settings():
+    """(은행 켜짐, {감정: 은행 이름}). 설정 파일이 있으면 그것을(파일이 바뀔 때만 재파싱),
+    없거나 깨졌으면 env 값(EMO_BANK_ENABLED·EMO_BANK_MAP)으로 폴백한다. 깨진 경우 경고는 1회."""
+    c = _emo_cfg_cache
+    path = EMOTION_CONFIG_PATH
+    try:
+        st = os.stat(path)
+    except OSError:
+        c.update(key=None, path=path, value=None)
+        return EMO_BANK_ENABLED, EMO_BANK_MAP
+    # 같은 mtime 으로 os.replace 된 새 파일도 잡도록 inode·크기까지 키에 넣는다.
+    key = (st.st_ino, st.st_mtime_ns, st.st_size)
+    if c["path"] != path or c["key"] != key:
+        try:
+            c["value"] = _read_emo_cfg(path)
+        except Exception as e:  # 깨진 JSON·스키마 위반 — 합성을 멈추지 않고 env 로
+            c["value"] = None
+            import logging
+            logging.getLogger(__name__).warning("[emo-bank] 설정 파일 %s 읽기 실패 → env 폴백: %s", path, e)
+        c["key"], c["path"] = key, path
+    if c["value"] is None:
+        return EMO_BANK_ENABLED, EMO_BANK_MAP
+    return c["value"]
+
+
 # 시드 고정(AFL-746, 2026-09-18 라이브에서 직접 추가된 것을 AFL-1002 에서 repo 로 흡수).
 # 같은 (clone_id, text, 재시도 회차)는 늘 같은 소리 → 발음 문제를 재현할 수 있다. 0 이면 끔.
 SEED_LOCK = os.environ.get("COSYVOICE_SEED_LOCK", "1") == "1"

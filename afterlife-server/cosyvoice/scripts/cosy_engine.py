@@ -88,9 +88,12 @@ class CosyEngine:
             ras_sampling, top_p=_p, top_k=top_k, win_size=10, tau_r=0.1)
 
     def warmup(self):
-        if config.EMO_BANK_ENABLED:
+        enabled, fmap = config.emo_bank_settings()
+        if enabled or config.EMO_BANK_ENABLED:
             # 은행 견본 전처리는 기동 때 한 번 — 첫 감정 답이 견본 처리 시간만큼 늦지 않게.
-            for name in sorted(set(config.EMO_BANK_MAP.values())):
+            # env 맵 ∪ 파일 맵 ∪ 은행 디렉터리의 모든 후보 — 관리자가 후보를 바꿔도 첫 통화가 안 늦다.
+            names = set(config.EMO_BANK_MAP.values()) | set(fmap.values()) | self._scan_bank_names()
+            for name in sorted(names):
                 self._bank_or_none(name)
         wc = config.WARMUP_CLONE
         if not wc:
@@ -150,9 +153,25 @@ class CosyEngine:
             self._registered[clone_id] = sig
             log.info("prompt cached: clone=%s (%.1fs, icl=%s)", clone_id, len(data) / sr, ref_text is not None)
 
+    @staticmethod
+    def _scan_bank_names() -> set:
+        """은행 디렉터리의 <감정>_<이름>.wav 후보 이름(확장자 뺀 stem) 전부."""
+        import re
+        try:
+            files = os.listdir(config.EMO_BANK_DIR)
+        except OSError:
+            return set()
+        return {f[:-4] for f in files if re.fullmatch(r"(?:happy|sad|warm|angry)_[a-z0-9]+\.wav", f)}
+
+    def _warn_bank_once(self, name: str, why: str) -> None:
+        warned = self.__dict__.setdefault("_bank_warned", set())
+        if name not in warned:
+            warned.add(name)
+            log.warning("[emo-bank] 은행 %s %s → 이 감정은 클론 견본만", name, why)
+
     def _ensure_bank(self, name: str) -> str | None:
-        """감정 은행 견본을 화자 캐시에 등록하고 그 id 를 준다. 파일·대사가 없으면 None(한 번만 경고).
-        은행은 기동 때 한 번만 읽는다 — 은행 파일을 바꾸면 서비스를 재시작해야 반영된다."""
+        """감정 은행 견본을 화자 캐시에 등록하고 그 id 를 준다. 파일·대사가 없으면 None(경고는 이름당 1회).
+        등록된 은행 견본은 다시 읽지 않는다 — 이미 있는 파일 내용을 바꾸면 서비스를 재시작해야 반영된다."""
         if name in self._banks:
             return self._banks[name]
         with self._reg_lock:
@@ -160,15 +179,15 @@ class CosyEngine:
                 return self._banks[name]
             wav = os.path.join(config.EMO_BANK_DIR, name + ".wav")
             txt = os.path.join(config.EMO_BANK_DIR, name + ".txt")
+            # 파일이 없거나 대사가 비어 있는 경우는 캐시하지 않는다 — 나중에 생기면(관리자가 은행 추가)
+            # 다음 호출에서 등록된다(stat 뿐이라 싸다). 경고는 이름당 1회.
             if not (os.path.isfile(wav) and os.path.isfile(txt)):
-                log.warning("[emo-bank] 은행 %s 없음(%s) → 이 감정은 클론 견본만", name, config.EMO_BANK_DIR)
-                self._banks[name] = None
+                self._warn_bank_once(name, "없음(%s)" % config.EMO_BANK_DIR)
                 return None
             with open(txt, encoding="utf-8") as f:
                 text = f.read().strip()
             if not text:
-                log.warning("[emo-bank] 은행 %s 대사(.txt)가 비어 있음 → 이 감정은 클론 견본만", name)
-                self._banks[name] = None
+                self._warn_bank_once(name, "대사(.txt)가 비어 있음")
                 return None
             data, sr = sf.read(wav, dtype="float32")
             if data.ndim > 1:
@@ -190,7 +209,7 @@ class CosyEngine:
 
     def _bank_or_none(self, name: str) -> str | None:
         """_ensure_bank 의 예외(깨진 wav 등)를 삼켜 None 으로 — 감정 때문에 합성이 실패하지 않게.
-        실패도 None 으로 기억해 요청마다 다시 시도하지 않는다."""
+        예외 실패는 None 으로 기억해 요청마다 다시 시도하지 않는다(파일 없음은 기억하지 않음 — _ensure_bank)."""
         if name in self._banks:
             return self._banks[name]
         try:
@@ -206,10 +225,11 @@ class CosyEngine:
         스위치가 꺼졌거나·감정이 없거나·맵에 없는 감정(neutral·calm)이거나·은행 파일이 없으면
         지금처럼 클론 id 그대로 — 합성이 감정 때문에 실패하는 일은 없다.
         """
-        if not config.EMO_BANK_ENABLED or not emotion:
+        enabled, bank_map = config.emo_bank_settings()  # 관리자 설정 파일 우선·없으면 env
+        if not enabled or not emotion:
             return clone_id
         emo = emotion.strip().lower()
-        name = config.EMO_BANK_MAP.get(emo)
+        name = bank_map.get(emo)
         if not name:
             return clone_id
         bank = self._bank_or_none(name)

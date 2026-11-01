@@ -2122,5 +2122,8 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
     # AFL-1034 앱 설정 › 목소리 테스트 — 언어별 합성(es=CosyVoice3). 통화 경로와 무관.
     from voice_lang_preview_endpoint import register_voice_lang_preview_routes
     register_voice_lang_preview_routes(app)
+    # AFL-1072 관리자 감정 관리 — 목소리 은행 스위치·후보·영상 설정(저장만). Bearer LEARN_SECRET 으로 닫힘.
+    from emotion_admin_endpoint import register_emotion_admin_routes
+    register_emotion_admin_routes(app)
 
     return app
