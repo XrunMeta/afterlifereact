@@ -2,7 +2,7 @@
 
 목소리 감정 은행(AFL-1069) 켜기/끄기·감정별 후보 고르기, 영상 감정 설정 저장.
 설정은 공용 JSON 파일(EMOTION_CONFIG_PATH) 한 개 — CosyVoice 가 같은 파일을 mtime 으로 읽어
-재시작 없이 반영한다. 영상(video) 값은 저장만 하고 이 모듈은 동작에 연결하지 않는다.
+재시작 없이 반영한다. 영상(video) 값은 emotion_video.enabled_for 가 통화 시작마다 읽는다(다음 통화부터).
 
 인증: `Authorization: Bearer <LEARN_SECRET | PRETHIRD_LEARN_SECRET>` (admin_records_endpoint 관례).
   비밀이 비어 있으면 모두 거부. afterlifeapi 의 requireAdmin 프록시만 호출한다.
