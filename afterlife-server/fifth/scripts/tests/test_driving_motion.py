@@ -1,4 +1,4 @@
-"""구동 동작(pkl) 보정 — AFL-1064. 얼굴 크기 고정 → 고개 0.7배 → σ=2 스무딩 → 끝 1초 중립 수렴, 보정 표시 없는 pkl 은 렌더 거부."""
+"""구동 동작(pkl) 보정 — AFL-1064. 얼굴 크기 고정 → 고개 0.7배 → 갸웃 상한 → 0.7배 → σ=2 스무딩 → 끝 1초 중립 수렴, 보정 표시 없는 pkl 은 렌더 거부."""
 import copy
 
 import numpy as np
@@ -7,6 +7,7 @@ import pytest
 from driving_motion import (
     CORRECTION,
     correct,
+    cap_roll,
     ease_to_neutral,
     fix_face_size,
     require_corrected,
@@ -137,3 +138,32 @@ def test_correct_는_얼굴_크기를_고정한다():
     s = np.array([float(np.squeeze(x["scale"])) for x in d["motion"]])
     assert np.ptp(s) < 1e-6 and np.isclose(s[0], 1.15)
     assert d["afl_correction"]["face_size"] == "fixed"
+
+
+def _rolls(m):
+    return np.array([float(np.ravel(x["roll"])[0]) for x in m])
+
+
+def test_갸웃이_상한을_넘으면_폭을_상한으로_줄인다():
+    m = _motion()
+    for i, x in enumerate(m):
+        x["roll"] = np.array([[5.0 + 29.0 * np.sin(i / 8) ** 2]], np.float32)
+    c = cap_roll(m, 10.0)
+    assert np.isclose(np.ptp(_rolls(c)), 10.0, atol=1e-3)
+    assert np.isclose(_rolls(c)[0], _rolls(m)[0])  # 0번 프레임 기준
+    assert np.allclose(c[10]["pitch"], m[10]["pitch"]) and np.allclose(c[10]["yaw"], m[10]["yaw"])
+    assert np.allclose(c[10]["R"], rotation_matrix(c[10]["pitch"], c[10]["yaw"], c[10]["roll"]))
+
+
+def test_갸웃이_상한_안이면_그대로():
+    m = _motion()  # roll 잡음 폭 몇 도
+    assert np.ptp(_rolls(m)) < 10
+    assert np.allclose(_rolls(cap_roll(m, 10.0)), _rolls(m))
+
+
+def test_correct_후_갸웃_폭은_상한_이하():
+    p = _pkl()
+    for i, x in enumerate(p["motion"]):
+        x["roll"] = np.array([[40.0 * np.sin(i / 6) ** 2]], np.float32)
+    d = correct(p)
+    assert np.ptp(_rolls(d["motion"])) <= CORRECTION["roll_cap_deg"] + 1e-3

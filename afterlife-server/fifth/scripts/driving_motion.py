@@ -3,13 +3,15 @@
 FLP(run.py)가 구동영상에서 뽑은 동작 pkl 을 클론 사진에 그대로 쓰면 네 가지 문제가 있다(2026-10-29~11-01 실측).
 0. 구동영상 인물이 카메라 쪽으로 다가오면 얼굴 크기(scale)가 따라 커진다(v2 반대 영상 최대 +17%)
    → 얼굴 크기를 0번 프레임 값으로 고정(sungjius 2026-11-01). 클론이 아니라 구동영상 탓이라 구동영상마다 한 번.
+0-1. 고개 갸웃(roll)이 큰 구동영상이 있다(v2 따뜻·차분 29°, 예전 영상 1~7°) → 갸웃 폭(최대-최소)을
+   roll_cap_deg(10°) 이하로 0번 프레임 기준 비례 축소(sungjius 2026-11-01). 끄덕임·좌우는 건드리지 않는다.
 1. 고개 움직임이 크면 paste-back 경계에서 머리 윗부분이 번진다 → 고개(회전·이동)만 0.7배.
 2. FLP 가 프레임마다 따로 추정해 동작이 떨린다(구동영상은 방향 뒤집힘 5%, pkl 은 26~32%)
    → 시간 방향 가우시안 σ=2. 떨림 0.52→0.14px.
 3. 끝 자세가 처음과 달라 반복·턴 전환에서 튄다 → 마지막 24프레임을 0번 프레임(중립) 동작값으로 수렴.
    끝↔처음 PSNR 22→41dB.
 
-correct() 가 네 단계를 순서대로 적용하고 pkl 에 afl_correction 표시를 붙인다.
+correct() 가 다섯 단계를 순서대로 적용하고 pkl 에 afl_correction 표시를 붙인다.
 클론 렌더는 require_corrected() 로 표시를 검사해, 보정 안 한 pkl 을 거부한다.
 FLP 렌더에 쓰이는 값 = R·t·exp·scale. torch 없이 테스트할 수 있게 numpy 만 쓴다.
 """
@@ -20,7 +22,7 @@ import copy
 import numpy as np
 
 # 바꾸면 version 을 올린다 — 옛 보정 pkl 은 다시 만들어야 한다.
-CORRECTION = {"version": 2, "face_size": "fixed", "head_scale": 0.7, "smooth_sigma": 2.0, "ease_frames": 24}
+CORRECTION = {"version": 2, "face_size": "fixed", "head_scale": 0.7, "roll_cap_deg": 10.0, "smooth_sigma": 2.0, "ease_frames": 24}
 
 _HEAD_KEYS = ("pitch", "yaw", "roll", "t")
 _RENDER_KEYS = ("pitch", "yaw", "roll", "t", "exp", "scale")
@@ -51,6 +53,22 @@ def fix_face_size(motion: list[dict]) -> list[dict]:
         x = copy.deepcopy(x)
         x["scale"] = s0.copy()
         out.append(x)
+    return out
+
+
+def cap_roll(motion: list[dict], cap_deg: float) -> list[dict]:
+    """갸웃(roll) 폭이 cap_deg 를 넘으면 0번 프레임 기준으로 비례 축소해 폭을 cap_deg 로. 넘지 않으면 그대로."""
+    roll = np.array([float(np.ravel(x["roll"])[0]) for x in motion])
+    span = float(np.ptp(roll))
+    if span <= cap_deg:
+        return [copy.deepcopy(x) for x in motion]
+    k = cap_deg / span
+    r0 = motion[0]["roll"]
+    out = []
+    for x in motion:
+        x = copy.deepcopy(x)
+        x["roll"] = (r0 + (x["roll"] - r0) * k).astype(r0.dtype)
+        out.append(_with_rotation(x))
     return out
 
 
@@ -105,11 +123,13 @@ def ease_to_neutral(motion: list[dict], n: int) -> list[dict]:
 
 
 def correct(pkl: dict, params: dict = CORRECTION) -> dict:
-    """FLP pkl 에 네 보정을 순서대로 적용하고 afl_correction 표시를 붙인다."""
+    """FLP pkl 에 다섯 보정을 순서대로 적용하고 afl_correction 표시를 붙인다."""
     if "afl_correction" in pkl:
         raise ValueError(f"이미 보정된 pkl 이다: {pkl['afl_correction']}")
     m = fix_face_size(pkl["motion"]) if params.get("face_size") == "fixed" else pkl["motion"]
     m = scale_head(m, params["head_scale"])
+    if params.get("roll_cap_deg"):
+        m = cap_roll(m, params["roll_cap_deg"])
     m = smooth(m, params["smooth_sigma"])
     m = ease_to_neutral(m, params["ease_frames"])
     out = dict(pkl)
