@@ -52,7 +52,8 @@ WORK="/root/emote-poc/bake-$CLONE"
 mkdir -p "$OUT"
 exec 9>"$LOCK_DIR/afl1064-bake-$CLONE.lock"
 flock -n 9 || { echo "[준비] 클론 $CLONE 이미 굽는 중 — 건너뜀"; exit 0; }
-MT_CACHE="$PRETHIRD_DIR/musetalk-outputs"
+# MuseTalkInproc 캐시 루트(musetalk_inproc.PRETHIRD_OUTPUTS 와 같게) — <stem>.* pkl + v15/v15/<stem>/ 프레임
+MT_CACHE="${PRETHIRD_MUSETALK_OUTPUTS:-/home/afterlife/afterlife-server/prethird/musetalk-outputs}"
 now() { date +%s.%N; }
 since() { echo "$(now) - $1" | bc; }
 T0=$(now)
@@ -85,7 +86,7 @@ flp_render() {
     --pkl "$EMO_PKL_DIR/$pkl.pkl" --src "$WORK/face.jpg" --out "$WORK/$name.mp4" 2>&1 | grep -v objc | grep render_emotion
   docker cp "$FLP_CONTAINER:$WORK/$name.mp4" "$OUT/$name.part.mp4"
   mv "$OUT/$name.part.mp4" "$OUT/$name.mp4"
-  rm -f "$MT_CACHE/$name".*
+  rm -rf "$MT_CACHE/$name".* "$MT_CACHE/v15/v15/$name"
   printf '[시간] FLP %s %.1fs\n' "$name" "$(since "$tc")"
 }
 
