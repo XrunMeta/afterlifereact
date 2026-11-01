@@ -10,7 +10,7 @@ import numpy as np
 FACE_SCORE_MIN: float = float(os.environ.get("FACE_CHECK_SCORE_MIN", "0.2"))
 PASS_MIN: int = int(os.environ.get("FACE_CHECK_PASS_MIN", "3"))
 
-_ZOOM = 1.2     # 확대 배율 (가운데 잘라 원크기로)
+_ZOOM = 1.1     # 확대 배율 (가운데 잘라 원크기로)
 _SHRINK = 0.9   # 축소 배율 (가장자리 복제 패딩)
 _BRIGHT = 25    # 밝기 가산값
 
