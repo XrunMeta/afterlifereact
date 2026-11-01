@@ -1,4 +1,4 @@
-"""구동 동작(pkl) 보정 — AFL-1064. 고개 0.7배 → σ=2 스무딩 → 끝 1초 중립 수렴, 보정 표시 없는 pkl 은 렌더 거부."""
+"""구동 동작(pkl) 보정 — AFL-1064. 얼굴 크기 고정 → 고개 0.7배 → σ=2 스무딩 → 끝 1초 중립 수렴, 보정 표시 없는 pkl 은 렌더 거부."""
 import copy
 
 import numpy as np
@@ -8,6 +8,7 @@ from driving_motion import (
     CORRECTION,
     correct,
     ease_to_neutral,
+    fix_face_size,
     require_corrected,
     rotation_matrix,
     scale_head,
@@ -116,3 +117,23 @@ def test_두번_보정하지_않는다():
     d = correct(_pkl())
     with pytest.raises(ValueError):
         correct(d)
+
+
+def test_얼굴_크기는_0번_프레임_값으로_고정():
+    m = _motion()
+    for i, x in enumerate(m):
+        x["scale"] = np.array([[1.15 + 0.003 * i]], np.float32)  # 인물이 카메라로 다가옴
+    f = fix_face_size(m)
+    assert all(np.allclose(x["scale"], 1.15) for x in f)
+    assert np.allclose(f[10]["exp"], m[10]["exp"]) and np.allclose(f[10]["pitch"], m[10]["pitch"])
+    assert np.isclose(float(np.squeeze(m[10]["scale"])), 1.18)  # 원본은 그대로
+
+
+def test_correct_는_얼굴_크기를_고정한다():
+    p = _pkl()
+    for i, x in enumerate(p["motion"]):
+        x["scale"] = np.array([[1.15 * (1 + 0.17 * np.sin(i / 10))]], np.float32)
+    d = correct(p)
+    s = np.array([float(np.squeeze(x["scale"])) for x in d["motion"]])
+    assert np.ptp(s) < 1e-6 and np.isclose(s[0], 1.15)
+    assert d["afl_correction"]["face_size"] == "fixed"
