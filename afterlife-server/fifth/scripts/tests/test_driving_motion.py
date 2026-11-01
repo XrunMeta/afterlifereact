@@ -14,6 +14,7 @@ from driving_motion import (
     rotation_matrix,
     scale_head,
     smooth,
+    window,
 )
 
 
@@ -167,3 +168,28 @@ def test_correct_후_갸웃_폭은_상한_이하():
         x["roll"] = np.array([[40.0 * np.sin(i / 6) ** 2]], np.float32)
     d = correct(p)
     assert np.ptp(_rolls(d["motion"])) <= CORRECTION["roll_cap_deg"] + 1e-3
+
+
+def test_길이_버전은_원본_속도_그대로_자르고_양끝이_중립():
+    d = correct(_pkl(T=120))
+    v = window(d, 50, edge=15)
+    m0 = d["motion"][0]
+    assert len(v["motion"]) == 50 and v["n_frames"] == 50
+    for end in (v["motion"][0], v["motion"][-1]):
+        for key in ("pitch", "yaw", "roll", "exp", "t", "scale"):
+            assert np.allclose(end[key], m0[key], atol=1e-5)
+    s = v["afl_window"]["start"]
+    mid = 25  # 가장자리 15프레임 밖은 원본 그대로(속도 유지)
+    assert np.allclose(v["motion"][mid]["pitch"], d["motion"][s + mid]["pitch"])
+    require_corrected(v)  # 보정 표시 유지 — 렌더 가능
+
+
+def test_길이_버전_시작_위치_지정과_길이_상한():
+    d = correct(_pkl(T=60))
+    assert window(d, 30, start=10)["afl_window"]["start"] == 10
+    assert len(window(d, 999)["motion"]) == 60
+
+
+def test_보정_안_한_pkl_은_길이_버전도_거부():
+    with pytest.raises(ValueError):
+        window(_pkl(), 30)
