@@ -2,6 +2,8 @@
 import os
 import sys
 
+import pytest
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
 import emotion_video as ev  # noqa: E402
@@ -26,7 +28,8 @@ def test_연결표는_6종_감정을_모두_덮는다():
     assert CLIP_FOR_EMO["angry"] == "disagreement"
 
 
-def test_클론_허용목록(monkeypatch):
+def test_클론_허용목록(monkeypatch, tmp_path):
+    monkeypatch.setenv("EMOTION_CONFIG_PATH", str(tmp_path / "없음.json"))
     monkeypatch.delenv("PRETHIRD_EMO_VIDEO_CLONES", raising=False)
     assert not enabled_for(9232)
     monkeypatch.setenv("PRETHIRD_EMO_VIDEO_CLONES", "9232, 9075")
@@ -144,3 +147,48 @@ def test_기본_세트(monkeypatch):
     assert not ev.auto_enabled()
     monkeypatch.setenv("PRETHIRD_EMO_VIDEO_AUTO", "1")
     assert ev.auto_enabled()
+
+
+# AFL-1072 관리자 「감정 설정」 영상 — 설정 파일이 정본, 없거나 깨지면 env.
+def _write_cfg(path, video):
+    import json
+    tmp = str(path) + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump({"voice": {"enabled": True, "choice": {}}, "video": video}, f)
+    os.replace(tmp, path)
+
+
+@pytest.mark.parametrize("video, allowed, denied", [
+    ({"mode": "off", "clones": ["9232"]}, [], ["9232", "9075"]),
+    ({"mode": "all", "clones": []}, ["9232", "9075", "preset-3"], []),
+    ({"mode": "some", "clones": ["9194", "preset-3"]}, ["9194", 9194, "preset-3"], ["9232"]),
+])
+def test_설정_파일_영상_모드(monkeypatch, tmp_path, video, allowed, denied):
+    p = tmp_path / "emotion_config.json"
+    monkeypatch.setenv("EMOTION_CONFIG_PATH", str(p))
+    monkeypatch.setenv("PRETHIRD_EMO_VIDEO_CLONES", "9232")  # 파일이 있으면 env 는 안 본다
+    _write_cfg(p, video)
+    assert all(enabled_for(c) for c in allowed)
+    assert not any(enabled_for(c) for c in denied)
+    assert not enabled_for(None)
+
+
+@pytest.mark.parametrize("content", ["{깨짐", '{"voice": {}}', '{"video": {"mode": "maybe"}}',
+                                     '{"video": {"mode": "some", "clones": ["9232\\n"]}}'])
+def test_설정_파일이_깨지거나_영상값_없으면_env(monkeypatch, tmp_path, content):
+    p = tmp_path / "emotion_config.json"
+    p.write_text(content, encoding="utf-8")
+    monkeypatch.setenv("EMOTION_CONFIG_PATH", str(p))
+    monkeypatch.setenv("PRETHIRD_EMO_VIDEO_CLONES", "9232")
+    assert enabled_for("9232") and not enabled_for("9075")
+
+
+def test_설정_저장하면_다음_호출부터_반영(monkeypatch, tmp_path):
+    p = tmp_path / "emotion_config.json"
+    monkeypatch.setenv("EMOTION_CONFIG_PATH", str(p))
+    _write_cfg(p, {"mode": "some", "clones": ["9232"]})
+    assert enabled_for("9232")
+    st = os.stat(p)
+    _write_cfg(p, {"mode": "off", "clones": ["9232"]})
+    os.utime(p, ns=(st.st_atime_ns, st.st_mtime_ns))  # 같은 mtime 이어도 inode·크기로 잡는다
+    assert not enabled_for("9232")
