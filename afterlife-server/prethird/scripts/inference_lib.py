@@ -36,6 +36,7 @@ from musetalk.utils.preprocessing import get_landmark_and_bbox, read_imgs, coord
 
 from unet_bucket import bucket_size, bucket_sizes
 from frame_rotation import MASK_CACHE_TAG, mask_cache_index
+from face_threshold import landmarks_with_fallback
 
 # 이 프로세스에서 튜닝을 마친 배치 크기. cudnn 캐시가 프로세스 단위라 모듈 전역으로 둔다.
 _WARMED_SIZES: set = set()
@@ -249,7 +250,9 @@ def run_inference(args, models, frame_callback=None, timing_out=None, batch_emit
                     frame_list = list(_ex.map(cv2.imread, input_img_list))
             else:
                 print("Extracting landmarks... time-consuming operation")
-                coord_list, frame_list = get_landmark_and_bbox(input_img_list, bbox_shift)
+                # AFL-1071: 기준 0.5 로 전 프레임 얼굴이 없으면(만화풍) 0.2 로 한 번 더. 저장은 재시도 결과.
+                coord_list, frame_list = landmarks_with_fallback(
+                    get_landmark_and_bbox, input_img_list, bbox_shift, coord_placeholder)
                 with open(crop_coord_save_path, 'wb') as f:
                     pickle.dump(coord_list, f)
             _t_coord = time.time() - _t_coord_s
