@@ -10,6 +10,13 @@ from asset_fetch import fetch_to
 from voice_fetch import ensure_voice_wav
 from prebuild import prebuild_handler
 from voice_analyze import voice_analyze_handler
+# AFL-1071 P2: face_check import 실패(env·의존성 등)가 통화 서버 기동을 막지 않게 격리. 실패 시 /face-check 미등록.
+try:
+    from face_check import face_check_handler
+except Exception as _face_check_import_exc:  # noqa: BLE001
+    face_check_handler = None
+    logging.getLogger("prethird.signaling").warning(
+        "[face-check] import 실패 — /face-check 라우트 미등록: %r", _face_check_import_exc)
 from recorder import make_recorder
 from idle_policy import clone_mp4_enabled, filler_order_pre_speak
 import emotion_video
@@ -2077,6 +2084,8 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
     app.router.add_post("/offer", offer)
     app.router.add_post("/prebuild", prebuild_handler)
     app.router.add_post("/voice-analyze", voice_analyze_handler)
+    if face_check_handler is not None:
+        app.router.add_post("/face-check", face_check_handler)
     app.router.add_static("/static/", path=str(
         pathlib.Path(__file__).resolve().parents[1] / "static"))
 

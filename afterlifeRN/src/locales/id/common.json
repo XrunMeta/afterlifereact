@@ -1226,7 +1226,8 @@
       "validateMultipleFaces": "Ada lebih dari satu orang di foto. Silakan coba foto satu orang saja.",
       "validateNotFrontal": "Wajah menoleh ke samping atau atas/bawah. Silakan coba foto yang menghadap ke depan.",
       "validateEyesClosed": "Mata tampak tertutup. Silakan coba foto dengan mata terbuka, tanpa kacamata hitam.",
-      "validateMouthOpen": "Mulut terbuka. Silakan coba foto dengan mulut tertutup."
+      "validateMouthOpen": "Mulut terbuka. Silakan coba foto dengan mulut tertutup.",
+      "validateServerChecking": "Sedang memeriksa foto sekali lagi"
     },
     "voice": {
       "presets": "Preset Suara Dasar",
