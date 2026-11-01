@@ -110,3 +110,37 @@ def test_idle_위치_오프셋():
     f, _ = _select_idle_frame(11.0, 0.0, 0.5, frames, t0, None)   # 기본은 지금과 같다
     assert f == 25
     assert ev  # noqa
+
+
+def test_준비_표시가_있으면_적힌_클립만_쓴다(tmp_path):
+    root = _assets(tmp_path)
+    d = ev.emo_dir(str(root), "9232")
+    ev.mark_ready(d, "neutral", "idle", "agreement")
+    a = find_assets(str(root), "9232")
+    assert set(a) == {"neutral", "idle", "agreement"}  # 굽는 중인 나머지 클립은 안 쓴다
+    e = EmotionVideo(a, cycle_len=588)
+    assert e.clip_for("angry") == "neutral" and e.clip_for("happy") == "agreement"
+
+
+def test_준비_표시가_비어_있으면_감정_영상_안_씀(tmp_path):
+    root = _assets(tmp_path)
+    (tmp_path / "9232" / "emo" / ev.READY).write_text("")
+    assert find_assets(str(root), "9232") is None
+
+
+def test_준비_표시는_더해지고_순서가_고정된다(tmp_path):
+    d = tmp_path / "emo"
+    d.mkdir()
+    ev.mark_ready(str(d), "agreement")
+    ev.mark_ready(str(d), "idle", "neutral", "agreement")
+    assert (d / ev.READY).read_text().split() == ["neutral", "idle", "agreement"]
+    assert ev.ready_clips(str(d)) == {"neutral", "idle", "agreement"}
+    assert not (d / (ev.READY + ".tmp")).exists()
+
+
+def test_기본_세트(monkeypatch):
+    assert set(ev.BASE_CLIPS) == {"neutral", "idle", "agreement"}
+    monkeypatch.delenv("PRETHIRD_EMO_VIDEO_AUTO", raising=False)
+    assert not ev.auto_enabled()
+    monkeypatch.setenv("PRETHIRD_EMO_VIDEO_AUTO", "1")
+    assert ev.auto_enabled()
