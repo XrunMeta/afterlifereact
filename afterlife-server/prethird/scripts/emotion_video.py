@@ -12,7 +12,9 @@
   - 무감정 답이 끝나면 idle 이 그 위치에서 이어서 재생한다. 감정 답 뒤에는 idle 처음(중립)부터.
 
 켜기(둘 중 하나):
-  - PRETHIRD_EMO_VIDEO_CLONES="9232,…" — 허용 클론(준비 표시 없이 손으로 구운 세트).
+  - 허용 클론 — 관리자 「감정 설정」 영상(AFL-1072, /data/emotion_config.json 의 video.mode off·all·some)이 정본.
+    파일이나 video 값이 없거나 깨졌으면 PRETHIRD_EMO_VIDEO_CLONES="9232,…" env 로(준비 표시 없이 손으로 구운 세트).
+    all 이어도 자산(무감정·idle)이 없는 클론은 find_assets 가 None 이라 기존 영상 그대로.
   - PRETHIRD_EMO_VIDEO_AUTO=1 — 준비 표시(emo/ready.txt)가 있는 클론 전부. 없으면 통화 시작 때 굽기를 대기열에 넣는다(emo_bake).
   둘 다 비어 있으면 끔 — 지금 동작과 같다.
 
@@ -23,7 +25,13 @@ ready.txt 에는 MuseTalk 캐시까지 채운 클립만 한 줄씩 적힌다. �
 """
 from __future__ import annotations
 
+import json
+import logging
 import os
+import re
+import threading
+
+log = logging.getLogger("prethird.emotion_video")
 
 # AFL-1067 EMOTIONS 6종 → 클립. calm 은 warm 쏠림(시뮬 64%) 때문에 무감정으로 보낸다.
 CLIP_FOR_EMO = {
@@ -40,9 +48,59 @@ NEUTRAL = "neutral"
 READY = "ready.txt"
 
 
+_CLONE_RE = re.compile(r"[0-9]+|preset-[0-9]+")
+_cfg_lock = threading.Lock()
+_cfg_cache = {"key": None, "value": None}
+
+
+def _config_path() -> str:
+    return os.environ.get("EMOTION_CONFIG_PATH", "/data/emotion_config.json")
+
+
+def _parse_video(raw: dict) -> tuple[str, frozenset]:
+    v = raw["video"]
+    mode = v["mode"]
+    if mode not in ("off", "all", "some"):
+        raise ValueError(f"video.mode={mode!r}")
+    clones = v.get("clones") or []
+    if not isinstance(clones, list) or not all(isinstance(c, str) and _CLONE_RE.fullmatch(c) for c in clones):
+        raise ValueError("video.clones 형식")
+    return mode, frozenset(clones)
+
+
+def file_video_setting() -> tuple[str, frozenset] | None:
+    """관리자 설정 파일의 영상 값 (mode, clones). 파일·video 값이 없거나 깨졌으면 None(→ env).
+
+    통화 시작마다 불리므로 (ino, mtime_ns, size) 가 같으면 다시 읽지 않는다 — 관리자가 저장하면 다음 통화부터 반영."""
+    path = _config_path()
+    try:
+        st = os.stat(path)
+    except OSError:
+        return None
+    key = (st.st_ino, st.st_mtime_ns, st.st_size)
+    with _cfg_lock:
+        if _cfg_cache["key"] == key:
+            return _cfg_cache["value"]
+        try:
+            with open(path, encoding="utf-8") as f:
+                raw = json.load(f)
+            value = _parse_video(raw) if isinstance(raw, dict) and "video" in raw else None
+        except (OSError, ValueError, KeyError, TypeError) as e:
+            log.warning("[AFL-1072] 감정 설정 파일 영상 값 무시(env 사용): %s", e)
+            value = None
+        _cfg_cache["key"], _cfg_cache["value"] = key, value
+        return value
+
+
 def enabled_for(clone_id) -> bool:
+    if clone_id is None:
+        return False
+    setting = file_video_setting()
+    if setting is not None:
+        mode, clones = setting
+        return mode == "all" or (mode == "some" and str(clone_id) in clones)
     allow = {c.strip() for c in os.environ.get("PRETHIRD_EMO_VIDEO_CLONES", "").split(",") if c.strip()}
-    return clone_id is not None and str(clone_id) in allow
+    return str(clone_id) in allow
 
 
 def auto_enabled() -> bool:
