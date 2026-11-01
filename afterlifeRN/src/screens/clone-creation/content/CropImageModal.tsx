@@ -40,9 +40,9 @@ import {
 } from "../../../lib/t208SilhouetteScale";
 import { v_87a25c, v_951fee, v_890a60, v_d993b0 } from "../../../lib/t208MeasureStore";
 import {
-  v_9139dc,
   v_27794c,
 } from "../../../lib/validatePersonaImage";
+import { v_11fdee } from "../../../lib/personaImageCheck";
 
 interface Source { uri: string; width: number; height: number }
 interface Props {
@@ -95,6 +95,7 @@ export default function v_100dc2({ visible: v_cf55be, source: v_04e790, onConfir
   }, [v_04e790?.uri]); 
 
   const v_231e09 = v_e662ae(false);
+  const [v_577f9f, v_f897dc] = v_5ab095(false);
 
   const v_9942bb = () => {
     if (!v_04e790) return;
@@ -197,7 +198,9 @@ export default function v_100dc2({ visible: v_cf55be, source: v_04e790, onConfir
       }
 
       console.log("[CropImageModal] cropToAvatar OK, calling validatePersonaImage:", v_cd1446.slice(-40));
-      const v_81e2ef = await v_9139dc(v_cd1446);
+      const v_81e2ef = await v_11fdee(v_cd1446, {
+        onServerCheckStart: () => v_f897dc(true),
+      });
 
       console.log("[CropImageModal] validate result:", v_81e2ef);
       if (!v_81e2ef.ok) {
@@ -213,6 +216,7 @@ export default function v_100dc2({ visible: v_cf55be, source: v_04e790, onConfir
       v_889fad(v_8d41d7('common.error'), v_8d41d7('create.image.cropFailed'));
     } finally {
       v_231e09.current = false;
+      v_f897dc(false);
     }
   };
 
@@ -286,14 +290,20 @@ export default function v_100dc2({ visible: v_cf55be, source: v_04e790, onConfir
           ) : null}
         </View>
 
+        {v_577f9f ? (
+          <View style={v_fd5f43.checkingBox} pointerEvents="none">
+            <Text style={v_fd5f43.checkingText}>{v_8d41d7("create.image.validateServerChecking")}</Text>
+          </View>
+        ) : null}
+
         <View style={[v_fd5f43.actions, { bottom: 16 + v_53dd92 }]}>
           <TouchableOpacity style={v_fd5f43.btn} onPress={v_c7001c}>
             <Text style={v_fd5f43.btnText}>{v_8d41d7('common.cancel')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[v_fd5f43.btn, v_fd5f43.btnPrimary, !v_29e4ca && v_fd5f43.btnDisabled]}
+            style={[v_fd5f43.btn, v_fd5f43.btnPrimary, (!v_29e4ca || v_577f9f) && v_fd5f43.btnDisabled]}
             onPress={v_ce9295}
-            disabled={!v_29e4ca}
+            disabled={!v_29e4ca || v_577f9f}
           >
             <Text style={[v_fd5f43.btnText, v_fd5f43.btnPrimaryText]}>{v_8d41d7('common.confirm')}</Text>
           </TouchableOpacity>
@@ -304,6 +314,8 @@ export default function v_100dc2({ visible: v_cf55be, source: v_04e790, onConfir
 }
 
 const v_fd5f43 = v_472849.create({
+  checkingBox: { position: "absolute", left: 0, right: 0, bottom: 88, alignItems: "center" },
+  checkingText: { color: "#fff", fontSize: 14, backgroundColor: "rgba(0,0,0,0.6)", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, overflow: "hidden" },
   root: { flex: 1, backgroundColor: "#000" },
   fill: { ...v_472849.absoluteFillObject, alignItems: "center", justifyContent: "center" },
   dim: { position: "absolute", backgroundColor: "rgba(0,0,0,0.6)" },

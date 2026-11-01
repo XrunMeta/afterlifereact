@@ -1226,7 +1226,8 @@
       "validateMultipleFaces": "More than one person is in the photo. Please try a photo of just one person.",
       "validateNotFrontal": "The face is turned away. Please try a photo facing straight ahead.",
       "validateEyesClosed": "The eyes look closed. Please try a photo with eyes open, without sunglasses.",
-      "validateMouthOpen": "The mouth is open. Please try a photo with the mouth closed."
+      "validateMouthOpen": "The mouth is open. Please try a photo with the mouth closed.",
+      "validateServerChecking": "Checking your photo once more"
     },
     "voice": {
       "presets": "Default voice presets",

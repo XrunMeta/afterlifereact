@@ -1226,7 +1226,8 @@
       "validateMultipleFaces": "複数の人が写っています。一人で写っている写真でもう一度お試しください。",
       "validateNotFrontal": "顔が横や上下を向いています。正面を向いた写真でもう一度お試しください。",
       "validateEyesClosed": "目を閉じているようです。目を開けた写真でもう一度お試しください。サングラスも外してください。",
-      "validateMouthOpen": "口が開いています。口を閉じた表情でもう一度お試しください。"
+      "validateMouthOpen": "口が開いています。口を閉じた表情でもう一度お試しください。",
+      "validateServerChecking": "写真をもう一度確認しています"
     },
     "voice": {
       "presets": "基本音声プリセット",

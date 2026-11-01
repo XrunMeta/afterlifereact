@@ -1226,7 +1226,8 @@
       "validateMultipleFaces": "여러 사람이 함께 나왔어요. 혼자 나온 사진으로 다시 시도해 주세요.",
       "validateNotFrontal": "얼굴이 옆이나 위아래로 돌아가 있어요. 정면을 바라본 사진으로 다시 시도해 주세요.",
       "validateEyesClosed": "눈을 감은 것 같아요. 눈을 뜬 사진으로 다시 시도해 주세요. 선글라스도 벗어 주세요.",
-      "validateMouthOpen": "입이 벌어져 있어요. 입을 다문 표정으로 다시 시도해 주세요."
+      "validateMouthOpen": "입이 벌어져 있어요. 입을 다문 표정으로 다시 시도해 주세요.",
+      "validateServerChecking": "사진을 한 번 더 확인하고 있어요"
     },
     "voice": {
       "presets": "기본 음성 프리셋",

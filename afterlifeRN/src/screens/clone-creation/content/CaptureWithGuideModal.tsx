@@ -31,9 +31,9 @@ import { v_889fad } from "../../../stores/dialogStore";
 import { v_9dd2d6 } from "../../../lib/centerCoverCrop1to2";
 import { v_b83839 } from "../../../hooks/useFaceDetection";
 import {
-  v_9139dc,
   v_27794c,
 } from "../../../lib/validatePersonaImage";
+import { v_11fdee } from "../../../lib/personaImageCheck";
 
 interface Props {
   visible: boolean;
@@ -63,6 +63,7 @@ export default function v_e0961f({ visible: v_cf55be, onCapture: v_94e3dc, onCan
   const v_1a165b = v_e662ae<v_6c59f3>(null);
   const [v_b1717e, v_0189ac] = v_5ab095(false);
   const [v_67358b, v_e335db] = v_5ab095(false);
+  const [v_577f9f, v_f897dc] = v_5ab095(false);
 
   const { faceState: v_bbb3d3, onFaces: v_dfbd9a } = v_b83839();
   const { detectFaces: v_de4d76, stopListeners: v_62fe07, available: v_065b5f } = v_ac8611({
@@ -220,7 +221,9 @@ export default function v_e0961f({ visible: v_cf55be, onCapture: v_94e3dc, onCan
         return;
       }
 
-      const v_81e2ef = await v_9139dc(v_cb762c.uri);
+      const v_81e2ef = await v_11fdee(v_cb762c.uri, {
+        onServerCheckStart: () => v_f897dc(true),
+      });
       if (!v_81e2ef.ok) {
         v_889fad(
           v_8d41d7("create.image.validateRetakeTitle"),
@@ -234,6 +237,7 @@ export default function v_e0961f({ visible: v_cf55be, onCapture: v_94e3dc, onCan
       v_889fad(v_8d41d7("common.error"), v_8d41d7("create.image.loadFailed"));
     } finally {
       v_e335db(false);
+      v_f897dc(false);
     }
   }, [v_67358b, v_94e3dc, v_8d41d7]);
 
@@ -300,6 +304,12 @@ export default function v_e0961f({ visible: v_cf55be, onCapture: v_94e3dc, onCan
           </TouchableOpacity>
         </View>
 
+        {v_577f9f ? (
+          <View style={v_fd5f43.checkingBox} pointerEvents="none">
+            <Text style={v_fd5f43.checkingText}>{v_8d41d7("create.image.validateServerChecking")}</Text>
+          </View>
+        ) : null}
+
         <View style={[v_fd5f43.bottomBar, { paddingBottom: 20 + v_53dd92 }]}>
           <TouchableOpacity
             style={[v_fd5f43.shutter, (!v_b1717e || v_67358b || !v_b85511) && v_fd5f43.shutterDisabled]}
@@ -321,6 +331,8 @@ export default function v_e0961f({ visible: v_cf55be, onCapture: v_94e3dc, onCan
 }
 
 const v_fd5f43 = v_472849.create({
+  checkingBox: { position: "absolute", left: 0, right: 0, bottom: 140, alignItems: "center" },
+  checkingText: { color: "#fff", fontSize: 14, backgroundColor: "rgba(0,0,0,0.6)", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, overflow: "hidden" },
   root: { flex: 1, backgroundColor: "#000" },
   center: { alignItems: "center", justifyContent: "center", backgroundColor: "#111" },
   previewSlot: {
