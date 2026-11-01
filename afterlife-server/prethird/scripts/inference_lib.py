@@ -36,7 +36,14 @@ from musetalk.utils.preprocessing import get_landmark_and_bbox, read_imgs, coord
 
 from unet_bucket import bucket_size, bucket_sizes
 from frame_rotation import MASK_CACHE_TAG, mask_cache_index
-from face_threshold import landmarks_with_fallback
+# AFL-1071 P2: face_threshold import 가 실패해도 렌더는 돌아야 한다 → 기존 동작(get_landmark_and_bbox 그대로).
+try:
+    from face_threshold import landmarks_with_fallback
+except Exception as _face_thr_exc:  # noqa: BLE001
+    print(f"[face-thr] face_threshold import 실패 — 기준 재시도 없이 기존 동작: {_face_thr_exc!r}", flush=True)
+
+    def landmarks_with_fallback(get_fn, imgs, bbox_shift, placeholder):
+        return get_fn(imgs, bbox_shift)
 
 # 이 프로세스에서 튜닝을 마친 배치 크기. cudnn 캐시가 프로세스 단위라 모듈 전역으로 둔다.
 _WARMED_SIZES: set = set()

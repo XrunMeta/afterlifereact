@@ -102,6 +102,12 @@ def _reset_detector():
     fc.set_detector(None)
 
 
+@pytest.fixture(autouse=True)
+def _allowlist(monkeypatch):
+    """P5: allowlist 가 비면 다운로드를 거부하므로 기본으로 채워 둔다(거부 동작은 개별 시험이 지운다)."""
+    monkeypatch.setenv("PRETHIRD_ASSET_HOST_ALLOWLIST", "img.example.com,127.0.0.1")
+
+
 def _app():
     app = web.Application()
     app.router.add_post("/face-check", fc.face_check_handler)
@@ -311,3 +317,354 @@ def test_find_existing_detector_from_preprocessing_fa(monkeypatch):
     mod.fa = types.SimpleNamespace(face_detector=det)
     monkeypatch.setitem(sys.modules, "musetalk.utils.preprocessing", mod)
     assert fc._find_existing_detector() is det
+
+
+# ---------------------------------------------------------------------------
+# 최종 수정(P1~P7): 전용 풀·대기 상한·import 격리·DNS 오프루프·디코드 전 화소 상한·allowlist·인증 bytes
+# ---------------------------------------------------------------------------
+import ast
+import asyncio
+import importlib.util
+import logging
+import os
+import pathlib
+import struct
+import zlib
+
+from aiohttp.test_utils import make_mocked_request
+
+_SCRIPTS = pathlib.Path(__file__).resolve().parents[1] / "scripts"
+
+
+def _load_isolated(name: str, filename: str):
+    """같은 소스를 다른 모듈 이름으로 새로 로드(진짜 모듈·다른 시험에 영향 없음)."""
+    spec = importlib.util.spec_from_file_location(name, str(_SCRIPTS / filename))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+# --- P1: 전용 ThreadPoolExecutor + 대기 상한 ---
+
+def test_dedicated_executor_single_worker():
+    import concurrent.futures
+
+    assert isinstance(fc._EXECUTOR, concurrent.futures.ThreadPoolExecutor)
+    assert fc._EXECUTOR._max_workers == 1
+    assert fc.MAX_PENDING == 2
+    assert not hasattr(fc, "_infer_lock")
+
+
+async def test_handler_runs_in_dedicated_pool_thread(monkeypatch, _secret):
+    monkeypatch.setattr(fc, "_download", _fake_download(_png_bytes()))
+    names = []
+
+    def _det(img):
+        names.append(threading.current_thread().name)
+        return 0.9
+
+    fc.set_detector(_det)
+    _, body = await _post()
+    assert body == {"ok": True}
+    assert names and all(n.startswith("face-check") for n in names)
+
+
+async def test_handler_rejects_when_pending_over_cap(monkeypatch, _secret):
+    gate = asyncio.Event()
+    entered = []
+
+    async def _slow(url):
+        entered.append(url)
+        await gate.wait()
+        return _png_bytes()
+
+    monkeypatch.setattr(fc, "_download", _slow)
+    fc.set_detector(lambda img: 0.9)
+    async with TestClient(TestServer(_app())) as client:
+        t1 = asyncio.ensure_future(client.post("/face-check", json=_BODY, headers=_AUTH))
+        t2 = asyncio.ensure_future(client.post("/face-check", json=_BODY, headers=_AUTH))
+        for _ in range(200):
+            if len(entered) >= 2:
+                break
+            await asyncio.sleep(0.01)
+        assert fc._pending == 2
+        r3 = await client.post("/face-check", json=_BODY, headers=_AUTH)
+        assert await r3.json() == {"ok": False, "reason": "CHECK_FAILED"}
+        assert len(entered) == 2  # 세 번째는 다운로드조차 하지 않는다
+        gate.set()
+        r1, r2 = await t1, await t2
+        assert await r1.json() == {"ok": True}
+        assert await r2.json() == {"ok": True}
+    assert fc._pending == 0
+
+
+async def test_pending_released_on_failure(monkeypatch, _secret):
+    async def _boom(url):
+        raise RuntimeError("x")
+
+    monkeypatch.setattr(fc, "_download", _boom)
+    _, body = await _post()
+    assert body == {"ok": False, "reason": "CHECK_FAILED"}
+    assert fc._pending == 0
+
+
+# --- P2: env 안전 해석 + import 격리 ---
+
+def test_env_parsers_fall_back_on_bad_values(monkeypatch, caplog):
+    monkeypatch.setenv("X_FLOAT", "abc")
+    monkeypatch.setenv("X_INT", "3.5x")
+    monkeypatch.setenv("X_NAN", "nan")
+    with caplog.at_level(logging.WARNING):
+        assert fc._env_float("X_FLOAT", 0.2) == 0.2
+        assert fc._env_int("X_INT", 3) == 3
+        assert fc._env_float("X_NAN", 0.2) == 0.2
+    assert "X_FLOAT" in caplog.text
+    monkeypatch.setenv("X_FLOAT", " 0.35 ")
+    monkeypatch.setenv("X_INT", "4")
+    assert fc._env_float("X_FLOAT", 0.2) == 0.35
+    assert fc._env_int("X_INT", 3) == 4
+    monkeypatch.delenv("X_FLOAT")
+    assert fc._env_float("X_FLOAT", 0.2) == 0.2
+
+
+def test_module_import_survives_bad_env(monkeypatch):
+    monkeypatch.setenv("FACE_CHECK_SCORE_MIN", "oops")
+    monkeypatch.setenv("FACE_CHECK_PASS_MIN", "")
+    monkeypatch.setenv("FACE_CHECK_MAX_SIDE", "big")
+    mod = _load_isolated("face_check_badenv", "face_check.py")
+    try:
+        assert mod.FACE_SCORE_MIN == 0.2
+        assert mod.PASS_MIN == 3
+        assert mod.MAX_SIDE == 1280
+    finally:
+        mod._EXECUTOR.shutdown(wait=False)
+
+
+async def test_signaling_skips_route_when_face_check_import_fails(monkeypatch):
+    monkeypatch.setenv("PREBUILD_SECRET", "test-secret")
+    monkeypatch.setitem(sys.modules, "face_check", None)  # import 시 ImportError
+    mod = _load_isolated("signaling_facecheck_off", "signaling.py")
+    assert mod.face_check_handler is None
+    async with TestClient(TestServer(mod.make_app())) as client:
+        resp = await client.post("/face-check", json=_BODY)
+        assert resp.status in (404, 405)
+        assert (await client.get("/healthz")).status != 404
+
+
+def _try_guarded_import(path: pathlib.Path, module: str) -> bool:
+    """module 의 import 가 try/except Exception(이상) 안에 있는지."""
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Try):
+            imports = [n for n in node.body if isinstance(n, ast.ImportFrom) and n.module == module]
+            if imports and node.handlers:
+                return True
+    return False
+
+
+def test_signaling_face_check_import_is_guarded():
+    assert _try_guarded_import(_SCRIPTS / "signaling.py", "face_check")
+
+
+def test_inference_lib_face_threshold_import_is_guarded_with_passthrough():
+    """inference_lib 는 torch·MuseTalk 를 import 해서 여기서 못 불러온다 → 소스에서 except 블록만 떼어 실행."""
+    src = (_SCRIPTS / "inference_lib.py").read_text(encoding="utf-8")
+    tree = ast.parse(src)
+    target = None
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Try) and any(
+            isinstance(n, ast.ImportFrom) and n.module == "face_threshold" for n in node.body
+        ):
+            target = node
+    assert target is not None, "face_threshold import 가 try 로 감싸여 있지 않음"
+    h = target.handlers[0]
+    ns = {"sys": sys, (h.name or "_e"): ImportError("simulated")}
+    exec(compile(ast.Module(body=target.handlers[0].body, type_ignores=[]), "x", "exec"), ns)
+    fn = ns["landmarks_with_fallback"]
+    calls = []
+
+    def get_fn(imgs, shift):
+        calls.append((imgs, shift))
+        return ("coords", "frames")
+
+    assert fn(get_fn, ["a"], 3, (0, 0, 0, 0)) == ("coords", "frames")
+    assert calls == [(["a"], 3)]
+
+
+# --- P3: SSRF 검증(DNS)은 루프 밖에서 ---
+
+async def test_download_validates_url_off_loop(monkeypatch):
+    monkeypatch.setenv("PRETHIRD_ASSET_HOST_ALLOWLIST", "img.example.com")
+    loop_thread = threading.get_ident()
+    seen = []
+
+    def _v(url):
+        seen.append(threading.get_ident())
+        raise ValueError("blocked")
+
+    monkeypatch.setattr(fc, "_validate_url", _v)
+    with pytest.raises(ValueError):
+        await fc._download("https://img.example.com/a.png")
+    assert seen and seen[0] != loop_thread
+
+
+# --- P4: 디코드 전 화소 상한 ---
+
+def _png_header(w: int, h: int) -> bytes:
+    ihdr = struct.pack(">IIBBBBB", w, h, 8, 2, 0, 0, 0)
+    chunk = struct.pack(">I", len(ihdr)) + b"IHDR" + ihdr
+    return b"\x89PNG\r\n\x1a\n" + chunk + struct.pack(">I", zlib.crc32(b"IHDR" + ihdr))
+
+
+def _jpeg_header(w: int, h: int, sof: int = 0xC0) -> bytes:
+    app0 = b"\xff\xe0" + struct.pack(">H", 16) + b"JFIF\x00" + b"\x01\x01\x00\x00\x01\x00\x01\x00\x00"
+    sofseg = bytes([0xFF, sof]) + struct.pack(">HBHHB", 11, 8, h, w, 1) + b"\x01\x11\x00"
+    return b"\xff\xd8" + app0 + b"\xff\xff" + sofseg + b"\xff\xda\x00\x02"
+
+
+def _riff(fourcc: bytes, payload: bytes) -> bytes:
+    chunk = fourcc + struct.pack("<I", len(payload)) + payload
+    return b"RIFF" + struct.pack("<I", 4 + len(chunk)) + b"WEBP" + chunk
+
+
+def _webp_vp8(w, h):
+    return _riff(b"VP8 ", b"\x00\x00\x00" + b"\x9d\x01\x2a" + struct.pack("<HH", w, h) + b"\0" * 4)
+
+
+def _webp_vp8l(w, h):
+    bits = (w - 1) | ((h - 1) << 14)
+    return _riff(b"VP8L", b"\x2f" + struct.pack("<I", bits) + b"\0" * 4)
+
+
+def _webp_vp8x(w, h):
+    wb = (w - 1).to_bytes(3, "little")
+    hb = (h - 1).to_bytes(3, "little")
+    return _riff(b"VP8X", b"\0\0\0\0" + wb + hb)
+
+
+def test_image_dims_png():
+    assert fc.image_dims(_png_header(640, 480)) == (640, 480)
+    assert fc.image_dims(_png_bytes()) == (80, 100)
+
+
+def test_image_dims_jpeg_sof_variants():
+    assert fc.image_dims(_jpeg_header(1920, 1080)) == (1920, 1080)
+    assert fc.image_dims(_jpeg_header(300, 200, 0xC2)) == (300, 200)  # progressive
+    ok, buf = cv2.imencode(".jpg", _img())
+    assert fc.image_dims(buf.tobytes()) == (80, 100)
+
+
+def test_image_dims_jpeg_ignores_dht_c4():
+    dht = b"\xff\xc4" + struct.pack(">H", 5) + b"\x00\x00\x00"
+    data = b"\xff\xd8" + dht + _jpeg_header(10, 20)[2:]
+    assert fc.image_dims(data) == (10, 20)
+
+
+def test_image_dims_webp_all_three():
+    assert fc.image_dims(_webp_vp8(640, 480)) == (640, 480)
+    assert fc.image_dims(_webp_vp8l(16383, 2)) == (16383, 2)
+    assert fc.image_dims(_webp_vp8x(16777216, 3)) == (16777216, 3)
+
+
+def test_image_dims_unknown_or_truncated_returns_none():
+    assert fc.image_dims(b"") is None
+    assert fc.image_dims(b"not an image") is None
+    assert fc.image_dims(_png_header(10, 10)[:20]) is None
+    assert fc.image_dims(b"\xff\xd8\xff\xe0\x00") is None
+    assert fc.image_dims(b"\xff\xd8\xff\xda\x00\x02") is None  # SOF 전에 SOS
+    assert fc.image_dims(_webp_vp8(640, 480)[:24]) is None
+
+
+def test_decode_rejects_huge_pixels_before_imdecode(monkeypatch):
+    called = []
+    monkeypatch.setattr(fc.cv2, "imdecode", lambda *a, **k: called.append(1))
+    with pytest.raises(ValueError, match="pixels"):
+        fc._decode(_png_header(10000, 4001))  # 40,010,000 > 40,000,000
+    with pytest.raises(ValueError, match="pixels"):
+        fc._decode(_webp_vp8x(20000, 20000))
+    assert called == []
+
+
+def test_decode_allows_limit_boundary_and_unknown(monkeypatch):
+    seen = []
+
+    def _imdecode(arr, flag):
+        seen.append(arr.size)
+        return np.zeros((2, 2, 3), np.uint8)
+
+    monkeypatch.setattr(fc.cv2, "imdecode", _imdecode)
+    fc._decode(_png_header(10000, 4000))  # 정확히 40,000,000 은 허용
+    fc._decode(b"mystery-format-bytes")   # 형식 모름 → imdecode 로 넘긴다
+    assert len(seen) == 2
+
+
+def test_pixel_limits():
+    assert fc.MAX_PIXELS == 40_000_000
+    assert os.environ.get("OPENCV_IO_MAX_IMAGE_PIXELS") is not None
+
+
+def test_opencv_pixel_env_set_before_cv2_import():
+    src = (_SCRIPTS / "face_check.py").read_text(encoding="utf-8")
+    assert src.index('setdefault("OPENCV_IO_MAX_IMAGE_PIXELS"') < src.index("import cv2")
+
+
+async def test_handler_huge_png_check_failed(monkeypatch, _secret):
+    monkeypatch.setattr(fc, "_download", _fake_download(_png_header(50000, 50000)))
+    fc.set_detector(lambda img: 0.9)
+    _, body = await _post()
+    assert body == {"ok": False, "reason": "CHECK_FAILED"}
+
+
+# --- P5: allowlist 비면 거부 ---
+
+async def test_download_refuses_without_allowlist(monkeypatch, caplog):
+    monkeypatch.delenv("PRETHIRD_ASSET_HOST_ALLOWLIST", raising=False)
+    called = []
+    monkeypatch.setattr(fc, "_validate_url", lambda url: called.append(url))
+    with caplog.at_level(logging.WARNING):
+        with pytest.raises(ValueError, match="allowlist"):
+            await fc._download("https://img.example.com/a.png")
+    assert called == []
+    assert "PRETHIRD_ASSET_HOST_ALLOWLIST" in caplog.text
+
+
+async def test_handler_check_failed_without_allowlist(monkeypatch, _secret):
+    monkeypatch.setenv("PRETHIRD_ASSET_HOST_ALLOWLIST", "  ")
+    fc.set_detector(lambda img: 0.9)
+    _, body = await _post()
+    assert body == {"ok": False, "reason": "CHECK_FAILED"}
+
+
+# --- P6: 비ASCII 인증 헤더는 401 ---
+
+def test_authorized_non_ascii_header_false(monkeypatch):
+    monkeypatch.setenv("PREBUILD_SECRET", "test-secret")
+    req = make_mocked_request("POST", "/face-check", headers={"Authorization": "Bearer 비밀번호"})
+    assert fc._authorized(req) is False
+    req2 = make_mocked_request("POST", "/face-check", headers={"Authorization": "Bearer test-secret"})
+    assert fc._authorized(req2) is True
+
+
+def test_authorized_non_ascii_secret_matches(monkeypatch):
+    monkeypatch.setenv("PREBUILD_SECRET", "비밀")
+    req = make_mocked_request("POST", "/face-check", headers={"Authorization": "Bearer 비밀"})
+    assert fc._authorized(req) is True
+
+
+async def test_handler_non_ascii_bearer_401(monkeypatch):
+    monkeypatch.setenv("PREBUILD_SECRET", "test-secret")
+    req = make_mocked_request("POST", "/face-check", headers={"Authorization": "Bearer 한글"})
+    resp = await fc.face_check_handler(req)
+    assert resp.status == 401
+
+
+# --- P7: 예외 로그는 %r ---
+
+async def test_failure_log_uses_repr(monkeypatch, _secret, caplog):
+    async def _boom(url):
+        raise ValueError("line1\nline2")
+
+    monkeypatch.setattr(fc, "_download", _boom)
+    with caplog.at_level(logging.WARNING, logger="prethird.face_check"):
+        await _post()
+    assert "line1\\nline2" in caplog.text
