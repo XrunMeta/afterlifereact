@@ -14,6 +14,8 @@ export interface PersonaImageCheckDeps {
   onServerCheckStart?: () => void;
 }
 
+export const v_5782dc = 30_000;
+
 const NO_FACE: v_26f0b6 = { ok: false, reason: "no_face" };
 
 export async function v_11fdee(
@@ -30,12 +32,22 @@ export async function v_11fdee(
 
   const v_21cc31 = v_499b6e();
   if (!v_21cc31) return v_c3e33d;
+  let v_cb36b1;
   try {
     v_84b93d.onServerCheckStart?.();
-    const v_57ac81 = await v_0f55b7(v_21cc31, v_cd1446, { purpose: "clone_avatar" });
-    const v_8f00b9 = await v_de130a(v_21cc31, { src_file_id: v_57ac81.id });
-    return v_8f00b9.ok ? { ok: true } : v_c3e33d;
+    const v_bd02bc = (async (): Promise<v_26f0b6> => {
+      const v_57ac81 = await v_0f55b7(v_21cc31, v_cd1446, { purpose: "clone_avatar" });
+      const v_8f00b9 = await v_de130a(v_21cc31, { src_file_id: v_57ac81.id });
+      return v_8f00b9.ok ? { ok: true } : v_c3e33d;
+    })();
+    v_bd02bc.catch(() => undefined); 
+    const v_ea0359 = new Promise<v_26f0b6>((v_6f7712) => {
+      v_cb36b1 = setTimeout(() => v_6f7712(v_c3e33d), v_5782dc);
+    });
+    return await Promise.race([v_bd02bc, v_ea0359]);
   } catch {
     return v_c3e33d;
+  } finally {
+    if (v_cb36b1) clearTimeout(v_cb36b1);
   }
 }
