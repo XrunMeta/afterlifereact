@@ -27,7 +27,6 @@ CORRECTION = {"version": 2, "face_size": "fixed", "head_scale": 0.7, "roll_cap_d
 _HEAD_KEYS = ("pitch", "yaw", "roll", "t")
 _RENDER_KEYS = ("pitch", "yaw", "roll", "t", "exp", "scale")
 
-
 def rotation_matrix(pitch, yaw, roll) -> np.ndarray:
     """FLP src/utils/utils.py get_rotation_matrix 와 같은 수식(입력 단위 = 도, 출력 (bs,3,3))."""
     x, y, z = (np.asarray(a, np.float64).reshape(-1, 1) / 180 * np.pi for a in (pitch, yaw, roll))
@@ -39,11 +38,9 @@ def rotation_matrix(pitch, yaw, roll) -> np.ndarray:
     rot = rot_z.reshape(bs, 3, 3) @ rot_y.reshape(bs, 3, 3) @ rot_x.reshape(bs, 3, 3)
     return np.transpose(rot, (0, 2, 1)).astype(np.float32)
 
-
 def _with_rotation(x: dict) -> dict:
     x["R"] = rotation_matrix(x["pitch"], x["yaw"], x["roll"])
     return x
-
 
 def fix_face_size(motion: list[dict]) -> list[dict]:
     """얼굴 크기(scale)를 0번 프레임 값으로 고정. FLP 는 scale 을 0번 대비 비율로 옮기므로 비율 1 = 클론 사진 크기."""
@@ -54,7 +51,6 @@ def fix_face_size(motion: list[dict]) -> list[dict]:
         x["scale"] = s0.copy()
         out.append(x)
     return out
-
 
 def cap_roll(motion: list[dict], cap_deg: float) -> list[dict]:
     """갸웃(roll) 폭이 cap_deg 를 넘으면 0번 프레임 기준으로 비례 축소해 폭을 cap_deg 로. 넘지 않으면 그대로."""
@@ -71,7 +67,6 @@ def cap_roll(motion: list[dict], cap_deg: float) -> list[dict]:
         out.append(_with_rotation(x))
     return out
 
-
 def scale_head(motion: list[dict], k: float) -> list[dict]:
     """고개 회전·이동만 0번 프레임 기준 변화량을 k 배로. 표정(exp)은 그대로."""
     m0 = motion[0]
@@ -82,7 +77,6 @@ def scale_head(motion: list[dict], k: float) -> list[dict]:
             x[key] = (m0[key] + (x[key] - m0[key]) * k).astype(m0[key].dtype)
         out.append(_with_rotation(x))
     return out
-
 
 def smooth(motion: list[dict], sigma: float) -> list[dict]:
     """렌더 값(R·t·exp·scale)을 시간 방향 가우시안으로. 양 끝은 반사 패딩."""
@@ -103,7 +97,6 @@ def smooth(motion: list[dict], sigma: float) -> list[dict]:
             out[i][key] = sm[i]
     return [_with_rotation(x) for x in out]
 
-
 def ease_to_neutral(motion: list[dict], n: int) -> list[dict]:
     """마지막 n 프레임을 0번 프레임 동작값으로 smoothstep 수렴. 마지막 프레임 = 0번 프레임."""
     m0 = motion[0]
@@ -121,7 +114,6 @@ def ease_to_neutral(motion: list[dict], n: int) -> list[dict]:
         out.append(x)
     return out
 
-
 def correct(pkl: dict, params: dict = CORRECTION) -> dict:
     """FLP pkl 에 다섯 보정을 순서대로 적용하고 afl_correction 표시를 붙인다."""
     if "afl_correction" in pkl:
@@ -137,7 +129,6 @@ def correct(pkl: dict, params: dict = CORRECTION) -> dict:
     out["afl_correction"] = dict(params)
     return out
 
-
 def require_corrected(pkl: dict) -> None:
     """클론 렌더 직전 검사. 표시가 없거나 현재 CORRECTION 과 다르면 ValueError."""
     got = pkl.get("afl_correction")
@@ -146,6 +137,50 @@ def require_corrected(pkl: dict) -> None:
             f"보정 안 된(또는 옛 버전) 구동 pkl 이다: {got!r} — build_driving_motion.py 로 다시 만들 것 (기대값 {CORRECTION})"
         )
 
+def window(pkl: dict, frames: int, edge: int = 15, start: int | None = None) -> dict:
+    """길이 버전 — 보정된 pkl 에서 frames 프레임 구간을 잘라 앞뒤 edge 프레임을 중립(0번)과 잇는다.
+
+    속도는 원본 그대로(시간 압축은 sungjius "너무 어색" 기각). 앞뒤 0.6초(15프레임)는 sungjius 11-01 확정
+    (0.3초는 고개가 휙 돈다). start=None 이면 움직임이 크고 시작·끝 자세가 중립에 가까운 구간을 고른다.
+    보정 표시는 그대로 두고 afl_window 를 붙인다 — 끝 프레임은 정확히 중립이다.
+    """
+    require_corrected(pkl)
+    m = pkl["motion"]
+    T = len(m)
+    n = min(int(frames), T)
+    edge = min(int(edge), n 
+    if start is None:
+        yaw = np.array([float(np.ravel(x["yaw"])[0]) for x in m])
+        pitch = np.array([float(np.ravel(x["pitch"])[0]) for x in m])
+        energy = np.abs(np.diff(yaw)) + np.abs(np.diff(pitch))
+        cum = np.concatenate([[0.0], np.cumsum(energy)])
+
+        def score(s):
+            off = abs(yaw[s] - yaw[0]) + abs(yaw[s + n - 1] - yaw[0]) + abs(pitch[s] - pitch[0]) + abs(pitch[s + n - 1] - pitch[0])
+            return (cum[s + n - 1] - cum[s]) - 2.0 * off
+
+        start = max(range(T - n + 1), key=score)
+    start = int(start)
+    m0 = m[0]
+    out = []
+    for i, x in enumerate(m[start:start + n]):
+        x = copy.deepcopy(x)
+        k = min(i + 1, n - i)  # 가장자리에서 몇 번째 프레임인지(1 = 맨 끝)
+        if k <= edge:
+            u = (k - 1) / edge
+            w = 1 - u * u * (3 - 2 * u)  # 맨 끝 프레임 w=1 → 정확히 중립
+            for key in _RENDER_KEYS:
+                x[key] = ((1 - w) * x[key] + w * m0[key]).astype(m0[key].dtype)
+            x = _with_rotation(x)
+        out.append(x)
+    res = {k: v for k, v in pkl.items() if k != "motion"}
+    res["motion"] = out
+    res["n_frames"] = n
+    for key in ("c_eyes_lst", "c_lip_lst"):
+        if key in pkl:
+            res[key] = list(pkl[key][start:start + n])
+    res["afl_window"] = {"src_frames": T, "start": start, "frames": n, "edge": edge}
+    return res
 
 def reversal_ratio(motion: list[dict], key: str = "pitch") -> float:
     """움직임 방향이 프레임마다 뒤집히는 비율 — 떨림 지표(샘플 확인용)."""

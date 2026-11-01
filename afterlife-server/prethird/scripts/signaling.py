@@ -2144,4 +2144,17 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
     from emotion_admin_endpoint import register_emotion_admin_routes
     register_emotion_admin_routes(app)
 
+    # AFL-1064: 감정 영상 세트 이어 굽기 — 서버 시작 때와 주기적으로 덜 끝난 굽기를 다시 넣는다(자동 켜기일 때만).
+    async def _start_emo_bake_sweep(app_: web.Application) -> None:
+        if emotion_video.auto_enabled():
+            app_["emo_bake_sweep"] = asyncio.get_running_loop().create_task(emo_bake.sweep_loop(VIDEO_REF_ROOT))
+
+    async def _stop_emo_bake_sweep(app_: web.Application) -> None:
+        t = app_.get("emo_bake_sweep")
+        if t is not None:
+            t.cancel()
+
+    app.on_startup.append(_start_emo_bake_sweep)
+    app.on_cleanup.append(_stop_emo_bake_sweep)
+
     return app
