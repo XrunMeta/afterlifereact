@@ -31,9 +31,10 @@ import { v_889fad } from "../../../stores/dialogStore";
 import { v_9dd2d6 } from "../../../lib/centerCoverCrop1to2";
 import { v_b83839 } from "../../../hooks/useFaceDetection";
 import {
-  v_9139dc,
   v_27794c,
 } from "../../../lib/validatePersonaImage";
+import { v_f8616b } from "../../../lib/requestGate";
+import { v_11fdee } from "../../../lib/personaImageCheck";
 
 interface Props {
   visible: boolean;
@@ -63,6 +64,21 @@ export default function v_e0961f({ visible: v_cf55be, onCapture: v_94e3dc, onCan
   const v_1a165b = v_e662ae<v_6c59f3>(null);
   const [v_b1717e, v_0189ac] = v_5ab095(false);
   const [v_67358b, v_e335db] = v_5ab095(false);
+  const [v_577f9f, v_f897dc] = v_5ab095(false);
+
+  const v_98ce98 = v_e662ae(v_f8616b()).current;
+  const v_1573c8 = v_de06a3(() => {
+    v_98ce98.cancel();
+    v_e335db(false);
+    v_f897dc(false);
+  }, [v_98ce98]);
+  v_c4deb2(() => {
+    if (!v_cf55be) v_1573c8();
+  }, [v_cf55be, v_1573c8]);
+  const v_5ca23e = v_de06a3(() => {
+    v_1573c8();
+    v_c7001c();
+  }, [v_1573c8, v_c7001c]);
 
   const { faceState: v_bbb3d3, onFaces: v_dfbd9a } = v_b83839();
   const { detectFaces: v_de4d76, stopListeners: v_62fe07, available: v_065b5f } = v_ac8611({
@@ -185,6 +201,7 @@ export default function v_e0961f({ visible: v_cf55be, onCapture: v_94e3dc, onCan
   const v_04326c = v_de06a3(async () => {
     if (!v_1a165b.current || v_67358b) return;
     v_e335db(true);
+    const v_79ebec = v_98ce98.begin();
     try {
       const v_2a5a61 = await v_1a165b.current.takePhoto({
         flash: "off",
@@ -197,6 +214,7 @@ export default function v_e0961f({ visible: v_cf55be, onCapture: v_94e3dc, onCan
         format: v_91a3cf.JPEG,
       });
       if (!v_99df03.width || !v_99df03.height) {
+        if (!v_98ce98.isCurrent(v_79ebec)) return;
         v_889fad(v_8d41d7("common.error"), v_8d41d7("create.image.loadFailed"));
         return;
       }
@@ -216,11 +234,17 @@ export default function v_e0961f({ visible: v_cf55be, onCapture: v_94e3dc, onCan
         { compress: 1, format: v_91a3cf.JPEG },
       );
       if (!v_cb762c.width || !v_cb762c.height) {
+        if (!v_98ce98.isCurrent(v_79ebec)) return;
         v_889fad(v_8d41d7("common.error"), v_8d41d7("create.image.loadFailed"));
         return;
       }
 
-      const v_81e2ef = await v_9139dc(v_cb762c.uri);
+      const v_81e2ef = await v_11fdee(v_cb762c.uri, {
+        onServerCheckStart: () => {
+          if (v_98ce98.isCurrent(v_79ebec)) v_f897dc(true);
+        },
+      });
+      if (!v_98ce98.isCurrent(v_79ebec)) return;
       if (!v_81e2ef.ok) {
         v_889fad(
           v_8d41d7("create.image.validateRetakeTitle"),
@@ -228,14 +252,19 @@ export default function v_e0961f({ visible: v_cf55be, onCapture: v_94e3dc, onCan
         );
         return;
       }
+      if (!v_98ce98.isCurrent(v_79ebec)) return;
       v_94e3dc({ uri: v_cb762c.uri, width: v_cb762c.width, height: v_cb762c.height });
     } catch (v_49263d) {
       console.warn("[CaptureWithGuideModal] takePhoto 실패:", v_49263d);
+      if (!v_98ce98.isCurrent(v_79ebec)) return;
       v_889fad(v_8d41d7("common.error"), v_8d41d7("create.image.loadFailed"));
     } finally {
-      v_e335db(false);
+      if (v_98ce98.isCurrent(v_79ebec)) {
+        v_e335db(false);
+        v_f897dc(false);
+      }
     }
-  }, [v_67358b, v_94e3dc, v_8d41d7]);
+  }, [v_67358b, v_94e3dc, v_8d41d7, v_98ce98]);
 
   const v_c4c9d7 = v_df9f57(
     () => ({
@@ -250,7 +279,7 @@ export default function v_e0961f({ visible: v_cf55be, onCapture: v_94e3dc, onCan
   if (!v_cf55be) return null;
 
   return (
-    <Modal visible={v_cf55be} animationType="slide" onRequestClose={v_c7001c}>
+    <Modal visible={v_cf55be} animationType="slide" onRequestClose={v_5ca23e}>
       <View style={v_fd5f43.root}>
         <View style={[v_fd5f43.previewSlot, v_c4c9d7]}>
           {v_ac8c13 && v_02fdad ? (
@@ -288,7 +317,7 @@ export default function v_e0961f({ visible: v_cf55be, onCapture: v_94e3dc, onCan
         </View>
 
         <View style={[v_fd5f43.topBar, { paddingTop: Math.max(v_033e14.top, 12) }]}>
-          <TouchableOpacity style={v_fd5f43.iconBtn} onPress={v_c7001c} accessibilityRole="button">
+          <TouchableOpacity style={v_fd5f43.iconBtn} onPress={v_5ca23e} accessibilityRole="button">
             <Feather name="x" size={24} color={v_1bfbd0.white} />
           </TouchableOpacity>
           <TouchableOpacity
@@ -299,6 +328,12 @@ export default function v_e0961f({ visible: v_cf55be, onCapture: v_94e3dc, onCan
             <Feather name="refresh-cw" size={22} color={v_1bfbd0.white} />
           </TouchableOpacity>
         </View>
+
+        {v_577f9f ? (
+          <View style={v_fd5f43.checkingBox} pointerEvents="none">
+            <Text style={v_fd5f43.checkingText}>{v_8d41d7("create.image.validateServerChecking")}</Text>
+          </View>
+        ) : null}
 
         <View style={[v_fd5f43.bottomBar, { paddingBottom: 20 + v_53dd92 }]}>
           <TouchableOpacity
@@ -321,6 +356,8 @@ export default function v_e0961f({ visible: v_cf55be, onCapture: v_94e3dc, onCan
 }
 
 const v_fd5f43 = v_472849.create({
+  checkingBox: { position: "absolute", left: 0, right: 0, bottom: 140, alignItems: "center" },
+  checkingText: { color: "#fff", fontSize: 14, backgroundColor: "rgba(0,0,0,0.6)", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, overflow: "hidden" },
   root: { flex: 1, backgroundColor: "#000" },
   center: { alignItems: "center", justifyContent: "center", backgroundColor: "#111" },
   previewSlot: {

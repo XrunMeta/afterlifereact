@@ -392,6 +392,20 @@ export async function v_8aa90d(
   );
 }
 
+export type PersonaFaceCheckReason = 'NO_FACE' | 'CHECK_FAILED';
+export interface PersonaFaceCheckResult { ok: boolean; reason?: PersonaFaceCheckReason }
+
+export async function v_5c3059(
+  v_2ca7e0,
+  v_931bf0,
+): Promise<PersonaFaceCheckResult> {
+  return v_04b58a<PersonaFaceCheckResult>(
+    '/oth-path',
+    v_2ca7e0,
+    { method: 'POST', body: JSON.stringify(v_931bf0) },
+  );
+}
+
 export async function v_b20cba(
   v_2ca7e0,
   v_04211c,

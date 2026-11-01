@@ -1226,7 +1226,8 @@
       "validateMultipleFaces": "照片中有多个人。请使用只有一人的照片重试。",
       "validateNotFrontal": "脸部朝向侧面或上下。请使用正面照片重试。",
       "validateEyesClosed": "眼睛似乎是闭着的。请使用睁眼的照片重试，并摘下墨镜。",
-      "validateMouthOpen": "嘴巴是张开的。请使用闭嘴的表情重试。"
+      "validateMouthOpen": "嘴巴是张开的。请使用闭嘴的表情重试。",
+      "validateServerChecking": "正在再次检查照片"
     },
     "voice": {
       "presets": "默认音色预设",

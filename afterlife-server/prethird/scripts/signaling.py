@@ -10,9 +10,17 @@ from asset_fetch import fetch_to
 from voice_fetch import ensure_voice_wav
 from prebuild import prebuild_handler
 from voice_analyze import voice_analyze_handler
+# AFL-1071 P2: face_check import 실패(env·의존성 등)가 통화 서버 기동을 막지 않게 격리. 실패 시 /face-check 미등록.
+try:
+    from face_check import face_check_handler
+except Exception as _face_check_import_exc:  # noqa: BLE001
+    face_check_handler = None
+    logging.getLogger("prethird.signaling").warning(
+        "[face-check] import 실패 — /face-check 라우트 미등록: %r", _face_check_import_exc)
 from recorder import make_recorder
 from idle_policy import clone_mp4_enabled, filler_order_pre_speak
 import emotion_video
+import emo_bake
 from json import dumps as _json_dumps
 from call_lifecycle import call_greeted
 from credit_guard import CreditGuard, DEFAULT_WARN_OFFSETS_SEC
@@ -1867,9 +1875,15 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
                             log.warning("idle video pull 실패 clone=%s: %s", clone_id, e)
                             # halbae fallback — sess.video_path = None 유지
 
-                    # AFL-1064: 감정 영상 — 허용 클론이고 자산(무감정·MuseTalk 무음 idle)이 있으면
+                    # AFL-1064: 감정 영상 — 허용 클론(또는 자동 켜기)이고 자산(무감정·MuseTalk 무음 idle)이 있으면
                     # idle·기본 영상을 감정 영상 세트로 바꾼다. 이 대입도 pipeline_factory(sess) 이전이어야 한다.
-                    if emotion_video.enabled_for(clone_id):
+                    # 자동 켜기면 세트가 덜 구워진 클론을 굽기 대기열에 넣는다(다음 통화부터 반영).
+                    if emotion_video.auto_enabled() and clone_id is not None:
+                        try:
+                            emo_bake.enqueue(VIDEO_REF_ROOT, clone_id)
+                        except Exception as e:
+                            log.warning("[AFL-1064] 굽기 대기열 실패 clone=%s: %s", clone_id, e)
+                    if emotion_video.enabled_for(clone_id) or (emotion_video.auto_enabled() and clone_id is not None):
                         _ev_assets = emotion_video.find_assets(VIDEO_REF_ROOT, clone_id)
                         if _ev_assets:
                             sess.video_track.set_idle_video(_ev_assets["idle"])
@@ -1880,8 +1894,10 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
                                 _ev_assets, cycle_len=len(sess.video_track._idle_frames))
                             log.info("[AFL-1064] 감정 영상 적용 clone=%s clips=%s cycle=%d",
                                      clone_id, sorted(_ev_assets), sess.emo_video.cycle_len)
-                        else:
+                        elif emotion_video.enabled_for(clone_id):
                             log.warning("[AFL-1064] 감정 영상 허용 클론이나 자산 없음 clone=%s — 기존 영상", clone_id)
+                        else:
+                            log.info("[AFL-1064] 감정 영상 세트 준비 전 clone=%s — 기존 영상", clone_id)
 
                     # [F7] filler: PRETHIRD_FILLER on + clone_id 있을 때만 다운로드 + FillerPlayer 구성.
                     # off면 이 블록 전체 skip → offer 처리 시간 회귀 0 (spec §4.B I-3).
@@ -2068,6 +2084,8 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
     app.router.add_post("/offer", offer)
     app.router.add_post("/prebuild", prebuild_handler)
     app.router.add_post("/voice-analyze", voice_analyze_handler)
+    if face_check_handler is not None:
+        app.router.add_post("/face-check", face_check_handler)
     app.router.add_static("/static/", path=str(
         pathlib.Path(__file__).resolve().parents[1] / "static"))
 
@@ -2122,5 +2140,8 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
     # AFL-1034 앱 설정 › 목소리 테스트 — 언어별 합성(es=CosyVoice3). 통화 경로와 무관.
     from voice_lang_preview_endpoint import register_voice_lang_preview_routes
     register_voice_lang_preview_routes(app)
+    # AFL-1072 관리자 감정 관리 — 목소리 은행 스위치·후보·영상 설정(저장만). Bearer LEARN_SECRET 으로 닫힘.
+    from emotion_admin_endpoint import register_emotion_admin_routes
+    register_emotion_admin_routes(app)
 
     return app
