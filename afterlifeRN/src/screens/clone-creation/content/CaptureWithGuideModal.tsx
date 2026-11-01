@@ -214,6 +214,7 @@ export default function v_e0961f({ visible: v_cf55be, onCapture: v_94e3dc, onCan
         format: v_91a3cf.JPEG,
       });
       if (!v_99df03.width || !v_99df03.height) {
+        if (!v_98ce98.isCurrent(v_79ebec)) return;
         v_889fad(v_8d41d7("common.error"), v_8d41d7("create.image.loadFailed"));
         return;
       }
@@ -233,12 +234,15 @@ export default function v_e0961f({ visible: v_cf55be, onCapture: v_94e3dc, onCan
         { compress: 1, format: v_91a3cf.JPEG },
       );
       if (!v_cb762c.width || !v_cb762c.height) {
+        if (!v_98ce98.isCurrent(v_79ebec)) return;
         v_889fad(v_8d41d7("common.error"), v_8d41d7("create.image.loadFailed"));
         return;
       }
 
       const v_81e2ef = await v_11fdee(v_cb762c.uri, {
-        onServerCheckStart: () => v_f897dc(true),
+        onServerCheckStart: () => {
+          if (v_98ce98.isCurrent(v_79ebec)) v_f897dc(true);
+        },
       });
       if (!v_98ce98.isCurrent(v_79ebec)) return;
       if (!v_81e2ef.ok) {

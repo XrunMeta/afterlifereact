@@ -216,7 +216,9 @@ export default function v_100dc2({ visible: v_cf55be, source: v_04e790, onConfir
 
       console.log("[CropImageModal] cropToAvatar OK, calling validatePersonaImage:", v_cd1446.slice(-40));
       const v_81e2ef = await v_11fdee(v_cd1446, {
-        onServerCheckStart: () => v_f897dc(true),
+        onServerCheckStart: () => {
+          if (v_98ce98.isCurrent(v_79ebec)) v_f897dc(true);
+        },
       });
       if (!v_98ce98.isCurrent(v_79ebec)) return;
 
