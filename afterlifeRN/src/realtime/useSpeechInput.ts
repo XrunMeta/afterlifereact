@@ -480,6 +480,19 @@ export function v_fee12d(v_328259) {
 function v_0fc68d(): SpeechEngine {
 
   const { ExpoSpeechRecognitionModule: v_e243ee } = require('lvqvchptxazovhbxaycespq');
+
+  const { Platform: v_326be8 } = require('rcmrninabrnb');
+
+  const v_d931ef =
+    v_326be8.OS === 'ios'
+      ? {
+          iosCategory: {
+            category: 'playAndRecord',
+            categoryOptions: ['defaultToSpeaker', 'allowBluetooth'],
+            mode: 'voiceChat',
+          },
+        }
+      : {};
   return {
 
     getPermissionsAsync: () => v_e243ee.getPermissionsAsync(),
@@ -491,6 +504,7 @@ function v_0fc68d(): SpeechEngine {
         volumeChangeEventOptions: v_b6c474?.volumeChangeEventOptions,
         interimResults: v_b6c474?.interimResults,
         continuous: v_b6c474?.continuous,
+        ...v_d931ef,
       }),
     stop: () => v_e243ee.stop(),
 
