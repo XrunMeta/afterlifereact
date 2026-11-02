@@ -25,10 +25,30 @@ export function v_be65dc(): AudioSessionControl {
       }
 
       try {
-        v_6c6ffc.start({ media: 'video' });
-        if (__DEV__) console.log(`${v_dd7d80} InCallManager.start({media:'video'}) ok`);
+        if (v_326be8.OS === 'ios') {
+          v_6c6ffc.start({ media: 'audio', auto: false });
+          if (__DEV__) console.log(`${v_dd7d80} InCallManager.start({media:'audio', auto:false}) ok`);
+        } else {
+          v_6c6ffc.start({ media: 'video' });
+          if (__DEV__) console.log(`${v_dd7d80} InCallManager.start({media:'video'}) ok`);
+        }
       } catch (v_49263d) {
         if (__DEV__) console.warn(`${v_dd7d80} InCallManager.start() threw: ${(v_49263d as Error)?.message ?? v_49263d}`);
+      }
+      if (v_326be8.OS === 'ios') {
+
+        try {
+          v_6c6ffc.setSpeakerphoneOn(true);
+          if (__DEV__) console.log(`${v_dd7d80} InCallManager.setSpeakerphoneOn(true) ok`);
+        } catch (v_49263d) {
+          if (__DEV__) console.warn(`${v_dd7d80} InCallManager.setSpeakerphoneOn() threw: ${(v_49263d as Error)?.message ?? v_49263d}`);
+        }
+        try {
+          v_6c6ffc.setKeepScreenOn(true);
+          if (__DEV__) console.log(`${v_dd7d80} InCallManager.setKeepScreenOn(true) ok`);
+        } catch (v_49263d) {
+          if (__DEV__) console.warn(`${v_dd7d80} InCallManager.setKeepScreenOn() threw: ${(v_49263d as Error)?.message ?? v_49263d}`);
+        }
       }
       try {
         v_6c6ffc.setForceSpeakerphoneOn(true);
