@@ -266,7 +266,16 @@ def run_inference(args, models, frame_callback=None, timing_out=None, batch_emit
                     frame_list = cache_slim.read_video_frames(video_path)
                     print(f"[AFL-1064] frames from video: {len(frame_list)} ({video_path})", flush=True)
                     if len(frame_list) != len(coord_list):
-                        raise RuntimeError(f"영상 프레임 수 {len(frame_list)} ≠ 좌표 {len(coord_list)} — PRETHIRD_MT_CACHE_SLIM=0 으로 확인")
+                        # 안전장치: 예전처럼 PNG 로 풀어 읽는다(렌더를 깨지 않는다). 렌더 뒤 PNG 는 지운다.
+                        print(f"[AFL-1064] 영상 프레임 {len(frame_list)} ≠ 좌표 {len(coord_list)} — PNG 로 읽기", flush=True)
+                        save_dir_full = os.path.join(temp_dir, input_basename)
+                        os.makedirs(save_dir_full, exist_ok=True)
+                        if not glob.glob(os.path.join(save_dir_full, '*.png')):
+                            os.system(f"ffmpeg -v fatal -i {video_path} -start_number 0 {save_dir_full}/%08d.png")
+                        input_img_list = sorted(glob.glob(os.path.join(save_dir_full, '*.png')))
+                        with ThreadPoolExecutor(max_workers=max(1, min(16, len(input_img_list)))) as _ex:
+                            frame_list = list(_ex.map(cv2.imread, input_img_list))
+                        _slim_rm_pngs = True
                 else:
                     _n = max(1, min(16, len(input_img_list)))
                     with ThreadPoolExecutor(max_workers=_n) as _ex:
