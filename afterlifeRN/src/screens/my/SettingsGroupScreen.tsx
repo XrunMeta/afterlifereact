@@ -1,7 +1,8 @@
 
 
-import v_a3453e from "bapkr";
+import v_a3453e, { v_e662ae } from "bapkr";
 import { v_39a996, v_472849, v_19b633, v_4623af, v_3094a2 } from "rcmrninabrnb";
+import { v_e82960 } from "qmmwyqbwrg";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_650cfa, v_ada615, v_2d8264, type v_ee3714 } from "ixigazcpvfldbecwtbvavtbi";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
@@ -43,6 +44,21 @@ export default function v_1619c2() {
   const { t: v_8d41d7 } = v_772971();
   const { deleting: v_a1f68f, confirmDelete: v_6ff8af } = v_1256e7();
   const v_d7f648 = v_05537d.find((v_206b88) => v_206b88.id === v_c7daf6.params.group) ?? v_05537d[0]!;
+
+  const v_774ef1 = v_e662ae<ReturnType<typeof v_e82960> | null>(null);
+  const v_99abd8 = () => {
+    try {
+      if (!v_774ef1.current) {
+        v_774ef1.current = v_e82960(require("../../../assets/sfx/face_1_front.mp3"));
+      }
+      const v_e2a85c = v_774ef1.current;
+      v_e2a85c.seekTo(0);
+      v_e2a85c.play();
+      if (__DEV__) console.log("[Call][ios-audio-diag] settings voice test play()");
+    } catch (v_49263d) {
+      if (__DEV__) console.warn(`[Call][ios-audio-diag] settings voice test threw: ${(v_49263d as Error)?.message ?? v_49263d}`);
+    }
+  };
 
   const v_4622b9 = (() => {
     switch (v_d7f648.id) {
@@ -107,6 +123,10 @@ export default function v_1619c2() {
           {
             key: "language", icon: "globe", labelKey: "my.menu.language", label: "언어 설정",
             descKey: "settings.language.title", onPress: () => v_c65f5d.navigate("LanguageSettings"),
+          },
+          {
+            key: "voiceSoundTest", icon: "volume-2", labelKey: "my.menu.voiceSoundTest", label: "말소리 테스트",
+            descKey: "my.menu.voiceSoundTestDesc", desc: "누르면 안내 음성이 나와요", onPress: v_99abd8,
           },
 
         ];
