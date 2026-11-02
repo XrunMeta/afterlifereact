@@ -3,6 +3,7 @@
 import v_a3453e, { v_e662ae } from "bapkr";
 import { v_39a996, v_472849, v_19b633, v_4623af, v_3094a2 } from "rcmrninabrnb";
 import { v_e82960 } from "qmmwyqbwrg";
+import { v_6d148f, v_4e6085 } from "umnthslqstcsfmed";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_650cfa, v_ada615, v_2d8264, type v_ee3714 } from "ixigazcpvfldbecwtbvavtbi";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
@@ -14,6 +15,9 @@ import { v_1bfbd0 } from "../../components/constants";
 import type { v_e57140 } from "../../navigation/types";
 import { v_889fad } from "../../stores/dialogStore";
 import { v_1256e7 } from "../../hooks/useDeleteAccount";
+import { v_d60cdf } from "../../api/clones";
+import { v_e0051d } from "../../config/apiBase";
+import { v_1ed7d9 } from "../../stores/authStore";
 
 export type SettingsGroupId = "account" | "notifications" | "face" | "service" | "app";
 
@@ -45,18 +49,44 @@ export default function v_1619c2() {
   const { deleting: v_a1f68f, confirmDelete: v_6ff8af } = v_1256e7();
   const v_d7f648 = v_05537d.find((v_206b88) => v_206b88.id === v_c7daf6.params.group) ?? v_05537d[0]!;
 
+  const v_2ca7e0 = v_1ed7d9((v_72c7a6) => v_72c7a6.accessToken);
   const v_774ef1 = v_e662ae<ReturnType<typeof v_e82960> | null>(null);
-  const v_99abd8 = () => {
+  const v_d023f2 = v_e662ae(false);
+  const v_99abd8 = async () => {
+    if (v_d023f2.current) return;
+    v_d023f2.current = true;
     try {
-      if (!v_774ef1.current) {
-        v_774ef1.current = v_e82960(require("../../../assets/sfx/face_1_front.mp3"));
+      if (!v_2ca7e0) throw new Error("로그인이 필요해요");
+      const v_1c1268 = await v_d60cdf(v_2ca7e0);
+      const v_6e0fd3 = v_1c1268.items[0]?.id;
+      if (!v_6e0fd3) throw new Error("내 페르소나가 없어요");
+      const v_8f00b9 = await fetch(`${v_e0051d}/voice/lang-preview`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${v_2ca7e0}` },
+        body: JSON.stringify({ clone_id: v_6e0fd3, lang: "ko", text: "안녕하세요" }),
+      });
+      if (!v_8f00b9.ok) throw new Error(`합성 실패 ${v_8f00b9.status}`);
+      const v_83ee53 = await v_8f00b9.arrayBuffer();
+
+      const v_4de33e = new v_6d148f(v_4e6085.cache, `settings_voice_test_${Date.now()}.wav`);
+      v_4de33e.create();
+      v_4de33e.write(new Uint8Array(v_83ee53));
+      v_774ef1.current?.remove();
+      const v_e2a85c = v_e82960({ uri: v_4de33e.uri });
+      v_774ef1.current = v_e2a85c;
+
+      const v_a32dae = Date.now() + 4000;
+      while (!v_e2a85c.isLoaded && Date.now() < v_a32dae) {
+        await new Promise((v_cb35cb) => setTimeout(v_cb35cb, 40));
       }
-      const v_e2a85c = v_774ef1.current;
-      v_e2a85c.seekTo(0);
       v_e2a85c.play();
-      if (__DEV__) console.log("[Call][ios-audio-diag] settings voice test play()");
+      if (__DEV__) console.log(`[Call][ios-audio-diag] settings voice test play() clone=${v_6e0fd3} bytes=${v_83ee53.byteLength} loaded=${v_e2a85c.isLoaded}`);
     } catch (v_49263d) {
-      if (__DEV__) console.warn(`[Call][ios-audio-diag] settings voice test threw: ${(v_49263d as Error)?.message ?? v_49263d}`);
+      const v_badeaf = (v_49263d as Error)?.message ?? String(v_49263d);
+      if (__DEV__) console.warn(`[Call][ios-audio-diag] settings voice test failed: ${v_badeaf}`);
+      v_889fad("말소리 테스트", v_badeaf);
+    } finally {
+      v_d023f2.current = false;
     }
   };
 
@@ -126,7 +156,8 @@ export default function v_1619c2() {
           },
           {
             key: "voiceSoundTest", icon: "volume-2", labelKey: "my.menu.voiceSoundTest", label: "말소리 테스트",
-            descKey: "my.menu.voiceSoundTestDesc", desc: "누르면 안내 음성이 나와요", onPress: v_99abd8,
+            descKey: "my.menu.voiceSoundTestDesc", desc: "누르면 내 페르소나 목소리로 '안녕하세요'가 나와요",
+            onPress: () => { void v_99abd8(); },
           },
 
         ];
