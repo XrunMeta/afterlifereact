@@ -58,15 +58,27 @@ export default function v_1619c2() {
     try {
       if (!v_2ca7e0) throw new Error("로그인이 필요해요");
       const v_1c1268 = await v_d60cdf(v_2ca7e0);
-      const v_6e0fd3 = v_1c1268.items[0]?.id;
-      if (!v_6e0fd3) throw new Error("내 페르소나가 없어요");
-      const v_8f00b9 = await fetch(`${v_e0051d}/voice/lang-preview`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${v_2ca7e0}` },
-        body: JSON.stringify({ clone_id: v_6e0fd3, lang: "ko", text: "안녕하세요" }),
-      });
-      if (!v_8f00b9.ok) throw new Error(`합성 실패 ${v_8f00b9.status}`);
-      const v_83ee53 = await v_8f00b9.arrayBuffer();
+
+      const v_6f7c85 = Array.from(new Set([...v_1c1268.items.map((v_3f4e2e) => v_3f4e2e.id), 9234]));
+      let v_83ee53 = null;
+      let v_6e0fd3 = 0;
+      const v_9de4ac = [];
+      for (const v_389afb of v_6f7c85) {
+        const v_8f00b9 = await fetch(`${v_e0051d}/voice/lang-preview`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${v_2ca7e0}` },
+          body: JSON.stringify({ clone_id: v_389afb, lang: "ko", text: "안녕하세요" }),
+        });
+        if (v_8f00b9.ok) {
+          v_83ee53 = await v_8f00b9.arrayBuffer();
+          v_6e0fd3 = v_389afb;
+          break;
+        }
+        const v_3cfdfc = (await v_8f00b9.text().catch(() => "")).slice(0, 80);
+        v_9de4ac.push(`${v_389afb}: ${v_8f00b9.status} ${v_3cfdfc}`);
+        if (__DEV__) console.warn(`[Call][ios-audio-diag] settings voice test clone=${v_389afb} ${v_8f00b9.status} ${v_3cfdfc}`);
+      }
+      if (!v_83ee53) throw new Error(`합성 실패\n${v_9de4ac.join("\n")}`);
 
       const v_4de33e = new v_6d148f(v_4e6085.cache, `settings_voice_test_${Date.now()}.wav`);
       v_4de33e.create();
