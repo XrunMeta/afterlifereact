@@ -255,13 +255,40 @@ def emo_tag_enabled() -> bool:
 ANGRY_INTERJECTIONS = ("하아…", "하아~", "아휴,", "어어?", "흐으음…", "참나,", "허 참,", "아니,", "헐,", "헐…", "뭐?", "야,")
 
 
-def emotion_instruction(rng: random.Random | None = None) -> str:
+def _interj_family(w: str) -> str:
+    """감탄사 계열(하아…·하아~ → 하아, 헐…·헐, → 헐). 같은 계열을 연달아 쓰지 않게 비교할 때 쓴다."""
+    return re.sub(r"[\s…~,.?!]+$", "", w).replace(" ", "")
+
+
+_INTERJ_FAMILIES = sorted({_interj_family(w) for w in ANGRY_INTERJECTIONS} | {"에휴"}, key=len, reverse=True)
+_LEAD_TAGS = re.compile(r"^(\s*<[^>]{0,40}>)+")
+
+
+def recent_interjections(texts) -> list[str]:
+    """최근 답들(오래된 것부터)의 첫머리 감탄사 계열 — 이번 턴에는 권하지 않고 쓰지 말라고 한다.
+    실통화(11-02 12:14) 화남 6답 중 4답이 '헐…' — 매 턴 다르게 권해도 LLM 이 대화 기록의 앞 답을 따라 했다."""
+    out: list[str] = []
+    for t in texts:
+        head = _LEAD_TAGS.sub("", t or "").lstrip().replace(" ", "")
+        for fam in _INTERJ_FAMILIES:
+            if head.startswith(fam) and fam not in out:
+                out.append(fam)
+                break
+    return out
+
+
+def emotion_instruction(rng: random.Random | None = None, avoid=()) -> str:
     """AFL-1067: 답 머리에 말투 감정 `<emo=값>` 을 붙이라는 지시. 언어 규칙 뒤에 이어 붙인다.
-    rng: 이번 턴에 권할 화남 감탄사를 고르는 난수(테스트에서 고정). 매 턴 불린다."""
+    rng: 이번 턴에 권할 화남 감탄사를 고르는 난수(테스트에서 고정). 매 턴 불린다.
+    avoid: 최근 답에서 쓴 감탄사 계열(recent_interjections) — 권하지 않고 이번엔 쓰지 말라고 한다."""
     r = rng or random
-    pick = None if r.random() < 0.25 else r.choice(ANGRY_INTERJECTIONS)  # 네 번에 한 번은 감탄사 없이
+    avoid = [a for a in avoid if a]
+    pool = [w for w in ANGRY_INTERJECTIONS if _interj_family(w) not in avoid] or list(ANGRY_INTERJECTIONS)
+    pick = None if r.random() < 0.25 else r.choice(pool)  # 네 번에 한 번은 감탄사 없이
     angry_pick = (f"이번 답이 angry 라면 감탄사는 \"{pick}\"를 써(어울리지 않으면 감탄사 없이). " if pick
                   else "이번 답이 angry 라면 감탄사 없이 바로 퉁명하게 시작해. ")
+    if avoid:
+        angry_pick += "앞 답에서 쓴 " + "·".join(f"\"{a}\"" for a in avoid) + " 는 이번엔 쓰지 마. "
     return (
         "[감정 태그]\n"
         "- 언어 태그 바로 뒤에(`<ask=who>` 를 붙일 땐 그 뒤에) 이번 답을 말할 목소리의 감정을 "
