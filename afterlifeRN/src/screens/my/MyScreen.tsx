@@ -192,11 +192,9 @@ export default function v_ed02a5() {
       descKey: `my.sectionDesc.${v_206b88.id}`,
 
       action: () =>
-        v_206b88.id === "app"
-          ? v_c65f5d.navigate("LanguageSettings")
-          : v_206b88.id === "notifications"
-            ? v_c65f5d.navigate("NotificationSettings")
-            : v_c65f5d.navigate("SettingsGroup", { group: v_206b88.id }),
+        v_206b88.id === "notifications"
+          ? v_c65f5d.navigate("NotificationSettings")
+          : v_c65f5d.navigate("SettingsGroup", { group: v_206b88.id }),
     })),
 
     ...(false && ["oth-staff@example.invalid", "oth-user@example.invalid"].includes(v_b113dd?.email ?? "")
