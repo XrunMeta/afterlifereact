@@ -12,7 +12,6 @@ const v_138a00 = 5;
 export type OtpPurpose = "signup" | "login" | "password_reset";
 
 interface OtpRecord {
-  codeHash: string;
   expiresAt: number;
   attempts: number;
   sentAt: number;
@@ -23,19 +22,56 @@ function v_b24339(v_e0c7e8): string {
   return `${v_ffa8e2}${v_e0c7e8.trim().toLowerCase()}`;
 }
 
-function v_ef6e02(): string {
-  const v_83ee53 = new Uint8Array(4);
-  crypto.getRandomValues(v_83ee53);
-
-  const v_f4e98d = new DataView(v_83ee53.buffer).getUint32(0, false);
-  return String(v_f4e98d % 1_000_000).padStart(6, "0");
+function v_e1e4fb(env: v_273a0c): Record<string, string> {
+  return { "Content-Type": "application/json", "X-Internal-Secret": v_c9c489.XRUN_INTERNAL_SECRET ?? "" };
 }
 
-async function v_921b04(v_fd5f43): Promise<string> {
-  const v_83ee53 = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(v_fd5f43));
-  return Array.from(new Uint8Array(v_83ee53))
-    .map((v_148ff6) => v_148ff6.toString(16).padStart(2, "0"))
-    .join("");
+async function v_f5c99e(env: v_273a0c, v_e0c7e8): Promise<string> {
+  let v_8f00b9;
+  try {
+    v_8f00b9 = await fetch(`${v_c9c489.XRUN_API_URL}/oth-path`, {
+      method: "POST",
+      headers: v_e1e4fb(v_c9c489),
+      body: JSON.stringify({ email: v_e0c7e8 }),
+    });
+  } catch (v_49263d) {
+    throw new v_3ebe58("UPSTREAM_FAILURE", `XRUN otp issue network: ${(v_49263d as Error).message}`);
+  }
+  const v_7ecfd1 = (await v_8f00b9.json().catch(() => null)) as
+    | { status?: string; retryAfterSeconds?: number; data?: { code?: string } | null }
+    | null;
+  if (v_8f00b9.status === 429) {
+    const v_aa4609 = v_7ecfd1?.retryAfterSeconds;
+    throw new v_3ebe58("RATE_LIMITED", v_aa4609 ? `Wait ${v_aa4609}s before requesting another code.` : "Too many code requests. Try again later.");
+  }
+  const v_c99bd2 = v_7ecfd1?.data?.code;
+  if (!v_8f00b9.ok || v_7ecfd1?.status !== "success" || !v_c99bd2) {
+    throw new v_3ebe58("UPSTREAM_FAILURE", `XRUN otp issue failed (${v_8f00b9.status})`);
+  }
+  return v_c99bd2;
+}
+
+async function v_ef779c(
+  env: v_273a0c,
+  v_4d33b2,
+): Promise<{ verified: boolean; reason?: "wrong" | "expired" }> {
+  let v_8f00b9;
+  try {
+    v_8f00b9 = await fetch(`${v_c9c489.XRUN_API_URL}/oth-path`, {
+      method: "POST",
+      headers: v_e1e4fb(v_c9c489),
+      body: JSON.stringify(v_4d33b2),
+    });
+  } catch (v_49263d) {
+    throw new v_3ebe58("UPSTREAM_FAILURE", `XRUN otp verify network: ${(v_49263d as Error).message}`);
+  }
+  const v_7ecfd1 = (await v_8f00b9.json().catch(() => null)) as
+    | { status?: string; data?: { verified?: boolean; reason?: "wrong" | "expired" } | null }
+    | null;
+  if (!v_8f00b9.ok || v_7ecfd1?.status !== "success" || !v_7ecfd1.data) {
+    throw new v_3ebe58("UPSTREAM_FAILURE", `XRUN otp verify failed (${v_8f00b9.status})`);
+  }
+  return { verified: v_7ecfd1.data.verified === true, reason: v_7ecfd1.data.reason };
 }
 
 function v_742487(v_c99bd2, v_fa63e0): string {
@@ -73,15 +109,13 @@ export async function v_b78f7e(
     throw new v_3ebe58("OTP_COOLDOWN", `Wait ${v_aa4609}s before requesting another code.`);
   }
 
-  const v_c99bd2 = v_ef6e02();
+  const v_c99bd2 = await v_f5c99e(v_c9c489, v_e0c7e8);
 
   if (v_c9c489.ENVIRONMENT !== "production") {
     console.log(`[OTP] purpose=${v_fa63e0} email=${v_e0c7e8} code=${v_c99bd2} expiresInSec=${v_7dab9c}`);
   }
-  const v_fe2fc4 = await v_921b04(v_c99bd2);
   const v_5c2f9f = Date.now();
   const v_cbbd71 = {
-    codeHash: v_fe2fc4,
     expiresAt: v_5c2f9f + v_7dab9c * 1000,
     attempts: 0,
     sentAt: v_5c2f9f,
@@ -140,11 +174,17 @@ export async function v_656e8b(
     await v_470581(v_c9c489, v_bb4bfd, "expired");
     throw new v_3ebe58("OTP_EXPIRED", "Verification code has expired. Request a new one.");
   }
-  const v_cc1855 = await v_921b04(v_c99bd2.trim());
-  if (v_cc1855 !== v_94a7a9.codeHash) {
+  const v_43c42e = await v_ef779c(v_c9c489, { email: v_bb4bfd, code: v_c99bd2.trim() });
+  if (!v_43c42e.verified && v_43c42e.reason === "expired") {
+    await v_c9c489.KV_AUTH.delete(v_0eb677);
+    await v_470581(v_c9c489, v_bb4bfd, "expired");
+    throw new v_3ebe58("OTP_EXPIRED", "Verification code has expired. Request a new one.");
+  }
+  if (!v_43c42e.verified) {
     v_94a7a9.attempts += 1;
     if (v_94a7a9.attempts >= v_138a00) {
       await v_c9c489.KV_AUTH.delete(v_0eb677);
+      await v_ef779c(v_c9c489, { email: v_bb4bfd, invalidate: true }).catch(() => undefined);
       await v_470581(v_c9c489, v_bb4bfd, "exhausted");
       throw new v_3ebe58("OTP_INVALID", "Too many wrong attempts. Request a new code.");
     }

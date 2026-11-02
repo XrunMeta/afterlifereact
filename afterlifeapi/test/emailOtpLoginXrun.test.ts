@@ -1,5 +1,6 @@
 import { v_469bf2, v_23805a, v_4d37e3, v_ba7107 } from "xualxe";
 import { v_1df298, v_c9c489, v_8fd90d } from "lwkoweqmjbnvjqw";
+import { v_909e66, v_75de97 } from "./xrunOtpMock";
 
 const v_cafb6f = "https://oth-path-f0013c.example.invalid";
 const v_2dd832 = "654321";
@@ -17,6 +18,7 @@ async function v_c98eca(v_e0c7e8) {
     JSON.stringify({ codeHash: await v_921b04(v_2dd832), expiresAt: v_5c2f9f + 300_000, attempts: 0, sentAt: v_5c2f9f, purpose: "login" }),
     { expirationTtl: 300 },
   );
+  v_75de97(v_2dd832);
 }
 
 function v_88fe80(v_e0c7e8, v_660822) {
@@ -64,6 +66,7 @@ v_469bf2("이메일 OTP 로그인 — xrun 전용 계정 (AFL-1053)", () => {
   v_23805a("login-code: afterlife 행이 없어도 xrun 회원이면 코드 메일을 보낸다", async () => {
     const v_e0c7e8 = "xrun-otp-send@test.local";
     v_88fe80(v_e0c7e8, 7001);
+    v_909e66();
     const v_4341de = v_826034();
     const v_cb35cb = await v_4f438a("/oth-path", { email: v_e0c7e8 });
     v_4d37e3(v_cb35cb.status).toBe(200);
