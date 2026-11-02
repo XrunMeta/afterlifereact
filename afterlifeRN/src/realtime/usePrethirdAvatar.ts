@@ -322,6 +322,25 @@ export function v_3d8d48(v_328259): v_b01667 {
       const v_94302c = v_d8a22b(v_1d299c.track ?? {}, v_cab51f as any);
       if (v_94302c === 'video') v_b944e3(v_cab51f);
       else v_9998ac.current = v_cab51f;
+
+      if (__DEV__) {
+        try {
+          const v_8d41d7 = v_1d299c.track ?? {};
+          const v_fd5f43 = v_cab51f as unknown as {
+            getAudioTracks?: () => Array<unknown>;
+            getVideoTracks?: () => Array<unknown>;
+          };
+          const v_e4baef = v_fd5f43?.getAudioTracks?.()?.length ?? 0;
+          const v_29fba5 = v_fd5f43?.getVideoTracks?.()?.length ?? 0;
+          console.log(
+            `[Call][ios-audio-diag] ontrack kind=${v_94302c} rawKind=${v_8d41d7?.kind} id=${v_8d41d7?.id} label=${v_8d41d7?.label} ` +
+            `enabled=${v_8d41d7?.enabled} muted=${v_8d41d7?.muted} readyState=${v_8d41d7?.readyState} ` +
+            `streamAudioTracks=${v_e4baef} streamVideoTracks=${v_29fba5}`,
+          );
+        } catch (v_49263d) {
+          console.warn(`[Call][ios-audio-diag] ontrack log threw: ${(v_49263d as Error)?.message ?? v_49263d}`);
+        }
+      }
     });
     const v_cb236b = () => {
       if (!v_759436()) return;
@@ -352,6 +371,20 @@ export function v_3d8d48(v_328259): v_b01667 {
             v_35f85c.type === 'speech_end' && typeof v_35f85c.remaining_ms === 'number' && v_35f85c.remaining_ms >= 0
               ? Math.min(v_35f85c.remaining_ms, v_6e8ef7)
               : undefined;
+
+          if (__DEV__ && (v_35f85c.type === 'speech_start' || v_35f85c.type === 'speech_end')) {
+            try {
+              const v_769860 = (v_9998ac.current as unknown as {
+                getAudioTracks?: () => Array<{ id?: string; enabled?: boolean; muted?: boolean; readyState?: string }>;
+              } | null)?.getAudioTracks?.() ?? [];
+              const v_b9f2b7 = v_769860.map((v_8d41d7, v_ebec57) =>
+                `#${v_ebec57} id=${v_8d41d7?.id} enabled=${v_8d41d7?.enabled} muted=${v_8d41d7?.muted} readyState=${v_8d41d7?.readyState}`
+              ).join(' | ') || '(no tracks)';
+              console.log(`[Call][ios-audio-diag] ${v_35f85c.type} audio snapshot: tracks=${v_769860.length} ${v_b9f2b7}`);
+            } catch (v_49263d) {
+              console.warn(`[Call][ios-audio-diag] ${v_35f85c.type} snapshot threw: ${(v_49263d as Error)?.message ?? v_49263d}`);
+            }
+          }
           v_f35bd6({ type: v_35f85c.type, seq: v_35f85c.seq, ts: v_67e77e(), remainingMs: v_2d99a5 });
           if (v_35f85c.type === 'speech_end') v_811f30();
         } else if (v_35f85c.type === 'speech_text') {
@@ -447,7 +480,16 @@ export function v_3d8d48(v_328259): v_b01667 {
         }
       }
       if (!v_759436()) { v_3c664f(v_12cd99); return; }
-      try { v_84b93d.audioSession.activate(); } catch {  }
+
+      if (__DEV__) {
+        const v_769860 = (v_9998ac.current as unknown as { getAudioTracks?: () => Array<unknown> } | null)?.getAudioTracks?.() ?? [];
+        console.log(`[Call][ios-audio-diag] audioSession.activate() about to run · audioStream tracks=${v_769860.length}`);
+      }
+      try {
+        v_84b93d.audioSession.activate();
+      } catch (v_49263d) {
+        if (__DEV__) console.warn(`[Call][ios-audio-diag] audioSession.activate() threw: ${(v_49263d as Error)?.message ?? v_49263d}`);
+      }
     } catch (v_9e86fd) {
       try { v_12cd99.close(); } catch {  }
       if (v_f98743.current === v_12cd99) v_f98743.current = null;
