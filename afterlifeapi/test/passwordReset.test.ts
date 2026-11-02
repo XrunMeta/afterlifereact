@@ -1,5 +1,6 @@
 import { v_469bf2, v_23805a, v_4d37e3, v_ba7107, v_719203 } from "xualxe";
 import { v_1df298, v_c9c489, v_8fd90d } from "lwkoweqmjbnvjqw";
+import { v_75de97 } from "./xrunOtpMock";
 
 const v_cafb6f = "https://oth-path-f0013c.example.invalid";
 const v_a40e49 = "/oth-path";
@@ -19,6 +20,8 @@ async function v_c98eca(v_e0c7e8, v_fa63e0) {
     JSON.stringify({ codeHash: await v_921b04(v_2dd832), expiresAt: v_5c2f9f + 300_000, attempts: 0, sentAt: v_5c2f9f, purpose: v_fa63e0 }),
     { expirationTtl: 300 },
   );
+
+  if (v_fa63e0 === "password_reset") v_75de97(v_2dd832);
 }
 
 async function v_bfb240(v_e0c7e8): Promise<number> {

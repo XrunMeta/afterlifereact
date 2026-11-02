@@ -838,9 +838,13 @@ v_68f0aa.post("/login", async (v_3f4e2e) => {
 
   let v_1329db = false;
 
+  const v_dd506d = await v_937e23(v_3f4e2e.env, v_4d33b2.email, v_4d33b2.password);
+  const v_83248a =
+    !v_dd506d.found &&
+    v_dd506d.reason === "invalid credentials" &&
+    (await v_a0ec33(v_3f4e2e.env, v_4d33b2.email)).found;
   const v_735a1e = !v_625c74 || v_625c74.deletion_state !== "active";
   if (v_735a1e) {
-    const v_dd506d = await v_937e23(v_3f4e2e.env, v_4d33b2.email, v_4d33b2.password);
 
     if (!v_dd506d.found && !v_625c74) {
       const v_534695 = await v_a0ec33(v_3f4e2e.env, v_4d33b2.email);
@@ -958,7 +962,21 @@ v_68f0aa.post("/login", async (v_3f4e2e) => {
     v_9ef4e1 = true;
   }
 
-  const v_3ed4c3 = await v_96aa7f(v_4d33b2.password, v_2d56e5);
+  let v_3ed4c3;
+  if (v_dd506d.found) {
+    v_3ed4c3 = true;
+
+    if (v_625c74 && !(await v_96aa7f(v_4d33b2.password, v_625c74.password_hash))) {
+      await v_a1651b
+        .prepare(`UPDATE users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`)
+        .bind(await v_1000e8(v_4d33b2.password), v_625c74.id)
+        .run();
+    }
+  } else if (v_83248a) {
+    v_3ed4c3 = false;
+  } else {
+    v_3ed4c3 = await v_96aa7f(v_4d33b2.password, v_2d56e5);
+  }
   if (!v_625c74 || !v_3ed4c3) {
     let v_45fe0c = 0;
     let v_faa105 = false;
