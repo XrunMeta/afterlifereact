@@ -15,7 +15,8 @@
   - 허용 클론 — 관리자 「감정 설정」 영상(AFL-1072, /data/emotion_config.json 의 video.mode off·all·some)이 정본.
     파일이나 video 값이 없거나 깨졌으면 PRETHIRD_EMO_VIDEO_CLONES="9232,…" env 로(준비 표시 없이 손으로 구운 세트).
     all 이어도 자산(무감정·idle)이 없는 클론은 find_assets 가 None 이라 기존 영상 그대로.
-  - PRETHIRD_EMO_VIDEO_AUTO=1 — 준비 표시(emo/ready.txt)가 있는 클론 전부. 없으면 통화 시작 때 굽기를 대기열에 넣는다(emo_bake).
+  - PRETHIRD_EMO_VIDEO_AUTO=1 — 설정 파일에 영상 값이 없을 때만: 준비 표시(emo/ready.txt)가 있는 클론 전부.
+  굽기 대상(bake_enabled, AFL-1073) = 관리자 영상 값(all·some 목록)과 같다 — 클론을 만들 때·통화 시작 때 굽기 대기열(emo_bake).
   둘 다 비어 있으면 끔 — 지금 동작과 같다.
 
 단계별 굽기(sungjius 11-01): 기본 세트(무감정·idle·찬성)를 먼저 굽고, 나머지는 뒤에 굽는다.
@@ -163,6 +164,18 @@ def enabled_for(clone_id) -> bool:
 
 def auto_enabled() -> bool:
     return os.environ.get("PRETHIRD_EMO_VIDEO_AUTO", "") == "1"
+
+
+def bake_enabled(clone_id) -> bool:
+    """감정 영상 세트를 구울 클론인가(AFL-1073, sungjius 11-02: 관리자 설정을 따른다).
+
+    관리자 설정 파일에 영상 값이 있으면 그 값(all = 전부, some = 목록, off = 안 굽기),
+    없으면 예전처럼 PRETHIRD_EMO_VIDEO_AUTO=1."""
+    if clone_id is None:
+        return False
+    if file_video_setting() is not None:
+        return enabled_for(clone_id)
+    return auto_enabled()
 
 
 def emo_dir(video_ref_root: str, clone_id) -> str:
