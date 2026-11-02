@@ -7,19 +7,24 @@
 끄기: PRETHIRD_MT_CACHE_SLIM=0 (예전과 같이 PNG 유지·무압축 저장).
 
 mp4 를 매 렌더마다 풀면 조각당 0.2초(무감정 294프레임은 0.8초) 늦어진다(가비아 실측 11-02) → 푼 프레임을 프로세스
-메모리에 LRU 로 둔다(PRETHIRD_MT_FRAME_CACHE_MB, 기본 4096). 예전 PNG 도 OS 페이지 캐시에 올라 있어서 빨랐던 것이라
+메모리에 LRU 로 둔다(PRETHIRD_MT_FRAME_CACHE_MB, 기본 16384 — 클론 하나 감정 세트 전체가 6.9GB, 11-02 실측). 예전 PNG 도 OS 페이지 캐시에 올라 있어서 빨랐던 것이라
 메모리 사용은 비슷하다. 렌더는 프레임을 .copy() 해서 쓰므로(inference_lib ori_frame) 공유해도 안전하다.
 """
 from __future__ import annotations
 
+import logging
 import os
 import pickle
 import subprocess
 import threading
+import time
 import zlib
+from concurrent.futures import ThreadPoolExecutor
 from collections import OrderedDict
 
 import numpy as np
+
+log = logging.getLogger("prethird.cache_slim")
 
 MAGIC = b"AFLZ1\n"
 
@@ -37,7 +42,7 @@ _frames: "OrderedDict[tuple, list]" = OrderedDict()
 _frames_bytes = 0
 
 def _cap_bytes() -> int:
-    return int(float(os.environ.get("PRETHIRD_MT_FRAME_CACHE_MB", "4096")) * 1024 * 1024)
+    return int(float(os.environ.get("PRETHIRD_MT_FRAME_CACHE_MB", "16384")) * 1024 * 1024)
 
 def read_video_frames(path: str) -> list:
     """mp4 → BGR 프레임 목록. 같은 파일(경로·mtime·크기)이면 메모리에 둔 것을 돌려준다(읽기 전용으로 쓸 것)."""
@@ -85,3 +90,23 @@ def dump_masks(path: str, masks) -> None:
     with open(tmp, "wb") as f:
         f.write(data)
     os.replace(tmp, path)
+
+def prewarm(paths, workers: int = 4, tag: str = "") -> None:
+    """영상들을 미리 풀어 메모리 캐시에 올린다(앞쪽부터 — 자주 쓰는 것을 앞에). 통화 시작 때 뒤 스레드에서 부른다.
+    클론을 처음 쓸 때 영상 풀기로 감정 답 첫 소리가 0.9~1.2초 늦던 것(11-02 실통화)을 광고·인사 동안 미리 치른다.
+    쿄카 33개(4694프레임) 4스레드 6.2초. 실패한 영상은 건너뛴다(렌더 때 다시 푼다)."""
+    paths = [p for p in paths if p and os.path.isfile(p)]
+    if not paths:
+        return
+    t = time.time()
+
+    def one(p):
+        try:
+            read_video_frames(p)
+        except Exception as e:  # noqa: BLE001 — 예열은 부가 작업
+            log.warning("[AFL-1064] 예열 실패 %s: %s", p, e)
+
+    with ThreadPoolExecutor(max_workers=max(1, workers)) as ex:
+        list(ex.map(one, paths))
+    log.info("[AFL-1064] 예열 %s 영상 %d개 %.1fs 메모리 캐시 %.1fGB", tag, len(paths), time.time() - t,
+             _frames_bytes / 2**30)
