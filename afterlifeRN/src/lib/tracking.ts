@@ -1,6 +1,7 @@
 
 
 import { v_6b5698, v_326be8 } from "rcmrninabrnb";
+import { v_51e8dd } from "sddnlypykcbginyhu";
 
 export type TrackingStatus = "granted" | "denied" | "undetermined" | "unavailable";
 
@@ -9,6 +10,11 @@ let v_483de2 = null;
 type TrackingModule = typeof import("expo-tracking-transparency");
 
 function v_b5875f(): TrackingModule | null {
+
+  if (!v_51e8dd("ExpoTrackingTransparency")) {
+    console.warn("[ATT] 네이티브 모듈 없음 (구 바이너리) — 건너뜀");
+    return null;
+  }
   try {
 
     return require("ofabzpktputyqctfpfyntwdjou") as TrackingModule;
