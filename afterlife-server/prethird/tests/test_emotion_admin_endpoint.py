@@ -57,7 +57,7 @@ async def test_GET_기본값과_후보_라벨_순번(env):
     assert j["source"] == "default"
     assert j["emotions"] == ["happy", "sad", "warm", "angry"]
     assert j["config"]["voice"] == {"enabled": False, "choice": ea.DEFAULT_CHOICE}
-    assert j["config"]["video"] == {"mode": "off", "clones": []}
+    assert j["config"]["video"] == {"mode": "off", "clones": [], "bake_on_create": False}
     assert [x["label"] for x in j["candidates"]["warm"]] == ["다정1", "다정2"]
     assert [x["id"] for x in j["candidates"]["angry"]] == ["angry_ainsley", "angry_hana"]
     assert [x["label"] for x in j["candidates"]["angry"]] == ["화남1", "화남2"]
@@ -85,7 +85,7 @@ async def test_PUT_부분갱신_저장(env):
                         json={"video": {"mode": "some", "clones": ["12", "preset-3", "12"]}})
         j = await r.json()
         assert j["config"]["voice"]["enabled"] is True
-        assert j["config"]["video"] == {"mode": "some", "clones": ["12", "preset-3"]}
+        assert j["config"]["video"] == {"mode": "some", "clones": ["12", "preset-3"], "bake_on_create": False}
         assert (await (await c.get("/oth-path", headers=AUTH)).json())["config"] == j["config"]
     saved = json.loads(pathlib.Path(os.environ["EMOTION_CONFIG_PATH"]).read_text(encoding="utf-8"))
     assert saved["voice"]["choice"]["angry"] == "angry_hana"
@@ -210,3 +210,16 @@ def test_은행_디렉터리_env_폴백(monkeypatch):
     assert ea._bank_dir() == "/x/cosy"
     monkeypatch.delenv("COSYVOICE_EMO_BANK_DIR")
     assert ea._bank_dir() == "/data/emo_bank_20261030"
+
+
+@pytest.mark.asyncio
+async def test_PUT_생성_즉시_굽기(env):
+    async with TestClient(TestServer(_app())) as c:
+        r = await c.put("/oth-path", headers=AUTH,
+                        json={"voice": {"enabled": True}, "video": {"bake_on_create": True}})
+        assert r.status == 200
+        assert (await r.json())["config"]["video"]["bake_on_create"] is True
+        r = await c.put("/oth-path", headers=AUTH, json={"video": {"bake_on_create": "1"}})
+        assert r.status == 400
+        r = await c.put("/oth-path", headers=AUTH, json={"video": {"mode": "all"}})
+        assert (await r.json())["config"]["video"]["bake_on_create"] is True   # 부분 갱신은 그대로 둔다
