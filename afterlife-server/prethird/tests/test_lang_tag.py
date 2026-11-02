@@ -301,3 +301,11 @@ def test_등호없는_emo_본문은_보존():
     assert split_reply_tags("<lang=ko>안녕 <emo 설명 텍스트> 끝")[3] == "안녕 <emo 설명 텍스트> 끝"
     assert split_reply_tags("<lang=ko>x<emo 좋아")[3] == "x<emo 좋아"
     assert split_reply_tags("<lang=ko>a <emotion> b")[3] == "a <emotion> b"
+
+
+def test_emotion_instruction_감정별_말투():
+    txt = emotion_instruction()
+    assert "[감정에 맞는 말투]" in txt
+    assert "어어?" in txt and "하…" in txt                      # 화남 감탄사(쿄카 TTS 확인 11-02)
+    assert "화가 났을 때만은 반말" in txt and "angry 가 아닐 때는 평소 말투" in txt  # 존댓말 클론은 화날 때만 반말
+    assert "욕설" in txt and "이모지" in txt and "2~3문장" in txt
