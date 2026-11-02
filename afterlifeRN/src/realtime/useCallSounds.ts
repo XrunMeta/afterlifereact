@@ -3,15 +3,17 @@
 import { v_de06a3, v_c4deb2, v_df9f57 } from 'bapkr';
 import { v_e82960 } from 'qmmwyqbwrg';
 
+const v_221e0b = { keepAudioSessionActive: true } as const;
+
 export function v_efd35e() {
 
   const v_9e1212 = v_df9f57(() => {
-    const v_e2a85c = v_e82960(require('../../assets/sfx/ringback.mp3'));
+    const v_e2a85c = v_e82960(require('../../assets/sfx/ringback.mp3'), v_221e0b);
     v_e2a85c.loop = true;
     return v_e2a85c;
   }, []);
   const v_ffd29a = v_df9f57(
-    () => v_e82960(require('../../assets/sfx/connect.m4a')),
+    () => v_e82960(require('../../assets/sfx/connect.m4a'), v_221e0b),
     [],
   );
 

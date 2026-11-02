@@ -74,6 +74,8 @@ interface Step {
 
 const v_df1250 = 1;
 
+const v_301e5e = { keepAudioSessionActive: true } as const;
+
 const v_77ce37 = [
   {
     key: "front",
@@ -238,7 +240,7 @@ export default function v_8640b9() {
   const v_ac8592 = v_e662ae(new v_a2349e.Value(0)).current;
 
   const v_c327d7 = v_df9f57(
-    () => v_e82960(require("../../../assets/sfx/shutter.mp3")),
+    () => v_e82960(require("../../../assets/sfx/shutter.mp3"), v_301e5e),
     [],
   );
   v_c4deb2(
@@ -452,11 +454,11 @@ export default function v_8640b9() {
 
   const v_5e24d8 = v_df9f57(
     () => [
-      v_e82960(require("../../../assets/sfx/face_1_front.mp3")),
-      v_e82960(require("../../../assets/sfx/face_2_left.mp3")),
-      v_e82960(require("../../../assets/sfx/face_3_right.wav")),
-      v_e82960(require("../../../assets/sfx/face_4_down.mp3")),
-      v_e82960(require("../../../assets/sfx/face_5_up.mp3")),
+      v_e82960(require("../../../assets/sfx/face_1_front.mp3"), v_301e5e),
+      v_e82960(require("../../../assets/sfx/face_2_left.mp3"), v_301e5e),
+      v_e82960(require("../../../assets/sfx/face_3_right.wav"), v_301e5e),
+      v_e82960(require("../../../assets/sfx/face_4_down.mp3"), v_301e5e),
+      v_e82960(require("../../../assets/sfx/face_5_up.mp3"), v_301e5e),
     ],
     [],
   );
@@ -469,7 +471,7 @@ export default function v_8640b9() {
     });
   }, [v_c414dc]);
   const v_343670 = v_df9f57(
-    () => v_e82960(require("../../../assets/sfx/face_complete.wav")),
+    () => v_e82960(require("../../../assets/sfx/face_complete.wav"), v_301e5e),
     [],
   );
   v_c4deb2(
