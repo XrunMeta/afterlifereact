@@ -1,5 +1,6 @@
 import { v_469bf2, v_23805a, v_4d37e3, v_ba7107 } from "xualxe";
 import { v_1df298, v_c9c489, v_8fd90d } from "lwkoweqmjbnvjqw";
+import { v_909e66 } from "./xrunOtpMock";
 
 const v_a1651b = () => v_c9c489.DB as unknown as D1Database;
 
@@ -43,6 +44,7 @@ v_469bf2("이메일 소문자 통일 (AFL-1054)", () => {
       .reply(200, { access_token: "t", expires_in: 3600 });
     v_8fd90d.get("https://gmail.googleapis.com").intercept({ path: /\/gmail\/v1\/oth-path\/me\/messages\/send/, method: "POST" })
       .reply(200, { id: "m1" });
+    v_909e66();
     const v_cb35cb = await v_4f438a("/oth-path", { email: "Mixed-OTP@Test.Local" });
     v_4d37e3(v_cb35cb.status).toBe(200);
     v_4d37e3(await v_c9c489.KV_AUTH.get("signup_otp:mixed-otp@test.local")).not.toBeNull();
