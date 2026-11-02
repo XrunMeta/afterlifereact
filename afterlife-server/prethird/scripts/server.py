@@ -170,15 +170,38 @@ def _build_pipeline_factory():
         _pipe_ref: list = []
 
         def _infer_emo(wav, cb, render_mode: str | None = None):
+            import emotion_video as _ev
             p = _pipe_ref[0] if _pipe_ref else None
             seq, emo = getattr(p, "reply_seq", 0), getattr(p, "reply_emotion", None)
-            path, rot = _emo_video.segment(seq, emo, sess.video_track.idle_position())
-            n = renderer.infer(wav, cb, video_path=path, start_rot=rot)
-            _emo_video.advance(n or 0)
+            try:
+                frames = _ev.wav_frames(wav)
+            except Exception as e:  # noqa: BLE001 — 길이를 못 읽으면 나누지 않고 예전처럼 한 번에
+                log.warning("[AFL-1064] wav 길이 읽기 실패(나누지 않음): %s", e)
+                frames = 0
+            text, done = getattr(p, "reply_text_state", ("", False))
+            est = _ev.estimate_frames(text, done, frames)
+            parts = _emo_video.plan(seq, emo, sess.video_track.idle_position(), frames, est_frames=est)
+            # 버전 끝을 넘는 조각은 그 지점에서 소리를 나눠 두 영상으로 이어 렌더한다(렌더 총량은 같다).
+            wavs = [wav] if len(parts) == 1 else list(_ev.split_wav(wav, parts[0][2]))
+            total = 0
+            try:
+                for i, ((path, rot, planned), w) in enumerate(zip(parts, wavs)):
+                    clip = _emo_video.clip
+                    n = renderer.infer(w, cb, video_path=path, start_rot=rot) or 0
+                    # 나눈 앞부분은 계획한 프레임만큼 옮겨 버전 끝 → 무감정 전환을 확실히 한다(±1프레임 오차 흡수).
+                    _emo_video.advance(planned if (len(parts) > 1 and i == 0) else n)
+                    total += n
+                    log.info("[AFL-1064] reply=%s emo=%s clip=%s rot=%d frames=%s est=%d done=%s idle_next=%d",
+                             seq, emo, clip, rot, n, est, done, _emo_video.idle_resume_pos())
+            finally:
+                if len(wavs) > 1:
+                    for w in wavs:
+                        try:
+                            os.unlink(w)
+                        except OSError:
+                            pass
             sess.video_track.set_idle_offset(_emo_video.idle_resume_pos())
-            log.info("[AFL-1064] reply=%s emo=%s clip=%s rot=%d frames=%s idle_next=%d",
-                     seq, emo, _emo_video.clip, rot, n, _emo_video.idle_resume_pos())
-            return n
+            return total
 
         # idle prebake: clone idle mp4 미적용 시에만 폴백 실행(_should_prebake 참조).
         # clone idle mp4가 이미 적용됐으면(sess.idle_video_applied) 좋은 영상 유지 —
@@ -205,6 +228,9 @@ def _build_pipeline_factory():
             clone_locked=getattr(sess, "clone_id", None) is not None,
         )
         _pipe_ref.append(pipeline)
+        if _emo_video is not None:
+            # 말이 길이 버전보다 짧게 끝나면 버전 끝(중립)까지 무음으로 마저 렌더(입 다물기).
+            pipeline.reply_tail_frames_fn = lambda: _emo_video.tail_frames(pipeline.reply_seq)
         return pipeline
 
     return factory

@@ -1,5 +1,5 @@
 from __future__ import annotations
-import asyncio, os, re, time, pathlib, logging, json
+import asyncio, os, re, time, pathlib, logging, json, threading
 from typing import Callable, Optional
 from aiohttp import web
 from aiortc import RTCPeerConnection, RTCSessionDescription
@@ -1894,6 +1894,12 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
                                 _ev_assets, cycle_len=len(sess.video_track._idle_frames))
                             log.info("[AFL-1064] 감정 영상 적용 clone=%s clips=%s cycle=%d",
                                      clone_id, sorted(_ev_assets), sess.emo_video.cycle_len)
+                            # 감정 영상을 뒤에서 미리 풀어 둔다(광고·인사 동안) — 처음 쓰는 클립의 첫 소리 지연 제거.
+                            if os.environ.get("PRETHIRD_EMO_PREWARM", "1") == "1":
+                                import cache_slim
+                                threading.Thread(target=cache_slim.prewarm,
+                                                 args=(emotion_video.prewarm_paths(_ev_assets),),
+                                                 kwargs={"tag": f"clone={clone_id}"}, daemon=True).start()
                         elif emotion_video.enabled_for(clone_id):
                             log.warning("[AFL-1064] 감정 영상 허용 클론이나 자산 없음 clone=%s — 기존 영상", clone_id)
                         else:
@@ -2143,5 +2149,18 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
     # AFL-1072 관리자 감정 관리 — 목소리 은행 스위치·후보·영상 설정(저장만). Bearer LEARN_SECRET 으로 닫힘.
     from emotion_admin_endpoint import register_emotion_admin_routes
     register_emotion_admin_routes(app)
+
+    # AFL-1064: 감정 영상 세트 이어 굽기 — 서버 시작 때와 주기적으로 덜 끝난 굽기를 다시 넣는다(자동 켜기일 때만).
+    async def _start_emo_bake_sweep(app_: web.Application) -> None:
+        if emotion_video.auto_enabled():
+            app_["emo_bake_sweep"] = asyncio.get_running_loop().create_task(emo_bake.sweep_loop(VIDEO_REF_ROOT))
+
+    async def _stop_emo_bake_sweep(app_: web.Application) -> None:
+        t = app_.get("emo_bake_sweep")
+        if t is not None:
+            t.cancel()
+
+    app.on_startup.append(_start_emo_bake_sweep)
+    app.on_cleanup.append(_stop_emo_bake_sweep)
 
     return app

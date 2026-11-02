@@ -301,3 +301,46 @@ def test_등호없는_emo_본문은_보존():
     assert split_reply_tags("<lang=ko>안녕 <emo 설명 텍스트> 끝")[3] == "안녕 <emo 설명 텍스트> 끝"
     assert split_reply_tags("<lang=ko>x<emo 좋아")[3] == "x<emo 좋아"
     assert split_reply_tags("<lang=ko>a <emotion> b")[3] == "a <emotion> b"
+
+
+def test_emotion_instruction_감정별_말투():
+    txt = emotion_instruction()
+    assert "[감정에 맞는 말투]" in txt
+    assert "어어?" in txt and "하아…" in txt and "하아~" in txt and "아휴," in txt  # 화남 감탄사(쿄카 TTS 확인 11-02)
+    assert "에휴" in txt and "문장 중간에만" in txt               # 에휴는 첫머리에서 깨져 중간만(sungjius 11-02)
+    for w in ("흐으음…", "참나,", "허 참,", "헐,", "헐…"):       # 2차 TTS 확인(sungjius 11-02)
+        assert w in txt, w
+    assert "어어어?" not in txt and "쓰읍" not in txt              # 들어 보고 뺀 것
+    assert "화가 났을 때만은 반말" in txt and "angry 가 아닐 때는 평소 말투" in txt  # 존댓말 클론은 화날 때만 반말
+    assert "욕설" in txt and "이모지" in txt and "2~3문장" in txt
+
+
+def test_화남_감탄사는_매_턴_하나를_골라_권한다():
+    import random
+    from clone_dialog.lang_tag import ANGRY_INTERJECTIONS
+    picks = set()
+    for seed in range(40):
+        txt = emotion_instruction(random.Random(seed))
+        hit = [w for w in ANGRY_INTERJECTIONS if f'감탄사는 "{w}"를 써' in txt]
+        none = "감탄사 없이 바로 퉁명하게 시작해" in txt
+        assert len(hit) + none == 1
+        picks.add(hit[0] if hit else None)
+    assert len(picks) >= 8 and None in picks  # 고르게 돌아가고, 감탄사 없이도 권한다
+    assert "에휴" not in ANGRY_INTERJECTIONS  # 에휴는 첫머리에 권하지 않는다(중간만)
+
+
+def test_최근_답의_첫머리_감탄사_계열을_찾는다():
+    from clone_dialog.lang_tag import recent_interjections
+    texts = ["헐… 그럼 짧게 할게.", "<lang=ko><emo=angry>헐, 더 세게는 아니고.", "아휴, 그런 식으로 놀리면 짜증 나지.",
+             "그래, 준비됐어.", "허 참, 그런 걸 왜 시켜.", "또 해 달라고? 에휴, 알았어."]
+    assert recent_interjections(texts) == ["헐", "아휴", "허참"]
+
+
+def test_최근에_쓴_감탄사는_권하지_않고_쓰지_말라고_한다():
+    import random
+    from clone_dialog.lang_tag import ANGRY_INTERJECTIONS
+    for seed in range(40):
+        txt = emotion_instruction(random.Random(seed), avoid=["헐", "아휴"])
+        assert '감탄사는 "헐' not in txt and '감탄사는 "아휴' not in txt
+        assert '앞 답에서 쓴 "헐"·"아휴" 는 이번엔 쓰지 마' in txt
+    assert "앞 답에서" not in emotion_instruction(random.Random(1))

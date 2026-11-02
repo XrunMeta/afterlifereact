@@ -30,7 +30,7 @@ from recorder import NULL_TURN
 from clone_dialog.conversation_history import ConversationHistory
 from clone_dialog.lang_tag import (
     CALL_LANGS, DEFAULT_EMOTION, LangTagStream, emo_tag_enabled, emotion_instruction, lang_instruction,
-    normalize_lang, split_reply_tags,
+    normalize_lang, recent_interjections, split_reply_tags,
 )
 from clone_dialog.whoami import (
     turn_face_instruction, turn_face_names_allowed, remember_me_consent_instruction,
@@ -396,6 +396,12 @@ class DialoguePipeline:
         self._greeting_emo: str | None = None
         # AFL-1064: 답 번호 — 감정 영상이 "새 답이면 클립·위치를 다시 고른다"를 판정한다.
         self._reply_seq = 0
+        # AFL-1064 길이 버전: 이번 답 글(태그 뗀 것)과 LLM 스트림이 끝났는지 — 첫 렌더 때 답 길이 추정에 쓴다.
+        self._reply_text = ""
+        self._reply_done = False
+        self._reply_t0 = 0.0
+        # AFL-1064 길이 버전: 답 렌더가 다 끝난 뒤 마저 렌더할 무음 프레임 수(서버가 감정 영상일 때 단다).
+        self.reply_tail_frames_fn = None
         self.decode_wav_fn = decode_wav_fn
         self.infer_fn = infer_fn
         self.persona_messages = persona_messages or []
@@ -964,6 +970,7 @@ class DialoguePipeline:
             lts = LangTagStream(self.user_lang)
             self._reply_emo = None   # AFL-1067: 이전 답 감정이 이번 답으로 묻지 않게
             self._reply_seq += 1     # AFL-1064
+            self._begin_reply_text()
             async for tok in self.chat_fn(messages):
                 t = self._feed_lang(lts, tok)
                 if not t:
@@ -1023,6 +1030,7 @@ class DialoguePipeline:
         # AFL-1067: 감정 태그가 없는 발화 — 직전 답 감정(angry 등)을 물려받지 않게 neutral.
         self._reply_emo = DEFAULT_EMOTION
         self._reply_seq += 1   # AFL-1064
+        self._begin_reply_text(text, done=True)
 
         async def produce(q: asyncio.Queue):
             for s in parts:
@@ -1117,6 +1125,7 @@ class DialoguePipeline:
             lts = LangTagStream(self.user_lang)   # AFL-1034
             self._reply_emo = None   # AFL-1067
             self._reply_seq += 1     # AFL-1064
+            self._begin_reply_text()
             async for tok in self.chat_fn(messages):
                 t = self._feed_lang(lts, tok)
                 if not t:
@@ -1155,7 +1164,9 @@ class DialoguePipeline:
         content = lang_instruction(self.user_lang, CALL_LANGS)
         if emo_tag_enabled():
             # AFL-1067: 감정 태그 지시는 언어 규칙과 한 메시지로(태그 순서를 한곳에서 설명).
-            content += "\n\n" + emotion_instruction()
+            # 최근 클론 답 3개의 첫머리 감탄사는 이번 턴에 권하지 않는다(대화 기록을 따라 같은 감탄사 반복 방지).
+            recent = [m["content"] for m in self._history.messages() if m.get("role") == "assistant"][-3:]
+            content += "\n\n" + emotion_instruction(avoid=recent_interjections(recent))
         return [{"role": "system", "content": content}]
 
     @property
@@ -1168,11 +1179,25 @@ class DialoguePipeline:
         """AFL-1064: 답 번호(답이 시작될 때마다 1 증가)."""
         return self._reply_seq
 
+    def _begin_reply_text(self, text: str = "", done: bool = False) -> None:
+        self._reply_text, self._reply_done, self._reply_t0 = text, done, time.perf_counter()
+
+    @property
+    def reply_text_state(self) -> tuple[str, bool]:
+        """AFL-1064: (이번 답 글 지금까지, LLM 스트림 끝났는지)."""
+        return self._reply_text, self._reply_done
+
     def _feed_lang(self, lts: "LangTagStream", tok) -> str:
         """스트리밍 토큰을 태그 파서에 통과시키고, 언어·감정이 정해지면 이번 답 것으로 잡는다.
         tok=None 이면 스트림 끝(남은 버퍼 반환)."""
         emo_before = lts.emo
         out = lts.finish() if tok is None else lts.feed(str(tok))
+        if out:
+            self._reply_text += out
+        if tok is None:
+            self._reply_done = True
+            log.info("[AFL-1064] reply text done chars=%d ms=%d",
+                     len(self._reply_text), int((time.perf_counter() - self._reply_t0) * 1000))
         if lts.lang is not None:
             self._reply_lang = lts.lang
         if lts.emo is not None:
@@ -1374,6 +1399,28 @@ class DialoguePipeline:
                 os.unlink(wav_path)
             except OSError:
                 pass
+
+    async def _render_reply_tail(self, turn) -> None:
+        """AFL-1064 길이 버전: 말이 버전보다 짧게 끝났으면 남은 프레임을 무음(입 다물기)으로 렌더해
+        고개가 중립으로 돌아온 뒤 idle 로 넘어가게 한다. 실패해도 답은 이미 다 나갔으니 삼킨다."""
+        fn = self.reply_tail_frames_fn
+        if fn is None:
+            return
+        try:
+            n = int(fn() or 0)
+            if n <= 0:
+                return
+            sr = 16000
+            buf = io.BytesIO()
+            with wave.open(buf, "wb") as w:
+                w.setnchannels(1)
+                w.setsampwidth(2)
+                w.setframerate(sr)
+                w.writeframes(b"\x00\x00" * (sr * n // 25))
+            await self._infer_stage(buf.getvalue(), np.zeros(48000 * n // 25, dtype=np.int16), turn)
+            log.info("[AFL-1064] reply tail frames=%d", n)
+        except Exception as e:  # noqa: BLE001
+            log.warning("[AFL-1064] reply tail 실패: %s", e)
 
     async def _emit_sentence(self, sentence: str) -> None:
         """문장 1개 직렬 처리(기존 호환). 파이프라인은 _run_pipeline 사용."""
@@ -1632,6 +1679,7 @@ class DialoguePipeline:
             while True:
                 item = await wav_q.get()
                 if item is None:
+                    await self._render_reply_tail(turn)
                     break
                 s, wav_bytes, pcm48 = item
 

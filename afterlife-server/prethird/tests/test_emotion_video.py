@@ -192,3 +192,104 @@ def test_설정_저장하면_다음_호출부터_반영(monkeypatch, tmp_path):
     _write_cfg(p, {"mode": "off", "clones": ["9232"]})
     os.utime(p, ns=(st.st_atime_ns, st.st_mtime_ns))  # 같은 mtime 이어도 inode·크기로 잡는다
     assert not enabled_for("9232")
+
+
+def _with_versions(tmp_path, monkeypatch, secs=(2, 3, 4)):
+    monkeypatch.setenv("PRETHIRD_EMO_LEN_SECS", ",".join(map(str, secs)))
+    root = _assets(tmp_path)
+    d = ev.emo_dir(str(root), "9232")
+    for s in secs:
+        (tmp_path / "9232" / "emo" / f"9232-emo-disagreement-{s}s.mp4").write_bytes(b"x")
+    ev.mark_ready(d, *ev.CLIPS, *(ev.version_key("disagreement", s) for s in secs))
+    return find_assets(str(root), "9232")
+
+
+def test_길이_버전은_준비_표시된_것만_찾는다(tmp_path, monkeypatch):
+    monkeypatch.setenv("PRETHIRD_EMO_LEN_SECS", "2,3")
+    root = _assets(tmp_path)
+    d = ev.emo_dir(str(root), "9232")
+    for s in (2, 3):
+        (tmp_path / "9232" / "emo" / f"9232-emo-disagreement-{s}s.mp4").write_bytes(b"x")
+    ev.mark_ready(d, *ev.CLIPS, "disagreement@2")  # 3초는 굽는 중
+    a = find_assets(str(root), "9232")
+    assert set(a["versions"]["disagreement"]) == {2}
+    assert (tmp_path / "9232" / "emo" / ev.READY).read_text().split()[-1] == "disagreement@2"
+
+
+def test_길이_버전_끄면_원본_클립(tmp_path, monkeypatch):
+    a = _with_versions(tmp_path, monkeypatch)
+    monkeypatch.delenv("PRETHIRD_EMO_LEN_SECS")
+    a = find_assets(str(tmp_path), "9232")
+    assert "versions" not in a
+
+
+def test_추정보다_조금_짧은_버전을_고른다(tmp_path, monkeypatch):
+    e = EmotionVideo(_with_versions(tmp_path, monkeypatch), cycle_len=588)
+    assert e.pick_version("disagreement", 90) == 3     # 3.6초 → 3초
+    assert e.pick_version("disagreement", 1000) == 4   # 가장 긴 버전
+    assert e.pick_version("disagreement", 30) == 2     # 2초보다 짧으면 가장 짧은 버전
+    assert e.pick_version("disagreement", None) == 2
+    assert e.pick_version("warm_calm", 90) is None     # 버전 없는 클립
+
+
+def test_말이_버전보다_길면_버전_끝에서_무감정_0번으로_잇는다(tmp_path, monkeypatch):
+    e = EmotionVideo(_with_versions(tmp_path, monkeypatch), cycle_len=588)
+    p1 = e.plan(1, "angry", idle_pos=300, frames=50, est_frames=90)   # 3초 버전(75프레임)
+    assert p1 == [(e.versions["disagreement"][3], 0, 50)]
+    e.advance(50)
+    assert e.clip == "disagreement@3"
+    p2 = e.plan(1, "angry", idle_pos=300, frames=40)
+    assert p2 == [(e.versions["disagreement"][3], 50, 25), (e.assets["neutral"], 0, 15)]
+    e.advance(25)
+    assert e.clip == "neutral"
+    e.advance(15)
+    assert e.idle_resume_pos() == 15   # 무감정 한 시계로 이어짐
+    assert e.tail_frames(1) == 0
+
+
+def test_말이_버전보다_짧으면_남은_프레임을_마무리한다(tmp_path, monkeypatch):
+    e = EmotionVideo(_with_versions(tmp_path, monkeypatch), cycle_len=588)
+    e.plan(1, "angry", idle_pos=0, frames=40, est_frames=40)   # 2초 버전(50프레임)
+    e.advance(40)
+    assert e.tail_frames(1) == 10
+    assert e.tail_frames(2) == 0   # 다른 답이면 없음
+    assert e.plan(1, "angry", 0, 10) == [(e.versions["disagreement"][2], 40, 10)]
+    e.advance(10)
+    assert e.tail_frames(1) == 0 and e.idle_resume_pos() == 0
+
+
+def test_버전_없는_감정은_예전처럼_원본_누적(tmp_path, monkeypatch):
+    e = EmotionVideo(_with_versions(tmp_path, monkeypatch), cycle_len=588)
+    assert e.plan(1, "warm", 0, 30, est_frames=90) == [(e.assets["warm_calm"], 0, 30)]
+    e.advance(30)
+    assert e.plan(1, "warm", 0, 30) == [(e.assets["warm_calm"], 30, 30)]
+    assert e.tail_frames(1) == 0
+
+
+def test_답_길이_추정은_글자_수_기준이고_조각보다_짧지_않다(monkeypatch):
+    monkeypatch.setenv("PRETHIRD_EMO_SEC_PER_CHAR", "0.27")
+    assert ev.estimate_frames("아니, 그건 아니야.", True, 10) == int(7 * 0.27 * 25)
+    assert ev.estimate_frames("", False, 40) == 40
+
+
+def test_wav_를_프레임_지점에서_나눈다(tmp_path):
+    import wave
+    p = tmp_path / "a.wav"
+    with wave.open(str(p), "wb") as w:
+        w.setnchannels(1)
+        w.setsampwidth(2)
+        w.setframerate(16000)
+        w.writeframes(b"\x01\x00" * 16000 * 2)   # 2초 = 50프레임
+    assert ev.wav_frames(str(p)) == 50
+    a, b = ev.split_wav(str(p), 20)
+    assert ev.wav_frames(a) == 20 and ev.wav_frames(b) == 30
+    os.unlink(a)
+    os.unlink(b)
+
+
+def test_예열은_무감정_먼저_자주_쓰는_길이부터_감정을_번갈아(tmp_path, monkeypatch):
+    a = _with_versions(tmp_path, monkeypatch, secs=(2, 3, 4))
+    paths = ev.prewarm_paths(a)
+    assert paths[0] == a["neutral"]
+    assert paths[1:4] == [a["versions"]["disagreement"][s] for s in (4, 3, 2)]  # 4→3→2(자주 쓰는 순)
+    assert a["warm_calm"] in paths and a["idle"] not in paths                    # 버전 없는 감정은 원본, idle 제외

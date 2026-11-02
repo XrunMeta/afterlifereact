@@ -47,3 +47,24 @@ def longest_inner_silence(audio: np.ndarray, sr: int, thresh_db: float = -40.0,
         run = 0 if v else run + 1
         best = max(best, run)
     return best * frame_ms / 1000
+
+def lead_hiss(audio: np.ndarray, sr: int, frame_ms: int = 100, speech_ratio: float = 0.3,
+              hiss_rms: tuple = (0.003, 0.06), hiss_zcr: float = 0.12) -> tuple[float, int]:
+    """첫 말소리 앞의 '쉬익' 잡음 길이(초)와 첫 말소리 위치(샘플).
+
+    감정 은행 견본으로 섞으면 드물게 말 앞에 작고 거친 잡음이 3초쯤 붙는다(2026-11-01 9194·쿄카
+    목소리 + 화남 견본 "아니, 나는 대머리 아니야." 4.9초 중 앞 3초). 소리가 작아 앞 무음 자르기(-40dB)에
+    안 걸리고 길이도 폭주 상한 안이다. 조용하지만 영점교차가 많은 구간 = 잡음, 조용하고 영점교차가 적은
+    구간 = 작은 말소리(9075 처럼 원래 작게 말하는 목소리)로 가른다. 말소리 기준은 그 결과의 최대 크기 대비.
+    """
+    hop = max(1, int(sr * frame_ms / 1000))
+    n = len(audio) 
+    if n == 0:
+        return 0.0, 0
+    frames = audio[: n * hop].reshape(n, hop).astype(np.float64)
+    rms = np.sqrt(np.mean(np.square(frames), axis=1))
+    zcr = np.mean(np.abs(np.diff(np.sign(frames), axis=1)) > 0, axis=1)
+    speech = np.flatnonzero(rms >= rms.max() * speech_ratio)
+    first = int(speech[0]) if len(speech) else n
+    hiss = (rms[:first] > hiss_rms[0]) & (rms[:first] <= hiss_rms[1]) & (zcr[:first] > hiss_zcr)
+    return float(hiss.sum()) * frame_ms / 1000, first * hop

@@ -1,6 +1,6 @@
 """클론 감정 영상 세트 — 호스트(MuseTalk) 단계 (AFL-1064). bake_clone_emo.sh 가 부른다.
 
-  python bake_clone_emo_host.py <clone_id> <out_dir> <clip>...
+  python bake_clone_emo_host.py <clone_id> <out_dir> <clip 또는 clip@초>...
 
 클립마다 끝나면 emo/ready.txt 에 표시한다(emotion_video.mark_ready) — 통화는 표시된 클립만 쓴다.
 1. neutral 이면 idle = 무감정 클립 사이클 전체(정방향+역방향)를 무음 + 무음 입 다물기로 MuseTalk 렌더 → <clone>-emo-idle.mp4
@@ -8,6 +8,8 @@
    이 렌더가 무감정 클립의 MuseTalk 캐시(좌표·latent·마스크)도 사이클 전체로 채운다.
 2. 그 밖의 감정 클립은 사이클 전체를 무음 렌더해 MuseTalk 캐시를 채운다.
    비어 있으면 통화 중 그 구간을 처음 쓰는 조각이 9~13초 걸린다(2026-10-30 준식이 실통화).
+3. "<clip>@<N>"(길이 버전 <clone>-emo-<clip>-<N>s.mp4)은 정방향 프레임만 무음 렌더해 캐시를 채운다
+   — 통화는 버전 끝에서 무감정으로 넘어가므로 역방향을 쓰지 않는다.
 
 라이브 prethird 코드(MuseTalkInproc · inference_lib)와 라이브 캐시 폴더를 그대로 쓴다. 시작 위치는 start_rot=0.
 GPU0 를 통화와 같이 쓰므로 클립마다 통화가 없을 때까지 기다린다(EMO_BAKE_WAIT_IDLE=0 이면 안 기다림).
@@ -77,14 +79,24 @@ def main() -> None:
 
     with tempfile.TemporaryDirectory() as tmp:
         tmp = Path(tmp)
-        for clip in clips:
-            v = out / f"{clone}-emo-{clip}.mp4"
+        for item in clips:
+            if "@" in item:  # 길이 버전 — 버전 끝까지만 재생하므로 정방향만 캐시
+                clip, sec = item.split("@")
+                v = out / f"{clone}-emo-{clip}-{sec}s.mp4"
+            else:
+                clip, v = item, out / f"{clone}-emo-{item}.mp4"
             if not v.exists():
-                print(f"[시간] {clip} 클립 없음 — 건너뜀", flush=True)
+                print(f"[시간] {item} 영상 없음 — 건너뜀", flush=True)
                 continue
             _wait_no_call()
             t = time.time()
-            c = 2 * len(_load_idle_frames(str(v)))
+            n = len(_load_idle_frames(str(v)))
+            if "@" in item:
+                mt.infer(str(_silent_wav(n, tmp)), on_frame=lambda *_: None, video_path=str(v), start_rot=0)
+                mark_ready(str(out), item)
+                print(f"[시간] 캐시 {item}({n}프레임 정방향) {time.time() - t:.1f}s", flush=True)
+                continue
+            c = 2 * n
             if clip != "neutral":
                 mt.infer(str(_silent_wav(c, tmp)), on_frame=lambda *_: None, video_path=str(v), start_rot=0)
                 mark_ready(str(out), clip)

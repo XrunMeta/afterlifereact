@@ -11,7 +11,7 @@ import numpy as np
 import soundfile as sf
 import config
 from clone_ref import load_ref_text, PROMPT_WAV
-from lead_trim import cap_lead_silence, longest_inner_silence
+from lead_trim import cap_lead_silence, lead_hiss, longest_inner_silence
 
 log = logging.getLogger("cosyvoice")
 
@@ -307,6 +307,8 @@ class CosyEngine:
         _req_tp = (o["sampling_top_p"] if opts and opts.get("sampling_top_p") is not None else None)
         # 문장 안 정적 가드(AFL-1059): 길이는 정상인데 단어 중간에서 끊고 쉬는 결과도 다시 합성한다.
         gap_max = inner_gap_limit(text) if config.INNER_GAP_MAX_SEC > 0 else 0.0
+        # 말 앞 잡음 가드(AFL-1072): 감정 은행 섞기에서 드물게 말 앞에 3초쯤 '쉬익' 잡음이 붙는다.
+        hiss_max = config.LEAD_HISS_MAX_SEC
         best, best_bad = None, None
         for attempt in range(o["ramble_retries"] + 1):
             # 1차=기본(또는 요청) 샘플링, 재합성=폴백 top_k(greedy 1, 폭주율↓).
@@ -319,21 +321,33 @@ class CosyEngine:
                 return self._silence_wav(config.EMPTY_SILENCE_MS)
             dur = len(audio) / self.sr
             gap = longest_inner_silence(audio, self.sr) if gap_max > 0 else 0.0
-            if dur <= expected_max and gap <= gap_max:
+            hiss = lead_hiss(audio, self.sr)[0] if hiss_max > 0 else 0.0
+            if dur <= expected_max and gap <= gap_max and hiss <= hiss_max:
                 if attempt > 0:
-                    log.info("ramble 회복: clone=%s dur=%.1fs gap=%.2fs (attempt=%d)", clone_id, dur, gap, attempt)
+                    log.info("ramble 회복: clone=%s dur=%.1fs gap=%.2fs hiss=%.1fs (attempt=%d)",
+                             clone_id, dur, gap, hiss, attempt)
                 best = audio
                 break
             if dur > expected_max:
                 log.warning("ramble 의심 clone=%s text=%r dur=%.1fs > max=%.1fs → 재합성(%d/%d)",
                             clone_id, text[:30], dur, expected_max, attempt + 1, o["ramble_retries"])
-            else:
+            elif gap > gap_max:
                 log.warning("[inner-gap] clone=%s text=%r 문장 안 정적 %.2fs > %.2fs → 재합성(%d/%d)",
                             clone_id, text[:30], gap, gap_max, attempt + 1, o["ramble_retries"])
-            # 모두 실패하면 넘친 만큼(길이 초과 + 정적 초과)이 가장 적은 것. 정적이 없으면 종전대로 가장 짧은 것.
-            bad = max(0.0, dur - expected_max) + max(0.0, gap - gap_max)
+            else:
+                log.warning("[lead-hiss] clone=%s spk=%s text=%r 말 앞 잡음 %.1fs > %.1fs → 재합성(%d/%d)",
+                            clone_id, spk, text[:30], hiss, hiss_max, attempt + 1, o["ramble_retries"])
+            # 모두 실패하면 넘친 만큼(길이 초과 + 정적 초과 + 앞 잡음 초과)이 가장 적은 것. 정적이 없으면 종전대로 가장 짧은 것.
+            bad = max(0.0, dur - expected_max) + max(0.0, gap - gap_max) + max(0.0, hiss - hiss_max)
             if best is None or bad < best_bad or (bad == best_bad and len(audio) < len(best)):
                 best, best_bad = audio, bad
+        if hiss_max > 0:
+            # 재합성으로도 못 피했으면 잡음 구간만 잘라낸다(첫 말소리 0.1초 앞부터 남김).
+            hiss, first = lead_hiss(best, self.sr)
+            if hiss > hiss_max:
+                cut = max(0, first - int(0.1 * self.sr))
+                log.warning("[lead-hiss] clone=%s 말 앞 잡음 %.1fs 남음 → 앞 %.2fs 잘라냄", clone_id, hiss, cut / self.sr)
+                best = best[cut:]
         n0 = len(best)
         best = cap_lead_silence(best, self.sr, config.LEAD_SILENCE_MAX_MS)
         if len(best) < n0:

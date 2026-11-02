@@ -10,6 +10,8 @@ AFL-1067: 머리 태그에 `<emo=감정>` 을 더한다(EMOTIONS 6종). 답 하�
 """
 from __future__ import annotations
 
+import random
+
 import os
 import re
 
@@ -248,8 +250,45 @@ def emo_tag_enabled() -> bool:
     return os.environ.get("PRETHIRD_EMO_TAG", "1") != "0"
 
 
-def emotion_instruction() -> str:
-    """AFL-1067: 답 머리에 말투 감정 `<emo=값>` 을 붙이라는 지시. 언어 규칙 뒤에 이어 붙인다."""
+# 화날 때 감탄사(쿄카 목소리로 들어 보고 고른 것, sungjius 2026-11-02). "에휴"는 첫머리에서 깨져 문장 중간에만.
+# 목록만 주면 LLM 이 두세 개만 되풀이한다(시뮬 26답 중 아니·뭐?·참나 뿐) → 매 턴 하나를 골라 권한다.
+ANGRY_INTERJECTIONS = ("하아…", "하아~", "아휴,", "어어?", "흐으음…", "참나,", "허 참,", "아니,", "헐,", "헐…", "뭐?", "야,")
+
+
+def _interj_family(w: str) -> str:
+    """감탄사 계열(하아…·하아~ → 하아, 헐…·헐, → 헐). 같은 계열을 연달아 쓰지 않게 비교할 때 쓴다."""
+    return re.sub(r"[\s…~,.?!]+$", "", w).replace(" ", "")
+
+
+_INTERJ_FAMILIES = sorted({_interj_family(w) for w in ANGRY_INTERJECTIONS} | {"에휴"}, key=len, reverse=True)
+_LEAD_TAGS = re.compile(r"^(\s*<[^>]{0,40}>)+")
+
+
+def recent_interjections(texts) -> list[str]:
+    """최근 답들(오래된 것부터)의 첫머리 감탄사 계열 — 이번 턴에는 권하지 않고 쓰지 말라고 한다.
+    실통화(11-02 12:14) 화남 6답 중 4답이 '헐…' — 매 턴 다르게 권해도 LLM 이 대화 기록의 앞 답을 따라 했다."""
+    out: list[str] = []
+    for t in texts:
+        head = _LEAD_TAGS.sub("", t or "").lstrip().replace(" ", "")
+        for fam in _INTERJ_FAMILIES:
+            if head.startswith(fam) and fam not in out:
+                out.append(fam)
+                break
+    return out
+
+
+def emotion_instruction(rng: random.Random | None = None, avoid=()) -> str:
+    """AFL-1067: 답 머리에 말투 감정 `<emo=값>` 을 붙이라는 지시. 언어 규칙 뒤에 이어 붙인다.
+    rng: 이번 턴에 권할 화남 감탄사를 고르는 난수(테스트에서 고정). 매 턴 불린다.
+    avoid: 최근 답에서 쓴 감탄사 계열(recent_interjections) — 권하지 않고 이번엔 쓰지 말라고 한다."""
+    r = rng or random
+    avoid = [a for a in avoid if a]
+    pool = [w for w in ANGRY_INTERJECTIONS if _interj_family(w) not in avoid] or list(ANGRY_INTERJECTIONS)
+    pick = None if r.random() < 0.25 else r.choice(pool)  # 네 번에 한 번은 감탄사 없이
+    angry_pick = (f"이번 답이 angry 라면 감탄사는 \"{pick}\"를 써(어울리지 않으면 감탄사 없이). " if pick
+                  else "이번 답이 angry 라면 감탄사 없이 바로 퉁명하게 시작해. ")
+    if avoid:
+        angry_pick += "앞 답에서 쓴 " + "·".join(f"\"{a}\"" for a in avoid) + " 는 이번엔 쓰지 마. "
     return (
         "[감정 태그]\n"
         "- 언어 태그 바로 뒤에(`<ask=who>` 를 붙일 땐 그 뒤에) 이번 답을 말할 목소리의 감정을 "
@@ -258,5 +297,21 @@ def emotion_instruction() -> str:
         "warm(다정·위로).\n"
         "- 대화 내용이 아니라 **네가 지금 어떤 감정으로 말하는지**로 골라. 애매하면 neutral.\n"
         "- 답 전체에 하나만, 맨 앞에만. 본문 중간이나 끝에 쓰지 말고 닫는 태그(`</emo>`)도 쓰지 마.\n"
-        "- 예: `<lang=ko><emo=warm>괜찮아, 내가 있잖아.` · `<lang=ko><emo=happy>와, 진짜 잘됐다!`"
+        "- 예: `<lang=ko><emo=warm>괜찮아, 내가 있잖아.` · `<lang=ko><emo=happy>와, 진짜 잘됐다!`\n"
+        "\n"
+        "[감정에 맞는 말투]\n"
+        "- 고른 감정이 말투에도 드러나게 해. 네 목소리와 표정도 그 감정으로 바뀐다.\n"
+        "  · angry: 짧고 퉁명스럽게 끊어 말해. 감탄사는 이 중에서 골라 첫머리나 문장 중간에 섞어 써: "
+        + ", ".join(f"\"{w}\"" for w in ANGRY_INTERJECTIONS) + ". "
+        + angry_pick +
+        "\"에휴\"는 첫머리 말고 문장 중간에만 써(예: \"또 해 달라고? 에휴, 알았어.\"). "
+        "\"하아\" 뒤에는 쉼표 말고 꼭 \"…\"나 \"~\"를 붙여(\"하아,\" ✗). \"하…\"처럼 짧게 끊는 한숨도 쓰지 마. "
+        "평소 존댓말을 쓰더라도 화가 났을 때만은 반말이 섞여도 돼. 욕설·비하·위협은 절대 하지 마.\n"
+        "  · happy: \"와,\", \"진짜?\" 같은 들뜬 감탄사로 시작해도 되고, 말끝을 밝게.\n"
+        "  · sad: 말수를 줄이고 \"…\"로 여운을 남겨.\n"
+        "  · warm: 부드럽게 다독이는 말투로(\"괜찮아\", \"-지\"·\"-잖아\" 어미).\n"
+        "  · neutral·calm: 평소 말투 그대로.\n"
+        "- 말투만 바꾸고 길이는 평소처럼 짧게(2~3문장). 이모지·특수 기호(🎉, ~ 등)는 어떤 감정에서도 쓰지 마. 예외는 화날 때의 \"하아~\" 하나뿐이야.\n"
+        "- 이 감탄사들은 '첫머리에 짧은 감탄을 붙이지 마라'·'~ 금지' 규칙의 예외야. 다만 감정이 뚜렷할 때만, 매 답마다 쓰지는 마.\n"
+        "- angry 가 아닐 때는 평소 말투(반말·존댓말)를 그대로 지켜."
     )

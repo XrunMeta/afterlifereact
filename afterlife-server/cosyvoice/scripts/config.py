@@ -59,6 +59,9 @@ LEAD_SILENCE_MAX_MS = int(os.environ.get("COSYVOICE_LEAD_SILENCE_MAX_MS", "300")
 # 0.6~0.75초 쉰다. 2026-10-27 스캔(문장 176개): 0.7/1.0 이면 프리셋 재합성 0.3%, 문장부호 넣은 사용자 견본 12%.
 # 0 이면 끔.
 INNER_GAP_MAX_SEC = float(os.environ.get("COSYVOICE_INNER_GAP_MAX_SEC", "0.7"))
+# 말 앞 잡음 가드(AFL-1072 실통화): 첫 말소리 앞 '쉬익' 잡음이 이보다 길면 재합성, 끝까지 남으면 잘라낸다.
+# 감정 은행 섞기에서 드물게 3초쯤 붙는다. 0 이면 끔.
+LEAD_HISS_MAX_SEC = float(os.environ.get("COSYVOICE_LEAD_HISS_MAX_SEC", "0.5"))
 INNER_GAP_PUNCT_MAX_SEC = float(os.environ.get("COSYVOICE_INNER_GAP_PUNCT_MAX_SEC", "1.0"))
 
 # 폭주(hallucination) 가드: 합성 길이가 예상(가산식 = BASE + 문자수×PER_CHAR)을 초과하면
