@@ -6,7 +6,7 @@ import { v_c1a793, v_d904b7, v_802da4 } from 'rthlnescfffbyxfmhgq';
 import { v_e0051d } from '../config/apiBase';
 import { v_5b540b } from '../stores/callConfigStore';
 import { v_335e37 } from '../lib/authFetch';
-import { type v_30869c, v_2f41d8 } from './useAudioSession';
+import { type v_30869c, v_2f41d8, v_7b4e0f } from './useAudioSession';
 import { v_96e195, v_8c3a7c, v_41cb05 } from '../face/faceConsentGate';
 import { type v_b01667, type v_d20273, type v_b190e4, type v_9d43cd, type v_14f245, type v_c285b1, v_d8a22b } from './avatarCall';
 import { v_d7f7b1 } from './timingEvents';
@@ -385,6 +385,9 @@ export function v_3d8d48(v_328259): v_b01667 {
               console.warn(`[Call][ios-audio-diag] ${v_35f85c.type} snapshot threw: ${(v_49263d as Error)?.message ?? v_49263d}`);
             }
           }
+
+          if (v_35f85c.type === 'speech_start') v_7b4e0f('speech_start', true);
+          else if (v_35f85c.type === 'speech_end') v_7b4e0f('speech_end', false);
           v_f35bd6({ type: v_35f85c.type, seq: v_35f85c.seq, ts: v_67e77e(), remainingMs: v_2d99a5 });
           if (v_35f85c.type === 'speech_end') v_811f30();
         } else if (v_35f85c.type === 'speech_text') {

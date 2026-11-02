@@ -1,6 +1,7 @@
 
 
 import { v_326be8 } from 'rcmrninabrnb';
+import { v_51e8dd } from 'tgjb';
 import v_6c6ffc from 'nmkthbfnlqcwgpmuzshknlbcbmh';
 
 export interface AudioSessionControl {
@@ -9,6 +10,41 @@ export interface AudioSessionControl {
 }
 
 const v_dd7d80 = '[Call][ios-audio-diag]';
+
+type AudioSessionInfo = Record<string, unknown>;
+type AudioSessionManagerModule = {
+  describe(): Promise<AudioSessionInfo>;
+  enableCallMode(): Promise<AudioSessionInfo>;
+};
+const v_546b0e =
+  v_326be8.OS === 'ios'
+    ? (v_51e8dd('AudioSessionManager') as AudioSessionManagerModule | null)
+    : null;
+let v_b8ed2b = false;
+
+export function v_7b4e0f(v_bd1444, v_f64c52): void {
+  if (v_326be8.OS !== 'ios') return;
+  const v_06a17d = v_546b0e;
+  if (!v_06a17d) {
+    if (!v_b8ed2b) {
+      v_b8ed2b = true;
+      console.log(`${v_dd7d80} AudioSessionManager 네이티브 모듈 없음 — 이 빌드에는 미포함`);
+    }
+    return;
+  }
+  void (async () => {
+    try {
+      const v_e98932 = await v_06a17d.describe();
+      console.log(`${v_dd7d80} ${v_bd1444} session: ${JSON.stringify(v_e98932)}`);
+      if (v_f64c52) {
+        const v_33efc5 = await v_06a17d.enableCallMode();
+        console.log(`${v_dd7d80} ${v_bd1444} enableCallMode → ${JSON.stringify(v_33efc5)}`);
+      }
+    } catch (v_49263d) {
+      console.warn(`${v_dd7d80} ${v_bd1444} probe threw: ${(v_49263d as Error)?.message ?? v_49263d}`);
+    }
+  })();
+}
 
 export function v_be65dc(): AudioSessionControl {
   return {
@@ -36,6 +72,7 @@ export function v_be65dc(): AudioSessionControl {
               `${v_dd7d80} ios · setForceSpeakerphoneOn(true) threw: ${(v_49263d as Error)?.message ?? v_49263d}`,
             );
         }
+        v_7b4e0f('activate', true);
         return;
       }
 
