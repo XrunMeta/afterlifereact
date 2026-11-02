@@ -87,7 +87,9 @@ export default function v_c316d8() {
   const v_53dd92 = v_326be8.OS === "ios"
     ? v_033e14.bottom
     : Math.max(v_f9771e, v_033e14.bottom);
-  const v_1be4da = v_28d8d8 - v_e4d4c8 - v_53dd92;
+
+  const [v_e61d31, v_bd2534] = v_5ab095<number | null>(null);
+  const v_1be4da = v_e61d31 ?? v_28d8d8 - v_e4d4c8 - v_53dd92;
 
   const v_ad9bbd = v_326be8.OS === "android" ? 56 : 0;
   const v_2b650d = Math.max(v_033e14.bottom, v_f9771e, v_ad9bbd);
@@ -131,6 +133,15 @@ export default function v_c316d8() {
   );
 
   const [v_2bcb8f, v_ddecc4] = v_5ab095(0);
+  const v_a96760 = v_e662ae(0);
+  v_a96760.current = v_2bcb8f;
+
+  v_c4deb2(() => {
+    if (v_e61d31 == null) return;
+    requestAnimationFrame(() =>
+      v_ebdf9a.current?.scrollToOffset({ offset: v_a96760.current * v_e61d31, animated: false }),
+    );
+  }, [v_e61d31]);
 
   const [v_ed660d, v_b07dd3] = v_5ab095<number | null>(null);
 
@@ -614,6 +625,10 @@ export default function v_c316d8() {
           decelerationRate="fast"
           onViewableItemsChanged={v_43bc1b}
           viewabilityConfig={v_10f7ba}
+          onLayout={(v_9e86fd) => {
+            const v_65a2cd = Math.round(v_9e86fd.nativeEvent.layout.height);
+            if (v_65a2cd > 0 && Math.abs(v_65a2cd - v_1be4da) > 1) v_bd2534(v_65a2cd);
+          }}
           getItemLayout={(v_37eab7, v_a56041) => ({
             length: v_1be4da,
             offset: v_1be4da * v_a56041,
