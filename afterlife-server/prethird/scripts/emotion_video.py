@@ -178,6 +178,19 @@ def bake_enabled(clone_id) -> bool:
     return auto_enabled()
 
 
+def bake_on_create() -> bool:
+    """클론을 만들자마자 굽기(AFL-1073, sungjius 11-02: 관리자에서 따로 켜고 끈다).
+
+    관리자 설정 파일 video.bake_on_create 가 true 일 때만. 영상 노출(mode)과 상관없이 새 클론을 미리 굽는다 —
+    /emo-bake 에서만 쓰므로(클론 생성 때 한 번) 캐시 없이 읽는다. 파일이 없거나 깨졌으면 False."""
+    try:
+        with open(_config_path(), encoding="utf-8") as f:
+            raw = json.load(f)
+        return raw["video"].get("bake_on_create") is True
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
+        return False
+
+
 def emo_dir(video_ref_root: str, clone_id) -> str:
     return os.path.join(video_ref_root, str(clone_id), "emo")
 

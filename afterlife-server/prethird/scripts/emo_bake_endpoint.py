@@ -2,7 +2,8 @@
 
   POST /oth-path {cloneId, faceUrl}
       클론을 만들 때 afterlifeapi createClone 이 부른다(prebuild 와 같은 PREBUILD_SECRET Bearer).
-      굽기 대상(관리자 「감정 설정」 영상 값)이면 얼굴 사진을 video-ref 에 받고 굽기 대기열에 넣는다.
+      굽기 대상(관리자 「감정 설정」 영상 값) 또는 「생성 즉시 굽기」(video.bake_on_create)가 켜져 있으면
+      얼굴 사진을 video-ref 에 받고 굽기 대기열에 넣는다.
       202 {accepted:true} 즉시 응답 · 대상이 아니면 200 {accepted:false, reason:"not_target"}.
   GET /oth-path?scope=relevant|all   → emo_bake.status
   POST /oth-path {cloneId}            → 표시를 비우고 처음부터 다시 굽기
@@ -35,7 +36,7 @@ async def _fetch_and_enqueue(root: str, clone_id: str, face_url: str, fetch_fn=f
     except Exception as e:  # noqa: BLE001 — 실패해도 통화 시작 때 다시 받는다
         log.warning("[AFL-1073] 굽기용 얼굴 사진 받기 실패 clone=%s: %s", clone_id, e)
         return False
-    added = emo_bake.enqueue(root, clone_id)
+    added = emo_bake.enqueue(root, clone_id, on_create=True)
     log.info("[AFL-1073] 클론 생성 굽기 clone=%s 대기열=%s", clone_id, added)
     return added
 
@@ -57,7 +58,7 @@ def make_handlers(root: str, fetch_fn=fetch_to):
         face_url = body.get("faceUrl") if isinstance(body, dict) else None
         if not clone_id or not isinstance(face_url, str) or not face_url:
             return web.json_response({"error": "cloneId and faceUrl required"}, status=400)
-        if not emotion_video.bake_enabled(clone_id):
+        if not (emotion_video.bake_enabled(clone_id) or emotion_video.bake_on_create()):
             log.info("[AFL-1073] 클론 생성 굽기 대상 아님 clone=%s", clone_id)
             return web.json_response({"accepted": False, "reason": "not_target"})
         task = asyncio.ensure_future(_fetch_and_enqueue(root, clone_id, face_url, fetch_fn))
