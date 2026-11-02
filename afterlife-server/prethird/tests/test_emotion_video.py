@@ -285,3 +285,11 @@ def test_wav_를_프레임_지점에서_나눈다(tmp_path):
     assert ev.wav_frames(a) == 20 and ev.wav_frames(b) == 30
     os.unlink(a)
     os.unlink(b)
+
+
+def test_예열은_무감정_먼저_자주_쓰는_길이부터_감정을_번갈아(tmp_path, monkeypatch):
+    a = _with_versions(tmp_path, monkeypatch, secs=(2, 3, 4))
+    paths = ev.prewarm_paths(a)
+    assert paths[0] == a["neutral"]
+    assert paths[1:4] == [a["versions"]["disagreement"][s] for s in (4, 3, 2)]  # 4→3→2(자주 쓰는 순)
+    assert a["warm_calm"] in paths and a["idle"] not in paths                    # 버전 없는 감정은 원본, idle 제외

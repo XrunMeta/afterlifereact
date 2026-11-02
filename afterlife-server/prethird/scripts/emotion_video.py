@@ -213,6 +213,24 @@ def find_assets(video_ref_root: str, clone_id) -> dict | None:
     return found
 
 
+PREWARM_SEC_ORDER = (6, 7, 8, 5, 9, 4, 3, 2)  # 실통화에서 자주 고른 길이부터(11-02 쿄카 5~9초)
+
+
+def prewarm_paths(assets: dict) -> list:
+    """통화 시작 때 미리 풀 영상 — 무감정(매 답) → 길이 버전(자주 쓰는 길이부터, 감정 번갈아).
+    길이 버전이 없는 감정은 원본 클립. idle 은 트랙이 따로 읽으므로 뺀다."""
+    out = [assets[NEUTRAL]]
+    versions = assets.get("versions") or {}
+    secs = sorted({s for v in versions.values() for s in v}, key=lambda s: (PREWARM_SEC_ORDER.index(s) if s in PREWARM_SEC_ORDER else 99, s))
+    for sec in secs:
+        for clip in EMO_CLIPS:
+            p = versions.get(clip, {}).get(sec)
+            if p:
+                out.append(p)
+    out += [assets[c] for c in EMO_CLIPS if c in assets and c not in versions]
+    return out
+
+
 class EmotionVideo:
     """한 통화의 감정 영상 상태. cycle_len = MuseTalk 사이클(클립 프레임 수 × 2, 정방향+역방향).
 

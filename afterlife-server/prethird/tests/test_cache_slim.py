@@ -89,3 +89,25 @@ def test_메모리_상한을_넘으면_오래된_것부터_비운다(tmp_path, m
         cache_slim.read_video_frames(str(tmp_path / f"{n}.mp4"))
     assert len(cache_slim._frames) == 2
     assert not any(k[0].endswith("a.mp4") for k in cache_slim._frames)
+
+
+def test_예열은_영상을_메모리_캐시에_올리고_실패는_건너뛴다(tmp_path, monkeypatch):
+    calls = []
+
+    def dec(p):
+        if p.endswith("bad.mp4"):
+            raise RuntimeError("깨진 영상")
+        calls.append(p)
+        return [np.zeros((4, 4, 3), np.uint8)]
+
+    monkeypatch.setattr(cache_slim, "decode_video_frames", dec)
+    monkeypatch.setattr(cache_slim, "_frames", cache_slim.OrderedDict())
+    monkeypatch.setattr(cache_slim, "_frames_bytes", 0)
+    ps = []
+    for n in ("a", "b", "bad"):
+        (tmp_path / f"{n}.mp4").write_bytes(n.encode())
+        ps.append(str(tmp_path / f"{n}.mp4"))
+    cache_slim.prewarm(ps + [str(tmp_path / "없음.mp4")], workers=2)
+    assert sorted(calls) == sorted(ps[:2]) and len(cache_slim._frames) == 2
+    cache_slim.read_video_frames(ps[0])
+    assert len(calls) == 2   # 렌더 때는 다시 풀지 않는다
