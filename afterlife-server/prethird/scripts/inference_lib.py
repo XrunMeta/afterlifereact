@@ -36,6 +36,7 @@ from musetalk.utils.preprocessing import get_landmark_and_bbox, read_imgs, coord
 
 from unet_bucket import bucket_size, bucket_sizes
 from frame_rotation import MASK_CACHE_TAG, mask_cache_index
+import cache_slim
 # AFL-1071 P2: face_threshold import 가 실패해도 렌더는 돌아야 한다 → 기존 동작(get_landmark_and_bbox 그대로).
 try:
     from face_threshold import landmarks_with_fallback
@@ -203,11 +204,20 @@ def run_inference(args, models, frame_callback=None, timing_out=None, batch_emit
             output_vid_name_concat = os.path.join(temp_dir, output_basename + "_concat.mp4")
             
             # Extract frames from source video
-            if get_file_type(video_path) == "video":
+            # AFL-1064 cache_slim: 좌표 캐시가 있으면 PNG 폴더 없이 mp4 에서 바로 읽는다(아래 frame_list 단계).
+            _slim_frames = (cache_slim.enabled() and get_file_type(video_path) == "video"
+                            and args.use_saved_coord and os.path.exists(crop_coord_save_path))
+            _slim_rm_pngs = False
+            if _slim_frames:
+                input_img_list = None
+                save_dir_full = None
+                fps = get_video_fps(video_path)
+            elif get_file_type(video_path) == "video":
                 save_dir_full = os.path.join(temp_dir, input_basename)
                 os.makedirs(save_dir_full, exist_ok=True)
                 # 029-D-3: skip ffmpeg extract if cached png already present
                 cached_pngs = sorted(glob.glob(os.path.join(save_dir_full, '*.[jpJP][pnPN]*[gG]')))
+                _slim_rm_pngs = cache_slim.enabled()  # 좌표 처음 뽑는 동안만 PNG — 렌더 끝나면 지운다
                 if not cached_pngs:
                     cmd = f"ffmpeg -v fatal -i {video_path} -start_number 0 {save_dir_full}/%08d.png"
                     os.system(cmd)
@@ -252,9 +262,24 @@ def run_inference(args, models, frame_callback=None, timing_out=None, batch_emit
                 print("Using saved coordinates")
                 with open(crop_coord_save_path, 'rb') as f:
                     coord_list = pickle.load(f)
-                _n = max(1, min(16, len(input_img_list)))
-                with ThreadPoolExecutor(max_workers=_n) as _ex:
-                    frame_list = list(_ex.map(cv2.imread, input_img_list))
+                if _slim_frames:
+                    frame_list = cache_slim.read_video_frames(video_path)
+                    print(f"[AFL-1064] frames from video: {len(frame_list)} ({video_path})", flush=True)
+                    if len(frame_list) != len(coord_list):
+                        # 안전장치: 예전처럼 PNG 로 풀어 읽는다(렌더를 깨지 않는다). 렌더 뒤 PNG 는 지운다.
+                        print(f"[AFL-1064] 영상 프레임 {len(frame_list)} ≠ 좌표 {len(coord_list)} — PNG 로 읽기", flush=True)
+                        save_dir_full = os.path.join(temp_dir, input_basename)
+                        os.makedirs(save_dir_full, exist_ok=True)
+                        if not glob.glob(os.path.join(save_dir_full, '*.png')):
+                            os.system(f"ffmpeg -v fatal -i {video_path} -start_number 0 {save_dir_full}/%08d.png")
+                        input_img_list = sorted(glob.glob(os.path.join(save_dir_full, '*.png')))
+                        with ThreadPoolExecutor(max_workers=max(1, min(16, len(input_img_list)))) as _ex:
+                            frame_list = list(_ex.map(cv2.imread, input_img_list))
+                        _slim_rm_pngs = True
+                else:
+                    _n = max(1, min(16, len(input_img_list)))
+                    with ThreadPoolExecutor(max_workers=_n) as _ex:
+                        frame_list = list(_ex.map(cv2.imread, input_img_list))
             else:
                 print("Extracting landmarks... time-consuming operation")
                 # AFL-1071: 기준 0.5 로 전 프레임 얼굴이 없으면(만화풍) 0.2 로 한 번 더. 저장은 재시도 결과.
@@ -388,8 +413,7 @@ def run_inference(args, models, frame_callback=None, timing_out=None, batch_emit
             _mask_n_initial = 0  # 029-F-latency2: load 시점 채워진 수 — 저장 조건 판단(불필요한 241MB write 방지)
             if getattr(args, "use_saved_coord", True) and os.path.exists(mask_cache_path):
                 try:
-                    with open(mask_cache_path, "rb") as f:
-                        mask_cache_list = pickle.load(f)
+                    mask_cache_list = cache_slim.load_masks(mask_cache_path)  # 압축·옛 무압축 둘 다
                     if not isinstance(mask_cache_list, list) or len(mask_cache_list) != len(coord_list_cycle):
                         print(f"[029-D-3a] mask cache size mismatch (cache={len(mask_cache_list) if isinstance(mask_cache_list, list) else 'N/A'} vs cycle={len(coord_list_cycle)}) — discard", flush=True)
                         mask_cache_list = None
@@ -535,8 +559,7 @@ def run_inference(args, models, frame_callback=None, timing_out=None, batch_emit
                 n_filled = sum(1 for m in mask_cache_list if m is not None)
                 if n_filled > _mask_n_initial:
                     try:
-                        with open(mask_cache_path, "wb") as f:
-                            pickle.dump(mask_cache_list, f)
+                        cache_slim.dump_masks(mask_cache_path, mask_cache_list)
                         print(f"[029-D-3a] mask cache saved: {n_filled}/{len(mask_cache_list)} (+{n_filled - _mask_n_initial}) -> {mask_cache_path}", flush=True)
                     except Exception as _ms_e:
                         print(f"[029-D-3a] mask cache save fail: {_ms_e}", flush=True)
@@ -573,7 +596,9 @@ def run_inference(args, models, frame_callback=None, timing_out=None, batch_emit
                     pass
             
             # 029-D-3: keep save_dir_full + pkl cache for next call
-            # shutil.rmtree(save_dir_full)
+            # AFL-1064 cache_slim: 좌표·latent 캐시가 생겼으니 PNG 사본은 지운다(다음부터 mp4 에서 읽는다).
+            if _slim_rm_pngs and save_dir_full and os.path.exists(crop_coord_save_path):
+                shutil.rmtree(save_dir_full, ignore_errors=True)
             if not args.saved_coord:
                 try:
                     os.remove(crop_coord_save_path)
