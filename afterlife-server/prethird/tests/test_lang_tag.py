@@ -344,3 +344,45 @@ def test_최근에_쓴_감탄사는_권하지_않고_쓰지_말라고_한다():
         assert '감탄사는 "헐' not in txt and '감탄사는 "아휴' not in txt
         assert '앞 답에서 쓴 "헐"·"아휴" 는 이번엔 쓰지 마' in txt
     assert "앞 답에서" not in emotion_instruction(random.Random(1))
+
+
+def test_기쁨_슬픔_다정_감탄사_목록():
+    txt = emotion_instruction()
+    for w in ("와아~", "우와!", "오오~", "헤헤,", "야호!",           # 기쁨(쿄카 TTS 확인 sungjius 11-02)
+              "저런…", "아이고…", "어떡해…", "흐음…", "흑…",     # 슬픔
+              "그랬구나,", "아이고~", "에구,", "음~", "그럼 그럼,", "토닥토닥,"):  # 다정
+        assert w in txt, w
+    assert '"어머' not in txt.replace('(\"어머\" 등)', "")  # 폭주·잘림 잦아 뺌 — 쓰지 말라는 문구에만 남는다
+    assert "목록에 없는 감탄사" in txt
+
+
+def test_감정마다_이번_턴_감탄사를_하나씩_권한다():
+    import random
+    from clone_dialog.lang_tag import EMO_INTERJECTIONS
+    seen = {emo: set() for emo in EMO_INTERJECTIONS}
+    for seed in range(60):
+        txt = emotion_instruction(random.Random(seed))
+        for emo, words in EMO_INTERJECTIONS.items():
+            hit = [w for w in words if f'이번 답이 {emo} 라면 감탄사는 "{w}"를 써' in txt]
+            none = f"이번 답이 {emo} 라면 감탄사 없이" in txt
+            assert len(hit) + none == 1, (emo, seed)
+            seen[emo].add(hit[0] if hit else None)
+    for emo, words in EMO_INTERJECTIONS.items():
+        assert None in seen[emo] and len(seen[emo]) >= len(words) - 1, emo
+
+
+def test_최근_답_감탄사_계열은_감정_상관없이_찾고_피한다():
+    import random
+    from clone_dialog.lang_tag import recent_interjections
+    texts = ["<lang=ko><emo=happy>와아~ 진짜 잘됐다!", "저런… 많이 힘들었겠다.", "아까 그 얘기 말이야.",
+             "음식 맛있었어?", "그럼 그럼, 다 알지.", "아 그랬구나, 몰랐어."]
+    assert recent_interjections(texts) == ["와아", "저런", "그럼그럼", "아"]
+    for seed in range(40):
+        txt = emotion_instruction(random.Random(seed), avoid=["와아", "저런"])
+        assert '감탄사는 "와아~"' not in txt and '감탄사는 "저런…"' not in txt
+        assert '앞 답에서 쓴 "와아"·"저런" 는 이번엔 쓰지 마' in txt
+
+
+def test_물결은_감탄사_목록의_것만_허용():
+    txt = emotion_instruction()
+    assert '"하아~"·"와아~"' in txt and "이모지" in txt

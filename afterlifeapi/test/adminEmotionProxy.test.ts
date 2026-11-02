@@ -21,6 +21,8 @@ v_469bf2("admin emotion proxy", () => {
       ["GET", "/oth-path"],
       ["PUT", "/oth-path"],
       ["GET", "/oth-path"],
+      ["GET", "/oth-path"],
+      ["POST", "/oth-path"],
     ]) {
       const v_8f00b9 = await v_1df298.fetch(`https://x${v_9fe22d}`, { method: v_bfe9b9 });
       v_4d37e3(v_8f00b9.status, `${v_bfe9b9} ${v_9fe22d}`).toBeGreaterThanOrEqual(401);
@@ -94,5 +96,32 @@ v_469bf2("admin emotion proxy", () => {
     v_8f00b9 = await v_4abc91({ video: { mode: "all" } });
     v_4d37e3(v_8f00b9.status).toBe(409);
     v_4d37e3((await v_8f00b9.json<{ code: string }>()).code).toBe("VOICE_UNSET");
+  });
+
+  v_23805a("상태 조회는 scope 를 relevant/all 로만 넘긴다", async () => {
+    const v_9edd60 = await v_121982();
+    v_8fd90d.get(v_ec02d1).intercept({ path: "/prethird/admin/emotion-video/status?scope=all", method: "GET" }).reply(200, '{"clones":[]}');
+    let v_8f00b9 = await v_1df298.fetch("https://x/oth-path?scope=all", { headers: { Authorization: `Bearer ${v_9edd60}` } });
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    v_8fd90d.get(v_ec02d1).intercept({ path: "/prethird/admin/emotion-video/status?scope=relevant", method: "GET" }).reply(200, '{"clones":[]}');
+    v_8f00b9 = await v_1df298.fetch("https://x/oth-path?scope=../x", { headers: { Authorization: `Bearer ${v_9edd60}` } });
+    v_4d37e3(v_8f00b9.status).toBe(200);
+  });
+
+  v_23805a("다시 굽기: cloneId 숫자만, 409 는 본문 그대로", async () => {
+    const v_9edd60 = await v_121982();
+    const v_4f438a = (v_4d33b2) => v_1df298.fetch("https://x/oth-path", {
+      method: "POST", headers: { Authorization: `Bearer ${v_9edd60}`, "Content-Type": "application/json" }, body: v_4d33b2,
+    });
+    for (const v_0af197 of ['{"cloneId":"../1"}', '{"cloneId":"preset-1"}', "[]", "x"]) {
+      v_4d37e3((await v_4f438a(v_0af197)).status, v_0af197).toBe(400);
+    }
+    let v_f966e3 = "";
+    v_8fd90d.get(v_ec02d1).intercept({ path: "/prethird/admin/emotion-video/rebake", method: "POST" })
+      .reply(409, (v_328259) => { v_f966e3 = String(v_328259.body); return '{"code":"NO_FACE"}'; });
+    const v_8f00b9 = await v_4f438a('{"cloneId":9232,"extra":"x"}');
+    v_4d37e3(v_8f00b9.status).toBe(409);
+    v_4d37e3((await v_8f00b9.json<{ code: string }>()).code).toBe("NO_FACE");
+    v_4d37e3(JSON.parse(v_f966e3)).toEqual({ cloneId: "9232" });
   });
 });

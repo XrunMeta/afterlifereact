@@ -27,3 +27,30 @@ export async function v_67dc73(
     console.warn("[prebuild] trigger failed:", v_9e86fd instanceof Error ? v_9e86fd.message : v_9e86fd);
   }
 }
+
+export interface EmoBakeArgs {
+  base: string;
+  secret: string;        
+  cloneId: string;
+  faceUrl: string | null;
+}
+
+export async function v_492f0a(
+  v_d10060,
+  v_4317d1,
+): Promise<void> {
+  if (!v_4317d1.faceUrl) return;
+  try {
+    await v_d10060(`${v_4317d1.base}/prethird/emo-bake`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${v_4317d1.secret}`,
+      },
+      body: JSON.stringify({ cloneId: v_4317d1.cloneId, faceUrl: v_4317d1.faceUrl }),
+      signal: AbortSignal.timeout(10000),
+    });
+  } catch (v_9e86fd) {
+    console.warn("[emo-bake] trigger failed:", v_9e86fd instanceof Error ? v_9e86fd.message : v_9e86fd);
+  }
+}

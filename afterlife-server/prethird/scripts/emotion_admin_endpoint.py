@@ -97,7 +97,7 @@ def _default_config(cands: dict) -> dict:
     return {
         "voice": {"enabled": False,
                   "choice": {e: n for e, n in DEFAULT_CHOICE.items() if n in ids}},
-        "video": {"mode": "off", "clones": []},
+        "video": {"mode": "off", "clones": [], "bake_on_create": False},
         "updated_at": "",
         "updated_by": "",
     }
@@ -114,7 +114,9 @@ def _load_file() -> dict | None:
             raise ValueError("voice.enabled 가 bool 이 아님")
         cfg = {
             "voice": {"enabled": voice["enabled"], "choice": choice},
-            "video": {"mode": video["mode"], "clones": list(video["clones"])},
+            # AFL-1073 bake_on_create: 없거나 bool 이 아니면 꺼짐(옛 파일 호환).
+            "video": {"mode": video["mode"], "clones": list(video["clones"]),
+                      "bake_on_create": video.get("bake_on_create") is True},
             "updated_at": str(raw.get("updated_at", "")),
             "updated_by": str(raw.get("updated_by", "")),
         }
@@ -207,6 +209,10 @@ def _apply(cfg: dict, body: dict, cands: dict) -> str | None:
             if len(uniq) > MAX_CLONES:
                 return f"video.clones 는 최대 {MAX_CLONES}개입니다"
             cfg["video"]["clones"] = uniq
+        if "bake_on_create" in video:
+            if not isinstance(video["bake_on_create"], bool):
+                return "video.bake_on_create 는 true/false 여야 합니다"
+            cfg["video"]["bake_on_create"] = video["bake_on_create"]
     by = body.get("updated_by", "")
     if not isinstance(by, str) or len(by) > 200:
         return "updated_by 는 200자 이하 문자열이어야 합니다"

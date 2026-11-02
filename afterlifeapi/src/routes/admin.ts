@@ -3246,6 +3246,19 @@ v_b7f2b4.put("/emotion-config", v_c0a297, async (v_3f4e2e) => {
   return v_05fdfb(v_3f4e2e, "/oth-path", { method: "PUT", body: JSON.stringify(v_4d33b2) });
 });
 
+v_b7f2b4.get("/emotion-video/status", v_c0a297, (v_3f4e2e) => {
+  const v_27ecba = v_3f4e2e.req.query("scope") === "all" ? "all" : "relevant";
+  return v_05fdfb(v_3f4e2e, `/oth-path?scope=${v_27ecba}`);
+});
+
+v_b7f2b4.post("/emotion-video/rebake", v_c0a297, async (v_3f4e2e) => {
+  const v_479f05 = await v_3f4e2e.req.json().catch(() => null);
+  const v_6e0fd3 = v_479f05 && typeof v_479f05 === "object" ? String((v_479f05 as { cloneId?: unknown }).cloneId ?? "") : "";
+  if (!/^[0-9]{1,12}$/.test(v_6e0fd3)) return v_3f4e2e.json({ error: "invalid cloneId" }, 400);
+  console.log(`[emotion-admin] rebake clone=${v_6e0fd3} by=${await v_db93ec(v_3f4e2e)}`);
+  return v_05fdfb(v_3f4e2e, "/oth-path", { method: "POST", body: JSON.stringify({ cloneId: v_6e0fd3 }) });
+});
+
 v_b7f2b4.get("/emotion-bank/sample/:id", v_c0a297, (v_3f4e2e) => {
   const v_389afb = v_3f4e2e.req.param("id");
   if (!v_225647.test(v_389afb)) return v_3f4e2e.json({ error: "invalid sample id" }, 400);

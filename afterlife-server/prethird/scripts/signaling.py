@@ -1877,13 +1877,14 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
 
                     # AFL-1064: 감정 영상 — 허용 클론(또는 자동 켜기)이고 자산(무감정·MuseTalk 무음 idle)이 있으면
                     # idle·기본 영상을 감정 영상 세트로 바꾼다. 이 대입도 pipeline_factory(sess) 이전이어야 한다.
-                    # 자동 켜기면 세트가 덜 구워진 클론을 굽기 대기열에 넣는다(다음 통화부터 반영).
-                    if emotion_video.auto_enabled() and clone_id is not None:
+                    # 굽기 대상(관리자 영상 설정·없으면 자동 켜기 env)이면 덜 구워진 세트를 굽기 대기열에 넣는다(다음 통화부터 반영).
+                    # 클론을 만들 때(/emo-bake) 이미 넣었으면 enqueue 가 알아서 건너뛴다(AFL-1073).
+                    if clone_id is not None:
                         try:
                             emo_bake.enqueue(VIDEO_REF_ROOT, clone_id)
                         except Exception as e:
                             log.warning("[AFL-1064] 굽기 대기열 실패 clone=%s: %s", clone_id, e)
-                    if emotion_video.enabled_for(clone_id) or (emotion_video.auto_enabled() and clone_id is not None):
+                    if emotion_video.enabled_for(clone_id) or emotion_video.bake_enabled(clone_id):
                         _ev_assets = emotion_video.find_assets(VIDEO_REF_ROOT, clone_id)
                         if _ev_assets:
                             sess.video_track.set_idle_video(_ev_assets["idle"])
@@ -2150,10 +2151,14 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
     from emotion_admin_endpoint import register_emotion_admin_routes
     register_emotion_admin_routes(app)
 
-    # AFL-1064: 감정 영상 세트 이어 굽기 — 서버 시작 때와 주기적으로 덜 끝난 굽기를 다시 넣는다(자동 켜기일 때만).
+    # AFL-1073 감정 영상 굽기 — 클론 생성 때 굽기(/emo-bake, PREBUILD_SECRET)·관리자 상태/다시 굽기(LEARN_SECRET).
+    from emo_bake_endpoint import register_emo_bake_routes
+    register_emo_bake_routes(app, VIDEO_REF_ROOT)
+
+    # AFL-1064: 감정 영상 세트 이어 굽기 — 서버 시작 때와 주기적으로 덜 끝난 굽기를 다시 넣는다.
+    # 관리자 설정은 실행 중에 바뀌므로 루프는 늘 돌리고, 클론마다 굽기 대상인지는 enqueue 가 본다(AFL-1073).
     async def _start_emo_bake_sweep(app_: web.Application) -> None:
-        if emotion_video.auto_enabled():
-            app_["emo_bake_sweep"] = asyncio.get_running_loop().create_task(emo_bake.sweep_loop(VIDEO_REF_ROOT))
+        app_["emo_bake_sweep"] = asyncio.get_running_loop().create_task(emo_bake.sweep_loop(VIDEO_REF_ROOT))
 
     async def _stop_emo_bake_sweep(app_: web.Application) -> None:
         t = app_.get("emo_bake_sweep")

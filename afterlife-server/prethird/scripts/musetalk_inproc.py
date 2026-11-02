@@ -328,12 +328,20 @@ class MuseTalkInproc:
         try:
             # GPU 추론 직렬화: 공유 모델 동시 진입(CUDA illegal memory access) 방지.
             with self._infer_lock:
-                inference_lib.run_inference(
-                    args,        # per-call copy — self._args 불변 유지
-                    self._models,  # 모델은 공유 (재로드 없음)
-                    frame_callback=_cb,
-                    timing_out=_timing,
-                )
+                try:
+                    inference_lib.run_inference(
+                        args,        # per-call copy — self._args 불변 유지
+                        self._models,  # 모델은 공유 (재로드 없음)
+                        frame_callback=_cb,
+                        timing_out=_timing,
+                    )
+                except SystemExit as e:
+                    # MuseTalk audio_processor.get_whisper_chunk 는 오디오가 프레임 길이에 못 미치면 exit() 한다.
+                    # 2026-11-02 14:59 말 끊긴(say cancelled) 짧은 오디오로 이게 터져 SystemExit 가 이벤트 루프까지
+                    # 올라가 prethird 가 코드 0 으로 종료 → Restart=on-failure 가 안 살려 30분 통화 불가.
+                    # 이 렌더 한 번의 실패로 바꾼다(호출부의 기존 렌더 예외 처리로 간다).
+                    raise RuntimeError(f"MuseTalk 추론 중 exit({e.code}) — 오디오가 너무 짧음 추정 "
+                                       f"({wav_path_obj.name})") from None
         finally:
             # cfg 정리 (실패해도 시도)
             try:

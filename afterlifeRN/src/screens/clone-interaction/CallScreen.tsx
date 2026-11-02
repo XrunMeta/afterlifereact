@@ -1578,6 +1578,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     faceCheck.onWhoAsked();
   };
 
+  const [bridgeActive, setBridgeActive] = useState(false);
+  const [afl971AdInProgress, setAfl971AdInProgress] = useState(false);
   const micHeld = shouldHoldMic(rmState) || bridgeActive || afl971AdInProgress;
 
   const micHeldRef = useRef(micHeld);
@@ -1631,7 +1633,6 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   }, [cloneId, livePipeline, paramName, nameForCheck, nameOverrideAvatarV2, isAvatarV2, clone]);
   const yoonjeongRef = useRef<YoonjeongAvatarPlayerHandle>(null);
   const lastBridgeTextRef = useRef<string>("");
-  const [bridgeActive, setBridgeActive] = useState(false);
 
   const BRIDGE_GRACE_MS = 3000;
   const bridgeGraceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -2208,7 +2209,6 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const notifySpeechEndRef = useRef(notifySpeechEnd);
   useEffect(() => { notifySpeechEndRef.current = notifySpeechEnd; }, [notifySpeechEnd]);
 
-  const [afl971AdInProgress, setAfl971AdInProgress] = useState(false);
   const afl971AdInProgressRef = useRef<boolean>(false);
 
   const [afl971AdShowingUI, setAfl971AdShowingUI] = useState(false);
