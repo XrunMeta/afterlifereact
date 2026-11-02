@@ -96,6 +96,8 @@ export default function v_5b71e1({ onDone: v_7b5712 }: { onDone: () => void }) {
   const v_ab47d1 = v_e662ae(false);
   const v_e1fdd2 = v_e662ae<{ yaw: number; pitch: number } | null>(null);
   const v_c260c5 = v_e662ae(0);
+
+  const v_35e6eb = v_e662ae(0);
   v_c4deb2(() => { v_4bc1f9.current = v_85f251; }, [v_85f251]);
   v_c4deb2(() => { v_6ba760.current = v_62f5a9?.shots ?? []; }, [v_62f5a9]);
 
@@ -163,6 +165,12 @@ export default function v_5b71e1({ onDone: v_7b5712 }: { onDone: () => void }) {
     const v_375edd = v_1a165b.current;
     const v_e86ad8 = v_4bc1f9.current;
     if (!v_375edd || v_ab47d1.current || v_e86ad8 >= v_6ba760.current.length) return;
+
+    const v_f2a27f = v_e1fdd2.current;
+    console.log(
+      `[AccountFaceEnroll] takeShot: idx=${v_e86ad8} step=${v_6ba760.current[v_e86ad8]} ` +
+        `yaw=${v_f2a27f?.yaw.toFixed(1) ?? "n/a"} pitch=${v_f2a27f?.pitch.toFixed(1) ?? "n/a"}`,
+    );
     v_ab47d1.current = true;
     try {
       const v_2a5a61 = await v_375edd.takePhoto({ flash: "off", enableShutterSound: false });
@@ -191,6 +199,15 @@ export default function v_5b71e1({ onDone: v_7b5712 }: { onDone: () => void }) {
   const v_88ac29 = v_df9f57(
     () =>
       v_d73d29.createRunOnJS((v_0b2889, v_c81315, v_e4ff5e) => {
+
+        const v_67e77e = Date.now();
+        if (v_67e77e - v_35e6eb.current >= 1000) {
+          v_35e6eb.current = v_67e77e;
+          console.log(
+            `[AccountFaceEnroll] pose: faces=${v_0b2889} yaw=${v_c81315.toFixed(1)} pitch=${v_e4ff5e.toFixed(1)} ` +
+              `shotIdx=${v_4bc1f9.current} step=${v_6ba760.current[v_4bc1f9.current] ?? "-"}`,
+          );
+        }
         if (v_0b2889 !== 1) {
           v_807576(null);
           v_c260c5.current = 0;
@@ -244,6 +261,11 @@ export default function v_5b71e1({ onDone: v_7b5712 }: { onDone: () => void }) {
     v_ee9ec1(true);
     void (async () => {
       try {
+
+        console.log(
+          `[AccountFaceEnroll] submit: challengeId=${v_62f5a9.id} uris=${v_db2e13.length}/${v_62f5a9.shots.length} ` +
+            `shots=${v_62f5a9.shots.join(",")}`,
+        );
         await v_62d015(v_2ca7e0, v_62f5a9.id, v_db2e13, "login");
         setTimeout(() => v_1eef66(v_343670), 300);
         v_7b5712();
