@@ -306,6 +306,24 @@ def test_등호없는_emo_본문은_보존():
 def test_emotion_instruction_감정별_말투():
     txt = emotion_instruction()
     assert "[감정에 맞는 말투]" in txt
-    assert "어어?" in txt and "하…" in txt                      # 화남 감탄사(쿄카 TTS 확인 11-02)
+    assert "어어?" in txt and "하아…" in txt and "하아~" in txt and "아휴," in txt  # 화남 감탄사(쿄카 TTS 확인 11-02)
+    assert "에휴" in txt and "문장 중간에만" in txt               # 에휴는 첫머리에서 깨져 중간만(sungjius 11-02)
+    for w in ("흐으음…", "참나,", "허 참,", "헐,", "헐…"):       # 2차 TTS 확인(sungjius 11-02)
+        assert w in txt, w
+    assert "어어어?" not in txt and "쓰읍" not in txt              # 들어 보고 뺀 것
     assert "화가 났을 때만은 반말" in txt and "angry 가 아닐 때는 평소 말투" in txt  # 존댓말 클론은 화날 때만 반말
     assert "욕설" in txt and "이모지" in txt and "2~3문장" in txt
+
+
+def test_화남_감탄사는_매_턴_하나를_골라_권한다():
+    import random
+    from clone_dialog.lang_tag import ANGRY_INTERJECTIONS
+    picks = set()
+    for seed in range(40):
+        txt = emotion_instruction(random.Random(seed))
+        hit = [w for w in ANGRY_INTERJECTIONS if f'감탄사는 "{w}"를 써' in txt]
+        none = "감탄사 없이 바로 퉁명하게 시작해" in txt
+        assert len(hit) + none == 1
+        picks.add(hit[0] if hit else None)
+    assert len(picks) >= 8 and None in picks  # 고르게 돌아가고, 감탄사 없이도 권한다
+    assert "에휴" not in ANGRY_INTERJECTIONS  # 에휴는 첫머리에 권하지 않는다(중간만)
