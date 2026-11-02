@@ -97,3 +97,33 @@ def test_infer_serializes_concurrent_run_inference(tmp_path):
         f"run_inference 동시 진입 감지: max={counter['max']} (직렬화 누락). "
         "MuseTalkInproc.infer 는 GPU 추론을 threading.Lock 으로 직렬화해야 함."
     )
+
+
+def test_infer_exit_은_렌더_실패로_바꾸고_서버를_죽이지_않는다(tmp_path):
+    """MuseTalk audio_processor 는 오디오가 프레임 길이에 못 미치면 exit() 한다.
+    2026-11-02 14:59 그 SystemExit 가 이벤트 루프까지 올라가 prethird 가 코드 0 으로 종료됐다
+    (Restart=on-failure 라 안 살아나 30분 통화 불가). infer 는 RuntimeError 로 바꿔야 한다."""
+    import pytest  # noqa: PLC0415
+    import musetalk_inproc  # noqa: PLC0415
+
+    def fake_run(args, models, frame_callback=None, timing_out=None):
+        exit()
+
+    mock_lib = MagicMock()
+    mock_lib.run_inference = fake_run
+    sys.modules["inference_lib"] = mock_lib
+    orig = (musetalk_inproc.CONFIG_DIR, musetalk_inproc.PRETHIRD_OUTPUTS, musetalk_inproc.RESULT_DIR)
+    musetalk_inproc.CONFIG_DIR = tmp_path
+    musetalk_inproc.PRETHIRD_OUTPUTS = tmp_path
+    musetalk_inproc.RESULT_DIR = tmp_path / "v15"
+    (tmp_path / "v15").mkdir(parents=True, exist_ok=True)
+    mt = _make_loaded_mt()
+    try:
+        with pytest.raises(RuntimeError, match="exit"):
+            mt.infer("/x.wav", lambda a: None)
+        # 락이 풀려 다음 렌더가 막히지 않는다.
+        assert mt._infer_lock.acquire(timeout=1)
+        mt._infer_lock.release()
+    finally:
+        sys.modules.pop("inference_lib", None)
+        musetalk_inproc.CONFIG_DIR, musetalk_inproc.PRETHIRD_OUTPUTS, musetalk_inproc.RESULT_DIR = orig
