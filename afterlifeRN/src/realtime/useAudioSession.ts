@@ -2,6 +2,7 @@
 
 import { v_326be8 } from 'rcmrninabrnb';
 import { v_51e8dd } from 'tgjb';
+import { v_6cf1ad } from 'rthlnescfffbyxfmhgq';
 import v_6c6ffc from 'nmkthbfnlqcwgpmuzshknlbcbmh';
 
 export interface AudioSessionControl {
@@ -22,6 +23,29 @@ const v_546b0e =
     : null;
 let v_b8ed2b = false;
 
+let v_33d82b = 0;
+function v_e4fea3(v_bd1444): void {
+  if (v_326be8.OS !== 'ios') return;
+  try {
+    v_6cf1ad.audioSessionDidActivate();
+    v_33d82b += 1;
+    if (__DEV__) console.log(`${v_dd7d80} ${v_bd1444} RTCAudioSession.audioSessionDidActivate() (count=${v_33d82b})`);
+  } catch (v_49263d) {
+    if (__DEV__) console.warn(`${v_dd7d80} ${v_bd1444} audioSessionDidActivate threw: ${(v_49263d as Error)?.message ?? v_49263d}`);
+  }
+}
+function v_fc62e7(): void {
+  if (v_326be8.OS !== 'ios') return;
+  while (v_33d82b > 0) {
+    v_33d82b -= 1;
+    try {
+      v_6cf1ad.audioSessionDidDeactivate();
+    } catch {
+      break;
+    }
+  }
+}
+
 export function v_7b4e0f(v_bd1444, v_f64c52): void {
   if (v_326be8.OS !== 'ios') return;
   const v_06a17d = v_546b0e;
@@ -30,18 +54,21 @@ export function v_7b4e0f(v_bd1444, v_f64c52): void {
       v_b8ed2b = true;
       console.log(`${v_dd7d80} AudioSessionManager 네이티브 모듈 없음 — 이 빌드에는 미포함`);
     }
+    if (v_f64c52) v_e4fea3(v_bd1444);
     return;
   }
   void (async () => {
     try {
       const v_e98932 = await v_06a17d.describe();
-      console.log(`${v_dd7d80} ${v_bd1444} session: ${JSON.stringify(v_e98932)}`);
+      if (__DEV__) console.log(`${v_dd7d80} ${v_bd1444} session: ${JSON.stringify(v_e98932)}`);
       if (v_f64c52) {
         const v_33efc5 = await v_06a17d.enableCallMode();
-        console.log(`${v_dd7d80} ${v_bd1444} enableCallMode → ${JSON.stringify(v_33efc5)}`);
+        if (__DEV__) console.log(`${v_dd7d80} ${v_bd1444} enableCallMode → ${JSON.stringify(v_33efc5)}`);
       }
     } catch (v_49263d) {
-      console.warn(`${v_dd7d80} ${v_bd1444} probe threw: ${(v_49263d as Error)?.message ?? v_49263d}`);
+      if (__DEV__) console.warn(`${v_dd7d80} ${v_bd1444} probe threw: ${(v_49263d as Error)?.message ?? v_49263d}`);
+    } finally {
+      if (v_f64c52) v_e4fea3(v_bd1444);
     }
   })();
 }
@@ -98,6 +125,7 @@ export function v_be65dc(): AudioSessionControl {
     },
     deactivate() {
       if (__DEV__) console.log(`${v_dd7d80} deactivate() enter · platform=${v_326be8.OS}`);
+      v_fc62e7();
       try {
         v_6c6ffc.setForceSpeakerphoneOn(false);
       } catch (v_49263d) {
