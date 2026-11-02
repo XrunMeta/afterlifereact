@@ -13,8 +13,9 @@ video-ref 를 훑어, 굽기를 시작했다가(ready.txt 있음) 덜 끝난 클
 PRETHIRD_EMO_BAKE_MAX_FAIL(기본 3)번 실패하면 서버 재시작 전까지(또는 관리자 다시 굽기 전까지) 다시 넣지 않는다.
 길이 버전(PRETHIRD_EMO_LEN_SECS)이 켜져 있으면 감정 클립마다 그 버전들까지 다 표시돼야 끝난 것으로 본다.
 
-켜기: emotion_video.bake_enabled — 관리자 「감정 설정」 영상 값(all·some 목록), 설정 파일이 없으면
-PRETHIRD_EMO_VIDEO_AUTO=1. 대상이 아니면 enqueue 는 아무것도 하지 않는다(다시 굽기는 관리자가 직접 고른 것이라 예외).
+켜기(is_target): 관리자 「감정 설정」 영상 값(all·some 목록, 설정 파일이 없으면 PRETHIRD_EMO_VIDEO_AUTO=1)이거나,
+이미 굽기를 시작한 클론(끝까지 굽는다)이거나, 클론 생성 때 「생성 즉시 굽기」(video.bake_on_create)가 켜져 있을 때.
+대상이 아니면 enqueue 는 아무것도 하지 않는다(다시 굽기는 관리자가 직접 고른 것이라 예외).
 """
 from __future__ import annotations
 
@@ -72,10 +73,23 @@ def needs_bake(video_ref_root: str, clone_id) -> bool:
     return not wanted(video_ref_root, c) <= ready
 
 
-def enqueue(video_ref_root: str, clone_id, rebake: bool = False) -> bool:
+def started(video_ref_root: str, clone_id) -> bool:
+    """굽기를 시작한 클론(emo/ready.txt 있음)."""
+    return os.path.isfile(os.path.join(emotion_video.emo_dir(video_ref_root, clone_id), emotion_video.READY))
+
+
+def is_target(video_ref_root: str, clone_id, on_create: bool = False) -> bool:
+    """대기열에 넣어도 되는 클론 — 영상 설정 대상이거나, 이미 시작한 굽기(끝까지 굽는다),
+    또는 클론 생성 때 「생성 즉시 굽기」가 켜져 있을 때."""
+    return (emotion_video.bake_enabled(clone_id) or started(video_ref_root, clone_id)
+            or (on_create and emotion_video.bake_on_create()))
+
+
+def enqueue(video_ref_root: str, clone_id, rebake: bool = False, on_create: bool = False) -> bool:
     """굽기가 필요하면 대기열에 넣고 True. 이미 들어 있거나 필요 없으면 False.
 
-    rebake=True(관리자 다시 굽기): 대상 판정·완료 여부·연속 실패와 상관없이 얼굴 사진만 있으면 처음부터 굽는다."""
+    rebake=True(관리자 다시 굽기): 대상 판정·완료 여부·연속 실패와 상관없이 얼굴 사진만 있으면 처음부터 굽는다.
+    on_create=True(/emo-bake): 「생성 즉시 굽기」가 켜져 있으면 영상 설정 대상이 아니어도 굽는다."""
     if clone_id is None:
         return False
     c = str(clone_id)
@@ -85,7 +99,7 @@ def enqueue(video_ref_root: str, clone_id, rebake: bool = False) -> bool:
         if not os.path.isfile(face_path(video_ref_root, c)):
             return False
         _fails.pop(c, None)
-    elif (not emotion_video.bake_enabled(c) or _fails.get(c, 0) >= MAX_FAIL
+    elif (not is_target(video_ref_root, c, on_create) or _fails.get(c, 0) >= MAX_FAIL
           or not needs_bake(video_ref_root, c)):
         return False
     _pending.add(c)
@@ -217,7 +231,7 @@ def clone_status(video_ref_root: str, clone_id) -> dict:
         "total": len(want),
         "base_ready": ready is not None and set(emotion_video.BASE_CLIPS) <= ready,
         "legacy_clips": sorted(k for k in assets if k != "versions") if legacy else [],
-        "bake_target": emotion_video.bake_enabled(c),
+        "bake_target": is_target(video_ref_root, c),
         "video_on": emotion_video.enabled_for(c) and assets is not None,
         "fails": _fails.get(c, 0),
         "job": dict(job) if job else None,
@@ -247,6 +261,7 @@ def status(video_ref_root: str, scope: str = "relevant") -> dict:
         "running": next((c for c, j in _jobs.items() if j["state"] == "running"), None),
         "queued": sorted((c for c, j in _jobs.items() if j["state"] == "queued"), key=lambda c: _jobs[c]["queued_at"]),
         "video_setting": None if setting is None else {"mode": setting[0], "clones": sorted(setting[1])},
+        "bake_on_create": emotion_video.bake_on_create(),
         "auto_env": emotion_video.auto_enabled(),
         "len_secs": list(emotion_video.len_secs()),
         "max_fail": MAX_FAIL,

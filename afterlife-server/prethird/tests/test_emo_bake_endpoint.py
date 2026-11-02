@@ -26,7 +26,7 @@ def env(tmp_path, monkeypatch):
     monkeypatch.setattr(emo_bake, "_last", {})
     monkeypatch.setattr(emo_bake, "_pending", set())
     calls = []
-    monkeypatch.setattr(emo_bake, "enqueue", lambda root, c, rebake=False: calls.append((c, rebake)) or True)
+    monkeypatch.setattr(emo_bake, "enqueue", lambda root, c, rebake=False, on_create=False: calls.append((c, rebake, on_create)) or True)
     root = tmp_path / "video-ref"
     root.mkdir()
     return tmp_path, root, calls
@@ -69,7 +69,7 @@ async def test_클론_생성_굽기_대상이면_얼굴_받고_대기열(env, mo
         assert r.status == 202 and (await r.json())["accepted"]
         await ep._drain_tasks_for_test()
     assert fetched == [("https://oth-path", str(root / "9400" / "9400-face.jpg"))]
-    assert calls == [("9400", False)]
+    assert calls == [("9400", False, True)]
 
 @pytest.mark.asyncio
 async def test_클론_생성_굽기_대상_아니면_안_받는다(env, monkeypatch):
@@ -89,7 +89,7 @@ async def test_다시_굽기(env, monkeypatch):
     async with TestClient(TestServer(_app(root, []))) as c:
         r = await c.post("/oth-path", json={"cloneId": "9232"}, headers=ADMIN)
         assert r.status == 202 and (await r.json())["accepted"]
-        assert calls == [("9232", True)]
+        assert calls == [("9232", True, False)]
         monkeypatch.setattr(emo_bake, "enqueue", lambda *a, **k: False)
         r = await c.post("/oth-path", json={"cloneId": "9232"}, headers=ADMIN)
         assert r.status == 409 and (await r.json())["code"] == "NO_FACE"
@@ -109,3 +109,17 @@ async def test_상태(env):
         j = await (await c.get("/oth-path?scope=all", headers=ADMIN)).json()
         assert [r["clone"] for r in j["clones"]] == ["9300"] and j["clones"][0]["state"] == "none"
         assert (await c.get("/oth-path?scope=x", headers=ADMIN)).status == 400
+
+@pytest.mark.asyncio
+async def test_생성_즉시_굽기가_켜지면_영상_설정_밖_클론도(env, monkeypatch):
+    tmp_path, root, calls = env
+    p = tmp_path / "cfg.json"
+    p.write_text(json.dumps({"video": {"mode": "off", "clones": [], "bake_on_create": True}}))
+    monkeypatch.setenv("EMOTION_CONFIG_PATH", str(p))
+    async with TestClient(TestServer(_app(root, []))) as c:
+        r = await c.post("/emo-bake", json={"cloneId": "9401", "faceUrl": "https://oth-path"}, headers=PREBUILD)
+        assert r.status == 202
+        await ep._drain_tasks_for_test()
+        j = await (await c.get("/oth-path", headers=ADMIN)).json()
+    assert calls == [("9401", False, True)]
+    assert j["bake_on_create"] is True

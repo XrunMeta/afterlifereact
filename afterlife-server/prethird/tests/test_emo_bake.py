@@ -253,5 +253,29 @@ def test_상태_표는_관련_클론만_scope_all이면_얼굴_있는_전부(tmp
     rel = emo_bake.status(root)
     assert [r["clone"] for r in rel["clones"]] == ["9300", "9301"]       # partial → none 순
     assert rel["video_setting"] == {"mode": "some", "clones": ["9301"]}
-    assert rel["clones"][1]["bake_target"] and not rel["clones"][0]["bake_target"]
-    assert {r["clone"] for r in emo_bake.status(root, "all")["clones"]} == {"9300", "9301", "9302"}
+    assert rel["clones"][0]["bake_target"] and rel["clones"][1]["bake_target"]   # 시작한 굽기·목록
+    allrows = {r["clone"]: r for r in emo_bake.status(root, "all")["clones"]}
+    assert set(allrows) == {"9300", "9301", "9302"} and not allrows["9302"]["bake_target"]
+
+
+def _config_raw(tmp_path, monkeypatch, video):
+    p = tmp_path / "cfg-raw.json"
+    p.write_text(json.dumps({"video": video}))
+    monkeypatch.setenv("EMOTION_CONFIG_PATH", str(p))
+
+
+def test_생성_즉시_굽기는_영상_설정과_따로(tmp_path, monkeypatch):
+    _config_raw(tmp_path, monkeypatch, {"mode": "off", "clones": [], "bake_on_create": True})
+    root = _clone(tmp_path)
+    assert ev.bake_on_create()
+    assert not emo_bake.is_target(root, "9300")                 # 통화 시작·이어 굽기 경로로는 안 넣는다
+    assert emo_bake.is_target(root, "9300", on_create=True)     # 클론 생성 때만
+    _config_raw(tmp_path, monkeypatch, {"mode": "all", "clones": [], "bake_on_create": "yes"})
+    assert not ev.bake_on_create()                               # bool true 만 켬
+
+
+def test_시작한_굽기는_대상에서_빠져도_끝까지(tmp_path, monkeypatch):
+    _config(tmp_path, monkeypatch, "off")
+    root = _clone(tmp_path, ready=["neutral"])
+    assert emo_bake.is_target(root, "9300")
+    assert emo_bake.needs_bake(root, "9300")
