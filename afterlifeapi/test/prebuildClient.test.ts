@@ -1,5 +1,5 @@
 import { v_469bf2, v_23805a, v_4d37e3, v_3889c0 } from "xualxe";
-import { v_67dc73 } from "../src/lib/prebuildClient";
+import { v_492f0a, v_67dc73 } from "../src/lib/prebuildClient";
 
 v_469bf2("triggerPrebuild", () => {
   v_23805a("POSTs cloneId+voiceRawUrl with Bearer secret", async () => {
@@ -30,6 +30,27 @@ v_469bf2("triggerPrebuild", () => {
     await v_67dc73(v_8fd90d as any, {
       base: "https://memorial.example.invalid", secret: "s", cloneId: "9", voiceRawUrl: null,
     });
+    v_4d37e3(v_8fd90d).not.toHaveBeenCalled();
+  });
+});
+
+v_469bf2("triggerEmoBake (AFL-1073)", () => {
+  v_23805a("POSTs cloneId+faceUrl to /prethird/emo-bake with Bearer secret", async () => {
+    const v_8fd90d = v_3889c0.fn().mockResolvedValue(new Response(null, { status: 202 }));
+    await v_492f0a(v_8fd90d as any, {
+      base: "https://memorial.example.invalid", secret: "s3cr3t", cloneId: "9400", faceUrl: "https://x/oth-path",
+    });
+    const [v_f71b56, v_00cfc6] = v_8fd90d.mock.calls[0];
+    v_4d37e3(v_f71b56).toBe("https://memorial.example.invalid/prethird/emo-bake");
+    v_4d37e3(v_00cfc6.headers["Authorization"]).toBe("Bearer s3cr3t");
+    v_4d37e3(JSON.parse(v_00cfc6.body)).toEqual({ cloneId: "9400", faceUrl: "https://x/oth-path" });
+  });
+
+  v_23805a("swallows errors and skips without faceUrl", async () => {
+    const v_38d079 = v_3889c0.fn().mockRejectedValue(new Error("network"));
+    await v_4d37e3(v_492f0a(v_38d079 as any, { base: "b", secret: "s", cloneId: "9", faceUrl: "u" })).resolves.toBeUndefined();
+    const v_8fd90d = v_3889c0.fn();
+    await v_492f0a(v_8fd90d as any, { base: "b", secret: "s", cloneId: "9", faceUrl: null });
     v_4d37e3(v_8fd90d).not.toHaveBeenCalled();
   });
 });
