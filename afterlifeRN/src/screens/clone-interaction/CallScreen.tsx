@@ -1854,8 +1854,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   useEffect(() => {
     const audio = (remoteStream as unknown as { getAudioTracks?: () => Array<{ enabled: boolean }> })
       ?.getAudioTracks?.() ?? [];
-
-    const shouldEnable = Platform.OS === "ios" ? !isMuted : dialingDone && !isMuted;
+    const shouldEnable = dialingDone && !isMuted;
     audio.forEach((t) => {
       t.enabled = shouldEnable;
     });
@@ -2138,11 +2137,6 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const isMutedRef = useRef(isMuted);
   isMutedRef.current = isMuted;
   const afl971MuteCallAudio = useCallback(() => {
-
-    if (Platform.OS === "ios") {
-      console.log("[Call][afl971] remote audio mute skip (ios)");
-      return;
-    }
     const s = remoteStreamRef.current as unknown as { getAudioTracks?: () => Array<{ enabled: boolean }> } | null;
     if (!s) {
       console.log("[Call][afl971] remote audio mute 보류 — 스트림 아직 없음(연결 후 적용)");
@@ -2157,7 +2151,6 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     }
   }, []);
   const afl971UnmuteCallAudio = useCallback(() => {
-    if (Platform.OS === "ios") return;
     const s = remoteStreamRef.current as unknown as { getAudioTracks?: () => Array<{ enabled: boolean }> } | null;
     if (!s) return;
     try {
