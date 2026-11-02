@@ -30,7 +30,7 @@ from recorder import NULL_TURN
 from clone_dialog.conversation_history import ConversationHistory
 from clone_dialog.lang_tag import (
     CALL_LANGS, DEFAULT_EMOTION, LangTagStream, emo_tag_enabled, emotion_instruction, lang_instruction,
-    normalize_lang, split_reply_tags,
+    normalize_lang, recent_interjections, split_reply_tags,
 )
 from clone_dialog.whoami import (
     turn_face_instruction, turn_face_names_allowed, remember_me_consent_instruction,
@@ -1164,7 +1164,9 @@ class DialoguePipeline:
         content = lang_instruction(self.user_lang, CALL_LANGS)
         if emo_tag_enabled():
             # AFL-1067: 감정 태그 지시는 언어 규칙과 한 메시지로(태그 순서를 한곳에서 설명).
-            content += "\n\n" + emotion_instruction()
+            # 최근 클론 답 3개의 첫머리 감탄사는 이번 턴에 권하지 않는다(대화 기록을 따라 같은 감탄사 반복 방지).
+            recent = [m["content"] for m in self._history.messages() if m.get("role") == "assistant"][-3:]
+            content += "\n\n" + emotion_instruction(avoid=recent_interjections(recent))
         return [{"role": "system", "content": content}]
 
     @property
