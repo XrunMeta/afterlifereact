@@ -123,12 +123,23 @@ export function v_8dbaf4(): string {
 
 export type RewardedAdResult = "closed" | "timeout";
 
-export async function v_18f201(v_61418d): Promise<RewardedAdResult> {
+export async function v_18f201(
+  v_61418d,
+  v_328259,
+): Promise<RewardedAdResult> {
   const v_b66f2c = Date.now();
   const v_a48992 = () => `+${Date.now() - v_b66f2c}ms`;
+  const v_15b580 = () => {
+    try {
+      v_328259?.onShown?.();
+    } catch {
+
+    }
+  };
   v_4b0422(`loadAndShowRewardedAd() 호출 · nativeModule=${!!v_d57f84} emitter=${!!v_357489} platform=${v_326be8.OS} stub=${v_36f8a3()}`);
 
   if (v_36f8a3()) {
+    v_15b580();
     v_4b0422(`STUB MODE on — 실광고 대신 시뮬레이션(${v_9fd782()}ms)`);
     await v_cdacfb((v_9e86fd) => v_4b0422(`[stub] event ${v_9e86fd} (${v_a48992()})`));
     v_4b0422(`STUB MODE 완료 — close 상당 지점 resolve (${v_a48992()})`);
@@ -182,6 +193,7 @@ export async function v_18f201(v_61418d): Promise<RewardedAdResult> {
         v_4b0422(`loadRewardedAd 성공 (${v_a48992()}) → showRewardedAd 시작`);
         await v_d57f84.showRewardedAd(v_80cae9);
         v_4b0422(`showRewardedAd 성공 (${v_a48992()}) — 광고 표시됨, close 대기`);
+        v_15b580();
         v_1507f7("shown", { unit: v_80cae9 });
       } catch (v_49263d) {
         v_4b0422(`load/show 예외 (${v_a48992()}): ${(v_49263d as Error)?.message ?? String(v_49263d)}`);

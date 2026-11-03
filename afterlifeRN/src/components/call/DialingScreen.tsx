@@ -27,8 +27,10 @@ export function v_1980fb(props: {
   silent?: boolean;
 
   audioSuppressed?: boolean;
+
+  holdTimer?: boolean;
 }) {
-  const { liveState: v_6cc918, personaName: v_dfb220, personaImage: v_0e38ad, greetingStarted: v_7a419e, silent: v_669bef, audioSuppressed: v_d03f3c, onConnected: v_a4c77b, onCancel: v_c7001c, onRetry: v_09e13b, poorConnection: v_c518d6 } = v_b1927c;
+  const { liveState: v_6cc918, personaName: v_dfb220, personaImage: v_0e38ad, greetingStarted: v_7a419e, silent: v_669bef, audioSuppressed: v_d03f3c, holdTimer: v_58a659, onConnected: v_a4c77b, onCancel: v_c7001c, onRetry: v_09e13b, poorConnection: v_c518d6 } = v_b1927c;
   const { t: v_8d41d7 } = v_772971();
   const v_f22657 = v_e662ae(Date.now());
   const v_5d6849 = v_e662ae(0);
@@ -41,6 +43,7 @@ export function v_1980fb(props: {
     return () => clearInterval(v_389afb);
   }, []);
 
+  if (v_58a659) v_f22657.current = v_5c2f9f;
   const v_e56026 = v_5c2f9f - v_f22657.current;
 
   const v_163855 = v_5c2f9f < v_5d6849.current;
