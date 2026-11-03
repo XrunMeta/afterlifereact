@@ -1711,21 +1711,33 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   }, [facePresent, liveState, dispatchRm]);
 
   const afl971PromptAlertShownRef = useRef(false);
-  useEffect(() => {
-    if (!rmState.promptRegister) { afl971PromptAlertShownRef.current = false; return; }
 
-    if (faceBiometricConsent !== true) return;
+  const newFacePromptHoldRef = useRef<string | null>(null);
+  useEffect(() => {
+    const hold = (reason: string | null) => {
+      if (newFacePromptHoldRef.current === reason) return;
+      newFacePromptHoldRef.current = reason;
+      if (reason) console.log(`[Call][face-prompt] 보류 reason=${reason} phase=${phase}`);
+    };
+    if (!rmState.promptRegister) { afl971PromptAlertShownRef.current = false; hold(null); return; }
+
+    if (faceBiometricConsent !== true) { hold(`consent=${faceBiometricConsent}`); return; }
     if (afl971PromptAlertShownRef.current) return;      
 
-    if (phase === "speaking" || afl971AdInProgressRef.current) return;
+    if (phase === "speaking") { hold("speaking"); return; }
+    if (afl971AdInProgressRef.current) { hold("ad"); return; }
 
-    if (!isFocused || faceEnrollAwayRef.current) return;
+    if (!isFocused) { hold("unfocused"); return; }
+    if (faceEnrollAwayRef.current) { hold("enroll-away"); return; }
     const graceLeft = suppressNewFacePromptUntilRef.current - Date.now();
     if (graceLeft > 0) {
+      hold(`grace ${graceLeft}ms`);
       const id = setTimeout(() => setNewFacePromptRecheck((n) => n + 1), graceLeft + 50);
       return () => clearTimeout(id);
     }
     afl971PromptAlertShownRef.current = true;
+    newFacePromptHoldRef.current = null;
+    console.log(`[Call][face-prompt] showAlert 호출 phase=${phase}`);
 
     const lastPerson = rmState.lastConfirmedPerson;
     const lastPersonName = lastPerson?.displayName?.trim() || null;
