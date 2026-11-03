@@ -1808,11 +1808,12 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
     const openedKey = useDialogStore.getState().key;
     if (newFacePromptWatchRef.current) clearTimeout(newFacePromptWatchRef.current);
-    newFacePromptWatchRef.current = setTimeout(() => {
+    if (Platform.OS === "ios") newFacePromptWatchRef.current = setTimeout(() => {
       newFacePromptWatchRef.current = null;
+      if (!rmStateRef.current.promptRegister) return;   
       const d = useDialogStore.getState();
-      if (d.shownKey >= openedKey) return;
-      if (!rmStateRef.current.promptRegister) return;
+
+      if (d.visible && d.key === openedKey && d.shownKey === openedKey) return;
       console.warn(`[Call][face-prompt] 팝업이 ${NEW_FACE_PROMPT_SHOW_TIMEOUT_MS}ms 안에 안 보임 key=${openedKey} → 거두고 나중에 처리(마이크 복구)`);
       if (d.visible && d.key === openedKey) d.close();
       accountSelfMatchRef.current = false;

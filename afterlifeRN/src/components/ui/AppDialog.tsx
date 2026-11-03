@@ -30,8 +30,6 @@ export default function v_d714a5() {
   v_a3453e.useEffect(() => {
     if (!v_cf55be) return;
     console.log(`[AppDialog] open key=${v_b24339} title="${v_9f1622}" via=${v_d2b87d ? "overlay" : "modal"}`);
-
-    if (v_d2b87d) v_92dfb5();
     const v_389afb = setTimeout(() => {
       if (v_489ca3.current !== v_b24339) console.warn(`[AppDialog] onShow 안 옴 1.5s key=${v_b24339} title="${v_9f1622}" — 화면에 못 올라왔을 수 있음`);
     }, 1500);
@@ -53,48 +51,50 @@ export default function v_d714a5() {
   const v_954b83 = v_3d694a.length >= 3;
 
   const v_b43b74 = (
-      <Pressable
-        style={v_d81136.overlay}
+    <Pressable
+      style={v_d81136.overlay}
 
-        onPress={() => {}}
-      >
-        <View style={v_d81136.box} onStartShouldSetResponder={() => true}>
-          <Text style={v_d81136.title}>{v_9f1622}</Text>
-          {v_a8cd21 ? (
-            <Text style={[v_d81136.message, v_48225e === "left" && { textAlign: "left" }]}>{v_a8cd21}</Text>
-          ) : null}
-          {v_b16388 ? <Text style={v_d81136.subMessage}>{v_b16388}</Text> : null}
-          <View
-            style={[
-              v_d81136.btnRow,
-              v_954b83 && { flexDirection: "column", gap: 8 },
-            ]}
-          >
-            {v_3d694a.map((v_8955f9, v_e86ad8) => {
-              const v_d7a4ff = v_8955f9.style === "cancel";
-              const v_6cbd7f = v_8955f9.style === "destructive";
-              const v_292ed0 = v_d7a4ff
-                ? v_d81136.cancel
-                : v_6cbd7f
-                  ? v_d81136.destructive
-                  : v_d81136.confirm;
-              const v_197d6e = v_d7a4ff
-                ? v_d81136.cancelText
-                : v_d81136.confirmText;
-              return (
-                <TouchableOpacity
-                  key={`${v_e86ad8}-${v_8955f9.text}`}
-                  style={[v_292ed0, { flex: v_954b83 ? undefined : 1 }]}
-                  activeOpacity={0.85}
-                  onPress={() => v_5ba0f2(v_8955f9)}
-                >
-                  <Text style={v_197d6e}>{v_8955f9.text}</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+      onLayout={v_d2b87d ? v_92dfb5 : undefined}
+
+      onPress={() => {}}
+    >
+      <View style={v_d81136.box} onStartShouldSetResponder={() => true}>
+        <Text style={v_d81136.title}>{v_9f1622}</Text>
+        {v_a8cd21 ? (
+          <Text style={[v_d81136.message, v_48225e === "left" && { textAlign: "left" }]}>{v_a8cd21}</Text>
+        ) : null}
+        {v_b16388 ? <Text style={v_d81136.subMessage}>{v_b16388}</Text> : null}
+        <View
+          style={[
+            v_d81136.btnRow,
+            v_954b83 && { flexDirection: "column", gap: 8 },
+          ]}
+        >
+          {v_3d694a.map((v_8955f9, v_e86ad8) => {
+            const v_d7a4ff = v_8955f9.style === "cancel";
+            const v_6cbd7f = v_8955f9.style === "destructive";
+            const v_292ed0 = v_d7a4ff
+              ? v_d81136.cancel
+              : v_6cbd7f
+                ? v_d81136.destructive
+                : v_d81136.confirm;
+            const v_197d6e = v_d7a4ff
+              ? v_d81136.cancelText
+              : v_d81136.confirmText;
+            return (
+              <TouchableOpacity
+                key={`${v_e86ad8}-${v_8955f9.text}`}
+                style={[v_292ed0, { flex: v_954b83 ? undefined : 1 }]}
+                activeOpacity={0.85}
+                onPress={() => v_5ba0f2(v_8955f9)}
+              >
+                <Text style={v_197d6e}>{v_8955f9.text}</Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
-      </Pressable>
+      </View>
+    </Pressable>
   );
 
   if (v_d2b87d) {
