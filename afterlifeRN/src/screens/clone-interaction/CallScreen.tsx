@@ -2002,7 +2002,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     const t = setTimeout(kick, 2500);
     return () => clearTimeout(t);
 
-  }, [livePipeline, connectAdLiveGate]);
+  }, [livePipeline, connectAdLiveGate, accessToken]);
 
   useEffect(() => {
     if (!__DEV__) return;
@@ -2290,7 +2290,24 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     return template.replace(/\{userName\}/g, userName).replace(/\{cloneName\}/g, cloneName);
   }, [myName, paramName, clone]);
 
+  const afl1075AdShownRef = useRef(false);
+  const afl971MicTurnedOffForAdRef = useRef(false);
+
   useEffect(() => {
+
+    const afl971MicOffForAd = (why: string) => {
+      afl971MicTurnedOffForAdRef.current = true;
+      if (micOnRef.current) {
+        console.log(`[Call][afl971] 광고 직전 즉시 mic off (${why})`);
+        toggleMicRef.current();
+      }
+    };
+    setTimeout(() => {
+      if (afl1075AdShownRef.current || connectAdLiveGateRef.current) return;
+
+      if (afl971ConnectingAdFiredRef.current) afl971MicOffForAd("연결중·광고 늦음");
+      openConnectAdLiveGate("광고가 아직 안 뜸 — 기다리지 않음");
+    }, AFL1075_CONNECT_AD_SHOW_WAIT_MS);
     (async () => {
       try {
         const raw = await AsyncStorage.getItem(AFL971_COUNT_KEY);
@@ -2308,29 +2325,20 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       afl971ConnectingAdFiredRef.current = true;
       setAfl971AdInProgress(true);
 
-      if (micOnRef.current) {
-        console.log("[Call][afl971] 광고 직전 즉시 mic off (연결중)");
-        toggleMicRef.current();
-      }
+      if (connectAdLiveGateRef.current) afl971MicOffForAd("연결중");
       try {
         console.log("[Call][afl971] 연결중 전면광고 trigger");
         const { loadAndShowRewardedAd } = await import("../../lib/pangle");
         afl971MuteCallAudio();
         setAfl971AdShowingUI(true);
         let adResult: "closed" | "timeout" = "closed";
-
-        let adShown = false;
-        const adShowWait = setTimeout(() => {
-          if (!adShown) openConnectAdLiveGate("광고가 아직 안 뜸 — 기다리지 않음");
-        }, AFL1075_CONNECT_AD_SHOW_WAIT_MS);
         try {
           adResult = await loadAndShowRewardedAd(undefined, {
             onShown: () => {
-              adShown = true;
+              afl1075AdShownRef.current = true;
             },
           });
         } finally {
-          clearTimeout(adShowWait);
 
           if (adResult === "closed") {
             setAfl971AdShowingUI(false);
@@ -2354,7 +2362,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       } finally {
         setAfl971AdInProgress(false);
 
-        if (!afl971AdTimedOut && !micOnRef.current && !isMuted) {
+        if (afl971MicTurnedOffForAdRef.current && !afl971AdTimedOut && !micOnRef.current && !isMuted) {
           console.log("[Call][afl971] 연결중 광고 종료 — mic 복원");
           toggleMicRef.current();
         }
