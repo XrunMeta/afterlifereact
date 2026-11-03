@@ -10,23 +10,33 @@ import {
   v_09d0e5,
   v_326be8,
 } from "rcmrninabrnb";
+import { v_e8b449 } from "bbggrsnncnkpbldfggro";
 import { v_b54176, type v_2bdc79 } from "../../stores/dialogStore";
 import { v_1bfbd0, v_8b0c90, v_d43669, v_c10a43, v_119e65 } from "../constants";
 
 const v_11c329 = 350;
+const v_d2b87d = v_326be8.OS === "ios";
 
 export default function v_d714a5() {
   const { visible: v_cf55be, title: v_9f1622, message: v_a8cd21, subMessage: v_b16388, buttons: v_3d694a, key: v_b24339, close: v_c78a36, messageAlign: v_48225e } = v_b54176();
 
+  const v_697d4f = v_b54176((v_fd5f43) => v_fd5f43.markShown);
   const v_489ca3 = v_a3453e.useRef<number | null>(null);
+  const v_92dfb5 = v_a3453e.useCallback(() => {
+    v_489ca3.current = v_b24339;
+    v_697d4f(v_b24339);
+    console.log(`[AppDialog] onShow key=${v_b24339}`);
+  }, [v_b24339, v_697d4f]);
   v_a3453e.useEffect(() => {
     if (!v_cf55be) return;
-    console.log(`[AppDialog] open key=${v_b24339} title="${v_9f1622}"`);
+    console.log(`[AppDialog] open key=${v_b24339} title="${v_9f1622}" via=${v_d2b87d ? "overlay" : "modal"}`);
+
+    if (v_d2b87d) v_92dfb5();
     const v_389afb = setTimeout(() => {
       if (v_489ca3.current !== v_b24339) console.warn(`[AppDialog] onShow 안 옴 1.5s key=${v_b24339} title="${v_9f1622}" — 화면에 못 올라왔을 수 있음`);
     }, 1500);
     return () => clearTimeout(v_389afb);
-  }, [v_cf55be, v_b24339, v_9f1622]);
+  }, [v_cf55be, v_b24339, v_9f1622, v_92dfb5]);
 
   const v_5ba0f2 = (btn: v_2bdc79) => {
     v_c78a36();
@@ -42,19 +52,7 @@ export default function v_d714a5() {
 
   const v_954b83 = v_3d694a.length >= 3;
 
-  return (
-    <Modal
-      key={v_b24339}
-      visible={v_cf55be}
-      transparent
-      animationType="fade"
-      onRequestClose={v_c78a36}
-      onShow={() => {
-        v_489ca3.current = v_b24339;
-        console.log(`[AppDialog] onShow key=${v_b24339}`);
-      }}
-      statusBarTranslucent
-    >
+  const v_b43b74 = (
       <Pressable
         style={v_d81136.overlay}
 
@@ -97,6 +95,28 @@ export default function v_d714a5() {
           </View>
         </View>
       </Pressable>
+  );
+
+  if (v_d2b87d) {
+    if (!v_cf55be) return null;
+    return (
+      <FullWindowOverlay key={v_b24339}>
+        {v_b43b74}
+      </FullWindowOverlay>
+    );
+  }
+
+  return (
+    <Modal
+      key={v_b24339}
+      visible={v_cf55be}
+      transparent
+      animationType="fade"
+      onRequestClose={v_c78a36}
+      onShow={v_92dfb5}
+      statusBarTranslucent
+    >
+      {v_b43b74}
     </Modal>
   );
 }

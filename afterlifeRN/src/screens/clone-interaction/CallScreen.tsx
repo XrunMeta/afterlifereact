@@ -172,7 +172,7 @@ import {
 } from "../../api/clones";
 import { getCreditBalance } from "../../api/credits";
 import { sendGiftOffchain, getGiftInventory, type GiftInventoryItem } from "../../api/giftInventory";
-import { showAlert } from "../../stores/dialogStore";
+import { showAlert, useDialogStore } from "../../stores/dialogStore";
 import { CommonActions, useIsFocused } from "@react-navigation/native";
 
 import { updatePersonRelation } from "../../api/persons";
@@ -210,6 +210,8 @@ const SHOW_VOICE_BALL = false;
 const SPEAK_OK_COLOR = "#2fbf6b";
 
 const NEW_FACE_PROMPT_GRACE_AFTER_ENROLL_MS = 15_000;
+
+const NEW_FACE_PROMPT_SHOW_TIMEOUT_MS = 3000;
 
 const FACE_DETECTOR_OPTIONS = {
   performanceMode: "fast",
@@ -1711,6 +1713,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   }, [facePresent, liveState, dispatchRm]);
 
   const afl971PromptAlertShownRef = useRef(false);
+  const newFacePromptWatchRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const newFacePromptHoldRef = useRef<string | null>(null);
   useEffect(() => {
@@ -1803,7 +1806,23 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       ],
     );
 
+    const openedKey = useDialogStore.getState().key;
+    if (newFacePromptWatchRef.current) clearTimeout(newFacePromptWatchRef.current);
+    newFacePromptWatchRef.current = setTimeout(() => {
+      newFacePromptWatchRef.current = null;
+      const d = useDialogStore.getState();
+      if (d.shownKey >= openedKey) return;
+      if (!rmStateRef.current.promptRegister) return;
+      console.warn(`[Call][face-prompt] 팝업이 ${NEW_FACE_PROMPT_SHOW_TIMEOUT_MS}ms 안에 안 보임 key=${openedKey} → 거두고 나중에 처리(마이크 복구)`);
+      if (d.visible && d.key === openedKey) d.close();
+      accountSelfMatchRef.current = false;
+      dispatchRm({ type: "DISMISS_LATER" });
+    }, NEW_FACE_PROMPT_SHOW_TIMEOUT_MS);
+
   }, [rmState.promptRegister, phase, isFocused, newFacePromptRecheck, faceBiometricConsent]);
+  useEffect(() => () => {
+    if (newFacePromptWatchRef.current) clearTimeout(newFacePromptWatchRef.current);
+  }, []);
 
   useEffect(() => {
     micOnRef.current = micOn;

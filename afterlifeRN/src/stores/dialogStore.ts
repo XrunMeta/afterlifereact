@@ -22,6 +22,8 @@ export interface DialogState {
   key: number;
 
   messageAlign?: "left" | "center";
+
+  shownKey: number;
 }
 
 interface DialogOptions {
@@ -37,6 +39,7 @@ interface DialogStore extends DialogState {
     options?: DialogOptions,
   ) => void;
   close: () => void;
+  markShown: (key: number) => void;
 }
 
 export const v_b54176 = v_a7c0d4<DialogStore>((v_bb8024, v_38715b) => ({
@@ -46,6 +49,7 @@ export const v_b54176 = v_a7c0d4<DialogStore>((v_bb8024, v_38715b) => ({
   subMessage: undefined,
   buttons: [],
   key: 0,
+  shownKey: 0,
   open: (v_9f1622, v_a8cd21, v_3d694a, v_b36f96) => {
     v_bb8024({
       visible: true,
@@ -59,6 +63,7 @@ export const v_b54176 = v_a7c0d4<DialogStore>((v_bb8024, v_38715b) => ({
     });
   },
   close: () => v_bb8024({ visible: false }),
+  markShown: (v_b24339) => v_bb8024({ shownKey: v_b24339 }),
 }));
 
 export function v_889fad(
