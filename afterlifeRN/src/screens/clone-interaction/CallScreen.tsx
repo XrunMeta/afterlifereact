@@ -680,18 +680,29 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
   const greetingOn = GREETING_ENABLED && typeof greet === 'function';
 
-  const playoutRestartRef = useRef({ count: 0, lastAt: 0 });
-  const dialingDoneRef = useRef(dialingDone);
-  dialingDoneRef.current = dialingDone;
-  const onAudioStall = () => {
-    if (!canRestartIosCallPlayout()) return;
-    if (!dialingDoneRef.current || isMutedRef.current || afl971AdShowingUIRef.current) return;
+  const playoutRestartRef = useRef({ count: 0, lastAt: 0, pending: false });
+  const runStallRestart = (): boolean => {
     const r = playoutRestartRef.current;
     const now = Date.now();
-    if (r.count >= AFL1075_STALL_RESTART_MAX || now - r.lastAt < AFL1075_STALL_RESTART_GAP_MS) return;
+    if (r.count >= AFL1075_STALL_RESTART_MAX || now - r.lastAt < AFL1075_STALL_RESTART_GAP_MS) return false;
     r.count += 1;
     r.lastAt = now;
+    r.pending = false;
     restartIosCallPlayout(`samples-stall-${r.count}`);
+    return true;
+  };
+  const onAudioStall = () => {
+    if (!canRestartIosCallPlayout()) return;
+    const s = remoteStreamRef.current as unknown as { getAudioTracks?: () => Array<{ enabled: boolean }> } | null;
+    const tracks = s?.getAudioTracks?.() ?? [];
+    if (tracks.length === 0 || tracks.some((t) => !t.enabled)) return;
+    const ph = phaseRef.current;
+    if (ph === "listening" || ph === "confirming") {
+      playoutRestartRef.current.pending = true;
+      console.log(`[Call][afl1075] 재생 정지 — 사용자 발화 구간(${ph})이라 재시작 미룸`);
+      return;
+    }
+    runStallRestart();
   };
   useVideoStatsDiag({ getStatsReport, enabled: liveState === "live", onAudioStall });
   useJsFpsDiag({ enabled: liveState === "live" });
@@ -1624,6 +1635,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     liveStateRef.current = liveState; 
   }, [liveState]);
   useEffect(() => {
+
+    if ((phase === "sending" || phase === "speaking") && playoutRestartRef.current.pending) runStallRestart();
     phaseRef.current = phase;
 
     embedAllowed.value = phase !== "sending";
@@ -2434,12 +2447,12 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         setAfl971AdShowingUI(false);
         afl971UnmuteCallAudio();
 
-        if (canRestartIosCallPlayout()) {
+        const fg = await afl971WaitForForeground(2500);
+
+        if (fg && canRestartIosCallPlayout()) {
           await new Promise((r) => setTimeout(r, AFL1075_AFTER_AD_CLOSE_MS));
           restartIosCallPlayout(`round-ad-${round}`);
         }
-
-        const fg = await afl971WaitForForeground(2500);
         const interactive = afl971CallInteractive({ appActive: fg, live: liveStateRef.current === "live" });
         if (sendAdReturned && interactive) {
           const sentAt = Date.now();

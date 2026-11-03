@@ -1,6 +1,7 @@
 {
   "platforms": ["apple"],
   "apple": {
-    "modules": ["CallAudioIosModule"]
+    "modules": ["CallAudioIosModule"],
+    "appDelegateSubscribers": ["CallAudioIosAppDelegate"]
   }
 }
