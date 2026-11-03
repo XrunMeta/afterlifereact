@@ -213,6 +213,10 @@ const NEW_FACE_PROMPT_GRACE_AFTER_ENROLL_MS = 15_000;
 
 const NEW_FACE_PROMPT_SHOW_TIMEOUT_MS = 3000;
 
+const AFL1075_CONNECT_AD_SHOW_WAIT_MS = 15_000;
+
+const AFL1075_AFTER_AD_CLOSE_MS = 600;
+
 const FACE_DETECTOR_OPTIONS = {
   performanceMode: "fast",
   trackingEnabled: true,
@@ -1970,8 +1974,18 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   }, [lastSignal, cloneId, triggerEmote]);
 
   const startedRef = useRef(false);
+
+  const [connectAdLiveGate, setConnectAdLiveGate] = useState(Platform.OS !== "ios");
+  const connectAdLiveGateRef = useRef(Platform.OS !== "ios");
+  const openConnectAdLiveGate = useCallback((reason: string) => {
+    if (connectAdLiveGateRef.current) return;
+    connectAdLiveGateRef.current = true;
+    console.log(`[Call][afl1075] 통화 연결 시작 허용 (${reason})`);
+    setConnectAdLiveGate(true);
+  }, []);
   useEffect(() => {
     if (!accessToken) return;
+    if (!connectAdLiveGate) return;
     if (startedRef.current) return;
     const kick = () => {
       if (startedRef.current) return;
@@ -1988,7 +2002,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     const t = setTimeout(kick, 2500);
     return () => clearTimeout(t);
 
-  }, [livePipeline]);
+  }, [livePipeline, connectAdLiveGate, accessToken]);
 
   useEffect(() => {
     if (!__DEV__) return;
@@ -2276,7 +2290,24 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     return template.replace(/\{userName\}/g, userName).replace(/\{cloneName\}/g, cloneName);
   }, [myName, paramName, clone]);
 
+  const afl1075AdShownRef = useRef(false);
+  const afl971MicTurnedOffForAdRef = useRef(false);
+
   useEffect(() => {
+
+    const afl971MicOffForAd = (why: string) => {
+      afl971MicTurnedOffForAdRef.current = true;
+      if (micOnRef.current) {
+        console.log(`[Call][afl971] 광고 직전 즉시 mic off (${why})`);
+        toggleMicRef.current();
+      }
+    };
+    setTimeout(() => {
+      if (afl1075AdShownRef.current || connectAdLiveGateRef.current) return;
+
+      if (afl971ConnectingAdFiredRef.current) afl971MicOffForAd("연결중·광고 늦음");
+      openConnectAdLiveGate("광고가 아직 안 뜸 — 기다리지 않음");
+    }, AFL1075_CONNECT_AD_SHOW_WAIT_MS);
     (async () => {
       try {
         const raw = await AsyncStorage.getItem(AFL971_COUNT_KEY);
@@ -2294,10 +2325,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       afl971ConnectingAdFiredRef.current = true;
       setAfl971AdInProgress(true);
 
-      if (micOnRef.current) {
-        console.log("[Call][afl971] 광고 직전 즉시 mic off (연결중)");
-        toggleMicRef.current();
-      }
+      if (connectAdLiveGateRef.current) afl971MicOffForAd("연결중");
       try {
         console.log("[Call][afl971] 연결중 전면광고 trigger");
         const { loadAndShowRewardedAd } = await import("../../lib/pangle");
@@ -2305,7 +2333,11 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         setAfl971AdShowingUI(true);
         let adResult: "closed" | "timeout" = "closed";
         try {
-          adResult = await loadAndShowRewardedAd();
+          adResult = await loadAndShowRewardedAd(undefined, {
+            onShown: () => {
+              afl1075AdShownRef.current = true;
+            },
+          });
         } finally {
 
           if (adResult === "closed") {
@@ -2322,12 +2354,15 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         }
 
         console.log("[Call][afl971] 연결중 광고 닫힘");
+
+        setTimeout(() => openConnectAdLiveGate("연결중 광고 닫힘"), AFL1075_AFTER_AD_CLOSE_MS);
       } catch (err) {
         console.warn("[Call][afl971] 연결중 광고 실패:", (err as Error)?.message ?? err);
+        openConnectAdLiveGate("연결중 광고 실패");
       } finally {
         setAfl971AdInProgress(false);
 
-        if (!afl971AdTimedOut && !micOnRef.current && !isMuted) {
+        if (afl971MicTurnedOffForAdRef.current && !afl971AdTimedOut && !micOnRef.current && !isMuted) {
           console.log("[Call][afl971] 연결중 광고 종료 — mic 복원");
           toggleMicRef.current();
         }
@@ -3233,6 +3268,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
           greetingStarted={greetingOn ? phase !== "greeting" && phase !== "idle" : undefined}
 
           audioSuppressed={afl971AdShowingUI}
+
+          holdTimer={!connectAdLiveGate}
           onConnected={() => {
             console.log(`[Call][flow] +${Date.now()} DialingScreen.onConnected → setDialingDone(true)`);
             setDialingDone(true);
