@@ -134,6 +134,7 @@ import { useHandsFreeController } from "../../realtime/useHandsFreeController";
 import { IDLE_GREET_DELAYS_MS } from "../../realtime/handsFree";
 import { shouldSkipUnknownFaceEntry, computeFaceKey } from "../../realtime/faceInterruptRouting";
 import { useVideoStatsDiag } from "../../realtime/useVideoStatsDiag";
+import { canRestartIosCallPlayout, restartIosCallPlayout } from "../../realtime/iosCallPlayout";
 import { useJsFpsDiag } from "../../realtime/useJsFpsDiag";
 import { DialingScreen } from "../../components/call/DialingScreen";
 import { CallVoiceBall } from "../../components/call/CallVoiceBall";
@@ -216,6 +217,9 @@ const NEW_FACE_PROMPT_SHOW_TIMEOUT_MS = 3000;
 const AFL1075_CONNECT_AD_SHOW_WAIT_MS = 15_000;
 
 const AFL1075_AFTER_AD_CLOSE_MS = 600;
+
+const AFL1075_STALL_RESTART_GAP_MS = 20_000;
+const AFL1075_STALL_RESTART_MAX = 3;
 
 const FACE_DETECTOR_OPTIONS = {
   performanceMode: "fast",
@@ -676,7 +680,20 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
   const greetingOn = GREETING_ENABLED && typeof greet === 'function';
 
-  useVideoStatsDiag({ getStatsReport, enabled: liveState === "live" });
+  const playoutRestartRef = useRef({ count: 0, lastAt: 0 });
+  const dialingDoneRef = useRef(dialingDone);
+  dialingDoneRef.current = dialingDone;
+  const onAudioStall = () => {
+    if (!canRestartIosCallPlayout()) return;
+    if (!dialingDoneRef.current || isMutedRef.current || afl971AdShowingUIRef.current) return;
+    const r = playoutRestartRef.current;
+    const now = Date.now();
+    if (r.count >= AFL1075_STALL_RESTART_MAX || now - r.lastAt < AFL1075_STALL_RESTART_GAP_MS) return;
+    r.count += 1;
+    r.lastAt = now;
+    restartIosCallPlayout(`samples-stall-${r.count}`);
+  };
+  useVideoStatsDiag({ getStatsReport, enabled: liveState === "live", onAudioStall });
   useJsFpsDiag({ enabled: liveState === "live" });
 
   const faceEmbedModelPlugin = useTensorflowModel(
@@ -2258,6 +2275,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   const afl971AdInProgressRef = useRef<boolean>(false);
 
   const [afl971AdShowingUI, setAfl971AdShowingUI] = useState(false);
+  const afl971AdShowingUIRef = useRef(false); 
+  afl971AdShowingUIRef.current = afl971AdShowingUI;
 
   const [callSeconds, setCallSeconds] = useState(0);
   useEffect(() => {
@@ -2355,7 +2374,11 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
         console.log("[Call][afl971] 연결중 광고 닫힘");
 
-        setTimeout(() => openConnectAdLiveGate("연결중 광고 닫힘"), AFL1075_AFTER_AD_CLOSE_MS);
+        setTimeout(() => {
+
+          if (startedRef.current) restartIosCallPlayout("connect-ad-closed");
+          openConnectAdLiveGate("연결중 광고 닫힘");
+        }, AFL1075_AFTER_AD_CLOSE_MS);
       } catch (err) {
         console.warn("[Call][afl971] 연결중 광고 실패:", (err as Error)?.message ?? err);
         openConnectAdLiveGate("연결중 광고 실패");
@@ -2410,6 +2433,11 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
         setAfl971AdShowingUI(false);
         afl971UnmuteCallAudio();
+
+        if (canRestartIosCallPlayout()) {
+          await new Promise((r) => setTimeout(r, AFL1075_AFTER_AD_CLOSE_MS));
+          restartIosCallPlayout(`round-ad-${round}`);
+        }
 
         const fg = await afl971WaitForForeground(2500);
         const interactive = afl971CallInteractive({ appActive: fg, live: liveStateRef.current === "live" });

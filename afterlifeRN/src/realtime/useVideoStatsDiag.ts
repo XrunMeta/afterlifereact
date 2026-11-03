@@ -6,6 +6,7 @@ import {
   v_9b9e9c,
   type v_f2c1af,
 } from './videoStats';
+import { v_088069, v_700e84 } from './audioPlayoutStall';
 
 const v_fbb4dd = 5000; 
 
@@ -33,8 +34,10 @@ function v_bec578(v_2888b4): InboundAudio | null {
 
 export function v_eba6cc(v_328259) {
   const v_b8908d = v_e662ae(v_328259.getStatsReport);
+  const v_cce636 = v_e662ae(v_328259.onAudioStall);
   v_c4deb2(() => {
     v_b8908d.current = v_328259.getStatsReport;
+    v_cce636.current = v_328259.onAudioStall;
   });
 
   const v_7d36b1 = v_328259.pollMs ?? v_fbb4dd;
@@ -45,6 +48,7 @@ export function v_eba6cc(v_328259) {
     let v_f8b770 = true;
     let prev: v_f2c1af | null = null;
     let v_7b2eb9 = null;
+    let v_91b18e = v_088069();
 
     const v_cb36b1 = setInterval(() => {
       void (async () => {
@@ -68,6 +72,15 @@ export function v_eba6cc(v_328259) {
                 : `[Call][astat] baseline pkts=${v_cd108c.pkts} bytes=${v_cd108c.bytes} samples=${v_cd108c.samples} ` +
                     `energy=${v_cd108c.energy.toFixed(4)} level=${v_cd108c.level.toFixed(3)} codec=${v_cd108c.codec}`,
             );
+            if (v_21ba9c) {
+              const v_cb35cb = v_700e84(v_91b18e, { pkts: v_cd108c.pkts - v_21ba9c.pkts, samples: v_cd108c.samples - v_21ba9c.samples });
+              v_91b18e = v_cb35cb.state;
+              if (v_cb35cb.stalled) {
+
+                console.warn(`[Call][astat] 재생 정지 감지 — 패킷은 오는데 samplesΔ=0 ×${v_91b18e.stalledPolls}`);
+                v_cce636.current?.();
+              }
+            }
             v_7b2eb9 = v_cd108c;
           }
           const v_c3bc75 = v_0e643a(v_f89153);
