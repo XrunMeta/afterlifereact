@@ -73,3 +73,36 @@ v_469bf2("GET /oth-path?suspended= — 정지 필터", () => {
     v_4d37e3(v_cabe28).toContain(v_375bef);
   });
 });
+
+v_469bf2("GET /oth-path — 학습·신고 필터, ID 검색, 요약", () => {
+  v_23805a("trainingStatus · hasReports · 숫자 q · withStats", async () => {
+    const v_257b90 = await v_bfb240();
+    const v_07b1f6 = await v_4d24a9(v_257b90);
+    const v_76a373 = await v_4d24a9(v_257b90);
+    await v_a1651b().prepare(`UPDATE clones SET training_status = 'ready' WHERE id = ?`).bind(v_76a373).run();
+    await v_a1651b()
+      .prepare(`INSERT INTO clone_reports (clone_id, user_id, reason, status) VALUES (?, ?, '테스트', 'open')`)
+      .bind(v_07b1f6, v_257b90)
+      .run();
+    const v_8d41d7 = await v_121982();
+
+    const v_52e08b = async (v_212049) => { const v_cb35cb = await v_894788(v_212049, v_8d41d7); return (v_cb35cb.items ?? []).map((v_ebec57) => v_ebec57.id) };
+
+    v_4d37e3(await v_52e08b("?trainingStatus=ready&limit=200")).toContain(v_76a373);
+    v_4d37e3(await v_52e08b("?trainingStatus=ready&limit=200")).not.toContain(v_07b1f6);
+    v_4d37e3(await v_52e08b("?hasReports=1&limit=200")).toContain(v_07b1f6);
+    v_4d37e3(await v_52e08b("?hasReports=1&limit=200")).not.toContain(v_76a373);
+    v_4d37e3(await v_52e08b("?hasReports=0&limit=200")).toContain(v_76a373);
+    v_4d37e3(await v_52e08b(`?q=${v_07b1f6}&limit=200`)).toContain(v_07b1f6);
+
+    const v_8f00b9 = (await v_894788("?withStats=1&limit=200", v_8d41d7)) as unknown as {
+      items: Array<{ id: number; totalReportCount: number; openReportCount: number }>;
+      stats: { total: number; active: number; reported: number };
+    };
+    v_4d37e3(v_8f00b9.stats.active).toBeGreaterThanOrEqual(2);
+    v_4d37e3(v_8f00b9.stats.reported).toBeGreaterThanOrEqual(1);
+    const v_3ac7e7 = v_8f00b9.items.find((v_ebec57) => v_ebec57.id === v_07b1f6)!;
+    v_4d37e3(v_3ac7e7.totalReportCount).toBe(1);
+    v_4d37e3(v_3ac7e7.openReportCount).toBe(1);
+  });
+});
