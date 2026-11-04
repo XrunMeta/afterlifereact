@@ -23,6 +23,8 @@ import { v_2785cb } from "../common/PartnerAppBanners";
 type Props = {
   adUnitId: string;
   style?: v_961e77<v_7e4944>;
+
+  errorFallback?: v_4a8ba2;
 };
 
 type BannerEvent = { nativeEvent?: { unit?: string; code?: number; msg?: string } };
@@ -130,7 +132,7 @@ function v_ef0f29({ style: v_7fa4e4, label: v_2869c1 }: { style?: v_961e77<v_7e4
   );
 }
 
-export default function v_fb73af({ adUnitId: v_61418d, style: v_7fa4e4 }: Props) {
+export default function v_fb73af({ adUnitId: v_61418d, style: v_7fa4e4, errorFallback: v_bc4c22 }: Props) {
   const { t: v_8d41d7 } = v_772971();
   const v_4281e6 = v_8d41d7("chat.adBannerFallback");
   void v_4281e6;
@@ -155,7 +157,7 @@ export default function v_fb73af({ adUnitId: v_61418d, style: v_7fa4e4 }: Props)
     console.log(`[PangleBannerAd] 광고 실패 → XRUN 배너 (${v_3325c8}) unit=${v_61418d}`);
     v_6373f3(true);
   };
-  const v_065b25 = <XrunFallbackBanner style={[v_79930a, v_d81136.xrunFill]} />;
+  const v_065b25 = v_bc4c22 ?? <XrunFallbackBanner style={[v_79930a, v_d81136.xrunFill]} />;
 
   const [v_ae4a03, v_7ab0cc] = v_5ab095(false);
   v_c4deb2(() => {
