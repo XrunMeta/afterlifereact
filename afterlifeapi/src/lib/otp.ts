@@ -26,13 +26,13 @@ function v_e1e4fb(env: v_273a0c): Record<string, string> {
   return { "Content-Type": "application/json", "X-Internal-Secret": v_c9c489.XRUN_INTERNAL_SECRET ?? "" };
 }
 
-async function v_f5c99e(env: v_273a0c, v_e0c7e8): Promise<string> {
+async function v_f5c99e(env: v_273a0c, v_e0c7e8, v_2c55dc): Promise<string> {
   let v_8f00b9;
   try {
     v_8f00b9 = await fetch(`${v_c9c489.XRUN_API_URL}/oth-path`, {
       method: "POST",
       headers: v_e1e4fb(v_c9c489),
-      body: JSON.stringify({ email: v_e0c7e8 }),
+      body: JSON.stringify({ email: v_e0c7e8, ...(v_2c55dc ? { client_ip: v_2c55dc } : {}) }),
     });
   } catch (v_49263d) {
     throw new v_3ebe58("UPSTREAM_FAILURE", `XRUN otp issue network: ${(v_49263d as Error).message}`);
@@ -101,6 +101,7 @@ export async function v_b78f7e(
   env: v_273a0c,
   v_e0c7e8,
   v_fa63e0 = "signup",
+  v_2c55dc,
 ): Promise<void> {
   const v_0eb677 = v_b24339(v_e0c7e8);
   const v_3c8572 = await v_c9c489.KV_AUTH.get<OtpRecord>(v_0eb677, "json");
@@ -109,7 +110,7 @@ export async function v_b78f7e(
     throw new v_3ebe58("OTP_COOLDOWN", `Wait ${v_aa4609}s before requesting another code.`);
   }
 
-  const v_c99bd2 = await v_f5c99e(v_c9c489, v_e0c7e8);
+  const v_c99bd2 = await v_f5c99e(v_c9c489, v_e0c7e8, v_2c55dc);
 
   if (v_c9c489.ENVIRONMENT !== "production") {
     console.log(`[OTP] purpose=${v_fa63e0} email=${v_e0c7e8} code=${v_c99bd2} expiresInSec=${v_7dab9c}`);
@@ -153,8 +154,8 @@ export async function v_b78f7e(
   });
 }
 
-export async function v_c272bc(env: v_273a0c, v_e0c7e8): Promise<void> {
-  await v_b78f7e(v_c9c489, v_e0c7e8, "password_reset");
+export async function v_c272bc(env: v_273a0c, v_e0c7e8, v_2c55dc): Promise<void> {
+  await v_b78f7e(v_c9c489, v_e0c7e8, "password_reset", v_2c55dc);
 }
 
 export async function v_656e8b(

@@ -91,6 +91,10 @@ v_133c2c.get("/oth-path", async (v_3f4e2e) => {
 
   const v_c21509 = v_f71b56.searchParams.get("suspended");
   const v_e42ef7 = Number(v_f71b56.searchParams.get("minReports") ?? 0);
+
+  const v_7ece12 = v_f71b56.searchParams.get("trainingStatus") ?? "";
+  const v_a0c32e = v_f71b56.searchParams.get("hasReports") ?? "";
+  const v_8378ac = v_f71b56.searchParams.get("withStats") === "1";
   const v_ab6401 = (v_f71b56.searchParams.get("q") ?? "").trim();
   const v_3bbadf = Math.max(0, Number(v_f71b56.searchParams.get("offset") ?? 0));
   const v_02be30 = Math.max(1, Math.min(200, Number(v_f71b56.searchParams.get("limit") ?? 20)));
@@ -115,12 +119,21 @@ v_133c2c.get("/oth-path", async (v_3f4e2e) => {
     v_abcc8d.push("c.admin_suspended_at IS NULL");
   }
   if (v_ab6401) {
+
+    const v_ae8a0a = /^\d+$/.test(v_ab6401) ? Number(v_ab6401) : -1;
     v_abcc8d.push(`(
-      c.name LIKE ? OR c.username LIKE ? OR
+      c.id = ? OR c.name LIKE ? OR c.username LIKE ? OR
       COALESCE(u.name,'') LIKE ? OR COALESCE(u.email,'') LIKE ?
     )`);
     const v_07022a = `%${v_ab6401}%`;
-    v_925171.push(v_07022a, v_07022a, v_07022a, v_07022a);
+    v_925171.push(v_ae8a0a, v_07022a, v_07022a, v_07022a, v_07022a);
+  }
+  if (v_7ece12) {
+    v_abcc8d.push("c.training_status = ?");
+    v_925171.push(v_7ece12);
+  }
+  if (v_a0c32e === "1" || v_a0c32e === "0") {
+    v_abcc8d.push(`${v_a0c32e === "1" ? "" : "NOT "}EXISTS (SELECT 1 FROM clone_reports cr WHERE cr.clone_id = c.id AND cr.status != 'dismissed')`);
   }
 
   if (v_e42ef7 > 0) {
@@ -157,6 +170,10 @@ v_133c2c.get("/oth-path", async (v_3f4e2e) => {
               c.admin_suspend_reason AS adminSuspendReason,
               (SELECT COUNT(*) FROM clone_reports cr
                 WHERE cr.clone_id = c.id AND cr.status = 'reviewed') AS reportCount,
+              (SELECT COUNT(*) FROM clone_reports cr
+                WHERE cr.clone_id = c.id AND cr.status != 'dismissed') AS totalReportCount,
+              (SELECT COUNT(*) FROM clone_reports cr
+                WHERE cr.clone_id = c.id AND cr.status = 'open') AS openReportCount,
               (SELECT COUNT(*) FROM feed_comments fcc
                  JOIN feeds f ON f.id = fcc.feed_id
                 WHERE f.clone_id = c.id
@@ -179,7 +196,37 @@ v_133c2c.get("/oth-path", async (v_3f4e2e) => {
       .all()
   ).results;
 
-  return v_3f4e2e.json({ items: v_18b8bf, total: v_0dab8e?.cnt ?? 0, offset: v_3bbadf, limit: v_02be30 });
+  const v_62676b = v_8378ac
+    ? await v_3f4e2e.env.DB
+        .prepare(
+          `SELECT COUNT(*) AS total,
+                  SUM(CASE WHEN c.deletion_state = 'active' THEN 1 ELSE 0 END) AS active,
+                  SUM(CASE WHEN c.deletion_state = 'soft_deleted' THEN 1 ELSE 0 END) AS inactive,
+                  SUM(CASE WHEN c.deletion_state = 'active' AND c.training_status = 'pending' THEN 1 ELSE 0 END) AS trainingPending,
+                  SUM(CASE WHEN EXISTS (SELECT 1 FROM clone_reports cr WHERE cr.clone_id = c.id AND cr.status != 'dismissed') THEN 1 ELSE 0 END) AS reported
+             FROM clones c
+            WHERE c.deletion_state IN ('active', 'soft_deleted')`,
+        )
+        .first<{ total: number; active: number | null; inactive: number | null; trainingPending: number | null; reported: number | null }>()
+    : null;
+
+  return v_3f4e2e.json({
+    items: v_18b8bf,
+    total: v_0dab8e?.cnt ?? 0,
+    offset: v_3bbadf,
+    limit: v_02be30,
+    ...(v_62676b
+      ? {
+          stats: {
+            total: v_62676b.total ?? 0,
+            active: v_62676b.active ?? 0,
+            inactive: v_62676b.inactive ?? 0,
+            trainingPending: v_62676b.trainingPending ?? 0,
+            reported: v_62676b.reported ?? 0,
+          },
+        }
+      : {}),
+  });
 });
 
 v_133c2c.get("/oth-path", async (v_3f4e2e) => {
