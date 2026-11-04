@@ -57,7 +57,8 @@ export function v_ba6725() {
     if (v_65a2cd > 0) v_d8a58f(v_65a2cd);
   }, []);
   const v_9590aa = v_648441 > 0 ? Math.max(0, v_700696.get("window").height - v_648441) : 0;
-  return { onLayout: v_a273bf, onBannerLayout: v_aa3f4a, listBottomPad: v_0b711f + v_9590aa };
+
+  return { onLayout: v_a273bf, onBannerLayout: v_aa3f4a, listBottomPad: v_0b711f + v_9590aa, hiddenPad: v_9590aa };
 }
 
 export const dockedBannerStyle: v_7e4944 = { position: "absolute", left: 0, right: 0, bottom: 0 };

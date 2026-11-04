@@ -30,7 +30,7 @@ import v_556baf from "../../components/ui/SafeView";
 import v_1a40c4 from "../../components/ui/Button";
 import v_258c1c from "../../components/common/PageHeader";
 import v_0e981f from "../../components/common/NotificationBell";
-import v_f9a626, { v_db1b12, v_ba6725 } from "../../components/common/PartnerAppBanners";
+import { v_ba6725 } from "../../components/common/PartnerAppBanners";
 import { v_772971 } from "jmpfvteuuztnp";
 import { v_c64cf7 } from "../../lib/chatSystemText";
 import { v_1bfbd0, v_9b1a04, v_8b0c90, v_8f28b1, v_7c5e29 } from "../../components/constants";
@@ -62,8 +62,6 @@ import { v_08bca5 } from "../../lib/useChatLiveRefresh";
 import type { v_4b85a1, v_bc3df4 } from "../../types/domain";
 import v_5778ce from "../../components/common/HashtagText";
 import v_8e7ad4 from "../../components/ui/SwipeDownSheet";
-import v_fb73af from "../../components/ads/PangleBannerAd";
-import { v_60086b } from "../../lib/pangle";
 import {
   v_8a85e2,
   v_e36429,
@@ -163,7 +161,8 @@ export default function v_14b43e() {
   };
 
   const [v_612e9f, v_575aad] = v_5ab095(false);
-  const { onLayout: v_e8db2a, onBannerLayout: v_aa3f4a, listBottomPad: v_936ba7 } = v_ba6725();
+
+  const { onLayout: v_e8db2a, hiddenPad: v_6ccfb8 } = v_ba6725();
   const v_0cde43 = async () => {
     if (!v_2ca7e0) return;
     v_575aad(true);
@@ -1079,13 +1078,14 @@ export default function v_14b43e() {
         rightAction={<NotificationBell />}
       />
 
-      {}
+      {
+}
       <FlatList
         testID={v_5401ae.chatList.list}
         data={v_066fa2}
         keyExtractor={(v_8c0b26) => String(v_8c0b26.persona.id)}
         renderItem={v_4a5736}
-        contentContainerStyle={[v_fd5f43.msgListContent, { paddingBottom: v_936ba7 }]}
+        contentContainerStyle={[v_fd5f43.msgListContent, { paddingBottom: v_6ccfb8 }]}
 
         removeClippedSubviews={false}
         showsVerticalScrollIndicator={false}
@@ -1549,16 +1549,6 @@ export default function v_14b43e() {
         </Pressable>
       </Modal>
     </SafeView>
-
-    {
-
-}
-    <View style={v_db1b12} onLayout={v_aa3f4a}>
-      <PangleBannerAd
-        adUnitId={v_60086b("messages")}
-        errorFallback={<PartnerAppBanners variant="docked" />}
-      />
-    </View>
     </View>
   );
 }
