@@ -163,7 +163,7 @@ export default function v_14b43e() {
   };
 
   const [v_612e9f, v_575aad] = v_5ab095(false);
-  const { onLayout: v_e8db2a, listBottomPad: v_936ba7 } = v_ba6725();
+  const { onLayout: v_e8db2a, onBannerLayout: v_aa3f4a, listBottomPad: v_936ba7 } = v_ba6725();
   const v_0cde43 = async () => {
     if (!v_2ca7e0) return;
     v_575aad(true);
@@ -1120,9 +1120,6 @@ export default function v_14b43e() {
                 </TouchableOpacity>
               )}
             </View>
-            {
-}
-            <PangleBannerAd adUnitId={v_60086b("messages")} style={v_fd5f43.subAdBanner} />
             {}
             <View style={v_fd5f43.subSectionHeader}>
               {}
@@ -1553,8 +1550,15 @@ export default function v_14b43e() {
       </Modal>
     </SafeView>
 
-    {}
-    <PartnerAppBanners variant="docked" style={v_db1b12} />
+    {
+
+}
+    <View style={v_db1b12} onLayout={v_aa3f4a}>
+      <PangleBannerAd
+        adUnitId={v_60086b("messages")}
+        errorFallback={<PartnerAppBanners variant="docked" />}
+      />
+    </View>
     </View>
   );
 }
@@ -1597,14 +1601,6 @@ const v_fd5f43 = v_472849.create({
     paddingVertical: 0,
     textAlignVertical: v_8f28b1.textAlignVertical,
     color: v_1bfbd0.zinc900,
-  },
-  subAdBanner: {
-    height: 60,
-
-    backgroundColor: "transparent",
-    paddingHorizontal: 20,
-    justifyContent: "center",
-    marginBottom: 8,
   },
   subAdBannerText: { color: v_1bfbd0.zinc700, fontSize: 15, fontWeight: "600" },
   subSectionHeader: {

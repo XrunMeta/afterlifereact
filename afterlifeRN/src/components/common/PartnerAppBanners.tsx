@@ -49,9 +49,15 @@ export const v_ae4cf5 = 60;
 
 export function v_ba6725() {
   const [v_648441, v_d39e16] = v_5ab095(0);
+
+  const [v_0b711f, v_d8a58f] = v_5ab095(v_ae4cf5);
   const v_a273bf = v_de06a3((e: v_e99fe0) => v_d39e16(v_9e86fd.nativeEvent.layout.height), []);
+  const v_aa3f4a = v_de06a3((e: v_e99fe0) => {
+    const v_65a2cd = Math.round(v_9e86fd.nativeEvent.layout.height);
+    if (v_65a2cd > 0) v_d8a58f(v_65a2cd);
+  }, []);
   const v_9590aa = v_648441 > 0 ? Math.max(0, v_700696.get("window").height - v_648441) : 0;
-  return { onLayout: v_a273bf, listBottomPad: v_ae4cf5 + v_9590aa };
+  return { onLayout: v_a273bf, onBannerLayout: v_aa3f4a, listBottomPad: v_0b711f + v_9590aa };
 }
 
 export const dockedBannerStyle: v_7e4944 = { position: "absolute", left: 0, right: 0, bottom: 0 };
