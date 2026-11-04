@@ -79,8 +79,24 @@ if (v_2e931d.__pangleBannerNative === undefined) {
 }
 const v_db6966 = v_2e931d.__pangleBannerNative;
 
+function v_dac21d(): boolean {
+  if (v_326be8.OS !== "ios") return false;
+  try {
+    const v_312145 = (globalThis as unknown as {
+      expo?: { getViewConfig?: (moduleName: string, viewName?: string) => unknown };
+    }).expo;
+    return JSON.stringify(v_312145?.getViewConfig?.("PangleModule") ?? {}).includes("onBannerError");
+  } catch {
+    return false;
+  }
+}
+
+const v_48fd78 = v_326be8.OS === "android" || v_dac21d();
+
+const v_f4062b = 15000;
+
 console.log(
-  `[PangleBannerAd][module] platform=${v_326be8.OS} nativeAvailable=${v_355b08}`,
+  `[PangleBannerAd][module] platform=${v_326be8.OS} nativeAvailable=${v_355b08} loadEvents=${v_48fd78}`,
 );
 
 const v_a8eee1 = new Set(["sdk-not-init", "load-error", "loaded-attached", "loaded-null-view", "shown"]);
@@ -187,6 +203,13 @@ export default function v_fb73af({ adUnitId: v_61418d, style: v_7fa4e4, errorFal
 
   }, [v_61418d]);
 
+  v_c4deb2(() => {
+    if (!v_ae4a03 || !v_48fd78) return;
+    const v_cb36b1 = setTimeout(() => v_0172a0("load-timeout"), v_f4062b);
+    return () => clearTimeout(v_cb36b1);
+
+  }, [v_ae4a03, v_61418d]);
+
   const [v_189dcf, v_2e039c] = v_5ab095(0);
   v_c4deb2(() => {
     if (v_326be8.OS !== "android" || !v_61418d) return;
@@ -195,7 +218,8 @@ export default function v_fb73af({ adUnitId: v_61418d, style: v_7fa4e4, errorFal
       if (v_9e86fd?.stage === "loaded-attached") {
         v_f77ddb.current = true;
         v_2e039c((v_f4e98d) => v_f4e98d + 1);
-      } else if (v_9e86fd?.stage === "load-error" || v_9e86fd?.stage === "loaded-null-view") {
+      } else if (v_9e86fd?.stage === "load-error" || v_9e86fd?.stage === "loaded-null-view" || v_9e86fd?.stage === "sdk-not-init") {
+
         v_0172a0(String(v_9e86fd.stage));
       }
     });
@@ -218,6 +242,11 @@ export default function v_fb73af({ adUnitId: v_61418d, style: v_7fa4e4, errorFal
   return (
     <BannerErrorBoundary fallback={<View onLayout={v_a2d934}>{v_065b25}</View>}>
       <View style={v_79930a} onLayout={v_a2d934}>
+        {
+}
+        {v_326be8.OS === "ios" && !v_48fd78 ? (
+          <View style={v_472849.absoluteFill}>{v_065b25}</View>
+        ) : null}
         <PangleBannerAdNative
           adUnitId={v_61418d}
           style={v_d696d1}
