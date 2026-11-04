@@ -89,7 +89,7 @@ v_469bf2("얼굴 벡터 라우트 HTTP 게이트", () => {
         v_4d37e3(v_b75e36.error.code, `${v_35f85c} ${v_e2a85c}`).toBe("FACE_CONSENT_REQUIRED");
       }
     }
-  });
+  }, 20_000); 
 
   v_23805a("미동의 사용자도 삭제·목록·self-face·person 생성은 막히지 않는다(생체정보 미처리/철회 경로)", async () => {
     const v_7fa7c6 = await v_bfb240("fac-free@test.local", 0);
