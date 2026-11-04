@@ -1,6 +1,6 @@
 
 
-import v_a3453e, { v_b0de9c, v_c4deb2, v_5ab095, type v_4a8ba2 } from "bapkr";
+import v_a3453e, { v_b0de9c, v_c4deb2, v_e662ae, v_5ab095, type v_4a8ba2 } from "bapkr";
 import {
   v_18ba07,
   v_326be8,
@@ -18,15 +18,21 @@ import { v_51e8dd, v_85b8ef } from "tgjb";
 import { v_f095b0 } from "../../lib/pangle";
 import { v_8827ec } from "../../lib/errorReporting/report";
 import { v_1bfbd0 } from "../constants";
+import { v_2785cb } from "../common/PartnerAppBanners";
 
 type Props = {
   adUnitId: string;
   style?: v_961e77<v_7e4944>;
 };
 
+type BannerEvent = { nativeEvent?: { unit?: string; code?: number; msg?: string } };
+
 type NativeProps = {
   adUnitId: string;
   style?: v_961e77<v_7e4944>;
+
+  onBannerLoaded?: (e: BannerEvent) => void;
+  onBannerError?: (e: BannerEvent) => void;
 };
 
 const v_ec44be = "PangleBannerAdView";
@@ -142,6 +148,15 @@ export default function v_fb73af({ adUnitId: v_61418d, style: v_7fa4e4 }: Props)
   };
   const v_0debf4 = <View style={v_79930a} onLayout={v_a2d934} />;
 
+  const [v_0bc646, v_6373f3] = v_5ab095(false);
+  const v_f77ddb = v_e662ae(false);
+  const v_0172a0 = (v_3325c8) => {
+    if (v_f77ddb.current) return;
+    console.log(`[PangleBannerAd] 광고 실패 → XRUN 배너 (${v_3325c8}) unit=${v_61418d}`);
+    v_6373f3(true);
+  };
+  const v_065b25 = <XrunFallbackBanner style={[v_79930a, v_d81136.xrunFill]} />;
+
   const [v_ae4a03, v_7ab0cc] = v_5ab095(false);
   v_c4deb2(() => {
     if (v_326be8.OS !== "android" && v_326be8.OS !== "ios") return;
@@ -157,22 +172,33 @@ export default function v_fb73af({ adUnitId: v_61418d, style: v_7fa4e4 }: Props)
       if (v_2008a4) return;
       if (v_3ed4c3) v_7ab0cc(true);
       else if (v_f4e98d < 3) v_cb36b1 = setTimeout(() => void v_bc21cd(v_f4e98d + 1), 3000);
-      else v_887273({ stage: "sdk-not-init", unit: v_61418d, source: "js-init-failed" });
+      else {
+        v_887273({ stage: "sdk-not-init", unit: v_61418d, source: "js-init-failed" });
+        v_0172a0("sdk-not-init");
+      }
     };
     void v_bc21cd(1);
     return () => {
       v_2008a4 = true;
       if (v_cb36b1) clearTimeout(v_cb36b1);
     };
+
   }, [v_61418d]);
 
   const [v_189dcf, v_2e039c] = v_5ab095(0);
   v_c4deb2(() => {
     if (v_326be8.OS !== "android" || !v_61418d) return;
     const v_1ae212 = v_18ba07.addListener("PangleBannerDebug", (v_9e86fd) => {
-      if (v_9e86fd?.stage === "loaded-attached" && v_9e86fd?.unit === v_61418d) v_2e039c((v_f4e98d) => v_f4e98d + 1);
+      if (v_9e86fd?.unit !== v_61418d) return;
+      if (v_9e86fd?.stage === "loaded-attached") {
+        v_f77ddb.current = true;
+        v_2e039c((v_f4e98d) => v_f4e98d + 1);
+      } else if (v_9e86fd?.stage === "load-error" || v_9e86fd?.stage === "loaded-null-view") {
+        v_0172a0(String(v_9e86fd.stage));
+      }
     });
     return () => v_1ae212.remove();
+
   }, [v_61418d]);
   const nativeStyle: v_7e4944 = {
     width: v_a5419f,
@@ -180,14 +206,24 @@ export default function v_fb73af({ adUnitId: v_61418d, style: v_7fa4e4 }: Props)
     transform: [{ scale: v_a37637 }],
   };
 
-  if ((v_326be8.OS !== "android" && v_326be8.OS !== "ios") || !v_db6966 || !v_61418d || !v_ae4a03) {
+  if (v_0bc646 || !v_db6966 || !v_61418d) {
+    return <View onLayout={v_a2d934}>{v_065b25}</View>;
+  }
+  if ((v_326be8.OS !== "android" && v_326be8.OS !== "ios") || !v_ae4a03) {
     return v_0debf4;
   }
 
   return (
-    <BannerErrorBoundary fallback={v_0debf4}>
+    <BannerErrorBoundary fallback={<View onLayout={v_a2d934}>{v_065b25}</View>}>
       <View style={v_79930a} onLayout={v_a2d934}>
-        <PangleBannerAdNative adUnitId={v_61418d} style={v_d696d1} />
+        <PangleBannerAdNative
+          adUnitId={v_61418d}
+          style={v_d696d1}
+          onBannerLoaded={() => {
+            v_f77ddb.current = true;
+          }}
+          onBannerError={(v_9e86fd) => v_0172a0(`ios code=${v_9e86fd?.nativeEvent?.code ?? "?"}`)}
+        />
       </View>
     </BannerErrorBoundary>
   );
@@ -214,4 +250,6 @@ const v_d81136 = v_472849.create({
     paddingHorizontal: 20,
   },
   fallbackText: { color: v_1bfbd0.zinc700, fontSize: 15, fontWeight: "600" },
+
+  xrunFill: { minHeight: 60 },
 });

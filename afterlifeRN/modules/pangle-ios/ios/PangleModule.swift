@@ -73,6 +73,8 @@ public class PangleModule: Module {
     }
 
     View(PangleBannerAdView.self) {
+      Events("onBannerLoaded", "onBannerError")
+
       Prop("adUnitId") { (view: PangleBannerAdView, unit: String) in
         view.setAdUnitId(unit)
       }
