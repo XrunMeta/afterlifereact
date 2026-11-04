@@ -83,7 +83,7 @@ const v_192e7b = v_1f4ea7.object({
 
 v_68f0aa.post("/email/request-code", async (v_3f4e2e) => {
   const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_192e7b);
-  await v_b78f7e(v_3f4e2e.env, v_4d33b2.email);
+  await v_b78f7e(v_3f4e2e.env, v_4d33b2.email, "signup", v_3f4e2e.req.header("CF-Connecting-IP"));
   return v_3f4e2e.json({ ok: true, expiresInSec: 300 });
 });
 
@@ -1148,7 +1148,7 @@ v_68f0aa.post("/password/request-reset", async (v_3f4e2e) => {
     throw new v_3ebe58("NOT_FOUND", "가입된 이메일이 아닙니다.");
   }
 
-  await v_c272bc(v_3f4e2e.env, v_e0c7e8);
+  await v_c272bc(v_3f4e2e.env, v_e0c7e8, v_3f4e2e.req.header("CF-Connecting-IP"));
   return v_3f4e2e.json({ ok: true, expiresInSec: v_09cc91 });
 });
 
@@ -1222,9 +1222,9 @@ v_68f0aa.post("/email/login-code", async (v_3f4e2e) => {
     .bind(v_bb4bfd)
     .first<{ id: number; deletion_state: string }>();
   if (v_d1b635 && v_d1b635.deletion_state === "active") {
-    await v_b78f7e(v_3f4e2e.env, v_4d33b2.email, "login");
+    await v_b78f7e(v_3f4e2e.env, v_4d33b2.email, "login", v_3f4e2e.req.header("CF-Connecting-IP"));
   } else if (!v_d1b635 && (await v_573853(v_3f4e2e.env, v_bb4bfd))) {
-    await v_b78f7e(v_3f4e2e.env, v_4d33b2.email, "login");
+    await v_b78f7e(v_3f4e2e.env, v_4d33b2.email, "login", v_3f4e2e.req.header("CF-Connecting-IP"));
   }
   return v_3f4e2e.json({ ok: true, expiresInSec: v_09cc91 });
 });

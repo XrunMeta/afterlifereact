@@ -24,7 +24,7 @@ async function v_3fb498(c: { env: v_de0a25["Bindings"] }, v_43e90c) {
 
 v_344cd4.post("/me/deactivate/request-code", v_6690d9, async (v_3f4e2e) => {
   const v_b32680 = await v_3fb498(v_3f4e2e, v_3f4e2e.get("userId")!);
-  await v_b78f7e(v_3f4e2e.env, v_b32680.email);
+  await v_b78f7e(v_3f4e2e.env, v_b32680.email, "signup", v_3f4e2e.req.header("CF-Connecting-IP"));
   return v_3f4e2e.json({ ok: true, email: v_b32680.email });
 });
 
