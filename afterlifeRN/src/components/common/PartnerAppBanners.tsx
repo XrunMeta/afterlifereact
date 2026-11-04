@@ -116,19 +116,9 @@ function v_223478({ slides: v_f81d0e, docked: v_60cf9e }: { slides: string[]; do
   );
 }
 
-export default function v_f9a626({ style: v_7fa4e4, variant: v_46e192 = "carousel" }: Props) {
+function v_2822fa(): BannerCard[] {
   const { t: v_8d41d7 } = v_772971();
-  const { width: v_a4b8ea } = v_e45a99();
-  const [v_2365e9, v_bf9d67] = v_5ab095(0);
-  const v_881dda = v_e662ae<v_9cabcb<BannerCard>>(null);
-  const v_169231 = v_e662ae(false);
-  const [v_f0e355, v_368635] = v_5ab095(0);
-
-  const v_60cf9e = v_46e192 === "docked";
-  const v_eca921 = v_60cf9e ? v_a4b8ea : Math.max(240, v_a4b8ea - 40 - v_1d54af * 2 - v_1c7901);
-  const v_729796 = v_60cf9e ? v_eca921 : v_eca921 + v_66f2f8;
-
-  const v_4552ca = v_df9f57<BannerCard[]>(
+  return v_df9f57<BannerCard[]>(
     () => [
       {
         id: "xrun",
@@ -164,16 +154,19 @@ export default function v_f9a626({ style: v_7fa4e4, variant: v_46e192 = "carouse
     ],
     [v_8d41d7],
   );
+}
 
-  const v_34c671 = async (v_f71b56) => {
-    try {
-      await v_f2c756.openURL(v_f71b56);
-    } catch (v_49263d) {
-      console.warn("[PartnerAppBanners] openURL failed:", v_49263d);
-    }
-  };
+async function v_34c671(v_f71b56) {
+  try {
+    await v_f2c756.openURL(v_f71b56);
+  } catch (v_49263d) {
+    console.warn("[PartnerAppBanners] openURL failed:", v_49263d);
+  }
+}
 
-  const v_0d0a3b = v_de06a3(
+function v_3ef373() {
+  const { t: v_8d41d7 } = v_772971();
+  return v_de06a3(
     (v_466992) => {
       if (v_466992 === "xrun") {
         const v_a73fa2 = v_326be8.OS === "ios" ? v_024b5e : v_b0adfa;
@@ -193,35 +186,29 @@ export default function v_f9a626({ style: v_7fa4e4, variant: v_46e192 = "carouse
     },
     [v_8d41d7],
   );
+}
 
-  const v_60260f = (e: v_bd64bf<v_da479e>) => {
-    const v_62c214 = v_9e86fd.nativeEvent.contentOffset.x;
-    const v_a448ad = Math.round(v_62c214 / v_729796);
-    v_169231.current = false;
-    v_bf9d67(Math.max(0, Math.min(v_4552ca.length - 1, v_a448ad)));
+function v_46fee3({
+  item: v_8c0b26,
+  docked: v_60cf9e,
+  width: v_8e4fb6,
+  fill: v_4a1c36,
+  onPress: v_719eed,
+}: {
+  item: BannerCard;
+  docked?: boolean;
+  width?: number;
 
-    v_368635((v_0eb677) => v_0eb677 + 1);
-  };
-
-  v_c4deb2(() => {
-    if (v_4552ca.length <= 1) return;
-    const v_389afb = setTimeout(() => {
-      if (v_169231.current) return;
-      const v_a448ad = (v_2365e9 + 1) % v_4552ca.length;
-      v_881dda.current?.scrollToOffset({ offset: v_a448ad * v_729796, animated: true });
-
-      v_bf9d67(v_a448ad);
-    }, v_45f9cc);
-    return () => clearTimeout(v_389afb);
-  }, [v_2365e9, v_f0e355, v_4552ca.length, v_729796]);
-
-  const v_fcf6ec = ({ item: v_8c0b26 }: v_0b9d80<BannerCard>) => (
+  fill?: boolean;
+  onPress: (app: AppKind) => void;
+}) {
+  return (
     <TouchableOpacity
       activeOpacity={0.92}
-      onPress={() => v_0d0a3b(v_8c0b26.app)}
+      onPress={() => v_719eed(v_8c0b26.app)}
       accessibilityRole="button"
       accessibilityLabel={v_8c0b26.brand}
-      style={[v_fd5f43.cardWrap, v_60cf9e && v_fd5f43.cardWrapDocked, { width: v_eca921 }]}
+      style={[v_fd5f43.cardWrap, v_60cf9e && v_fd5f43.cardWrapDocked, v_8e4fb6 != null && { width: v_8e4fb6 }, v_4a1c36 && v_fd5f43.cardFill]}
     >
       <ImageBackground
         source={v_8c0b26.bg}
@@ -247,6 +234,58 @@ export default function v_f9a626({ style: v_7fa4e4, variant: v_46e192 = "carouse
         </LinearGradient>
       </ImageBackground>
     </TouchableOpacity>
+  );
+}
+
+export function v_2785cb({ style: v_7fa4e4 }: { style?: v_961e77<v_7e4944> }) {
+  const v_4552ca = v_2822fa();
+  const v_207c31 = v_3ef373();
+  const v_76be17 = v_4552ca.find((v_3f4e2e) => v_3f4e2e.app === "xrun") ?? v_4552ca[0];
+  return (
+    <View style={v_7fa4e4}>
+      <PartnerCard item={v_76be17} docked fill onPress={v_207c31} />
+    </View>
+  );
+}
+
+export default function v_f9a626({ style: v_7fa4e4, variant: v_46e192 = "carousel" }: Props) {
+  const { t: v_8d41d7 } = v_772971();
+  const { width: v_a4b8ea } = v_e45a99();
+  const [v_2365e9, v_bf9d67] = v_5ab095(0);
+  const v_881dda = v_e662ae<v_9cabcb<BannerCard>>(null);
+  const v_169231 = v_e662ae(false);
+  const [v_f0e355, v_368635] = v_5ab095(0);
+
+  const v_60cf9e = v_46e192 === "docked";
+  const v_eca921 = v_60cf9e ? v_a4b8ea : Math.max(240, v_a4b8ea - 40 - v_1d54af * 2 - v_1c7901);
+  const v_729796 = v_60cf9e ? v_eca921 : v_eca921 + v_66f2f8;
+
+  const v_4552ca = v_2822fa();
+  const v_0d0a3b = v_3ef373();
+
+  const v_60260f = (e: v_bd64bf<v_da479e>) => {
+    const v_62c214 = v_9e86fd.nativeEvent.contentOffset.x;
+    const v_a448ad = Math.round(v_62c214 / v_729796);
+    v_169231.current = false;
+    v_bf9d67(Math.max(0, Math.min(v_4552ca.length - 1, v_a448ad)));
+
+    v_368635((v_0eb677) => v_0eb677 + 1);
+  };
+
+  v_c4deb2(() => {
+    if (v_4552ca.length <= 1) return;
+    const v_389afb = setTimeout(() => {
+      if (v_169231.current) return;
+      const v_a448ad = (v_2365e9 + 1) % v_4552ca.length;
+      v_881dda.current?.scrollToOffset({ offset: v_a448ad * v_729796, animated: true });
+
+      v_bf9d67(v_a448ad);
+    }, v_45f9cc);
+    return () => clearTimeout(v_389afb);
+  }, [v_2365e9, v_f0e355, v_4552ca.length, v_729796]);
+
+  const v_fcf6ec = ({ item: v_8c0b26 }: v_0b9d80<BannerCard>) => (
+    <PartnerCard item={v_8c0b26} docked={v_60cf9e} width={v_eca921} onPress={v_0d0a3b} />
   );
 
   return (
@@ -329,6 +368,10 @@ const v_fd5f43 = v_472849.create({
     borderWidth: 0,
     shadowOpacity: 0,
     elevation: 0,
+  },
+  cardFill: {
+    width: "100%",
+    height: "100%",
   },
   cardBg: {
     flex: 1,

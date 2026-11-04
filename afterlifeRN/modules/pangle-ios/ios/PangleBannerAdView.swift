@@ -6,6 +6,8 @@ import UIKit
 class PangleBannerAdView: ExpoView {
   private var currentUnit: String?
   private var bannerAd: PAGBannerAd?
+  let onBannerLoaded = EventDispatcher()
+  let onBannerError = EventDispatcher()
 
   func setAdUnitId(_ unit: String) {
     clipsToBounds = true
@@ -15,6 +17,7 @@ class PangleBannerAdView: ExpoView {
       guard let self = self else { return }
       if !ok {
         NSLog("[PangleBannerAd] SDK 초기화 실패: \(message ?? "-")")
+        self.onBannerError(["unit": unit, "code": -1, "msg": message ?? "sdk-not-init"])
         return
       }
       self.load(unit)
@@ -28,9 +31,13 @@ class PangleBannerAdView: ExpoView {
         guard let self = self else { return }
         if let error = error as NSError? {
           NSLog("[PangleBannerAd] load error code=\(error.code) msg=\(error.localizedDescription) unit=\(unit)")
+          self.onBannerError(["unit": unit, "code": error.code, "msg": error.localizedDescription])
           return
         }
-        guard let ad = ad else { return }
+        guard let ad = ad else {
+          self.onBannerError(["unit": unit, "code": -2, "msg": "no-ad"])
+          return
+        }
         ad.rootViewController = PangleSdk.topViewController()
         self.bannerAd = ad
         self.subviews.forEach { $0.removeFromSuperview() }
@@ -39,6 +46,7 @@ class PangleBannerAdView: ExpoView {
         view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         self.addSubview(view)
         NSLog("[PangleBannerAd] loaded unit=\(unit)")
+        self.onBannerLoaded(["unit": unit])
       }
     }
   }
