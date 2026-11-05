@@ -25,6 +25,7 @@ import { v_e2c945 } from "./routes/credits";
 import { v_b7f2b4 } from "./routes/admin";
 import { v_133c2c } from "./routes/adminData";
 import { v_a30cdb } from "./routes/adminNotificationTemplates";
+import { v_8a7bc1 } from "./routes/adminNotificationLog";
 import { v_d26494 } from "./routes/adminAuth";
 import { v_fcbd5b } from "./routes/adminWebauthn";
 import { v_3182b3 } from "./routes/coldRecovery";
@@ -196,6 +197,8 @@ v_466992.route("/oth-path", v_cbf5ec);
 v_466992.route("/oth-path", v_e0a537);
 
 v_466992.route("/oth-path", v_a30cdb);
+
+v_466992.route("/oth-path", v_8a7bc1);
 
 v_466992.route("/oth-path", v_074a9b);
 v_466992.route("/oth-path", v_110512);
