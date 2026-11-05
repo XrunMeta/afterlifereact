@@ -2077,7 +2077,11 @@
     "usernameTooShort": "Username must be at least 3 characters.",
     "usernameTooLong": "Username must be 30 characters or fewer.",
     "usernameFormat": "Username can only use lowercase letters, numbers, and underscores (_). (No uppercase, non-ASCII, or spaces.)",
-    "passwordPolicy": "Password must be at least 7 characters and include uppercase, lowercase, and a number."
+    "passwordPolicy": "Password must be at least 7 characters and include uppercase, lowercase, and a number.",
+    "penaltyTitle": "Restricted",
+    "commentBanned": "You can't post comments right now due to an administrator restriction.",
+    "interactionBanned": "You can't like or follow right now due to an administrator restriction.",
+    "accountWithdrawnByAdmin": "This account was removed by an administrator.\nContact: oth-staff@example.invalid"
   },
   "question": {
     "label": {

@@ -62,6 +62,7 @@ import {
 import { v_bfd883 } from "../../lib/relativeTime";
 import { v_84d546 } from "../../lib/callGuard";
 import { v_38f9da } from "../../lib/callActivity";
+import { v_650589 } from "../../lib/penaltyNotice";
 import { v_ab98d4 } from "../../hooks/useReportAcceptedGate";
 import { v_1bfbd0, v_8b0c90, v_7c5e29 } from "../../components/constants";
 import type { v_19b433 } from "../../types/feed";
@@ -354,6 +355,7 @@ export default function v_c316d8() {
       }
     } catch (v_49263d) {
       console.warn("[Home] postFeedComment failed:", v_49263d);
+      v_650589(v_49263d); 
     } finally {
       v_4c2809.current = false;
       v_52390e(false);

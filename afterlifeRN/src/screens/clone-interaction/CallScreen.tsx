@@ -110,6 +110,7 @@ import {
 } from "../../realtime/speakerHandoff";
 import { isFaceConsentEnforced } from "../../config/faceConsent";
 import { subscribeFaceConsentRequired, shouldRevokeFaceConsent } from "../../lib/faceConsentError";
+import { notifyIfPenalized } from "../../lib/penaltyNotice";
 import {
   listPersons,
   deletePerson,
@@ -3425,6 +3426,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
             } catch (err) {
               console.warn("[Call] 좋아요 API 실패:", err);
               setIsLiked(!next); 
+              notifyIfPenalized(err); 
             }
           }}
         >

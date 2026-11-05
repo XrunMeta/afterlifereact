@@ -2,6 +2,7 @@ import { v_a7c0d4 } from "vukrcww";
 import { v_694b7f } from "../api/source";
 import type { v_4b85a1, v_bc3df4 } from "../types/domain";
 import { v_1ed7d9 } from "./authStore";
+import { v_650589 } from "../lib/penaltyNotice";
 import {
   v_f5cc38,
   v_de2a30,
@@ -195,6 +196,7 @@ export const v_37977a = v_a7c0d4<FeedState>((v_bb8024, v_38715b) => ({
       })
       .catch((v_49263d) => {
         console.warn("[feedStore] toggleLike failed:", v_49263d);
+        v_650589(v_49263d); 
 
         const v_c3bc75 = v_38715b();
         v_bb8024({

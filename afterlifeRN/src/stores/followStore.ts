@@ -4,6 +4,9 @@ import { v_694b7f } from "../api/source";
 import type { v_7a4d15 } from "../types/domain";
 import { v_1ed7d9 } from "./authStore";
 import { v_cc9198 } from "../config/apiBase";
+import { v_84a859 } from "../api/auth";
+import { v_3be591 } from "../lib/errorI18n";
+import { v_650589, v_bec54f } from "../lib/penaltyNotice";
 
 const v_b6c376 = "@afterlifeRN/follow/overrides";
 const v_b9d568 = 1;
@@ -82,6 +85,7 @@ export const v_b4902e = v_a7c0d4<FollowState>((v_bb8024, v_38715b) => ({
       (v_8b5cd8) => v_8b5cd8.followerUserId === v_ceb55a && v_8b5cd8.followingCloneId === v_6e0fd3,
     );
     const v_9b064f = v_c3c3b0 ? "unfollow" : "follow";
+    const v_29392d = v_38715b().follows; 
     console.log(
       `[FOLLOW][${v_9b064f}] cloneId=${v_6e0fd3} userId=${v_ceb55a} startedAt=${new Date().toISOString()} prevFollowsCount=${v_38715b().follows.length}`,
     );
@@ -141,6 +145,27 @@ export const v_b4902e = v_a7c0d4<FollowState>((v_bb8024, v_38715b) => ({
       if (!v_8f00b9.ok) {
         const v_9b6134 = await v_8f00b9.text().catch(() => "");
         console.warn(`[FOLLOW][${v_9b064f}] API toggle failed:`, v_8f00b9.status, v_9b6134);
+
+        let v_c99bd2 = "";
+        let v_a8cd21 = "";
+        try {
+          const v_b75e36 = JSON.parse(v_9b6134) as { error?: { code?: string; message?: string } };
+          v_c99bd2 = v_b75e36.error?.code ?? "";
+          v_a8cd21 = v_b75e36.error?.message ?? "";
+        } catch {
+
+        }
+        if (v_bec54f.has(v_c99bd2)) {
+          v_bb8024({ follows: v_29392d });
+          const v_c3bc75 = await v_e84827.getItem(v_b6c376);
+          const v_ef8ab1 = v_c3bc75 ? JSON.parse(v_c3bc75) : [];
+          const v_e86ad8 = v_ef8ab1.map((v_b6c474) => v_b6c474.cloneId === v_6e0fd3 && v_b6c474.action === v_9b064f).lastIndexOf(true);
+          if (v_e86ad8 >= 0) {
+            v_ef8ab1.splice(v_e86ad8, 1);
+            await v_e84827.setItem(v_b6c376, JSON.stringify(v_ef8ab1));
+          }
+          v_650589(new v_84a859(v_8f00b9.status, v_c99bd2, v_3be591(v_c99bd2, v_a8cd21)));
+        }
       }
     } catch (v_49263d) {
       console.warn(`[FOLLOW][${v_9b064f}] API toggle error:`, v_49263d);

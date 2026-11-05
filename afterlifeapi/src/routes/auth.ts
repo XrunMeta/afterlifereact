@@ -17,6 +17,7 @@ import {
 import { v_7b7f5b, v_94117c } from "../lib/deactivation";
 import { v_6690d9 } from "../middleware/auth";
 import { v_f8ffae } from "../lib/penaltyGate";
+import { v_115660 } from "../lib/adminWithdrawal";
 import { v_74defc } from "../lib/logger";
 import {
   v_b78f7e,
@@ -162,6 +163,7 @@ v_68f0aa.post("/google", async (v_3f4e2e) => {
     .first<{ id: number; name: string | null; email: string; funnelStage: string; deletion_state: string; banned_until: string | null; deleted_at: string | null }>();
 
   if (v_d1b635 && v_d1b635.deletion_state !== "active") {
+    await v_115660(v_a1651b, v_d1b635.id);
     const v_bc285e = await v_a1651b
       .prepare(
         `UPDATE users
@@ -354,6 +356,7 @@ v_68f0aa.post("/apple", async (v_3f4e2e) => {
     .first<{ id: number; name: string | null; email: string; funnelStage: string; deletion_state: string; banned_until: string | null; deleted_at: string | null }>();
 
   if (v_d1b635 && v_d1b635.deletion_state !== "active") {
+    await v_115660(v_a1651b, v_d1b635.id);
     const v_bc285e = await v_a1651b
       .prepare(
         `UPDATE users
@@ -575,6 +578,7 @@ v_68f0aa.post("/signup", async (v_3f4e2e) => {
 
   if (v_d47623) {
 
+    await v_115660(v_a1651b, v_3c8572!.id);
     v_81161e = await v_a1651b
       .prepare(
         `UPDATE users
@@ -856,6 +860,7 @@ v_68f0aa.post("/login", async (v_3f4e2e) => {
 
       if (v_625c74) {
 
+        await v_115660(v_a1651b, v_625c74.id);
         const v_3fc173 = await v_1000e8(v_4d33b2.password);
         const v_bc285e = await v_a1651b
           .prepare(

@@ -2,6 +2,7 @@
 
 import { v_a7c0d4 } from "vukrcww";
 import { v_1ed7d9 } from "./authStore";
+import { v_650589 } from "../lib/penaltyNotice";
 import {
   v_31c237,
   v_deb9b0,
@@ -97,6 +98,7 @@ export const v_98d20a = v_a7c0d4<UserFollowState>((v_bb8024, v_38715b) => ({
         v_1ed7d9.getState().patchApiUser({ followingCount: v_c97dd8 });
       }
       console.warn("[userFollowStore] toggleFollow API failed:", v_49263d);
+      v_650589(v_49263d); 
       throw v_49263d;
     }
   },

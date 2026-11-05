@@ -2074,7 +2074,11 @@
     "usernameTooShort": "用户名至少需要 3 个字符。",
     "usernameTooLong": "用户名不能超过 30 个字符。",
     "usernameFormat": "用户名只能使用小写字母、数字和下划线 (_)。（不允许大写字母、非 ASCII 字符或空格。）",
-    "passwordPolicy": "密码需至少 7 位，并包含大写字母、小写字母和数字。"
+    "passwordPolicy": "密码需至少 7 位，并包含大写字母、小写字母和数字。",
+    "penaltyTitle": "使用限制通知",
+    "commentBanned": "由于管理员限制，目前无法发表评论。",
+    "interactionBanned": "由于管理员限制，目前无法点赞或关注。",
+    "accountWithdrawnByAdmin": "该账号已被管理员注销。\n联系: oth-staff@example.invalid"
   },
   "question": {
     "label": {

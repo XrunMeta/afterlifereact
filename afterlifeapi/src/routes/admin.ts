@@ -1,4 +1,5 @@
 import { v_1186b8 } from "../lib/deactivation";
+import { v_0554f7 } from "../lib/adminWithdrawal";
 import { v_b7c41b, type v_437670 } from "zmui";
 import type { v_de0a25 } from "../lib/env";
 import { v_3ebe58 } from "../lib/errors";
@@ -2093,6 +2094,7 @@ v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
     case "account_restore":
 
       await v_3f4e2e.env.DB.prepare(`UPDATE users SET deletion_state = 'active', soft_deleted_at = NULL, deleted_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?`).bind(v_389afb).run();
+      await v_0554f7(v_3f4e2e.env.DB, v_389afb, false);
       await v_3f4e2e.env.DB.prepare(`UPDATE clones SET deletion_state = 'active', soft_deleted_at = NULL, deleted_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE owner_id = ? AND deletion_state = 'soft_deleted'`).bind(v_389afb).run();
       v_badeaf = "계정과 페르소나가 복구되었습니다.";
       break;
@@ -2240,6 +2242,8 @@ v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
     case "account_withdraw":
 
       await v_3f4e2e.env.DB.prepare(`UPDATE users SET deletion_state = 'soft_deleted', soft_deleted_at = CURRENT_TIMESTAMP, deleted_at = CURRENT_TIMESTAMP WHERE id = ?`).bind(v_389afb).run();
+      await v_0554f7(v_3f4e2e.env.DB, v_389afb, true);
+      await v_1186b8(v_3f4e2e.env, v_389afb);
       {
         const v_f425f6 = await v_3f4e2e.env.DB.prepare(`SELECT id FROM clones WHERE owner_id = ? AND deletion_state = 'active'`).bind(v_389afb).all<{ id: number }>();
         await v_3f4e2e.env.DB.prepare(`UPDATE clones SET deletion_state = 'soft_deleted', soft_deleted_at = CURRENT_TIMESTAMP, deleted_at = CURRENT_TIMESTAMP WHERE owner_id = ? AND deletion_state = 'active'`).bind(v_389afb).run();
