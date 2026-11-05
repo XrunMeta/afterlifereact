@@ -2606,5 +2606,19 @@
       "notFrontal": "첫 장은 카메라를 정면으로 봐 주세요.",
       "steps": "안내한 방향대로 고개를 천천히 돌려 주세요."
     }
+  },
+  "systemGate": {
+    "updateHeader": "업데이트 안내",
+    "updateTitle": "새 버전으로 업데이트해 주세요",
+    "updateBody": "지금 버전은 더 이상 지원되지 않아요. 스토어에서 최신 버전으로 업데이트한 뒤 이용해 주세요.",
+    "updateButton": "업데이트하기",
+    "maintenanceHeader": "서비스 점검",
+    "maintenanceTitle": "지금은 서비스 점검 중이에요",
+    "maintenanceBody": "더 나은 서비스를 위해 점검하고 있어요. 잠시 후 다시 이용해 주세요.",
+    "stoppedHeader": "서비스 일시 중단",
+    "stoppedTitle": "서비스가 잠시 중단됐어요",
+    "stoppedBody": "이용에 불편을 드려 죄송해요. 잠시 후 다시 이용해 주세요.",
+    "retry": "다시 확인",
+    "checking": "확인 중…"
   }
 }

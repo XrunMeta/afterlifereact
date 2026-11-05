@@ -99,3 +99,23 @@ v_469bf2("admin /system/function-config", () => {
     v_4d37e3(v_8f00b9.status).toBe(401);
   });
 });
+
+v_469bf2("GET /oth-path (앱용, 무인증)", () => {
+  v_23805a("관리자가 저장한 서버 상태·최소 버전을 그대로 돌려준다", async () => {
+    const v_21cc31 = await v_121982();
+    await v_309144("/oth-path", "PATCH", v_21cc31, {
+      serverStatus: "stopped",
+      minVersionIos: "1.1.2",
+      minVersionAndroid: "",
+    });
+    const v_8f00b9 = await v_309144("/oth-path", "GET", null);
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    v_4d37e3(v_8f00b9.headers.get("Cache-Control")).toContain("no-store");
+    v_4d37e3(await v_8f00b9.json()).toEqual({ serverStatus: "stopped", minVersionIos: "1.1.2", minVersionAndroid: "" });
+
+    await v_309144("/oth-path", "PATCH", v_21cc31, { serverStatus: "running", minVersionIos: "" });
+    const v_56e16d = await (await v_309144("/oth-path", "GET", null)).json<{ serverStatus: string; minVersionIos: string }>();
+    v_4d37e3(v_56e16d.serverStatus).toBe("running");
+    v_4d37e3(v_56e16d.minVersionIos).toBe("");
+  });
+});

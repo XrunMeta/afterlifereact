@@ -2608,5 +2608,19 @@
       "notFrontal": "Untuk foto pertama, lihat lurus ke kamera.",
       "steps": "Putar kepalamu perlahan sesuai arah yang ditunjukkan."
     }
+  },
+  "systemGate": {
+    "updateHeader": "Pembaruan diperlukan",
+    "updateTitle": "Silakan perbarui ke versi terbaru",
+    "updateBody": "Versi ini tidak lagi didukung. Perbarui ke versi terbaru dari toko aplikasi untuk melanjutkan.",
+    "updateButton": "Perbarui",
+    "maintenanceHeader": "Pemeliharaan",
+    "maintenanceTitle": "Layanan sedang dalam pemeliharaan",
+    "maintenanceBody": "Kami sedang meningkatkan layanan. Silakan coba lagi nanti.",
+    "stoppedHeader": "Layanan dihentikan sementara",
+    "stoppedTitle": "Layanan sedang tidak tersedia",
+    "stoppedBody": "Mohon maaf atas ketidaknyamanannya. Silakan coba lagi nanti.",
+    "retry": "Periksa lagi",
+    "checking": "Memeriksa…"
   }
 }
