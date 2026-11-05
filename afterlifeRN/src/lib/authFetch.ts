@@ -4,6 +4,8 @@ import { v_cc9198 } from "../config/apiBase";
 import { v_84a859, type v_669377 } from "../api/auth";
 import { v_3be591 } from "./errorI18n";
 import { v_9100c8, v_c57813 } from "./faceConsentError";
+import v_9c213b from "../i18n";
+import { v_889fad } from "../stores/dialogStore";
 
 const v_a089f8 = "/oth-path";
 const v_d331e7 = "/oth-path";
@@ -13,6 +15,24 @@ let v_360aa6 = null;
 let v_1a3e5d = false;
 export function v_04c88c(): boolean {
   return v_1a3e5d;
+}
+
+let v_13e4b5 = 0;
+export async function v_d0eac6(v_1e99f6): Promise<boolean> {
+  let v_49263d;
+  try {
+    v_49263d = (JSON.parse(v_1e99f6) as v_669377 | null)?.error;
+  } catch {
+    return false;
+  }
+  if (v_49263d?.code !== "SESSION_REVOKED") return false;
+  if (Date.now() - v_13e4b5 < 60_000) return true;
+  v_13e4b5 = Date.now();
+  v_889fad(
+    v_9c213b.t("errors.penaltyTitle", { defaultValue: "이용 제한 안내" }),
+    v_3be591(v_49263d.code, v_49263d.message ?? ""),
+  );
+  return true;
 }
 
 export async function v_4dd1c9(): Promise<string | null> {
@@ -40,6 +60,7 @@ export async function v_4dd1c9(): Promise<string | null> {
           const v_9b6134 = await v_8f00b9.text();
           console.warn("[authFetch] refresh/token failed:", v_8f00b9.status, v_9b6134.slice(0, 200));
           v_1a3e5d = v_8f00b9.status === 401 || v_8f00b9.status === 403;
+          if (v_1a3e5d) await v_d0eac6(v_9b6134).catch(() => false);
           return null;
         }
         const v_9390e8 = (await v_8f00b9.json()) as {

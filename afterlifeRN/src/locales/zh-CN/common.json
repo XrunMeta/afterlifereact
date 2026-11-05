@@ -2078,7 +2078,9 @@
     "penaltyTitle": "使用限制通知",
     "commentBanned": "由于管理员限制，目前无法发表评论。",
     "interactionBanned": "由于管理员限制，目前无法点赞或关注。",
-    "accountWithdrawnByAdmin": "该账号已被管理员注销。\n联系: oth-staff@example.invalid"
+    "accountWithdrawnByAdmin": "该账号已被管理员注销。\n联系: oth-staff@example.invalid",
+    "sessionRevoked": "您已被管理员退出登录，请重新登录。",
+    "deviceBanned": "此设备已被管理员禁止使用。\n联系: oth-staff@example.invalid"
   },
   "question": {
     "label": {
