@@ -11,6 +11,7 @@ import v_3b950c from "./src/navigation/RootNavigator";
 import { v_ad2ddc } from "./src/api/gifts";
 import v_d714a5 from "./src/components/ui/AppDialog";
 import v_479450 from "./src/components/EmergencyBanner";
+import v_cdba41 from "./src/components/SystemGate";
 import { v_1ed7d9 } from "./src/stores/authStore";
 import { v_b4902e } from "./src/stores/followStore";
 import { v_98d20a } from "./src/stores/userFollowStore";
@@ -268,6 +269,8 @@ export default function v_6540c3() {
 }
         <View style={v_d81136.root}>
           <EmergencyBanner />
+          {}
+          <SystemGate />
           <View style={v_d81136.root}>
             <AppErrorBoundary>
               <NavigationContainer

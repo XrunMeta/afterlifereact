@@ -2611,5 +2611,19 @@
       "notFrontal": "1枚目はカメラを正面から見てください。",
       "steps": "案内した方向にゆっくり顔を向けてください。"
     }
+  },
+  "systemGate": {
+    "updateHeader": "アップデートのお知らせ",
+    "updateTitle": "最新バージョンにアップデートしてください",
+    "updateBody": "このバージョンはサポートが終了しました。ストアで最新バージョンにアップデートしてからご利用ください。",
+    "updateButton": "アップデート",
+    "maintenanceHeader": "メンテナンス",
+    "maintenanceTitle": "ただいまメンテナンス中です",
+    "maintenanceBody": "サービス向上のためメンテナンスを行っています。しばらくしてから再度ご利用ください。",
+    "stoppedHeader": "サービス一時停止",
+    "stoppedTitle": "サービスを一時停止しています",
+    "stoppedBody": "ご不便をおかけして申し訳ありません。しばらくしてから再度ご利用ください。",
+    "retry": "もう一度確認",
+    "checking": "確認中…"
   }
 }

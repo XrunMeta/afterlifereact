@@ -2609,5 +2609,19 @@
       "notFrontal": "For the first photo, please look straight at the camera.",
       "steps": "Please turn your head slowly in the direction shown."
     }
+  },
+  "systemGate": {
+    "updateHeader": "Update required",
+    "updateTitle": "Please update to the latest version",
+    "updateBody": "This version is no longer supported. Update to the latest version from the store to continue.",
+    "updateButton": "Update",
+    "maintenanceHeader": "Maintenance",
+    "maintenanceTitle": "We're doing some maintenance",
+    "maintenanceBody": "We're working to improve the service. Please try again in a little while.",
+    "stoppedHeader": "Service paused",
+    "stoppedTitle": "The service is temporarily unavailable",
+    "stoppedBody": "Sorry for the inconvenience. Please try again in a little while.",
+    "retry": "Check again",
+    "checking": "Checking…"
   }
 }

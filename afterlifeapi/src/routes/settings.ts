@@ -2,9 +2,19 @@
 
 import { v_b7c41b } from "zmui";
 import type { v_de0a25 } from "../lib/env";
-import { v_99e8be, v_4bc1db } from "../lib/appConfig";
+import { v_99e8be, v_4bc1db, v_dc0a0b } from "../lib/appConfig";
 
 export const v_b92a72 = new v_b7c41b<v_de0a25>();
+
+v_b92a72.get("/system", async (v_3f4e2e) => {
+  const v_01dcf5 = await v_dc0a0b(v_3f4e2e.env);
+  v_3f4e2e.header("Cache-Control", "no-store, must-revalidate");
+  return v_3f4e2e.json({
+    serverStatus: v_01dcf5.serverStatus,
+    minVersionIos: v_01dcf5.minVersionIos,
+    minVersionAndroid: v_01dcf5.minVersionAndroid,
+  });
+});
 
 v_b92a72.get("/ad-messages", async (v_3f4e2e) => {
 
