@@ -2078,7 +2078,9 @@
     "penaltyTitle": "Pembatasan",
     "commentBanned": "Anda tidak bisa berkomentar saat ini karena pembatasan dari administrator.",
     "interactionBanned": "Anda tidak bisa menyukai atau mengikuti saat ini karena pembatasan dari administrator.",
-    "accountWithdrawnByAdmin": "Akun ini telah dihapus oleh administrator.\nKontak: oth-staff@example.invalid"
+    "accountWithdrawnByAdmin": "Akun ini telah dihapus oleh administrator.\nKontak: oth-staff@example.invalid",
+    "sessionRevoked": "Anda telah dikeluarkan oleh administrator. Silakan masuk lagi.",
+    "deviceBanned": "Perangkat ini telah diblokir oleh administrator.\nKontak: oth-staff@example.invalid"
   },
   "question": {
     "label": {

@@ -1,5 +1,7 @@
 import { v_1186b8 } from "../lib/deactivation";
 import { v_0554f7 } from "../lib/adminWithdrawal";
+import { v_080d61 } from "../lib/penaltyExpiry";
+import { v_e7b4d5 } from "../lib/loginDevices";
 import { v_b7c41b, type v_437670 } from "zmui";
 import type { v_de0a25 } from "../lib/env";
 import { v_3ebe58 } from "../lib/errors";
@@ -1950,6 +1952,10 @@ v_b7f2b4.get("/by-xrun/:xrunMemberId/summary", v_c0a297, async (v_3f4e2e) => {
               soft_deleted_at AS softDeletedAt,
               suspended_until AS suspendedUntil,
               banned_until AS bannedUntil,
+              -- 2026-11-06: 회원 상세 '활동 정지' 에 나머지 제재도 표시.
+              comment_ban_until AS commentBanUntil,
+              interaction_ban_until AS interactionBanUntil,
+              (SELECT COUNT(*) FROM device_bans db WHERE db.banned_user_id = users.id) AS deviceBanCount,
               -- 2026-10-19: 컬럼명 정정 (face_biometric_consent_at 은 존재하지 않음 → 쿼리 전체 실패하던 버그).
               --   *At 은 모두 unixepoch ms. 마케팅/클론별 얼굴 시각은 user_consent_log 최신 행.
               face_biometric_consent AS faceBiometricConsent,
@@ -1984,6 +1990,9 @@ v_b7f2b4.get("/by-xrun/:xrunMemberId/summary", v_c0a297, async (v_3f4e2e) => {
       softDeletedAt: string | null;
       suspendedUntil: string | null;
       bannedUntil: string | null;
+      commentBanUntil: string | null;
+      interactionBanUntil: string | null;
+      deviceBanCount: number;
       faceBiometricConsent: number | null;
       faceBiometricConsentAt: number | null;
       callLearningConsent: number | null;
@@ -2143,11 +2152,15 @@ v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
   const v_389afb = Number(v_3f4e2e.req.param("id"));
   if (!Number.isInteger(v_389afb) || v_389afb <= 0) throw new v_3ebe58("VALIDATION_FAILED", "Invalid id.");
   const v_cb35cb = await v_3f4e2e.env.DB
-    .prepare(`UPDATE users SET suspended_until = NULL, banned_until = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?`)
+    .prepare(
+      `UPDATE users SET suspended_until = NULL, banned_until = NULL, comment_ban_until = NULL, interaction_ban_until = NULL,
+              updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+    )
     .bind(v_389afb)
     .run();
   if (!v_cb35cb.meta.changes) throw new v_3ebe58("NOT_FOUND", "User not found.");
-  return v_3f4e2e.json({ ok: true });
+  const v_d5dda0 = await v_3f4e2e.env.DB.prepare(`DELETE FROM device_bans WHERE banned_user_id = ?`).bind(v_389afb).run();
+  return v_3f4e2e.json({ ok: true, deviceBansLifted: v_d5dda0.meta.changes ?? 0 });
 });
 
 async function v_a24a38(env: v_de0a25["Bindings"], v_8b86f5): Promise<void> {
@@ -2218,24 +2231,51 @@ v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
     if (v_5cfb2c.ownerId !== v_389afb) throw new v_3ebe58("VALIDATION_FAILED", "Report target is not owned by this user.");
     v_6e5b24 = { cloneId: v_5cfb2c.cloneId, name: v_5cfb2c.name };
   }
+
+  let v_38568c = null;
+  if (v_4d33b2.reportType === "comment" && v_99000e) {
+    const v_5cfb2c = await v_3f4e2e.env.DB
+      .prepare(
+        `SELECT cr.user_id AS reporterId, fc.user_id AS authorId
+           FROM comment_reports cr LEFT JOIN feed_comments fc ON fc.id = cr.comment_id WHERE cr.id = ?`,
+      )
+      .bind(v_99000e)
+      .first<{ reporterId: number; authorId: number | null }>();
+    if (!v_5cfb2c) throw new v_3ebe58("NOT_FOUND", "Report not found.");
+    if (v_5cfb2c.authorId !== v_389afb) throw new v_3ebe58("VALIDATION_FAILED", "Report target is not written by this user.");
+    v_38568c = { reporterId: v_5cfb2c.reporterId };
+  }
+  const v_7bef43 = v_4d33b2.reportType === "clone" || v_4d33b2.reportType === "user" || v_4d33b2.reportType === "comment" ? v_4d33b2.reportType : null;
   const v_2f0e2b = v_6e5b24 ? `id = ? AND owner_id = ?` : `owner_id = ?`;
   const v_e17df0 = v_6e5b24 ? [v_6e5b24.cloneId, v_389afb] : [v_389afb];
   const v_24c1e9 = v_6e5b24 ? `신고된 페르소나${v_6e5b24.name ? ` '${v_6e5b24.name}'` : ""}가` : "보유 페르소나가";
 
   switch (v_9b064f) {
     case "warn":
-      await v_3f4e2e.env.DB
-        .prepare(`INSERT INTO user_warnings (user_id, admin_id, report_id, report_type, reason) VALUES (?, ?, NULL, 'manual', ?)`)
-        .bind(v_389afb, v_db9be1, v_4d33b2.reason ?? "관리자 직접 경고")
-        .run();
+
+      if (v_99000e && v_7bef43) {
+        await v_3f4e2e.env.DB
+          .prepare(
+            `INSERT INTO user_warnings (user_id, admin_id, report_id, report_type, reason)
+             SELECT ?, ?, ?, ?, ?
+              WHERE NOT EXISTS (SELECT 1 FROM user_warnings WHERE report_id = ? AND report_type = ?)`,
+          )
+          .bind(v_389afb, v_db9be1, v_99000e, v_7bef43, v_4d33b2.reason ?? "관리자 직접 경고", v_99000e, v_7bef43)
+          .run();
+      } else {
+        await v_3f4e2e.env.DB
+          .prepare(`INSERT INTO user_warnings (user_id, admin_id, report_id, report_type, reason) VALUES (?, ?, NULL, 'manual', ?)`)
+          .bind(v_389afb, v_db9be1, v_4d33b2.reason ?? "관리자 직접 경고")
+          .run();
+      }
       v_c8eee3 = "관리자에 의해 경고가 발급되었습니다.";
       break;
     case "clone_create_ban":
-      await v_3f4e2e.env.DB.prepare(`UPDATE users SET suspended_until = datetime('now', ?) WHERE id = ?`).bind(`+${v_6a53fd || 30} days`, v_389afb).run();
+      await v_080d61(v_3f4e2e.env.DB, v_389afb, "suspended_until", v_6a53fd || 30);
       v_c8eee3 = `${v_6a53fd || 30}일간 페르소나 생성이 제한됩니다.`;
       break;
     case "account_ban":
-      await v_3f4e2e.env.DB.prepare(`UPDATE users SET banned_until = datetime('now', ?) WHERE id = ?`).bind(`+${v_6a53fd || 30} days`, v_389afb).run();
+      await v_080d61(v_3f4e2e.env.DB, v_389afb, "banned_until", v_6a53fd || 30);
       v_c8eee3 = `${v_6a53fd || 30}일간 계정 사용이 정지됩니다.`;
 
       await v_1186b8(v_3f4e2e.env, v_389afb);
@@ -2266,16 +2306,16 @@ v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
       break;
 
     case "comment_ban":
-      await v_3f4e2e.env.DB.prepare(`UPDATE users SET comment_ban_until = datetime('now', ?) WHERE id = ?`).bind(`+${v_6a53fd || 30} days`, v_389afb).run();
+      await v_080d61(v_3f4e2e.env.DB, v_389afb, "comment_ban_until", v_6a53fd || 30);
       v_c8eee3 = `${v_6a53fd || 30}일간 댓글 작성이 제한됩니다.`;
       break;
     case "interaction_ban":
-      await v_3f4e2e.env.DB.prepare(`UPDATE users SET interaction_ban_until = datetime('now', ?) WHERE id = ?`).bind(`+${v_6a53fd || 30} days`, v_389afb).run();
+      await v_080d61(v_3f4e2e.env.DB, v_389afb, "interaction_ban_until", v_6a53fd || 30);
       v_c8eee3 = `${v_6a53fd || 30}일간 좋아요·팔로우가 제한됩니다.`;
       break;
     case "force_logout":
 
-      await v_3f4e2e.env.DB.prepare(`UPDATE users SET session_epoch = session_epoch + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?`).bind(v_389afb).run();
+      await v_1186b8(v_3f4e2e.env, v_389afb);
       v_c8eee3 = "모든 기기에서 로그아웃되었습니다. 다시 로그인해 주세요.";
       break;
     case "notify_only":
@@ -2284,26 +2324,25 @@ v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
       break;
     case "device_ban": {
 
-      const v_085844 = await v_3f4e2e.env.DB
-        .prepare(`SELECT DISTINCT device_id AS deviceId FROM user_devices WHERE user_id = ?`)
-        .bind(v_389afb)
-        .all<{ deviceId: string }>();
-      const v_18b8bf = v_085844.results ?? [];
+      const v_210b48 = await v_e7b4d5(v_3f4e2e.env.DB, v_389afb);
+      if (!v_210b48.length) {
+        throw new v_3ebe58("VALIDATION_FAILED", "이 회원이 쓴 기기 기록이 없어 기기 차단을 적용할 수 없어요. 계정 강제 탈퇴를 써 주세요.");
+      }
       const v_58ca36 = v_4d33b2.reason?.trim() || "관리자에 의한 디바이스 차단";
-      for (const v_cb35cb of v_18b8bf) {
+      for (const v_929b58 of v_210b48) {
         await v_3f4e2e.env.DB
           .prepare(
             `INSERT INTO device_bans (device_id, banned_user_id, admin_id, reason)
              VALUES (?, ?, ?, ?)
              ON CONFLICT(device_id) DO UPDATE SET
-               reason = excluded.reason, admin_id = excluded.admin_id, created_at = CURRENT_TIMESTAMP`,
+               banned_user_id = excluded.banned_user_id, reason = excluded.reason,
+               admin_id = excluded.admin_id, created_at = CURRENT_TIMESTAMP`,
           )
-          .bind(v_cb35cb.deviceId, v_389afb, v_db9be1, v_58ca36)
+          .bind(v_929b58, v_389afb, v_db9be1, v_58ca36)
           .run();
       }
-      v_c8eee3 = v_18b8bf.length
-        ? `등록된 디바이스 ${v_18b8bf.length}대 재가입 차단이 적용되었습니다.`
-        : "등록된 디바이스가 없어 device_ban 이 적용되지 않았습니다. (계정 강제 탈퇴만 진행 권장)";
+      await v_1186b8(v_3f4e2e.env, v_389afb);
+      v_c8eee3 = "관리자에 의해 이 기기의 사용이 차단되었습니다.";
       break;
     }
   }
@@ -2396,15 +2435,32 @@ v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
     clone_create_ban: "페르소나 생성 제한",
     account_ban: "계정 사용 정지",
     account_withdraw: "계정 강제 탈퇴",
+    comment_ban: "댓글 작성 제한",
+    interaction_ban: "좋아요·팔로우 제한",
+    force_logout: "강제 로그아웃",
+    notify_only: "안내 발송",
+    device_ban: "기기 사용 차단",
   };
   const v_5ea0fe = v_b0b8c8[v_9b064f] ?? "제재 적용";
   const v_3a9783 =
     v_4d33b2.reporterMessage?.trim() ||
     `회원님의 신고가 수락되었습니다. 적용된 조치: ${v_5ea0fe}.`;
+  if (v_99000e && (v_38568c || v_4d33b2.reportType !== "comment")) {
 
-  if (v_99000e && v_4d33b2.reportType !== "comment") {
-
-    const v_f10744 = v_6e5b24
+    const v_f10744 = v_38568c
+      ? await v_3f4e2e.env.DB
+          .prepare(
+            `UPDATE comment_reports
+                SET status = 'reviewed',
+                    reviewed_at = COALESCE(reviewed_at, CURRENT_TIMESTAMP),
+                    reviewer_admin_id = COALESCE(reviewer_admin_id, ?),
+                    admin_message = ?, reporter_message = ?, target_message = ?
+              WHERE id = ? AND status = 'open'
+              RETURNING user_id AS reporterId`,
+          )
+          .bind(v_db9be1, v_cc755a, v_3a9783, v_cc755a, v_99000e)
+          .first<{ reporterId: number }>()
+      : v_6e5b24
       ? await v_3f4e2e.env.DB
           .prepare(
             `UPDATE clone_reports
@@ -2446,7 +2502,15 @@ v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
     }
   }
 
-  return v_3f4e2e.json({ ok: true, action: v_9b064f, suspendedUntil: v_3ac7e7?.suspendedUntil ?? null, bannedUntil: v_3ac7e7?.bannedUntil ?? null, message: v_c8eee3 });
+  return v_3f4e2e.json({
+    ok: true,
+    action: v_9b064f,
+    suspendedUntil: v_3ac7e7?.suspendedUntil ?? null,
+    bannedUntil: v_3ac7e7?.bannedUntil ?? null,
+    commentBanUntil: v_3ac7e7?.commentBanUntil ?? null,
+    interactionBanUntil: v_3ac7e7?.interactionBanUntil ?? null,
+    message: v_c8eee3,
+  });
 });
 
 v_b7f2b4.get("/reports", v_c0a297, async (v_3f4e2e) => {

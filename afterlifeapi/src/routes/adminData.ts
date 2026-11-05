@@ -5,6 +5,7 @@ import type { v_de0a25 } from "../lib/env";
 import { v_c0a297 } from "../middleware/auth";
 import { v_137694, v_a8614b } from "../lib/ale";
 import { v_e44d97 } from "../lib/kekProvider";
+import { v_080d61 } from "../lib/penaltyExpiry";
 
 export const v_133c2c = new v_b7c41b<v_de0a25>();
 
@@ -685,26 +686,10 @@ v_133c2c.post("/oth-path", async (v_3f4e2e) => {
 
   if (v_32000f?.action === "clone_create_ban" && v_6a53fd > 0) {
     v_7f572b = true;
-    await v_3f4e2e.env.DB
-      .prepare(`UPDATE users SET suspended_until = datetime('now', ?) WHERE id = ?`)
-      .bind(`+${v_6a53fd} days`, v_389afb)
-      .run();
-    const v_3ac7e7 = await v_3f4e2e.env.DB
-      .prepare(`SELECT suspended_until AS s FROM users WHERE id = ?`)
-      .bind(v_389afb)
-      .first<{ s: string | null }>();
-    v_3e0055 = v_3ac7e7?.s ?? null;
+    v_3e0055 = await v_080d61(v_3f4e2e.env.DB, v_389afb, "suspended_until", v_6a53fd);
   } else if (v_32000f?.action === "account_ban" && v_6a53fd > 0) {
     v_7f572b = true;
-    await v_3f4e2e.env.DB
-      .prepare(`UPDATE users SET banned_until = datetime('now', ?) WHERE id = ?`)
-      .bind(`+${v_6a53fd} days`, v_389afb)
-      .run();
-    const v_3ac7e7 = await v_3f4e2e.env.DB
-      .prepare(`SELECT banned_until AS s FROM users WHERE id = ?`)
-      .bind(v_389afb)
-      .first<{ s: string | null }>();
-    v_3e0055 = v_3ac7e7?.s ?? null;
+    v_3e0055 = await v_080d61(v_3f4e2e.env.DB, v_389afb, "banned_until", v_6a53fd);
   }
 
   if (v_4d33b2.reportId) {

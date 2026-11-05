@@ -548,6 +548,18 @@ const v_93ae5e = {
   },
   account_ban: { ko: "계정 사용 정지", en: "Account suspended", ja: "アカウント利用停止", "zh-CN": "账号停用", id: "Akun ditangguhkan" },
   account_withdraw: { ko: "계정 강제 탈퇴", en: "Account removed", ja: "アカウント強制退会", "zh-CN": "账号强制注销", id: "Akun dihapus" },
+
+  comment_ban: { ko: "댓글 작성 제한", en: "Commenting restricted", ja: "コメント制限", "zh-CN": "限制评论", id: "Komentar dibatasi" },
+  interaction_ban: {
+    ko: "좋아요·팔로우 제한",
+    en: "Likes and follows restricted",
+    ja: "いいね・フォロー制限",
+    "zh-CN": "限制点赞和关注",
+    id: "Suka dan ikuti dibatasi",
+  },
+  force_logout: { ko: "강제 로그아웃", en: "Signed out", ja: "強制ログアウト", "zh-CN": "强制退出登录", id: "Dikeluarkan paksa" },
+  notify_only: { ko: "안내 발송", en: "Notice sent", ja: "案内送信", "zh-CN": "已发送通知", id: "Pemberitahuan dikirim" },
+  device_ban: { ko: "기기 사용 차단", en: "Device blocked", ja: "端末利用ブロック", "zh-CN": "设备已封禁", id: "Perangkat diblokir" },
 };
 const v_d68415 = {
   ko: "제재 적용",
