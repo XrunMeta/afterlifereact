@@ -54,6 +54,7 @@ const v_e89f86 = {
   score: { name: "score", description: "온도(°C) 숫자", sample: "10" },
   date: { name: "date", description: "제재 만료일 (받는 사람 언어 형식, KST)", sample: "2026년 11월 20일" },
   action: { name: "action", description: "적용된 조치 이름 (받는 사람 언어로 자동)", sample: "경고 발급" },
+  qty: { name: "qty", description: "받을 꽃 송이 수", sample: "3" },
 } satisfies Record<string, TemplateVarDef>;
 
 const v_8d41d7 = (v_9f1622, v_4d33b2): TemplateText => ({ title: v_9f1622, body: v_4d33b2 });
@@ -260,6 +261,20 @@ export const v_d00fb9 = [
       ja: v_8d41d7("{cloneName}の共同管理者招待", "ペルソナ「{cloneName}」の共同管理者に招待されました。承諾すると一緒に管理できます。"),
       "zh-CN": v_8d41d7("{cloneName} 共同管理员邀请", "你被邀请成为角色 {cloneName} 的共同管理员。接受后即可共同管理。"),
       id: v_8d41d7("Undangan co-manager {cloneName}", "Anda diundang menjadi co-manager persona {cloneName}. Terima untuk mengelolanya bersama."),
+    },
+  },
+
+  {
+    key: "referral.reward",
+    group: "추천인",
+    description: "내 추천인 코드로 친구가 가입했을 때 (추천인에게 — 선물함에서 꽃 받기)",
+    vars: [v_e89f86.qty],
+    defaults: {
+      ko: v_8d41d7("🎁 추천 보상 도착", "친구가 내 추천인 코드로 가입했어요. 선물함에서 꽃 {qty}송이를 받아가세요!"),
+      en: v_8d41d7("🎁 Referral reward", "A friend signed up with your referral code. Claim {qty} flowers in your gift box!"),
+      ja: v_8d41d7("🎁 紹介特典が届きました", "友だちがあなたの紹介コードで登録しました。ギフトボックスで花{qty}本を受け取ってください!"),
+      "zh-CN": v_8d41d7("🎁 推荐奖励到账", "好友使用你的推荐码注册了。快去礼物箱领取 {qty} 朵花吧!"),
+      id: v_8d41d7("🎁 Hadiah referral", "Teman mendaftar dengan kode referral Anda. Ambil {qty} bunga di kotak hadiah!"),
     },
   },
 
