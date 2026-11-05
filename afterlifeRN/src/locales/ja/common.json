@@ -2077,7 +2077,11 @@
     "usernameTooShort": "ユーザー名は3文字以上にしてください。",
     "usernameTooLong": "ユーザー名は30文字以下にしてください。",
     "usernameFormat": "ユーザー名は英小文字・数字・アンダースコア (_) のみ使用できます（大文字・非ASCII・空白は不可）。",
-    "passwordPolicy": "パスワードは英大文字・小文字・数字を含む7文字以上で入力してください。"
+    "passwordPolicy": "パスワードは英大文字・小文字・数字を含む7文字以上で入力してください。",
+    "penaltyTitle": "利用制限のお知らせ",
+    "commentBanned": "管理者による制限のため、現在コメントできません。",
+    "interactionBanned": "管理者による制限のため、現在いいね・フォローできません。",
+    "accountWithdrawnByAdmin": "管理者により退会処理されたアカウントです。\nお問い合わせ: oth-staff@example.invalid"
   },
   "question": {
     "label": {

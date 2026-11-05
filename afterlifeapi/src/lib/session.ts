@@ -77,10 +77,14 @@ export async function v_27b603(
   }
 
   if (!v_931bf0.admin) {
+
     const v_ceb55a = await v_3f4e2e.env.DB
-      .prepare(`SELECT banned_until, deactivated_at, session_epoch AS ep FROM users WHERE id = ? AND deleted_at IS NULL`)
+      .prepare(`SELECT banned_until, deactivated_at, session_epoch AS ep, deleted_at FROM users WHERE id = ?`)
       .bind(v_931bf0.sub)
-      .first<{ banned_until: string | null; deactivated_at: string | null; ep: number | null }>();
+      .first<{ banned_until: string | null; deactivated_at: string | null; ep: number | null; deleted_at: string | null }>();
+    if (!v_ceb55a || v_ceb55a.deleted_at) {
+      throw new v_3ebe58("UNAUTHENTICATED", "탈퇴한 계정이에요. 다시 로그인해 주세요.");
+    }
     if (v_ceb55a?.banned_until && v_e8cd3d(v_ceb55a.banned_until) > Date.now()) {
       throw new v_3ebe58("ACCOUNT_SUSPENDED", v_d81306, {
         bannedUntil: v_ceb55a.banned_until,
