@@ -38,6 +38,7 @@ import type { v_8ad91b, v_97a9a8 } from "../../navigation/types";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_84d546 } from "../../lib/callGuard";
 import { v_38f9da } from "../../lib/callActivity";
+import { v_650589 } from "../../lib/penaltyNotice";
 import { v_b4902e } from "../../stores/followStore";
 import { v_694b7f } from "../../api/source";
 import {
@@ -673,6 +674,7 @@ export default function v_14b43e() {
       }
     } catch (v_49263d) {
       console.warn("[Following] toggleLike failed:", v_49263d);
+      v_650589(v_49263d); 
 
       v_6f4b5a((v_ba2215) => {
         const v_fd5f43 = new Set(v_ba2215);
@@ -766,6 +768,7 @@ export default function v_14b43e() {
       }
     } catch (v_49263d) {
       console.warn("[Following] postFeedComment failed:", v_49263d);
+      v_650589(v_49263d); 
     } finally {
       v_4c2809.current = false;
       v_52390e(false);

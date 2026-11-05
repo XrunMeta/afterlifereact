@@ -25,6 +25,7 @@ import { v_650cfa } from "ixigazcpvfldbecwtbvavtbi";
 import type { v_8ad91b } from "../../navigation/types";
 import { v_84d546 } from "../../lib/callGuard";
 import { v_38f9da } from "../../lib/callActivity";
+import { v_650589 } from "../../lib/penaltyNotice";
 import v_9706a6 from "../../components/ui/FeedCard";
 import v_8e7ad4 from "../../components/ui/SwipeDownSheet";
 import v_06b8c0 from "../../components/clone/IntimacyEventsSheet";
@@ -402,6 +403,7 @@ function v_75c31a({ route: v_c7daf6, navigation: v_c65f5d, feed: v_2db2a5 }: Inn
       }
     } catch (v_49263d) {
       console.warn("[CloneFeed] postFeedComment failed:", v_49263d);
+      v_650589(v_49263d); 
     } finally {
       v_4c2809.current = false;
       v_52390e(false);
@@ -503,6 +505,7 @@ function v_75c31a({ route: v_c7daf6, navigation: v_c65f5d, feed: v_2db2a5 }: Inn
         else await v_99e260(v_2ca7e0, v_8e2335, v_61b01a.id);
       } catch (v_49263d) {
         console.warn("[CloneFeed] toggleCommentLike failed:", v_49263d);
+        v_650589(v_49263d); 
 
         const v_86fa3e = (c: v_52af9d): v_52af9d =>
           v_3f4e2e.id === v_61b01a.id ? { ...v_3f4e2e, likedByMe: v_d50832, likesCount: v_43f08c } : v_3f4e2e;

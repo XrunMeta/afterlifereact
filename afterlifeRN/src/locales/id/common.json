@@ -2074,7 +2074,11 @@
     "usernameTooShort": "Nama pengguna harus minimal 3 karakter.",
     "usernameTooLong": "Nama pengguna maksimal 30 karakter.",
     "usernameFormat": "Nama pengguna hanya boleh menggunakan huruf kecil, angka, dan garis bawah (_). (Tidak boleh huruf besar, karakter non-ASCII, atau spasi.)",
-    "passwordPolicy": "Kata sandi minimal 7 karakter dan harus berisi huruf besar, huruf kecil, dan angka."
+    "passwordPolicy": "Kata sandi minimal 7 karakter dan harus berisi huruf besar, huruf kecil, dan angka.",
+    "penaltyTitle": "Pembatasan",
+    "commentBanned": "Anda tidak bisa berkomentar saat ini karena pembatasan dari administrator.",
+    "interactionBanned": "Anda tidak bisa menyukai atau mengikuti saat ini karena pembatasan dari administrator.",
+    "accountWithdrawnByAdmin": "Akun ini telah dihapus oleh administrator.\nKontak: oth-staff@example.invalid"
   },
   "question": {
     "label": {
