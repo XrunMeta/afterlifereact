@@ -2081,7 +2081,9 @@
     "penaltyTitle": "Restricted",
     "commentBanned": "You can't post comments right now due to an administrator restriction.",
     "interactionBanned": "You can't like or follow right now due to an administrator restriction.",
-    "accountWithdrawnByAdmin": "This account was removed by an administrator.\nContact: oth-staff@example.invalid"
+    "accountWithdrawnByAdmin": "This account was removed by an administrator.\nContact: oth-staff@example.invalid",
+    "sessionRevoked": "You were signed out by an administrator. Please sign in again.",
+    "deviceBanned": "This device has been blocked by an administrator.\nContact: oth-staff@example.invalid"
   },
   "question": {
     "label": {

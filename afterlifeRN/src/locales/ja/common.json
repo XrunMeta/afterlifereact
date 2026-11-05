@@ -2081,7 +2081,9 @@
     "penaltyTitle": "利用制限のお知らせ",
     "commentBanned": "管理者による制限のため、現在コメントできません。",
     "interactionBanned": "管理者による制限のため、現在いいね・フォローできません。",
-    "accountWithdrawnByAdmin": "管理者により退会処理されたアカウントです。\nお問い合わせ: oth-staff@example.invalid"
+    "accountWithdrawnByAdmin": "管理者により退会処理されたアカウントです。\nお問い合わせ: oth-staff@example.invalid",
+    "sessionRevoked": "管理者によりログアウトされました。もう一度ログインしてください。",
+    "deviceBanned": "管理者によりこの端末の利用がブロックされました。\nお問い合わせ: oth-staff@example.invalid"
   },
   "question": {
     "label": {

@@ -19,6 +19,10 @@ const v_bdafcd = {
   "ACCOUNT_DELETED::이미 탈퇴한 계정이에요.": "errors.accountDeleted",
 
   "ACCOUNT_DELETED::관리자에 의해 탈퇴 처리된 계정이에요.\n문의: oth-staff@example.invalid": "errors.accountWithdrawnByAdmin",
+
+  "SESSION_REVOKED::관리자에 의해 로그아웃 처리되었습니다. 다시 로그인해 주세요.": "errors.sessionRevoked",
+  "SESSION_REVOKED::관리자에 의해 이 기기의 사용이 차단되었습니다.": "errors.deviceBanned",
+  "UNAUTHENTICATED::관리자에 의해 이 디바이스의 사용이 차단되었습니다.": "errors.deviceBanned",
   "ACCOUNT_SUSPENDED::신고 누적으로 계정 사용이 정지되었습니다.": "errors.accountSuspended",
 
   "ACCOUNT_SUSPENDED::서비스 운영 정책 위반으로 계정 이용이 정지되었습니다.\n문의: oth-staff@example.invalid": "errors.accountSuspended",

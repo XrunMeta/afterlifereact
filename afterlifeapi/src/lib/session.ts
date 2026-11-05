@@ -2,6 +2,7 @@ import type { v_437670 } from "zmui";
 import type { v_de0a25 } from "./env";
 import { v_3ebe58 } from "./errors";
 import { v_b64d29, v_72ca53, v_2703c5, v_806b99 } from "./jwt";
+import { v_84f187 } from "./loginDevices";
 
 export function v_e8cd3d(v_3a5fef): number {
   if (v_3a5fef.includes("T")) return new Date(v_3a5fef).getTime();
@@ -50,6 +51,8 @@ export async function v_8ab5ff(
       .bind(v_43e90c)
       .first<{ ep: number | null }>();
     v_694b25["epoch"] = v_ceb55a?.ep ?? 0;
+
+    await v_84f187(v_3f4e2e.env.DB, v_43e90c, v_929b58);
   }
   const v_2ca7e0 = await v_b64d29({ ...v_694b25, kind: "access" } as never, v_3f4e2e.env.JWT_ACCESS_SECRET);
   const v_dfaee3 = await v_72ca53({ ...v_694b25, kind: "refresh" } as never, v_3f4e2e.env.JWT_REFRESH_SECRET);
@@ -95,8 +98,16 @@ export async function v_27b603(
       throw new v_3ebe58("UNAUTHENTICATED", "비활성화 중인 계정이에요. 다시 로그인해 주세요.");
     }
 
+    if (v_931bf0.deviceId) {
+      const v_015764 = await v_3f4e2e.env.DB
+        .prepare(`SELECT 1 AS x FROM device_bans WHERE device_id = ? LIMIT 1`)
+        .bind(v_931bf0.deviceId)
+        .first<{ x: number }>();
+      if (v_015764) throw new v_3ebe58("SESSION_REVOKED", "관리자에 의해 이 기기의 사용이 차단되었습니다.");
+    }
+
     if ((v_ceb55a?.ep ?? 0) > ((v_931bf0.epoch as number) ?? 0)) {
-      throw new v_3ebe58("UNAUTHENTICATED", "관리자에 의해 로그아웃 처리되었습니다. 다시 로그인해 주세요.");
+      throw new v_3ebe58("SESSION_REVOKED", "관리자에 의해 로그아웃 처리되었습니다. 다시 로그인해 주세요.");
     }
   }
 
