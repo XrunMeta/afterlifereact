@@ -39,33 +39,45 @@ const v_61b609 = {
   id: { common: v_bda2ff, countries: v_3bd08d, regions: v_0e5d44 },
 };
 
-const v_7e85ec = (): string => {
-  const v_735517 = v_d3fd07.getLocales();
-  if (v_735517.length > 0) {
-    const v_99c1a1 = v_735517[0].languageCode;
+const v_7aa632 = (v_c99bd2): v_c99bd2 is string =>
+  !!v_c99bd2 && v_6570a7.some(v_1614db => v_1614db.code === v_c99bd2);
 
-    if (v_99c1a1?.startsWith('zh')) {
-      return 'zh-CN';
-    }
-    if (v_99c1a1 && v_6570a7.some(v_1614db => v_1614db.code === v_99c1a1)) {
-      return v_99c1a1;
-    }
-  }
-  return 'ko'; 
+const v_3b9f85 = (v_99c1a1): string | null => {
+  const v_c99bd2 = v_99c1a1?.toLowerCase();
+  if (!v_c99bd2) return null;
+
+  if (v_c99bd2.startsWith('zh')) return 'zh-CN';
+
+  if (v_c99bd2 === 'in') return 'id';
+  return v_7aa632(v_c99bd2) ? v_c99bd2 : null;
 };
+
+const v_7e85ec = (): string => {
+  try {
+    for (const v_6f298b of v_d3fd07.getLocales()) {
+      const v_5254bf = v_3b9f85(v_6f298b.languageCode);
+      if (v_5254bf) return v_5254bf;
+    }
+  } catch {
+
+  }
+  return 'en';
+};
+
+const v_6d62b8 = { ko: ['ko'], default: ['en', 'ko'] };
 
 const v_569585 = async () => {
   try {
 
     const v_a0b98b = await v_e84827.getItem(v_201aab);
-    const v_b3c050 = v_a0b98b ?? v_7e85ec();
+    const v_b3c050 = v_7aa632(v_a0b98b) ? v_a0b98b : v_7e85ec();
 
     await v_9c213b
       .use(v_788479)
       .init({
         resources: v_61b609,
         lng: v_b3c050,
-        fallbackLng: 'ko',
+        fallbackLng: v_6d62b8,
         ns: ['common', 'countries', 'regions'],
         defaultNS: 'common',
         interpolation: {
@@ -79,8 +91,8 @@ const v_569585 = async () => {
       .use(v_788479)
       .init({
         resources: v_61b609,
-        lng: 'ko',
-        fallbackLng: 'ko',
+        lng: v_7e85ec(),
+        fallbackLng: v_6d62b8,
         ns: ['common', 'countries', 'regions'],
         defaultNS: 'common',
         interpolation: {
