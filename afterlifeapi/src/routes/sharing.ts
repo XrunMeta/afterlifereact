@@ -200,6 +200,9 @@ v_403c0a.post(
           type: "invite_received",
           title: `${v_f2ff36} 공동관리자 초대`,
           body: `${v_f2ff36} 페르소나의 공동관리자로 초대됐어요. 수락하면 함께 관리할 수 있어요.`,
+
+          templateKey: "invite.received",
+          vars: { cloneName: v_f2ff36 },
           url: v_9466ca,
           data: { cloneId: v_6e0fd3, token: v_21cc31 },
           emailSubject: `[afterlife] ${v_f2ff36} 공동관리자 초대`,

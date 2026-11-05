@@ -101,6 +101,8 @@ export async function v_7808c0(
       type: "referral_reward",
       title: "🎁 추천 보상 도착",
       body: `친구가 내 추천인 코드로 가입했어요. 선물함에서 꽃 ${v_b1117f}송이를 받아가세요!`,
+      templateKey: "referral.reward",
+      vars: { qty: v_b1117f },
       data: { type: "referral_reward", qty: v_b1117f },
       skipEmail: true,
     }).catch((v_49263d) => console.warn("[referral] notify failed:", (v_49263d as Error).message));
