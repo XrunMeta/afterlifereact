@@ -7,6 +7,7 @@ import { v_3ebe58 } from "../lib/errors";
 import {
   v_5cb21e,
   v_d00fb9,
+  v_fa6025,
   v_e9e978,
   v_18b0cb,
   v_e2fd5b,
@@ -38,6 +39,7 @@ v_a30cdb.get("/", async (v_3f4e2e) => {
     langs: v_5cb21e,
     templates: v_d00fb9.map((v_d5dda0) => ({
       key: v_d5dda0.key,
+      label: v_fa6025[v_d5dda0.key] ?? v_d5dda0.key,
       group: v_d5dda0.group,
       description: v_d5dda0.description,
       vars: v_d5dda0.vars,

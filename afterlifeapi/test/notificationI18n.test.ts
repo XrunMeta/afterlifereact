@@ -8,6 +8,7 @@ import {
   v_de8979,
   v_6fcc82,
   v_d00fb9,
+  v_fa6025,
   v_5cb21e,
   v_18b0cb,
 } from "../src/lib/notificationTemplates";
@@ -88,6 +89,7 @@ v_469bf2("템플릿 렌더링", () => {
     for (const v_d5dda0 of v_d00fb9) {
       v_4d37e3(v_fa53ec.has(v_d5dda0.key)).toBe(false);
       v_fa53ec.add(v_d5dda0.key);
+      v_4d37e3(v_fa6025[v_d5dda0.key], `${v_d5dda0.key}: xrun-admin 버튼 이름 없음`).toBeTruthy();
       const v_999957 = new Set(v_d5dda0.vars.map((v_81e2ef) => v_81e2ef.name));
       for (const v_5254bf of v_5cb21e) {
         const v_8d41d7 = v_d5dda0.defaults[v_5254bf];

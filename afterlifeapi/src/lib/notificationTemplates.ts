@@ -454,6 +454,46 @@ export const v_d00fb9 = [
 
 export const v_e9e978 = new Map(v_d00fb9.map((v_d5dda0) => [v_d5dda0.key, v_d5dda0]));
 
+export const v_fa6025 = {
+  "clone.like": "좋아요",
+  "clone.comment": "댓글",
+  "clone.comment_generic": "댓글 (내용 없음)",
+  "clone.follow": "구독",
+  "clone.gift": "선물",
+  "clone.gift_generic": "선물 (정보 없음)",
+  "intimacy.score_chat": "친밀도 상승 — 채팅",
+  "intimacy.score_call": "친밀도 상승 — 통화",
+  "intimacy.score_learn": "친밀도 상승 — 프로필 탐색",
+  "intimacy.score_feed": "친밀도 상승 — 피드",
+  "intimacy.milestone": "온도 10°C 돌파",
+  "user.follow": "새 팔로워",
+  "followee.new_clone": "팔로우한 사람 새 페르소나",
+  "invite.received": "공동관리자 초대",
+  "referral.reward": "추천 보상",
+  "moderation.warn_issued": "경고 발급",
+  "moderation.account_ban_until": "계정 정지",
+  "moderation.clone_create_ban_until": "페르소나 생성 제한",
+  "moderation.comment_ban_until": "댓글 제한",
+  "moderation.interaction_ban_until": "좋아요·팔로우 제한",
+  "moderation.clone_deactivated": "페르소나 전체 비활성화",
+  "moderation.clone_deleted": "페르소나 전체 삭제",
+  "moderation.reported_clone_deactivated": "신고된 페르소나 비활성화",
+  "moderation.reported_clone_deleted": "신고된 페르소나 삭제",
+  "moderation.account_withdrawn": "강제 탈퇴",
+  "moderation.force_logout": "강제 로그아웃",
+  "moderation.report_warning": "신고 수락 — 경고 기록",
+  "moderation.report_actioned": "신고자 — 제재 적용됨",
+  "moderation.report_outcome_reviewed": "신고자 — 수락",
+  "moderation.report_outcome_dismissed": "신고자 — 반려",
+  "moderation.report_outcome_actioned": "신고자 — 조치",
+  "moderation.report_outcome_processed": "신고자 — 기타 처리",
+  "moderation.lift_clone_create_ban": "해제 — 페르소나 생성 제한",
+  "moderation.lift_account_ban": "해제 — 계정 정지",
+  "moderation.lift_clone_restore": "해제 — 페르소나 복구",
+  "moderation.lift_account_restore": "해제 — 강제 탈퇴 취소",
+  "moderation.lift_warnings_clear": "해제 — 경고 초기화",
+};
+
 const v_bf7943 = /\{([A-Za-z][A-Za-z0-9_]*)\}/g;
 
 export function v_e2fd5b(v_9b6134): string[] {
