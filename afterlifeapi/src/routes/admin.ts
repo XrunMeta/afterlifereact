@@ -116,7 +116,9 @@ v_b7f2b4.patch("/system/function-config", v_c0a297, async (v_3f4e2e) => {
 
 v_b7f2b4.get("/config/persona-price", v_c0a297, async (v_3f4e2e) => {
   const v_318e8b = await v_916830(v_3f4e2e.env);
-  return v_3f4e2e.json({ priceXrun: v_318e8b });
+
+  const v_bf389b = String((v_3f4e2e.env as unknown as { CLONE_PAYMENT_BYPASS?: string }).CLONE_PAYMENT_BYPASS ?? "") === "1";
+  return v_3f4e2e.json({ priceXrun: v_318e8b, paymentBypass: v_bf389b });
 });
 v_b7f2b4.patch("/config/persona-price", v_c0a297, async (v_3f4e2e) => {
   const v_4d33b2 = await v_3f4e2e.req.json<{ priceXrun?: unknown }>().catch(() => ({} as { priceXrun?: unknown }));
