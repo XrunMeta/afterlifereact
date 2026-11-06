@@ -52,3 +52,19 @@ export function v_a4a42b(c: v_437670<v_de0a25>): string | number {
   const v_380fb2 = v_3f4e2e.get("adminActor");
   return v_380fb2 ? `xrun:${v_380fb2.id}` : (v_3f4e2e.get("adminUserId") ?? 0);
 }
+
+export async function v_11eba8(env: v_273a0c, v_52e08b): Promise<Map<number, string>> {
+  const v_2ac933 = [...new Set(v_52e08b.filter((v_389afb): v_389afb is number => Number.isInteger(v_389afb) && (v_389afb as number) > 0))];
+  const v_b807c6 = new Map<number, string>();
+  if (!v_2ac933.length || !v_c9c489.XRUN_DB) return v_b807c6;
+  try {
+    const v_18b8bf = await v_c9c489.XRUN_DB
+      .prepare(`SELECT member, email FROM admin WHERE member IN (${v_2ac933.map(() => "?").join(",")})`)
+      .bind(...v_2ac933)
+      .all<{ member: number; email: string | null }>();
+    for (const v_cb35cb of v_18b8bf.results ?? []) if (v_cb35cb.email) v_b807c6.set(v_cb35cb.member, v_cb35cb.email);
+  } catch (v_49263d) {
+    console.warn("[xrunAdminIdentity] email lookup failed:", (v_49263d as Error).message);
+  }
+  return v_b807c6;
+}
