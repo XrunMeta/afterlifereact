@@ -3,6 +3,7 @@ import type { v_de0a25 } from "../lib/env";
 import { v_3ebe58 } from "../lib/errors";
 import { v_2703c5 } from "../lib/jwt";
 import { v_d5996b } from "../lib/deactivation";
+import { v_da9a62 } from "../lib/xrunAdminIdentity";
 
 export const requireAuth: v_ea2b42<v_de0a25> = async (v_3f4e2e, v_a448ad) => {
   const v_ad8d0d = v_3f4e2e.req.header("Authorization");
@@ -49,6 +50,9 @@ export const requireAdmin: v_ea2b42<v_de0a25> = async (v_3f4e2e, v_a448ad) => {
 
   if (v_89f2ef(v_3f4e2e)) {
     v_3f4e2e.set("adminUserId", 0); 
+
+    const v_380fb2 = await v_da9a62(v_3f4e2e.env, v_3f4e2e.req.header("X-Xrun-Admin-Token"));
+    if (v_380fb2) v_3f4e2e.set("adminActor", v_380fb2);
     await v_a448ad();
     return;
   }
@@ -90,4 +94,13 @@ export const requireSuperAdmin: v_ea2b42<v_de0a25> = async (v_3f4e2e, v_a448ad) 
   }
   v_3f4e2e.set("adminRole", v_3ac7e7.role);
   await v_a448ad();
+};
+
+export const requireVerifiedAdmin: v_ea2b42<v_de0a25> = async (v_3f4e2e, v_a448ad) => {
+  await v_c0a297(v_3f4e2e, async () => {});
+  if (v_3f4e2e.get("adminActor")) {
+    await v_a448ad();
+    return;
+  }
+  await v_b09138(v_3f4e2e, v_a448ad);
 };
