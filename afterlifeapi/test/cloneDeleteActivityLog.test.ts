@@ -95,6 +95,7 @@ v_469bf2("클론 삭제·복구 시스템 로그", () => {
       state: "soft_deleted",
       by: "admin",
       adminUserId: v_d72b33,
+      adminEmail: null,
       reason: "정책 위반으로 삭제 처리함",
     });
   });
