@@ -7,7 +7,8 @@ import type { v_de0a25 } from "../lib/env";
 import { v_3ebe58 } from "../lib/errors";
 import { v_74defc } from "../lib/logger";
 import { v_09b071 } from "../scheduled/cleanup";
-import { v_c0a297, v_b09138 } from "../middleware/auth";
+import { v_c0a297, v_b09138, v_d3c85b } from "../middleware/auth";
+import { v_299864, v_a4a42b } from "../lib/xrunAdminIdentity";
 import { v_4c95c2, v_1f4ea7 } from "../lib/validate";
 import { v_a8614b, v_137694, v_dfbdd9, v_9eaae0, v_85de88, v_8ea38c } from "../lib/ale";
 import { v_e44d97 } from "../lib/kekProvider";
@@ -1039,7 +1040,6 @@ const v_6a2a1e = v_1f4ea7.object({
 });
 
 v_b7f2b4.delete("/oth-path", v_c0a297, async (v_3f4e2e) => {
-  const v_105fc4 = v_3f4e2e.get("adminUserId")!;
   const v_2c44c0 = v_3f4e2e.req.param("id");
   const v_6e0fd3 = Number(v_2c44c0);
   if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
@@ -1073,7 +1073,7 @@ v_b7f2b4.delete("/oth-path", v_c0a297, async (v_3f4e2e) => {
     .bind(v_6e0fd3)
     .run();
   await v_e56fb3(v_3f4e2e.env.DB, v_3f4e2e.env.AUDIT_SECRET, {
-    actor: { type: "admin", id: v_105fc4 },
+    actor: { type: "admin", id: v_a4a42b(v_3f4e2e) },
     op: "soft_delete",
     resourceType: "clone",
     resourceId: v_6e0fd3,
@@ -1083,13 +1083,12 @@ v_b7f2b4.delete("/oth-path", v_c0a297, async (v_3f4e2e) => {
   await v_74defc(v_3f4e2e, {
     userId: v_3c8572.owner_id,
     action: "clone.delete",
-    details: { cloneId: v_6e0fd3, state: "soft_deleted", by: "admin", adminUserId: v_105fc4, reason: v_58ca36 },
+    details: { cloneId: v_6e0fd3, state: "soft_deleted", by: "admin", adminUserId: v_299864(v_3f4e2e), adminEmail: v_3f4e2e.get("adminActor")?.email ?? null, reason: v_58ca36 },
   });
   return v_3f4e2e.json({ ok: true, deletedId: v_6e0fd3, deletionState: "soft_deleted" });
 });
 
-v_b7f2b4.post("/oth-path", v_b09138, async (v_3f4e2e) => {
-  const v_105fc4 = v_3f4e2e.get("adminUserId")!;
+v_b7f2b4.post("/oth-path", v_d3c85b, async (v_3f4e2e) => {
   const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
   if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
     throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
@@ -1119,7 +1118,7 @@ v_b7f2b4.post("/oth-path", v_b09138, async (v_3f4e2e) => {
     .bind(v_58ca36, v_6e0fd3)
     .run();
   await v_e56fb3(v_3f4e2e.env.DB, v_3f4e2e.env.AUDIT_SECRET, {
-    actor: { type: "admin", id: v_105fc4 },
+    actor: { type: "admin", id: v_a4a42b(v_3f4e2e) },
     op: "disable",
     resourceType: "clone",
     resourceId: v_6e0fd3,
@@ -1128,8 +1127,7 @@ v_b7f2b4.post("/oth-path", v_b09138, async (v_3f4e2e) => {
   return v_3f4e2e.json({ ok: true, cloneId: v_6e0fd3, suspended: true });
 });
 
-v_b7f2b4.post("/oth-path", v_b09138, async (v_3f4e2e) => {
-  const v_105fc4 = v_3f4e2e.get("adminUserId")!;
+v_b7f2b4.post("/oth-path", v_d3c85b, async (v_3f4e2e) => {
   const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
   if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
     throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
@@ -1176,7 +1174,7 @@ v_b7f2b4.post("/oth-path", v_b09138, async (v_3f4e2e) => {
     .bind(v_6e0fd3)
     .run();
   await v_e56fb3(v_3f4e2e.env.DB, v_3f4e2e.env.AUDIT_SECRET, {
-    actor: { type: "admin", id: v_105fc4 },
+    actor: { type: "admin", id: v_a4a42b(v_3f4e2e) },
     op: "activate",
     resourceType: "clone",
     resourceId: v_6e0fd3,
@@ -2120,6 +2118,11 @@ v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
     account_restore: "moderation.lift_account_restore",
     warnings_clear: "moderation.lift_warnings_clear",
   };
+  await v_74defc(v_3f4e2e, {
+    userId: v_389afb,
+    action: "moderation.lift",
+    details: { lift: v_9b064f, adminId: v_299864(v_3f4e2e), adminEmail: v_3f4e2e.get("adminActor")?.email ?? null },
+  }).catch(() => {});
   const v_d35987 = v_4d33b2.reason?.trim();
   await v_c226a5(v_3f4e2e.env, {
     userId: v_389afb,
@@ -2147,6 +2150,11 @@ v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
     .run();
   if (!v_cb35cb.meta.changes) throw new v_3ebe58("NOT_FOUND", "User not found.");
   const v_d5dda0 = await v_3f4e2e.env.DB.prepare(`DELETE FROM device_bans WHERE banned_user_id = ?`).bind(v_389afb).run();
+  await v_74defc(v_3f4e2e, {
+    userId: v_389afb,
+    action: "moderation.unsuspend",
+    details: { deviceBansLifted: v_d5dda0.meta.changes ?? 0, adminId: v_299864(v_3f4e2e), adminEmail: v_3f4e2e.get("adminActor")?.email ?? null },
+  }).catch(() => {});
   return v_3f4e2e.json({ ok: true, deviceBansLifted: v_d5dda0.meta.changes ?? 0 });
 });
 
@@ -2201,7 +2209,7 @@ v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
   if (!v_625c74) throw new v_3ebe58("NOT_FOUND", "User not found.");
 
   const v_6a53fd = Number.isInteger(v_4d33b2.suspendDays) && (v_4d33b2.suspendDays as number) > 0 ? (v_4d33b2.suspendDays as number) : 0;
-  const v_db9be1 = v_3f4e2e.get("adminUserId") ?? 0;
+  const v_db9be1 = v_299864(v_3f4e2e);
   let v_c8eee3 = "";
 
   const v_99000e = Number.isInteger(v_4d33b2.reportId) && (v_4d33b2.reportId as number) > 0 ? (v_4d33b2.reportId as number) : 0;
@@ -2413,6 +2421,12 @@ v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
     url: "afterlife://reports/received",
     data: { action: v_9b064f, manual: true, bannedUntil: v_3ac7e7?.bannedUntil ?? null, suspendedUntil: v_3ac7e7?.suspendedUntil ?? null },
     skipEmail: true,
+  }).catch(() => {});
+
+  await v_74defc(v_3f4e2e, {
+    userId: v_389afb,
+    action: "moderation.penalty",
+    details: { penalty: v_9b064f, suspendDays: v_6a53fd || null, reportId: v_99000e || null, reportType: v_7bef43, adminId: v_db9be1, adminEmail: v_3f4e2e.get("adminActor")?.email ?? null },
   }).catch(() => {});
 
   const v_b0b8c8 = {
@@ -2713,6 +2727,10 @@ async function v_d1a2ff(
   }).catch(() => {});
 }
 
+function v_97ea06(v_d308b5, v_c403c7, v_db9be1): Array<string | number> {
+  return v_c403c7 ? [v_d308b5] : [v_d308b5, v_db9be1];
+}
+
 async function v_19a475(
   c: v_437670<v_de0a25>,
   v_7bef43,
@@ -2727,7 +2745,7 @@ async function v_19a475(
     .bind(v_99000e, v_7bef43)
     .first();
   if (!v_5b4e12) {
-    const v_db9be1 = v_3f4e2e.get("adminUserId") ?? 0;
+    const v_db9be1 = v_299864(v_3f4e2e);
     await v_3f4e2e.env.DB
       .prepare(
         `INSERT INTO user_warnings (user_id, admin_id, report_id, report_type, reason) VALUES (?, ?, ?, ?, ?)`,
@@ -2777,8 +2795,8 @@ v_b7f2b4.patch("/oth-path", v_c0a297, async (v_3f4e2e) => {
 
   const v_901936 = v_c403c7 ? "reviewed_at = NULL" : "reviewed_at = COALESCE(reviewed_at, CURRENT_TIMESTAMP)";
   const v_cb35cb = await v_3f4e2e.env.DB
-    .prepare(`UPDATE clone_reports SET status = ?, ${v_901936}, admin_message = ?, reporter_message = ?, target_message = ? WHERE id = ?`)
-    .bind(v_d308b5, v_7e89c9, v_2bd5e3, v_94b0c4, v_389afb)
+    .prepare(`UPDATE clone_reports SET status = ?, ${v_901936}, reviewer_admin_id = ${v_c403c7 ? "NULL" : "COALESCE(NULLIF(reviewer_admin_id, 0), ?)"}, admin_message = ?, reporter_message = ?, target_message = ? WHERE id = ?`)
+    .bind(...v_97ea06(v_d308b5, v_c403c7, v_299864(v_3f4e2e)), v_7e89c9, v_2bd5e3, v_94b0c4, v_389afb)
     .run();
   if (!v_cb35cb.meta.changes) throw new v_3ebe58("NOT_FOUND", "Report not found.");
 
@@ -2830,8 +2848,8 @@ v_b7f2b4.patch("/oth-path", v_c0a297, async (v_3f4e2e) => {
 
   const v_901936 = v_c403c7 ? "reviewed_at = NULL" : "reviewed_at = COALESCE(reviewed_at, CURRENT_TIMESTAMP)";
   const v_cb35cb = await v_3f4e2e.env.DB
-    .prepare(`UPDATE user_reports SET status = ?, ${v_901936}, admin_message = ?, reporter_message = ?, target_message = ? WHERE id = ?`)
-    .bind(v_d308b5, v_7e89c9, v_2bd5e3, v_94b0c4, v_389afb)
+    .prepare(`UPDATE user_reports SET status = ?, ${v_901936}, reviewer_admin_id = ${v_c403c7 ? "NULL" : "COALESCE(NULLIF(reviewer_admin_id, 0), ?)"}, admin_message = ?, reporter_message = ?, target_message = ? WHERE id = ?`)
+    .bind(...v_97ea06(v_d308b5, v_c403c7, v_299864(v_3f4e2e)), v_7e89c9, v_2bd5e3, v_94b0c4, v_389afb)
     .run();
   if (!v_cb35cb.meta.changes) throw new v_3ebe58("NOT_FOUND", "Report not found.");
 
@@ -2881,8 +2899,8 @@ v_b7f2b4.patch("/comments/reports/:id", v_c0a297, async (v_3f4e2e) => {
 
   const v_901936 = v_c403c7 ? "reviewed_at = NULL" : "reviewed_at = COALESCE(reviewed_at, CURRENT_TIMESTAMP)";
   const v_cb35cb = await v_3f4e2e.env.DB
-    .prepare(`UPDATE comment_reports SET status = ?, ${v_901936}, admin_message = ?, reporter_message = ?, target_message = ? WHERE id = ?`)
-    .bind(v_d308b5, v_7e89c9, v_2bd5e3, v_94b0c4, v_389afb)
+    .prepare(`UPDATE comment_reports SET status = ?, ${v_901936}, reviewer_admin_id = ${v_c403c7 ? "NULL" : "COALESCE(NULLIF(reviewer_admin_id, 0), ?)"}, admin_message = ?, reporter_message = ?, target_message = ? WHERE id = ?`)
+    .bind(...v_97ea06(v_d308b5, v_c403c7, v_299864(v_3f4e2e)), v_7e89c9, v_2bd5e3, v_94b0c4, v_389afb)
     .run();
   if (!v_cb35cb.meta.changes) throw new v_3ebe58("NOT_FOUND", "Report not found.");
 

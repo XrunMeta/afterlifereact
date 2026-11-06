@@ -1,5 +1,7 @@
 
 
+import type { v_c31f34 } from "./xrunAdminIdentity";
+
 export interface Bindings {
   DB: D1Database;
 
@@ -123,6 +125,7 @@ export type AppEnv = {
     userId?: number;
     adminUserId?: number;
     adminRole?: string;
+    adminActor?: v_c31f34;
     requestId: string;
   };
 };
