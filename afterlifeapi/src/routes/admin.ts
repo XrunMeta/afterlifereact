@@ -8,7 +8,8 @@ import { v_3ebe58 } from "../lib/errors";
 import { v_74defc } from "../lib/logger";
 import { v_09b071 } from "../scheduled/cleanup";
 import { v_c0a297, v_b09138, v_d3c85b } from "../middleware/auth";
-import { v_299864, v_a4a42b } from "../lib/xrunAdminIdentity";
+import { v_299864, v_a4a42b, v_11eba8 } from "../lib/xrunAdminIdentity";
+import { v_c60c30 } from "../lib/penaltyLog";
 import { v_4c95c2, v_1f4ea7 } from "../lib/validate";
 import { v_a8614b, v_137694, v_dfbdd9, v_9eaae0, v_85de88, v_8ea38c } from "../lib/ale";
 import { v_e44d97 } from "../lib/kekProvider";
@@ -58,6 +59,14 @@ import {
 export const v_b7f2b4 = new v_b7c41b<v_de0a25>();
 
 v_b7f2b4.get("/health", (v_3f4e2e) => v_3f4e2e.json({ ok: true, module: "admin" }));
+
+async function v_26580e(c: v_437670<v_de0a25>, v_43e90c, v_9b064f, v_5ab5bd): Promise<void> {
+  await v_74defc(v_3f4e2e, {
+    userId: v_43e90c,
+    action: v_9b064f,
+    details: { ...v_5ab5bd, adminId: v_299864(v_3f4e2e), adminEmail: v_3f4e2e.get("adminActor")?.email ?? null },
+  }).catch(() => {});
+}
 
 const v_8375f7 = new Set<v_f56907>(["running", "maintenance", "stopped"]);
 v_b7f2b4.get("/system/function-config", v_c0a297, async (v_3f4e2e) => {
@@ -1108,9 +1117,9 @@ v_b7f2b4.post("/oth-path", v_d3c85b, async (v_3f4e2e) => {
   }
   const { reason: v_58ca36 } = await v_4c95c2(v_3f4e2e, v_0a4de4);
   const v_3c8572 = await v_3f4e2e.env.DB
-    .prepare(`SELECT id, deletion_state, admin_suspended_at FROM clones WHERE id = ?`)
+    .prepare(`SELECT id, owner_id, deletion_state, admin_suspended_at FROM clones WHERE id = ?`)
     .bind(v_6e0fd3)
-    .first<{ id: number; deletion_state: string; admin_suspended_at: string | null }>();
+    .first<{ id: number; owner_id: number; deletion_state: string; admin_suspended_at: string | null }>();
   if (!v_3c8572) throw new v_3ebe58("NOT_FOUND", "Clone not found.");
   if (v_3c8572.deletion_state !== "active") {
     throw new v_3ebe58(
@@ -1137,6 +1146,7 @@ v_b7f2b4.post("/oth-path", v_d3c85b, async (v_3f4e2e) => {
     resourceId: v_6e0fd3,
     reason: v_58ca36,
   });
+  await v_26580e(v_3f4e2e, v_3c8572.owner_id, "moderation.clone_disable", { cloneId: v_6e0fd3, reason: v_58ca36 });
   return v_3f4e2e.json({ ok: true, cloneId: v_6e0fd3, suspended: true });
 });
 
@@ -1162,9 +1172,9 @@ v_b7f2b4.post("/oth-path", v_d3c85b, async (v_3f4e2e) => {
     v_58ca36 = v_8decf8.data.reason;
   }
   const v_3c8572 = await v_3f4e2e.env.DB
-    .prepare(`SELECT id, deletion_state, admin_suspended_at FROM clones WHERE id = ?`)
+    .prepare(`SELECT id, owner_id, deletion_state, admin_suspended_at FROM clones WHERE id = ?`)
     .bind(v_6e0fd3)
-    .first<{ id: number; deletion_state: string; admin_suspended_at: string | null }>();
+    .first<{ id: number; owner_id: number; deletion_state: string; admin_suspended_at: string | null }>();
   if (!v_3c8572) throw new v_3ebe58("NOT_FOUND", "Clone not found.");
   if (v_3c8572.deletion_state === "hard_deleted" || v_3c8572.deletion_state === "archived_cold") {
     throw new v_3ebe58("CONFLICT", `Cannot activate from state '${v_3c8572.deletion_state}'.`);
@@ -1193,6 +1203,7 @@ v_b7f2b4.post("/oth-path", v_d3c85b, async (v_3f4e2e) => {
     resourceId: v_6e0fd3,
     reason: v_58ca36 ?? null,
   });
+  await v_26580e(v_3f4e2e, v_3c8572.owner_id, "moderation.clone_activate", { cloneId: v_6e0fd3, reason: v_58ca36 ?? null });
   return v_3f4e2e.json({ ok: true, cloneId: v_6e0fd3, deletionState: "active" });
 });
 
@@ -2076,6 +2087,7 @@ v_b7f2b4.get("/by-xrun/:xrunMemberId/summary", v_c0a297, async (v_3f4e2e) => {
 
   return v_3f4e2e.json({
     user: { ...v_625c74, suspensionReason: v_eb7cab?.reason ?? null },
+    penaltyLog: await v_c60c30(v_3f4e2e.env.DB, v_625c74.id),
     clones: v_f891e6,
     cloneReportsCount: v_cf098c?.cnt ?? 0,
     userReportsCount: v_59cd44?.cnt ?? 0,
@@ -2131,11 +2143,7 @@ v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
     account_restore: "moderation.lift_account_restore",
     warnings_clear: "moderation.lift_warnings_clear",
   };
-  await v_74defc(v_3f4e2e, {
-    userId: v_389afb,
-    action: "moderation.lift",
-    details: { lift: v_9b064f, adminId: v_299864(v_3f4e2e), adminEmail: v_3f4e2e.get("adminActor")?.email ?? null },
-  }).catch(() => {});
+  await v_26580e(v_3f4e2e, v_389afb, "moderation.lift", { lift: v_9b064f });
   const v_d35987 = v_4d33b2.reason?.trim();
   await v_c226a5(v_3f4e2e.env, {
     userId: v_389afb,
@@ -2163,11 +2171,7 @@ v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
     .run();
   if (!v_cb35cb.meta.changes) throw new v_3ebe58("NOT_FOUND", "User not found.");
   const v_d5dda0 = await v_3f4e2e.env.DB.prepare(`DELETE FROM device_bans WHERE banned_user_id = ?`).bind(v_389afb).run();
-  await v_74defc(v_3f4e2e, {
-    userId: v_389afb,
-    action: "moderation.unsuspend",
-    details: { deviceBansLifted: v_d5dda0.meta.changes ?? 0, adminId: v_299864(v_3f4e2e), adminEmail: v_3f4e2e.get("adminActor")?.email ?? null },
-  }).catch(() => {});
+  await v_26580e(v_3f4e2e, v_389afb, "moderation.unsuspend", { deviceBansLifted: v_d5dda0.meta.changes ?? 0 });
   return v_3f4e2e.json({ ok: true, deviceBansLifted: v_d5dda0.meta.changes ?? 0 });
 });
 
@@ -2436,11 +2440,7 @@ v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
     skipEmail: true,
   }).catch(() => {});
 
-  await v_74defc(v_3f4e2e, {
-    userId: v_389afb,
-    action: "moderation.penalty",
-    details: { penalty: v_9b064f, suspendDays: v_6a53fd || null, reportId: v_99000e || null, reportType: v_7bef43, adminId: v_db9be1, adminEmail: v_3f4e2e.get("adminActor")?.email ?? null },
-  }).catch(() => {});
+  await v_26580e(v_3f4e2e, v_389afb, "moderation.penalty", { penalty: v_9b064f, suspendDays: v_6a53fd || null, reportId: v_99000e || null, reportType: v_7bef43 });
 
   const v_b0b8c8 = {
     warn: "경고 발급",
@@ -2566,9 +2566,13 @@ v_b7f2b4.get("/reports", v_c0a297, async (v_3f4e2e) => {
            co.xrun_member_id AS responsibleXrunMemberId,
            co.banned_until AS responsibleBannedUntil,
            co.suspended_until AS responsibleSuspendedUntil,
+           co.comment_ban_until AS responsibleCommentBanUntil,
+           co.interaction_ban_until AS responsibleInteractionBanUntil,
+           (SELECT COUNT(*) FROM device_bans db WHERE db.banned_user_id = co.id) AS responsibleDeviceBanCount,
            NULL AS content,
            cr.created_at AS createdAt,
            cr.reviewed_at AS reviewedAt,
+           cr.reviewer_admin_id AS reviewerAdminId,
            (SELECT COUNT(*) FROM clone_reports x WHERE x.clone_id = cr.clone_id AND x.status = 'reviewed') AS targetReportCount
       FROM clone_reports cr
       JOIN users ru ON ru.id = cr.user_id
@@ -2599,9 +2603,13 @@ v_b7f2b4.get("/reports", v_c0a297, async (v_3f4e2e) => {
            tu.xrun_member_id AS responsibleXrunMemberId,
            tu.banned_until AS responsibleBannedUntil,
            tu.suspended_until AS responsibleSuspendedUntil,
+           tu.comment_ban_until AS responsibleCommentBanUntil,
+           tu.interaction_ban_until AS responsibleInteractionBanUntil,
+           (SELECT COUNT(*) FROM device_bans db WHERE db.banned_user_id = tu.id) AS responsibleDeviceBanCount,
            NULL AS content,
            ur.created_at AS createdAt,
            ur.reviewed_at AS reviewedAt,
+           ur.reviewer_admin_id AS reviewerAdminId,
            (SELECT COUNT(*) FROM user_reports x WHERE x.target_id = ur.target_id AND x.status = 'reviewed') AS targetReportCount
       FROM user_reports ur
       JOIN users ru ON ru.id = ur.reporter_id
@@ -2632,9 +2640,13 @@ v_b7f2b4.get("/reports", v_c0a297, async (v_3f4e2e) => {
            cu.xrun_member_id AS responsibleXrunMemberId,
            cu.banned_until AS responsibleBannedUntil,
            cu.suspended_until AS responsibleSuspendedUntil,
+           cu.comment_ban_until AS responsibleCommentBanUntil,
+           cu.interaction_ban_until AS responsibleInteractionBanUntil,
+           (SELECT COUNT(*) FROM device_bans db WHERE db.banned_user_id = cu.id) AS responsibleDeviceBanCount,
            fcc.content AS content,
            cmr.created_at AS createdAt,
            cmr.reviewed_at AS reviewedAt,
+           cmr.reviewer_admin_id AS reviewerAdminId,
            (SELECT COUNT(*) FROM comment_reports x WHERE x.comment_id = cmr.comment_id AND x.status = 'reviewed') AS targetReportCount
       FROM comment_reports cmr
       JOIN users ru ON ru.id = cmr.user_id
@@ -2705,10 +2717,13 @@ v_b7f2b4.get("/reports", v_c0a297, async (v_3f4e2e) => {
     await v_3f4e2e.env.DB
       .prepare(`SELECT r.* FROM ${v_694b25} WHERE ${v_8b4d7e} ORDER BY r.createdAt DESC LIMIT ? OFFSET ?`)
       .bind(...v_925171, v_02be30, v_3bbadf)
-      .all()
+      .all<Record<string, unknown> & { reviewerAdminId: number | null }>()
   ).results;
 
-  return v_3f4e2e.json({ items: v_18b8bf, total: v_0dab8e?.cnt ?? 0, offset: v_3bbadf, limit: v_02be30 });
+  const v_2604b6 = await v_11eba8(v_3f4e2e.env, v_18b8bf.map((v_cb35cb) => v_cb35cb.reviewerAdminId));
+  const v_4622b9 = v_18b8bf.map((v_cb35cb) => ({ ...v_cb35cb, reviewerEmail: v_2604b6.get(v_cb35cb.reviewerAdminId ?? 0) ?? null }));
+
+  return v_3f4e2e.json({ items: v_4622b9, total: v_0dab8e?.cnt ?? 0, offset: v_3bbadf, limit: v_02be30 });
 });
 
 async function v_d1a2ff(
@@ -2772,6 +2787,7 @@ async function v_19a475(
     .first<{ n: number }>();
   const v_e87618 = v_7b3f91?.n ?? 0;
   if (v_5b4e12) return v_e87618; 
+  await v_26580e(v_3f4e2e, v_489382, "moderation.report_warning", { reportType: v_7bef43, reportId: v_99000e });
 
   void v_6e0fd3;
   await v_c226a5(v_3f4e2e.env, {

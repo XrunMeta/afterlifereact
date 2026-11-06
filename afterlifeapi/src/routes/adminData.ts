@@ -7,6 +7,7 @@ import { v_137694, v_a8614b } from "../lib/ale";
 import { v_e44d97 } from "../lib/kekProvider";
 import { v_080d61 } from "../lib/penaltyExpiry";
 import { v_299864 } from "../lib/xrunAdminIdentity";
+import { v_c60c30 } from "../lib/penaltyLog";
 
 export const v_133c2c = new v_b7c41b<v_de0a25>();
 
@@ -639,6 +640,7 @@ v_133c2c.get("/oth-path", async (v_3f4e2e) => {
   return v_3f4e2e.json({
     user: { ...v_625c74, warningCount: v_8718c0?.n ?? 0 },
     warnings: v_d01889,
+    penaltyLog: await v_c60c30(v_3f4e2e.env.DB, v_389afb),
     reports: v_7baad1,
     clones: v_f891e6,
   });
