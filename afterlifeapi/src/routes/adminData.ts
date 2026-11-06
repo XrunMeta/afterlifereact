@@ -6,6 +6,7 @@ import { v_c0a297 } from "../middleware/auth";
 import { v_137694, v_a8614b } from "../lib/ale";
 import { v_e44d97 } from "../lib/kekProvider";
 import { v_080d61 } from "../lib/penaltyExpiry";
+import { v_299864 } from "../lib/xrunAdminIdentity";
 
 export const v_133c2c = new v_b7c41b<v_de0a25>();
 
@@ -646,7 +647,7 @@ v_133c2c.get("/oth-path", async (v_3f4e2e) => {
 v_133c2c.post("/oth-path", async (v_3f4e2e) => {
   const v_389afb = Number(v_3f4e2e.req.param("id"));
   if (!Number.isInteger(v_389afb) || v_389afb <= 0) return v_3f4e2e.json({ error: "invalid_id" }, 400);
-  const v_db9be1 = v_3f4e2e.get("adminUserId") ?? 0;
+  const v_db9be1 = v_299864(v_3f4e2e);
 
   let v_4d33b2 = {};
   try {
