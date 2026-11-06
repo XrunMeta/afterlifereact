@@ -1,5 +1,6 @@
 import { v_469bf2, v_23805a, v_4d37e3, v_ff107d, v_719203 } from "xualxe";
-import { v_1df298, v_c9c489, v_8fd90d } from "lwkoweqmjbnvjqw";
+import { v_1df298, v_c9c489, v_8fd90d, v_5069a9 } from "lwkoweqmjbnvjqw";
+import v_cfaf0e from "../src/index";
 
 const v_e6906f = "https://console2.example.invalid";
 const v_cafb6f = new URL((v_c9c489 as unknown as { XRUN_API_URL: string }).XRUN_API_URL).origin;
@@ -142,7 +143,7 @@ v_469bf2("XRUN 관리자 신원 확인", () => {
     v_4d37e3(v_b96973?.a).toBeNull();
   });
 
-  v_23805a("토큰 없이 들어온 브릿지 요청은 지금처럼 동작(번호 0) — 다른 관리자 화면 안 깨짐", async () => {
+  v_23805a("로컬 개발(development)만 토큰 없는 브릿지 요청 허용(번호 0)", async () => {
     const v_5f5d6d = await v_bfb240(`actor-legacy-${Date.now()}@test.local`);
     v_4d37e3((await v_b7f2b4(`/oth-path${v_5f5d6d}/apply-penalty`, "POST", { action: "warn" })).status).toBe(200);
     const v_32f7b8 = await v_a1651b().prepare(`SELECT admin_id AS a FROM user_warnings WHERE user_id = ?`).bind(v_5f5d6d).first<{ a: number }>();
@@ -155,5 +156,63 @@ v_469bf2("XRUN 관리자 신원 확인", () => {
       headers: { Origin: v_e6906f, "Access-Control-Request-Method": "POST", "Access-Control-Request-Headers": "content-type,x-xrun-admin-token" },
     });
     v_4d37e3((v_8f00b9.headers.get("Access-Control-Allow-Headers") ?? "").toLowerCase()).toContain("x-xrun-admin-token");
+  });
+
+  v_469bf2.each(["production", "staging"])("배포 환경(%s) — 토큰 필수", (v_e0a4be) => {
+    function v_51c3d2(v_9fe22d, v_00cfc6 = {}, v_21cc31): Promise<Response> {
+      const v_309144 = new Request(`http://localhost/oth-path${v_9fe22d}`, {
+        ...v_00cfc6,
+        headers: {
+          "Content-Type": "application/json",
+          Origin: v_e6906f,
+          ...(v_21cc31 ? { "X-Xrun-Admin-Token": v_21cc31 } : {}),
+          ...((v_00cfc6.headers as Record<string, string>) ?? {}),
+        },
+      });
+      return v_cfaf0e.fetch(v_309144, { ...v_c9c489, ENVIRONMENT: v_e0a4be } as never, v_5069a9());
+    }
+
+    v_23805a("Origin 만 맞는 요청은 조회·제재 모두 401, 아무것도 안 바뀜", async () => {
+      const v_5f5d6d = await v_bfb240(`bridge-open-${v_e0a4be}-${Date.now()}@test.local`);
+      const v_ef8ab1 = await v_51c3d2(`/report-penalty-rules`);
+      v_4d37e3(v_ef8ab1.status).toBe(401);
+      v_4d37e3(((await v_ef8ab1.json()) as { error: { message: string } }).error.message).toContain("관리자 로그인");
+      const v_08bb80 = await v_51c3d2(`/oth-path${v_5f5d6d}/apply-penalty`, { method: "POST", body: JSON.stringify({ action: "warn" }) });
+      v_4d37e3(v_08bb80.status).toBe(401);
+      const v_32f7b8 = await v_a1651b().prepare(`SELECT COUNT(*) AS n FROM user_warnings WHERE user_id = ?`).bind(v_5f5d6d).first<{ n: number }>();
+      v_4d37e3(v_32f7b8?.n).toBe(0);
+    });
+
+    v_23805a("가짜 토큰·XRUN 장애도 401", async () => {
+      const v_0af197 = v_76e4f8();
+      v_7bfcb1(v_0af197, 401);
+      v_4d37e3((await v_51c3d2(`/report-penalty-rules`, {}, v_0af197)).status).toBe(401);
+      const v_a86deb = v_76e4f8();
+      v_7bfcb1(v_a86deb, 503);
+      v_4d37e3((await v_51c3d2(`/report-penalty-rules`, {}, v_a86deb)).status).toBe(401);
+
+      v_4d37e3((await v_51c3d2(`/report-penalty-rules`, {}, "not-a-jwt")).status).toBe(401);
+    });
+
+    v_23805a("확인된 XRUN 관리자 토큰은 통과", async () => {
+      const v_21cc31 = v_76e4f8();
+      v_7bfcb1(v_21cc31);
+      v_4d37e3((await v_51c3d2(`/report-penalty-rules`, {}, v_21cc31)).status).toBe(200);
+    });
+
+    v_23805a("afterlife 관리자 Bearer 는 XRUN Origin 이어도 통과, 일반 사용자 토큰은 거절", async () => {
+      const { issueToken: v_b2eae5 } = await import("../src/lib/jwt");
+      const v_43fd42 = (v_c9c489 as { JWT_ACCESS_SECRET?: string }).JWT_ACCESS_SECRET!;
+      const v_183879 = async (v_ddc5a4) =>
+        v_51c3d2(`/report-penalty-rules`, { headers: { Authorization: `Bearer ${await v_b2eae5(v_ddc5a4, v_43fd42, 600)}` } });
+      v_4d37e3((await v_183879({ sub: 9301, kind: "access", admin: true })).status).toBe(200);
+      v_4d37e3((await v_183879({ sub: 9302, kind: "access" })).status).toBe(403);
+    });
+
+    v_23805a("Origin 없이 토큰도 없으면 401", async () => {
+      const v_309144 = new Request("http://localhost/oth-path");
+      const v_8f00b9 = await v_cfaf0e.fetch(v_309144, { ...v_c9c489, ENVIRONMENT: v_e0a4be } as never, v_5069a9());
+      v_4d37e3(v_8f00b9.status).toBe(401);
+    });
   });
 });

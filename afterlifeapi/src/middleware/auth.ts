@@ -49,12 +49,16 @@ function v_89f2ef(v_3f4e2e): boolean {
 export const requireAdmin: v_ea2b42<v_de0a25> = async (v_3f4e2e, v_a448ad) => {
 
   if (v_89f2ef(v_3f4e2e)) {
-    v_3f4e2e.set("adminUserId", 0); 
-
     const v_380fb2 = await v_da9a62(v_3f4e2e.env, v_3f4e2e.req.header("X-Xrun-Admin-Token"));
-    if (v_380fb2) v_3f4e2e.set("adminActor", v_380fb2);
-    await v_a448ad();
-    return;
+    if (v_380fb2 || v_3f4e2e.env.ENVIRONMENT === "development") {
+      v_3f4e2e.set("adminUserId", 0); 
+      if (v_380fb2) v_3f4e2e.set("adminActor", v_380fb2);
+      await v_a448ad();
+      return;
+    }
+    if (!v_3f4e2e.req.header("Authorization")) {
+      throw new v_3ebe58("UNAUTHENTICATED", "관리자 로그인을 확인할 수 없어요. 새로고침하거나 다시 로그인해 주세요.");
+    }
   }
 
   const v_ad8d0d = v_3f4e2e.req.header("Authorization");
