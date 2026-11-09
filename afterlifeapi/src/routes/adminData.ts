@@ -888,6 +888,16 @@ v_133c2c.get("/face-recognition/persons", async (v_3f4e2e) => {
   return v_3f4e2e.json({ items: v_18b8bf ?? [] });
 });
 
+v_133c2c.delete("/face-recognition/persons/:id", async (v_3f4e2e) => {
+  const v_ca1ec5 = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_ca1ec5) || v_ca1ec5 <= 0) return v_3f4e2e.json({ error: "invalid_id" }, 400);
+  const v_3ac7e7 = await v_3f4e2e.env.DB.prepare("SELECT user_id AS userId FROM persons WHERE id = ?").bind(v_ca1ec5).first<{ userId: number }>();
+  if (!v_3ac7e7) return v_3f4e2e.json({ error: "not_found" }, 404);
+  const { deletePersonCascade: v_430d2b } = await import("../lib/personDelete");
+  const v_cb35cb = await v_430d2b(v_3f4e2e.env, v_ca1ec5, v_3ac7e7.userId);
+  return v_3f4e2e.json({ ok: true, deletedEmbeddings: v_cb35cb.deletedEmbeddings });
+});
+
 v_133c2c.get("/face-recognition/persons/:id/faces", async (v_3f4e2e) => {
   const v_ca1ec5 = Number(v_3f4e2e.req.param("id"));
   if (!Number.isInteger(v_ca1ec5) || v_ca1ec5 <= 0) return v_3f4e2e.json({ error: "invalid_id" }, 400);

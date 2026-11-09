@@ -1065,9 +1065,9 @@ v_b7f2b4.delete("/oth-path", v_c0a297, async (v_3f4e2e) => {
     }
   } catch {  }
   const v_3c8572 = await v_3f4e2e.env.DB
-    .prepare(`SELECT id, owner_id, deletion_state FROM clones WHERE id = ?`)
+    .prepare(`SELECT id, owner_id, name, deletion_state FROM clones WHERE id = ?`)
     .bind(v_6e0fd3)
-    .first<{ id: number; owner_id: number; deletion_state: string }>();
+    .first<{ id: number; owner_id: number; name: string | null; deletion_state: string }>();
   if (!v_3c8572) throw new v_3ebe58("NOT_FOUND", "Clone not found.");
   if (v_3c8572.deletion_state !== "active") {
     return v_3f4e2e.json({ ok: true, alreadyDeleted: true, deletionState: v_3c8572.deletion_state });
@@ -1096,6 +1096,19 @@ v_b7f2b4.delete("/oth-path", v_c0a297, async (v_3f4e2e) => {
     action: "clone.delete",
     details: { cloneId: v_6e0fd3, state: "soft_deleted", by: "admin", adminUserId: v_299864(v_3f4e2e), adminEmail: v_3f4e2e.get("adminActor")?.email ?? null, reason: v_58ca36 },
   });
+
+  const v_24c1e9 = v_3c8572.name?.trim() ? `'${v_3c8572.name.trim()}'` : "";
+  await v_c226a5(v_3f4e2e.env, {
+    userId: v_3c8572.owner_id,
+    type: "moderation",
+    title: "페르소나 이용 제한 안내",
+    body:
+      `관리자에 의해 페르소나 ${v_24c1e9}이(가) 삭제되어 더 이상 사용할 수 없습니다.` +
+      (v_58ca36 ? ` 사유: ${v_58ca36}` : " 자세한 내용은 고객센터로 문의해 주세요."),
+    url: "afterlife://reports/received",
+    data: { action: "clone_delete", cloneId: v_6e0fd3, manual: true },
+    skipEmail: true,
+  }).catch(() => {});
   return v_3f4e2e.json({ ok: true, deletedId: v_6e0fd3, deletionState: "soft_deleted" });
 });
 

@@ -20,6 +20,9 @@ interface FeedState {
 
   apiFeeds: v_4c75cf[] | null;
   apiLoading: boolean;
+
+  apiNextCursor: number | null;
+  apiLoadingMore: boolean;
   likedIds: number[];
   bookmarkedIds: number[];
   selectedInterests: string[];
@@ -29,6 +32,7 @@ interface FeedState {
   getVisibleFeeds: () => v_bc3df4[];
   getFilteredFeeds: () => v_bc3df4[];
   loadDiscover: () => Promise<void>;
+  loadMoreDiscover: () => Promise<void>;
   resetForLogout: () => void;
 
   homeScrollTopPending: boolean;
@@ -108,10 +112,20 @@ function v_0a5d7b(item: v_4c75cf): v_bc3df4 {
   };
 }
 
+const v_dbe334 = 10;
+
+function v_10cad3(v_c3bc75, items: v_4c75cf[]): number[] {
+  const v_312319 = new Set(v_4622b9.map((v_23805a) => v_23805a.id));
+  const v_cc7245 = v_4622b9.filter((v_23805a) => v_23805a.likedByMe === true).map((v_23805a) => v_23805a.id);
+  return [...v_c3bc75.filter((v_389afb) => !v_312319.has(v_389afb)), ...Array.from(new Set(v_cc7245))];
+}
+
 export const v_37977a = v_a7c0d4<FeedState>((v_bb8024, v_38715b) => ({
   feeds: v_694b7f.feeds(),
   apiFeeds: null,
   apiLoading: false,
+  apiNextCursor: null,
+  apiLoadingMore: false,
   homeScrollTopPending: false,
   requestHomeScrollTop: () => v_bb8024({ homeScrollTopPending: true }),
   consumeHomeScrollTop: () => {
@@ -234,6 +248,8 @@ export const v_37977a = v_a7c0d4<FeedState>((v_bb8024, v_38715b) => ({
     v_bb8024({
       apiFeeds: null,
       apiLoading: false,
+      apiNextCursor: null,
+      apiLoadingMore: false,
       likedIds: [],
       bookmarkedIds: [],
       selectedInterests: [],
@@ -245,7 +261,7 @@ export const v_37977a = v_a7c0d4<FeedState>((v_bb8024, v_38715b) => ({
     v_bb8024({ apiLoading: true });
     try {
       const v_2ca7e0 = v_1ed7d9.getState().accessToken ?? undefined;
-      const v_8f00b9 = await v_f5cc38({ limit: 50, accessToken: v_2ca7e0 });
+      const v_8f00b9 = await v_f5cc38({ limit: v_dbe334, accessToken: v_2ca7e0 });
       console.log("[feedStore] discover loaded:", v_8f00b9.items.length);
 
       if (v_8f00b9.items.length === 0) {
@@ -253,21 +269,46 @@ export const v_37977a = v_a7c0d4<FeedState>((v_bb8024, v_38715b) => ({
         return;
       }
 
-      const v_312319 = new Set(v_8f00b9.items.map((v_23805a) => v_23805a.id));
-      const v_3b193d = new Set(
-        v_8f00b9.items.filter((v_23805a) => v_23805a.likedByMe === true).map((v_23805a) => v_23805a.id),
-      );
-      const v_c3bc75 = v_38715b().likedIds;
-
-      const v_a448ad = [
-        ...v_c3bc75.filter((v_389afb) => !v_312319.has(v_389afb)),
-        ...Array.from(v_3b193d),
-      ];
-      v_bb8024({ apiFeeds: v_8f00b9.items, apiLoading: false, likedIds: v_a448ad });
+      const v_5cb681 = v_8f00b9.items[v_8f00b9.items.length - 1]!.cloneId;
+      const v_83bbcd =
+        v_8f00b9.nextCursor != null ? (v_38715b().apiFeeds ?? []).filter((v_23805a) => v_23805a.cloneId < v_5cb681) : [];
+      v_bb8024({
+        apiFeeds: [...v_8f00b9.items, ...v_83bbcd],
+        apiNextCursor: v_83bbcd.length > 0 ? v_38715b().apiNextCursor : v_8f00b9.nextCursor,
+        apiLoading: false,
+        likedIds: v_10cad3(v_38715b().likedIds, v_8f00b9.items),
+      });
     } catch (v_49263d) {
       console.warn("[feedStore] discover failed:", v_49263d);
 
       v_bb8024({ apiLoading: false });
+    }
+  },
+
+  loadMoreDiscover: async () => {
+    const { apiNextCursor: v_75cbf4, apiFeeds: v_71b114, apiLoading: v_dec728, apiLoadingMore: v_1693be } = v_38715b();
+    if (v_75cbf4 == null || !v_71b114 || v_dec728 || v_1693be) return;
+    v_bb8024({ apiLoadingMore: true });
+    try {
+      const v_2ca7e0 = v_1ed7d9.getState().accessToken ?? undefined;
+      const v_8f00b9 = await v_f5cc38({ cursor: v_75cbf4, limit: v_dbe334, accessToken: v_2ca7e0 });
+      const v_c3bc75 = v_38715b().apiFeeds;
+
+      if (!v_c3bc75 || v_38715b().apiNextCursor !== v_75cbf4) {
+        v_bb8024({ apiLoadingMore: false });
+        return;
+      }
+      const v_110a8b = new Set(v_c3bc75.map((v_23805a) => v_23805a.cloneId));
+      v_bb8024({
+        apiFeeds: [...v_c3bc75, ...v_8f00b9.items.filter((v_23805a) => !v_110a8b.has(v_23805a.cloneId))],
+        apiNextCursor: v_8f00b9.nextCursor,
+        apiLoadingMore: false,
+        likedIds: v_10cad3(v_38715b().likedIds, v_8f00b9.items),
+      });
+    } catch (v_49263d) {
+      console.warn("[feedStore] discover more failed:", v_49263d);
+
+      v_bb8024({ apiLoadingMore: false });
     }
   },
 
