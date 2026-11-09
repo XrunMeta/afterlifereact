@@ -239,6 +239,9 @@ export default function v_c316d8() {
     ({ viewableItems: v_e5cc27 }: { viewableItems: v_bd73dc[] }) => {
       if (v_e5cc27.length > 0 && v_e5cc27[0].index != null) {
         v_ddecc4(v_e5cc27[0].index);
+
+        const v_a73fa2 = v_37977a.getState();
+        if (v_e5cc27[0].index >= (v_a73fa2.apiFeeds?.length ?? 0) - 3) void v_a73fa2.loadMoreDiscover();
       }
     },
     []
@@ -627,6 +630,10 @@ export default function v_c316d8() {
           decelerationRate="fast"
           onViewableItemsChanged={v_43bc1b}
           viewabilityConfig={v_10f7ba}
+
+          initialNumToRender={2}
+          maxToRenderPerBatch={2}
+          windowSize={5}
           onLayout={(v_9e86fd) => {
             const v_65a2cd = Math.round(v_9e86fd.nativeEvent.layout.height);
             if (v_65a2cd > 0 && Math.abs(v_65a2cd - v_1be4da) > 1) v_bd2534(v_65a2cd);
