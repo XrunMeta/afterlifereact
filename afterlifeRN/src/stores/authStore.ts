@@ -5,13 +5,35 @@ import type { v_b89f99 } from "../types/domain";
 import { v_182fdb as v_ac9e58, v_7ef860, type v_7289ef, type v_a93c97 } from "../api/auth";
 import { v_d4ff75 } from "../lib/errorReporting/report";
 import { v_9ff0b2 } from "../lib/appsFlyer";
+import { v_8f5130 } from "../lib/bootPerf";
 
 const v_b6c376 = "@afterlifeRN/auth/currentUserId";
 const v_1278db = "@afterlifeRN/auth/accessToken";
 const v_a19d89 = "@afterlifeRN/auth/refreshToken";
 
 const v_474220 = "@afterlifeRN/auth/sessionExpiresAt";
+
+const v_6c623c = "@afterlifeRN/auth/apiUserCache";
 const v_b9d568 = 1;
+
+async function v_4b8b45(user: v_7289ef | null): Promise<void> {
+  try {
+    if (v_625c74) await v_e84827.setItem(v_6c623c, JSON.stringify(v_625c74));
+    else await v_e84827.removeItem(v_6c623c);
+  } catch (v_49263d) {
+    console.warn("[authStore] writeApiUserCache failed:", (v_49263d as Error)?.message);
+  }
+}
+
+async function v_a77cec(): Promise<v_7289ef | null> {
+  try {
+    const v_479f05 = await v_e84827.getItem(v_6c623c);
+    if (!v_479f05) return null;
+    return JSON.parse(v_479f05) as v_7289ef;
+  } catch {
+    return null;
+  }
+}
 
 interface AuthState {
 
@@ -50,66 +72,134 @@ export const v_1ed7d9 = v_a7c0d4<AuthState>((v_bb8024, v_38715b) => ({
   sessionPersisted: false,
 
   hydrate: async () => {
+    v_8f5130("authStore.hydrate:start");
 
     const v_275ccd = v_38715b();
-    let apiUser: v_7289ef | null = v_275ccd.apiUser;
-    let v_21cc31 = v_275ccd.accessToken;
-
-    let v_2474a1 = null;
-    if (!v_b113dd) {
-
-      const v_d4785a = await v_e84827.getItem(v_474220);
-      if (v_d4785a) {
-        await v_e84827.removeItem(v_1278db);
-        await v_e84827.removeItem(v_a19d89);
-        await v_e84827.removeItem(v_474220);
-      }
-      v_21cc31 = await v_e84827.getItem(v_1278db);
-      v_2474a1 = await v_e84827.getItem(v_a19d89);
-      if (v_21cc31) {
-
-        v_bb8024({ accessToken: v_21cc31, refreshToken: v_2474a1, sessionPersisted: true });
-
-        for (let v_bc21cd = 0; v_bc21cd < 3; v_bc21cd++) {
-          try {
-            const v_8f00b9 = await v_7ef860(v_21cc31);
-            v_b113dd = v_8f00b9.user;
-
-            const v_fd5f43 = v_38715b();
-            v_21cc31 = v_fd5f43.accessToken ?? v_21cc31;
-            v_2474a1 = v_fd5f43.refreshToken ?? v_2474a1;
-            break;
-          } catch (v_49263d) {
-            const v_d308b5 = (v_49263d as { status?: number })?.status;
-            if (v_d308b5 === 401 || v_d308b5 === 403) {
-
-              await v_e84827.removeItem(v_1278db);
-              await v_e84827.removeItem(v_a19d89);
-              v_21cc31 = null;
-              v_2474a1 = null;
-              break;
-            }
-            if (v_bc21cd < 2) await new Promise((v_cb35cb) => setTimeout(v_cb35cb, 1500 * (v_bc21cd + 1)));
-          }
-        }
-      }
+    if (v_275ccd.apiUser) {
+      v_bb8024({ hydrated: true });
+      v_8f5130("authStore.hydrate:complete", { path: "in-memory" });
+      return;
     }
 
-    const v_5885b8 = await v_e84827.getItem(v_b6c376);
-    const v_389afb = v_5885b8 !== null ? Number(v_5885b8) : v_b9d568;
+    const v_d4785a = await v_e84827.getItem(v_474220);
+    if (v_d4785a) {
+      await v_e84827.removeItem(v_1278db);
+      await v_e84827.removeItem(v_a19d89);
+      await v_e84827.removeItem(v_474220);
+    }
+
+    v_8f5130("authStore.hydrate:asyncstorage-read:start");
+    const [v_21cc31, v_2474a1, v_624200, v_19a02f] = await Promise.all([
+      v_e84827.getItem(v_1278db),
+      v_e84827.getItem(v_a19d89),
+      v_a77cec(),
+      v_e84827.getItem(v_b6c376),
+    ]);
+    v_8f5130("authStore.hydrate:asyncstorage-read:done", { hasToken: !!v_21cc31, hasCache: !!v_624200 });
+
+    const v_389afb = v_19a02f !== null ? Number(v_19a02f) : v_b9d568;
     const v_ceb55a =
       v_694b7f.users().find((v_62c214) => v_62c214.id === v_389afb) ??
       v_694b7f.users().find((v_62c214) => v_62c214.id === v_b9d568) ??
       null;
 
+    if (!v_21cc31) {
+      v_bb8024({
+        accessToken: null,
+        refreshToken: null,
+        apiUser: null,
+        isLoggedIn: false,
+        user: v_ceb55a,
+        hydrated: true,
+      });
+      v_8f5130("authStore.hydrate:complete", { path: "no-token" });
+      return;
+    }
+
+    if (v_624200) {
+      v_bb8024({
+        accessToken: v_21cc31,
+        refreshToken: v_2474a1,
+        apiUser: v_624200,
+        isLoggedIn: true,
+        sessionPersisted: true,
+        user: v_ceb55a,
+        hydrated: true,
+      });
+      v_8f5130("authStore.hydrate:complete", { path: "optimistic-ready" });
+
+      void (async () => {
+        v_8f5130("authStore.hydrate:bg-getMe:start");
+        try {
+          const v_8f00b9 = await v_7ef860(v_21cc31);
+          const v_fd5f43 = v_38715b();
+          v_bb8024({
+            apiUser: v_8f00b9.user,
+            accessToken: v_fd5f43.accessToken ?? v_21cc31,
+            refreshToken: v_fd5f43.refreshToken ?? v_2474a1,
+          });
+          void v_4b8b45(v_8f00b9.user);
+          v_8f5130("authStore.hydrate:bg-getMe:done");
+        } catch (v_49263d) {
+          const v_d308b5 = (v_49263d as { status?: number })?.status;
+          v_8f5130("authStore.hydrate:bg-getMe:error", { status: v_d308b5, msg: (v_49263d as Error)?.message });
+          if (v_d308b5 === 401 || v_d308b5 === 403) {
+
+            await v_e84827.removeItem(v_1278db);
+            await v_e84827.removeItem(v_a19d89);
+            await v_4b8b45(null);
+            v_bb8024({ accessToken: null, refreshToken: null, apiUser: null, isLoggedIn: false, sessionPersisted: false });
+          }
+
+        }
+      })();
+      return;
+    }
+
+    v_bb8024({ accessToken: v_21cc31, refreshToken: v_2474a1, sessionPersisted: true });
+    let apiUser: v_7289ef | null = null;
+    let v_8e39bb = v_21cc31;
+    let v_78bc3c = v_2474a1;
+    for (let v_bc21cd = 0; v_bc21cd < 3; v_bc21cd++) {
+      try {
+        v_8f5130(`authStore.hydrate:getMe:attempt${v_bc21cd + 1}:start`);
+        const v_8f00b9 = await v_7ef860(v_21cc31);
+        v_8f5130(`authStore.hydrate:getMe:attempt${v_bc21cd + 1}:done`);
+        v_b113dd = v_8f00b9.user;
+        const v_fd5f43 = v_38715b();
+        v_8e39bb = v_fd5f43.accessToken ?? v_21cc31;
+        v_78bc3c = v_fd5f43.refreshToken ?? v_2474a1;
+        void v_4b8b45(v_8f00b9.user);
+        break;
+      } catch (v_49263d) {
+        const v_d308b5 = (v_49263d as { status?: number })?.status;
+        v_8f5130(`authStore.hydrate:getMe:attempt${v_bc21cd + 1}:error`, {
+          status: v_d308b5,
+          msg: (v_49263d as Error)?.message,
+        });
+        if (v_d308b5 === 401 || v_d308b5 === 403) {
+          await v_e84827.removeItem(v_1278db);
+          await v_e84827.removeItem(v_a19d89);
+          v_8e39bb = null;
+          v_78bc3c = null;
+          break;
+        }
+        if (v_bc21cd < 2) {
+          v_8f5130(`authStore.hydrate:getMe:backoff`, { ms: 1500 * (v_bc21cd + 1) });
+          await new Promise((v_cb35cb) => setTimeout(v_cb35cb, 1500 * (v_bc21cd + 1)));
+        }
+      }
+    }
+
     v_bb8024({
-      accessToken: v_b113dd ? v_21cc31 : null,
-      refreshToken: v_b113dd ? (v_275ccd.refreshToken ?? v_2474a1) : null,
+      accessToken: v_b113dd ? v_8e39bb : null,
+      refreshToken: v_b113dd ? v_78bc3c : null,
       apiUser: v_b113dd,
-      isLoggedIn: !!v_b113dd, 
+      isLoggedIn: !!v_b113dd,
       user: v_ceb55a,
       hydrated: true,
     });
+    v_8f5130("authStore.hydrate:complete", { path: "blocking-fallback", isLoggedIn: !!v_b113dd });
   },
 
   switchUser: async (v_43e90c) => {
@@ -124,6 +214,7 @@ export const v_1ed7d9 = v_a7c0d4<AuthState>((v_bb8024, v_38715b) => ({
     await v_e84827.removeItem(v_1278db);
     await v_e84827.removeItem(v_a19d89);
     await v_e84827.removeItem(v_474220);
+    await v_4b8b45(null);
     v_bb8024({ isLoggedIn: false, user: null, accessToken: null, refreshToken: null, apiUser: null });
 
     try {
@@ -159,11 +250,13 @@ export const v_1ed7d9 = v_a7c0d4<AuthState>((v_bb8024, v_38715b) => ({
         await v_e84827.setItem(v_a19d89, v_dfaee3);
       }
       await v_e84827.removeItem(v_474220); 
+      void v_4b8b45(v_625c74);
     } else {
 
       await v_e84827.removeItem(v_1278db);
       await v_e84827.removeItem(v_a19d89);
       await v_e84827.removeItem(v_474220);
+      void v_4b8b45(null);
     }
     v_bb8024({ accessToken: v_2ca7e0, refreshToken: v_dfaee3, apiUser: v_625c74, isLoggedIn: true, sessionPersisted: v_3c038e });
     return v_625c74;
@@ -179,10 +272,12 @@ export const v_1ed7d9 = v_a7c0d4<AuthState>((v_bb8024, v_38715b) => ({
         await v_e84827.setItem(v_a19d89, v_dfaee3);
       }
       await v_e84827.removeItem(v_474220); 
+      void v_4b8b45(v_625c74);
     } else {
       await v_e84827.removeItem(v_1278db);
       await v_e84827.removeItem(v_a19d89);
       await v_e84827.removeItem(v_474220);
+      void v_4b8b45(null);
     }
     v_bb8024((v_fd5f43) => ({
       accessToken: v_21cc31,
@@ -202,6 +297,8 @@ export const v_1ed7d9 = v_a7c0d4<AuthState>((v_bb8024, v_38715b) => ({
         if (v_32d8c3 && v_32d8c3 !== v_625c74.name) {
           console.log(`[authStore] xrun name sync "${v_625c74.name}" -> "${v_32d8c3}"`);
           v_bb8024((v_fd5f43) => (v_fd5f43.apiUser ? { apiUser: { ...v_fd5f43.apiUser, name: v_32d8c3 } } : v_fd5f43));
+          const v_9c8c2a = v_38715b().apiUser;
+          if (v_9c8c2a && v_38715b().sessionPersisted) void v_4b8b45(v_9c8c2a);
         }
       } catch (v_49263d) {
         console.warn("[authStore] xrun name sync failed:", (v_49263d as Error)?.message);
@@ -227,6 +324,7 @@ export const v_1ed7d9 = v_a7c0d4<AuthState>((v_bb8024, v_38715b) => ({
     await v_e84827.removeItem(v_1278db);
     await v_e84827.removeItem(v_a19d89);
     await v_e84827.removeItem(v_474220);
+    await v_4b8b45(null);
     v_bb8024({ accessToken: null, refreshToken: null, apiUser: null, isLoggedIn: false, sessionPersisted: false });
     try {
       const { useFeedStore: v_37977a } = await import("./feedStore");
@@ -255,6 +353,7 @@ export const v_1ed7d9 = v_a7c0d4<AuthState>((v_bb8024, v_38715b) => ({
     try {
       const { user: v_625c74 } = await v_7ef860(v_21cc31);
       v_bb8024({ apiUser: v_625c74 });
+      if (v_38715b().sessionPersisted) void v_4b8b45(v_625c74);
       return v_625c74;
     } catch {
       return null;
@@ -264,6 +363,8 @@ export const v_1ed7d9 = v_a7c0d4<AuthState>((v_bb8024, v_38715b) => ({
   patchApiUser: (v_17dc8a) => {
     const v_c3bc75 = v_38715b().apiUser;
     if (!v_c3bc75) return;
-    v_bb8024({ apiUser: { ...v_c3bc75, ...v_17dc8a } });
+    const v_a448ad = { ...v_c3bc75, ...v_17dc8a };
+    v_bb8024({ apiUser: v_a448ad });
+    if (v_38715b().sessionPersisted) void v_4b8b45(v_a448ad);
   },
 }));

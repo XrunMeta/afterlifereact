@@ -1,4 +1,8 @@
+
+import { v_8f5130, v_b247cd } from "./src/lib/bootPerf";
+v_8f5130("app-tsx-top");
 import './src/i18n';
+v_8f5130("i18n-imported");
 import { v_c4deb2, v_e662ae, v_5ab095 } from "bapkr";
 import { v_ac28fd, type v_4c916c } from "ixigazcpvfldbecwtbvavtbi";
 import { v_94c936 } from "./src/navigation/navigationRef";
@@ -45,13 +49,16 @@ import { v_434962 } from "./src/stores/devOverlayStore";
 import { v_875d65 } from "./src/lib/callForegroundService";
 import { v_3f9105, v_0168a1 } from "./src/lib/callActivity";
 v_875d65();
+v_8f5130("call-foreground-service-registered");
 
 import { v_7cb644, v_9ff0b2 } from "./src/lib/appsFlyer";
 v_7cb644();
+v_8f5130("appsflyer-init");
 
 v_b28903();
 
 v_61a1ef(v_04fed4);
+v_8f5130("error-handlers-installed");
 
 const linking: v_4c916c<v_8ad91b> = {
   prefixes: [
@@ -197,16 +204,33 @@ export default function v_6540c3() {
   }, []);
 
   v_c4deb2(() => {
+    v_8f5130("hydrate-effect-fired");
+    const v_83ff11 = <T,>(v_1833e7, v_e2a85c): Promise<T> => {
+      const v_b66f2c = Date.now();
+      return v_e2a85c.then(
+        (v_81e2ef) => {
+          v_8f5130(`hydrate:${v_1833e7}:done`, { ms: Date.now() - v_b66f2c });
+          return v_81e2ef;
+        },
+        (v_9e86fd) => {
+          v_8f5130(`hydrate:${v_1833e7}:error`, { ms: Date.now() - v_b66f2c, err: (v_9e86fd as Error)?.message ?? String(v_9e86fd) });
+          throw v_9e86fd;
+        },
+      );
+    };
     Promise.all([
-      v_1ed7d9.getState().hydrate(),
-      v_b4902e.getState().hydrate(),
-      v_0b10a6.getState().hydrate(),
-      v_5b540b.getState().hydrate(),
-      v_688424.getState().hydrate(),
-      __DEV__ ? v_82d3c2() : Promise.resolve(),
-      __DEV__ ? v_434962.getState().hydrate() : Promise.resolve(),
+      v_83ff11("auth", v_1ed7d9.getState().hydrate()),
+      v_83ff11("follow", v_b4902e.getState().hydrate()),
+      v_83ff11("config", v_0b10a6.getState().hydrate()),
+      v_83ff11("callConfig", v_5b540b.getState().hydrate()),
+      v_83ff11("authConfig", v_688424.getState().hydrate()),
+      __DEV__ ? v_83ff11("t208Crops", v_82d3c2()) : Promise.resolve(),
+      __DEV__ ? v_83ff11("devOverlay", v_434962.getState().hydrate()) : Promise.resolve(),
     ]).then(() => {
+      v_8f5130("hydrate-all-done");
       v_0189ac(true);
+
+      setTimeout(() => v_b247cd("post-ready+2s"), 2000);
 
       v_4d2e36();
 
