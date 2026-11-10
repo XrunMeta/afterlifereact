@@ -43,13 +43,13 @@
         ]
       },
       "appleTeamId": "677WG96CUJ",
-      "buildNumber": "105",
+      "buildNumber": "107",
       "googleServicesFile": "./GoogleService-Info.plist",
       "usesAppleSignIn": true
     },
     "android": {
       "package": "run.xrun.afterlifeRN",
-      "versionCode": 108,
+      "versionCode": 109,
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
