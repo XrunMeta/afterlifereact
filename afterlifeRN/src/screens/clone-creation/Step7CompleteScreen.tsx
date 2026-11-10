@@ -32,6 +32,7 @@ import type { v_affcc0 } from "../../types/clone";
 import { v_39eaf5, v_b55477, v_96d757, v_6c3f29, v_5e388b, v_b4f9f6, v_b20cba, v_ab4719, type v_e5d62a } from "../../api/clones";
 import { v_8b11b8 } from "../../lib/experimentalPipelineFlag";
 import { v_84a859 } from "../../api/auth";
+import { v_516d20, v_91a3cf } from "bxoplsnixpmvnirxbbkstg";
 import { v_7d2692 } from "../../api/files";
 import { v_cf9c33 } from "rcmrninabrnb";
 import { v_110960, v_52ec3e } from "euzpkmxzoe";
@@ -239,8 +240,14 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
         quality: 0.8,
       });
       if (v_43c42e.canceled || !v_43c42e.assets[0]) return;
-      const v_cd1446 = v_43c42e.assets[0].uri;
+      const v_b76cd8 = v_43c42e.assets[0];
       v_f77874(true);
+
+      const { uri: v_cd1446 } = await v_516d20(
+        v_b76cd8.uri,
+        [{ resize: { width: Math.min(v_b76cd8.width || 512, 512) } }],
+        { compress: 0.9, format: v_91a3cf.JPEG },
+      );
       const v_40a923 = v_cd1446.split('.').pop()?.toLowerCase() ?? '';
       const v_b66751 =
         v_40a923 === 'png' ? 'image/png'

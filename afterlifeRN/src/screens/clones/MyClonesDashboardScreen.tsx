@@ -55,6 +55,7 @@ import v_8e7ad4 from "../../components/ui/SwipeDownSheet";
 import { v_84a859, v_976b89 } from "../../api/auth";
 import { v_48981e, type v_2b70d7 } from "../../api/credits";
 
+import { v_516d20, v_91a3cf } from "bxoplsnixpmvnirxbbkstg";
 import { v_7d2692 } from "../../api/files";
 import { v_1bfbd0, v_9b1a04, v_8b0c90, v_a9d3e9, v_d43669, v_c10a43, v_119e65 } from "../../components/constants";
 import type { v_affcc0, v_b0b271 } from "../../types/clone";
@@ -469,10 +470,16 @@ export default function v_def15b() {
 
     v_5eda29(true);
     try {
-      const v_57ac81 = await v_7d2692(v_2ca7e0, v_b76cd8.uri, {
+
+      const v_2d3c27 = await v_516d20(
+        v_b76cd8.uri,
+        [{ resize: { width: Math.min(v_b76cd8.width || 256, 256) } }],
+        { compress: 0.85, format: v_91a3cf.JPEG },
+      );
+      const v_57ac81 = await v_7d2692(v_2ca7e0, v_2d3c27.uri, {
         purpose: "avatar",
-        fileName: v_b76cd8.fileName ?? "avatar.jpg",
-        mimeType: v_b76cd8.mimeType ?? "image/jpeg",
+        fileName: "avatar.jpg",
+        mimeType: "image/jpeg",
       });
       await v_976b89(v_2ca7e0, { avatarUrl: v_57ac81.url });
       v_21f395({ avatarUrl: v_57ac81.url });
