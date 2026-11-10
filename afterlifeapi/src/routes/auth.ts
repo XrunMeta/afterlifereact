@@ -172,6 +172,18 @@ v_68f0aa.post("/google", async (v_3f4e2e) => {
                 deleted_at = NULL,
                 failed_login_count = 0,
                 locked_until = NULL,
+                -- 2026-11-10: 재가입(revive) 시 과거 동의 플래그를 전부 리셋 — 안 그러면
+                --   face/call/location consent 모달이 "이미 동의함"으로 간주돼 안 뜬다.
+                --   deletion.ts 는 user-initiated 탈퇴에서만 리셋하고 admin account_withdraw
+                --   경로는 리셋 안 하므로, revive 지점에서 다시 한 번 리셋해 양 경로 모두 커버.
+                face_biometric_consent = 0,
+                face_consent_at = NULL,
+                face_consent_version = NULL,
+                call_learning_consent = 0,
+                call_learning_consent_at = NULL,
+                location_consent = 0,
+                location_consent_at = NULL,
+                marketing_consent = 0,
                 updated_at = CURRENT_TIMESTAMP
           WHERE id = ?
           RETURNING id, name, email, funnel_stage AS funnelStage, deletion_state, banned_until, deleted_at`,
@@ -365,6 +377,15 @@ v_68f0aa.post("/apple", async (v_3f4e2e) => {
                 deleted_at = NULL,
                 failed_login_count = 0,
                 locked_until = NULL,
+                -- 2026-11-10: revive 시 consent 플래그 전부 리셋 (주석은 google.revive 참고).
+                face_biometric_consent = 0,
+                face_consent_at = NULL,
+                face_consent_version = NULL,
+                call_learning_consent = 0,
+                call_learning_consent_at = NULL,
+                location_consent = 0,
+                location_consent_at = NULL,
+                marketing_consent = 0,
                 updated_at = CURRENT_TIMESTAMP
           WHERE id = ?
           RETURNING id, name, email, funnel_stage AS funnelStage, deletion_state, banned_until, deleted_at`,
@@ -585,6 +606,16 @@ v_68f0aa.post("/signup", async (v_3f4e2e) => {
             SET name = ?, password_hash = ?, phone = ?, gender = ?, age = ?, age_enc = ?,
                 marketing_consent = ?, country = ?, mobile_code = ?, region = ?,
                 deletion_state = 'active', soft_deleted_at = NULL, deleted_at = NULL,
+                -- 2026-11-10: revive 시 consent 플래그 리셋 — face/call/location 는
+                --   재가입 플로우가 다시 수집·동기화한다. marketing_consent 는 위 ? 로
+                --   body 값이 덮어쓰므로 여기선 생략.
+                face_biometric_consent = 0,
+                face_consent_at = NULL,
+                face_consent_version = NULL,
+                call_learning_consent = 0,
+                call_learning_consent_at = NULL,
+                location_consent = 0,
+                location_consent_at = NULL,
                 failed_login_count = 0, locked_until = NULL, updated_at = CURRENT_TIMESTAMP
           WHERE id = ?
           RETURNING id, name, email, funnel_stage, created_at`,
@@ -871,6 +902,15 @@ v_68f0aa.post("/login", async (v_3f4e2e) => {
                     deleted_at = NULL,
                     failed_login_count = 0,
                     locked_until = NULL,
+                    -- 2026-11-10: revive 시 consent 플래그 리셋 (주석은 google.revive 참고).
+                    face_biometric_consent = 0,
+                    face_consent_at = NULL,
+                    face_consent_version = NULL,
+                    call_learning_consent = 0,
+                    call_learning_consent_at = NULL,
+                    location_consent = 0,
+                    location_consent_at = NULL,
+                    marketing_consent = 0,
                     xrun_member_id = ?,
                     xrun_guid = ?,
                     xrun_wallet = ?,
