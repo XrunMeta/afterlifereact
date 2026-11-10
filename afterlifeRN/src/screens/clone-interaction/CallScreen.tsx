@@ -2344,6 +2344,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
           if (adResult === "closed") {
             setAfl971AdShowingUI(false);
             afl971UnmuteCallAudio();
+
+            dispatchRm({ type: "ACTIVITY" });
           }
         }
 
@@ -2411,6 +2413,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
         setAfl971AdShowingUI(false);
         afl971UnmuteCallAudio();
+
+        dispatchRm({ type: "ACTIVITY" });
 
         const fg = await afl971WaitForForeground(2500);
         const interactive = afl971CallInteractive({ appActive: fg, live: liveStateRef.current === "live" });
