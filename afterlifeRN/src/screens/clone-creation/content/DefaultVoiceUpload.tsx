@@ -5,6 +5,7 @@ import v_a3453e, { v_c4deb2, v_e662ae, v_5ab095 } from "bapkr";
 import { v_3094a2, v_19b633, v_4623af, v_472849, v_39a996, v_326be8, v_405151, v_6b5698 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import * as v_c95b2c from "gketqwckyalygtuqsawm";
+import { v_6d148f } from "umnthslqstcsfmed";
 import {
   v_407393,
   v_3488be,
@@ -609,6 +610,41 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9, onScrollToEnd: v_0c8c51
     await v_0e491a({ allowsRecording: false });
     const v_cd1446 = v_5ebce3.uri;
     if (!v_cd1446) return;
+
+    const v_5b5106 = async (v_a00264, v_bdd083 = 5000): Promise<number> => {
+      const v_4c6dd7 = Date.now();
+      let v_d84863 = -1;
+      let v_127ca7 = 0;
+      while (Date.now() - v_4c6dd7 < v_bdd083) {
+        await new Promise((v_cb35cb) => setTimeout(v_cb35cb, 150));
+        try {
+          const v_8b5cd8 = new v_6d148f(v_a00264);
+          const v_05b441 = v_8b5cd8.size ?? 0;
+          if (v_05b441 > 0 && v_05b441 === v_d84863) {
+            v_127ca7 += 1;
+            if (v_127ca7 >= 2) return v_05b441; 
+          } else {
+            v_127ca7 = 0;
+            v_d84863 = v_05b441;
+          }
+        } catch {
+
+        }
+      }
+      return v_d84863;
+    };
+    const v_df5726 = await v_5b5106(v_cd1446);
+    console.log(`[DefaultVoice][record] stop → file size stable at ${v_df5726}B`);
+
+    if (v_df5726 < 20_000) {
+      v_889fad(
+        v_8d41d7("create.voice.recordIncompleteTitle", { defaultValue: "녹음이 저장되지 않았어요" }),
+        v_8d41d7("create.voice.recordIncompleteMsg", {
+          defaultValue: "녹음 파일이 제대로 저장되지 않았어요. 다시 녹음해 주세요.",
+        }),
+      );
+      return;
+    }
 
     const v_fd5f43 = v_ceb0fd.current;
     v_ceb0fd.current = { silence: 0, total: 0 };

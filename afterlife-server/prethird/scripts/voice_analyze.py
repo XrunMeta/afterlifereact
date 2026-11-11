@@ -184,6 +184,26 @@ async def analyze(voice_raw_url: str) -> dict:
     wav = os.path.join(tmpdir, "in.wav")
     try:
         await voice_fetch.fetch_to(voice_raw_url, src)
+        # 2026-11-11 디버그: src 파일 크기·ffprobe 결과도 로깅 (ffmpeg 변환 전).
+        try:
+            src_sz = os.path.getsize(src)
+        except OSError:
+            src_sz = -1
+        src_dur = 0.0
+        try:
+            import subprocess as _sp
+            src_dur_out = _sp.run(
+                ["ffprobe", "-v", "error", "-show_entries", "format=duration",
+                 "-of", "csv=p=0", src],
+                capture_output=True, text=True, timeout=10,
+            ).stdout.strip()
+            src_dur = float(src_dur_out) if src_dur_out else 0.0
+        except Exception as _e:
+            log.warning("[afl1005-diag] src ffprobe failed: %s", _e)
+        log.info(
+            "[afl1005-diag] src url=%s size=%dB dur=%.3f",
+            voice_raw_url, src_sz, src_dur,
+        )
         await voice_fetch._ffmpeg_to_wav(src, wav)
         # ffmpeg/ffprobe/STT 는 블로킹 → 이벤트 루프 밖에서.
         return await asyncio.get_running_loop().run_in_executor(None, _analyze_sync, wav)
