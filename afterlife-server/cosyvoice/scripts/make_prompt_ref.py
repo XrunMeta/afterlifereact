@@ -107,8 +107,16 @@ def pick_end(path: str, start: float, total: float) -> tuple[float | None, str]:
     프리셋 9520 견본이 "…되었네요 오늘따라 당신과" 처럼 말 중간에서 끊겨 텍스트와
     어긋났다 — 통화에서 "잘 잘 잘…" 단어 반복의 원인이었다(AFL-1002).
     실패 사유는 재녹음 안내(AFL-1005)에 그대로 쓴다.
+
+    2026-11-11: too_short 판정을 (total - start) < 15s 에서 total < 15s 로 완화.
+      - 기존: 녹음 총 16s + 선행 침묵 2s → 실질 14s → too_short 로 거절.
+      - 유저 체감: "15초 넘게 녹음해도 15초 이내라고 에러" 보고 다수.
+      - 변경 후: 녹음이 15s 이상이면 cut 지점 탐색으로 진행. 쉼이 없으면
+        no_pause 로 더 설명적인 에러. 샘플 길이가 발화 15s 에 못 미칠 수
+        있으나, 완전 거절보다 약간의 품질 저하가 UX 측면에서 더 낫다.
+      - voice_analyze.py 의 미러도 동시 업데이트 (스펙 일치 필요).
     """
-    if total - start < RECORD_MIN_SEC:
+    if total < RECORD_MIN_SEC:
         return None, "too_short"
     lo, hi = start + CUT_AFTER_SEC, start + MAX_PROMPT_SEC
     starts, ends = silences(path)

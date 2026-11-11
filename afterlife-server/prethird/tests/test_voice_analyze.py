@@ -57,9 +57,10 @@ def test_classify_density_uses_10s_cap():
     assert va.classify(25.0, 0.0, [12.0], [12.5], text) == {"ok": True}
 
 
-def test_classify_too_short_when_late_speech_start():
-    # duration 16(>=15) 통과, 텍스트 충분(NO_VOICE 아님), 그러나 발화 시작 3초 → 실질 13초 < 15 → TOO_SHORT
-    assert va.classify(16.0, 3.0, [], [], "가" * 80) == {"ok": False, "reason": "TOO_SHORT"}
+def test_classify_no_pause_when_late_speech_start_and_no_silence():
+    # 2026-11-11: too_short 완화 후 — duration 16(>=15) 통과, 텍스트 충분, 쉼 없음
+    #   → 발화 시작이 늦어도 TOO_SHORT 가 아니라 NO_PAUSE (cut 지점 없음) 로 안내.
+    assert va.classify(16.0, 3.0, [], [], "가" * 80) == {"ok": False, "reason": "NO_PAUSE"}
 
 
 def test_pick_end_no_pause_when_silence_beyond_max():
