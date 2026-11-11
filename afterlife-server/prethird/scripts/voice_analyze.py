@@ -30,8 +30,16 @@ STT_DURATION_CAP_SEC = float(os.environ.get("STT_MAX_SEC", "10.0"))
 def _pick_end_reason(
     start: float, total: float, sil_starts: list[float], sil_ends: list[float],
 ) -> tuple[float | None, str]:
-    """make_prompt_ref.pick_end 미러(순수). (끝 시각|None, "ok"|"too_short"|"no_pause")."""
-    if total - start < RECORD_MIN_SEC:
+    """make_prompt_ref.pick_end 미러(순수). (끝 시각|None, "ok"|"too_short"|"no_pause").
+
+    2026-11-11: too_short 판정을 (total - start) < 15s 에서 total < 15s 로 완화.
+      - 기존: 녹음 총 16s + 선행 침묵 2s → total-start=14 → too_short 로 거절.
+      - 유저 체감: "15초 넘게 녹음해도 15초 이내라고 에러" (지속 보고됨).
+      - 변경 후: 녹음이 15s 이상이면 cut 지점 탐색으로 진행. 좋은 쉼을 못 찾으면
+        no_pause 로 자연히 폴백해 더 설명적인 에러를 준다. cosyvoice sample 이
+        발화 15s 에 못 미칠 가능성은 있으나 완전 거절보다 품질 저하가 더 낫다.
+    """
+    if total < RECORD_MIN_SEC:
         return None, "too_short"
     lo, hi = start + CUT_AFTER_SEC, start + MAX_PROMPT_SEC
     for i, s in enumerate(sil_starts):
