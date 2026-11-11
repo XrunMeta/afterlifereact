@@ -1319,12 +1319,12 @@
       "pickFile": "Pilih File Suara",
       "filePickedUploadFailed": "File dipilih (pendaftaran tugas gagal — mencoba ulang)",
       "scripts": {
-        "s1Title": "Hariku",
-        "s1Text": "Cuaca hari ini enak banget. Habis makan siang aku keluar sebentar, mataharinya hangat, jadi langsung senang rasanya. Makanya aku sengaja jalan agak memutar pulangnya. Hari kayak gini, jalan-jalan aja tanpa mikirin apa-apa udah enak, kan? Aku udah mikirin mau makan apa nanti malam.",
-        "s2Title": "Makanan favorit",
-        "s2Text": "Aku suka banget makanan berkuah yang hangat. Apalagi kalau dimakan pas hujan, rasanya makin enak. Satu sendok kuah hangat aja, capek seharian langsung hilang. Kamu lagi sering makan apa akhir-akhir ini? Kalau tahu tempat yang enak, kasih tahu aku juga ya.",
-        "s3Title": "Perjalanan yang berkesan",
-        "s3Text": "Aku masih ingat jelas waktu kecil pergi ke pantai sama keluarga. Kami main di pasir seharian sambil dengar suara ombak. Malamnya kami makan seafood bakar bareng-bareng, dan itu enak banget. Sampai sekarang kalau ingat, aku masih senyum-senyum sendiri. Pengin banget balik ke hari itu, sekali aja."
+        "s1Title": "Harimu",
+        "s1Text": "Hari ini kamu gimana? Semoga nggak ada yang aneh-aneh, ya. Aku belakangan pikirannya rame, jadi rasanya satu hari cepet banget berlalu. Kamu makan tepat waktu, kan? Aku tahu kamu sibuk, tapi sesekali bilang 'makasih udah kerja keras' ke diri sendiri juga, ya. Walaupun cuma sebentar, kamu perlu waktu buat tarik napas. Malam ini jangan mikirin apa-apa, tidur yang nyenyak. Besok pasti terasa sedikit lebih ringan. Aku selalu dukung kamu, kok.",
+        "s2Title": "Waktu kita bersama",
+        "s2Text": "Akhir-akhir ini aku sering kepikiran soal waktu yang dulu kita habiskan bareng. Dulu kita bisa ketawa berjam-jam cuma karena hal-hal kecil. Kalau dipikir sekarang, hari-hari biasa itu ternyata yang paling berharga. Bukan karena ada hal istimewa, tapi karena kamu ada di samping aku, dan itu udah cukup. Kamu kadang masih kepikiran masa itu juga, nggak? Aku belakangan sering banget keinget. Rasanya karena ada waktu-waktu itu, aku bisa tetap bertahan sampai sekarang.",
+        "s3Title": "Kata-kata hangat",
+        "s3Text": "Kalau ada yang berat, kamu boleh cerita kapan aja ke aku. Jangan nanggung semuanya sendirian. Nggak usah pura-pura baik-baik aja, dan kalau pengen nangis, nangis aja. Itu bukan tanda lemah. Justru orang yang bisa bertahan sampai hari ini itu yang paling kuat. Saat ini, kamu masih bisa bernapas, dan itu udah cukup. Kamu udah sampai sejauh ini, itu luar biasa. Semoga kamu bisa sedikit lebih lembut ke diri sendiri."
       },
       "warnTooShortTitle": "File terlalu pendek",
       "warnTooShortMsg": "File yang dipilih sangat pendek. Pelatihan suara memerlukan rekaman tenang berdurasi 30 detik hingga 1 menit. Pilih file lain dan unggah lagi.",
