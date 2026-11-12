@@ -366,22 +366,33 @@ v_de7ba7.put("/me/notification-prefs", v_6690d9, async (v_3f4e2e) => {
 
 v_de7ba7.get("/me/xrun-profile", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
+  console.log(`[xrun-profile] user=${v_43e90c} ua=${v_3f4e2e.req.header("user-agent")?.slice(0, 120) ?? "?"}`);
   const v_38066f = await v_3f4e2e.env.DB
     .prepare(`SELECT xrun_member_id, email FROM users WHERE id = ? AND deleted_at IS NULL`)
     .bind(v_43e90c)
     .first<{ xrun_member_id: number | null; email: string }>();
-  if (!v_38066f) throw new v_3ebe58("NOT_FOUND", "User not found.");
+  if (!v_38066f) {
+    console.warn(`[xrun-profile] user=${v_43e90c} NOT_FOUND (deleted_at IS NULL filter)`);
+    throw new v_3ebe58("NOT_FOUND", "User not found.");
+  }
   if (!v_38066f.xrun_member_id) {
+    console.warn(`[xrun-profile] user=${v_43e90c} XRUN_NOT_LINKED email=${v_38066f.email}`);
     throw new v_3ebe58("XRUN_NOT_LINKED", "xrun 계정이 연결되어 있지 않아요.");
   }
   const v_43c42e = await v_3e801c(v_3f4e2e.env, v_38066f.xrun_member_id);
   if (!v_43c42e.ok) {
+    console.warn(`[xrun-profile] user=${v_43e90c} member=${v_38066f.xrun_member_id} FAILED reason=${v_43c42e.reason}`);
     throw new v_3ebe58(
       v_43c42e.missing ? "XRUN_MEMBER_MISSING" : "XRUN_PROFILE_FAILED",
       "xrun 프로필을 불러오지 못했어요.",
       { reason: v_43c42e.reason },
     );
   }
+  console.log(
+    `[xrun-profile] user=${v_43e90c} member=${v_38066f.xrun_member_id} OK firstname=${v_43c42e.profile.firstname} gender=${v_43c42e.profile.gender} ages=${v_43c42e.profile.ages} country=${v_43c42e.profile.country} region=${v_43c42e.profile.region}`,
+  );
+
+  v_3f4e2e.header("Cache-Control", "no-store, private");
   return v_3f4e2e.json({ profile: v_43c42e.profile });
 });
 

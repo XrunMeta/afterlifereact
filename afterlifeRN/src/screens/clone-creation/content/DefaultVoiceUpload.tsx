@@ -5,6 +5,7 @@ import v_a3453e, { v_c4deb2, v_e662ae, v_5ab095 } from "bapkr";
 import { v_3094a2, v_19b633, v_4623af, v_472849, v_39a996, v_326be8, v_405151, v_6b5698 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import * as v_c95b2c from "gketqwckyalygtuqsawm";
+import { v_6d148f } from "umnthslqstcsfmed";
 import {
   v_407393,
   v_3488be,
@@ -40,25 +41,28 @@ const v_58b6a9 = [
     id: "s1",
     title: "오늘 하루",
     text:
-      "오늘 날씨 진짜 좋더라고요. 점심 먹고 잠깐 밖에 나갔는데, 햇살이 따뜻해서 기분이 확 좋아졌어요. " +
-      "그래서 일부러 좀 돌아서 걸어왔어요. 이런 날은 그냥 아무 생각 없이 걷기만 해도 좋잖아요. " +
-      "저녁엔 뭐 먹을지 벌써 고민 중이에요. 내일도 오늘처럼 맑았으면 좋겠어요.",
+      "오늘 하루 어떻게 보냈어요? 별일 없이 잘 지냈죠? " +
+      "저는 요즘 생각이 많아져서 그런지 하루가 금방 가는 것 같아요. 밥은 제때 챙겨 먹고 있죠? " +
+      "바쁜 거 알지만, 가끔은 자기한테도 수고했다고 말해 주세요. 잠깐이라도 숨 돌리는 시간이 꼭 필요하잖아요. " +
+      "오늘 밤에는 아무 생각 말고 푹 자요. 내일은 조금 더 가벼운 하루가 될 거예요. 늘 응원하고 있을게요.",
   },
   {
     id: "s2",
-    title: "좋아하는 음식",
+    title: "함께한 시간",
     text:
-      "저는 김치찌개를 진짜 좋아해요. 특히 비 오는 날 먹으면 더 맛있더라고요. " +
-      "따끈한 국물 한 숟갈 떠먹으면, 하루 피곤한 게 싹 풀리는 느낌이에요. " +
-      "혹시 요즘 자주 먹는 거 있어요? 맛있는 데 알면 저도 좀 알려 줘요. 요즘은 칼국수도 자주 먹으러 가요.",
+      "요즘 들어 예전에 같이 보냈던 시간들이 자꾸 떠올라요. 그때는 별것도 아닌 얘기로 몇 시간씩 웃곤 했잖아요. " +
+      "지나고 보니 그 평범했던 하루들이 제일 소중한 거였더라고요. 특별한 일이 있어서가 아니라, 그냥 옆에 있어 주는 게 좋았어요. " +
+      "혹시 당신도 가끔 그때 생각이 나세요? 저는 요즘 자주 떠올라요. " +
+      "그 시간들이 있어서 지금도 버티는 것 같아요.",
   },
   {
     id: "s3",
-    title: "기억에 남는 여행",
+    title: "따뜻한 말",
     text:
-      "어릴 때 가족이랑 바다에 갔던 게 아직도 생생해요. 파도 소리 들으면서 모래사장에서 하루 종일 뛰어놀았거든요. " +
-      "저녁엔 다 같이 조개구이를 먹었는데, 그게 그렇게 맛있었어요. 지금 생각해도 웃음이 나요. " +
-      "그때로 한 번만 돌아가 보고 싶네요. 다음엔 친구들이랑 꼭 다시 가 보고 싶어요.",
+      "힘든 일 있으면 언제든 얘기해도 돼요. 혼자 다 안고 가려고 하지 말고요. " +
+      "괜찮은 척 안 해도 되고, 울고 싶으면 울어도 돼요. 그게 약한 거 아니에요. " +
+      "오히려 오늘까지 잘 버텨 온 사람이 더 강한 거예요. 지금 이 순간 당신이 숨 쉬고 있다는 것만으로도 충분해요. " +
+      "오늘도 여기까지 온 것만 해도 정말 잘했어요. 조금만 더 자신한테 다정해지면 좋겠어요.",
   },
 ] as const;
 
@@ -305,7 +309,7 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9, onScrollToEnd: v_0c8c51
 
   const v_69341a = (v_35f85c) => {
 
-    if (typeof v_cf954d === "string") {
+    if (v_cf954d !== null) {
       try { v_86394a.pause(); } catch {  }
       v_a4d7cc(null);
     }
@@ -606,6 +610,41 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9, onScrollToEnd: v_0c8c51
     await v_0e491a({ allowsRecording: false });
     const v_cd1446 = v_5ebce3.uri;
     if (!v_cd1446) return;
+
+    const v_5b5106 = async (v_a00264, v_bdd083 = 5000): Promise<number> => {
+      const v_4c6dd7 = Date.now();
+      let v_d84863 = -1;
+      let v_127ca7 = 0;
+      while (Date.now() - v_4c6dd7 < v_bdd083) {
+        await new Promise((v_cb35cb) => setTimeout(v_cb35cb, 150));
+        try {
+          const v_8b5cd8 = new v_6d148f(v_a00264);
+          const v_05b441 = v_8b5cd8.size ?? 0;
+          if (v_05b441 > 0 && v_05b441 === v_d84863) {
+            v_127ca7 += 1;
+            if (v_127ca7 >= 2) return v_05b441; 
+          } else {
+            v_127ca7 = 0;
+            v_d84863 = v_05b441;
+          }
+        } catch {
+
+        }
+      }
+      return v_d84863;
+    };
+    const v_df5726 = await v_5b5106(v_cd1446);
+    console.log(`[DefaultVoice][record] stop → file size stable at ${v_df5726}B`);
+
+    if (v_df5726 < 20_000) {
+      v_889fad(
+        v_8d41d7("create.voice.recordIncompleteTitle", { defaultValue: "녹음이 저장되지 않았어요" }),
+        v_8d41d7("create.voice.recordIncompleteMsg", {
+          defaultValue: "녹음 파일이 제대로 저장되지 않았어요. 다시 녹음해 주세요.",
+        }),
+      );
+      return;
+    }
 
     const v_fd5f43 = v_ceb0fd.current;
     v_ceb0fd.current = { silence: 0, total: 0 };

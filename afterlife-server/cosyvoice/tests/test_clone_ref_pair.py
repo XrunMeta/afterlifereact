@@ -175,9 +175,16 @@ def test_녹음이_15초보다_짧으면_실패(monkeypatch):
     assert make_prompt_ref.pick_end("x", 0.0, 14.9) == (None, "too_short")
 
 
-def test_녹음_길이도_발화_시작점부터_센다(monkeypatch):
+def test_선행침묵이_있어도_총길이가_15초면_통과한다(monkeypatch):
+    """2026-11-11: too_short 판정을 total < 15 로 완화 — 유저가 녹음 시작하고 잠시
+    뜸들여도(선행 침묵) 녹음 총 길이가 15초 이상이면 cut 지점 탐색으로 넘어간다.
+    기존엔 (total - start) < 15 로 거절해 "15초 넘게 녹음해도 15초 이내 에러"가 다수 보고됐다.
+    발화 시작=1.0, 총=15.5s → cut 탐색 → lo=9, hi=31 범위 첫 쉼(9.0)에서 ok.
+    """
     monkeypatch.setattr(make_prompt_ref, "silences", lambda p: ([0.0, 9.0], [1.0, 9.5]))
-    assert make_prompt_ref.pick_end("x", 1.0, 15.5) == (None, "too_short")
+    end, reason = make_prompt_ref.pick_end("x", 1.0, 15.5)
+    assert reason == "ok"
+    assert abs(end - (9.0 + TAIL)) < 1e-9
 
 
 def test_30초까지_쉼이_없으면_실패하고_자르지_않는다(monkeypatch):

@@ -244,7 +244,10 @@ const v_368e80 = v_a3453e.forwardRef<
   } = v_b1927c;
 
   const v_db991d = (
-    <View style={[v_eff3be.inputWrap, !v_87d063 && v_eff3be.inputWrapDisabled]}>
+    <View
+      style={[v_eff3be.inputWrap, !v_87d063 && v_eff3be.inputWrapDisabled]}
+      pointerEvents={v_719eed ? "none" : "auto"}
+    >
       {v_bea0eb}
       <TextInput
         ref={v_6d4ed3}
@@ -258,6 +261,9 @@ const v_368e80 = v_a3453e.forwardRef<
         secureTextEntry={v_458725}
         editable={v_87d063 && !v_719eed}
         maxLength={v_701c63}
+
+        textContentType={v_458725 ? "oneTimeCode" : undefined}
+        autoComplete={v_458725 ? "off" : undefined}
       />
       {v_de8f73}
     </View>
@@ -1103,7 +1109,11 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
             leftAccessory={
               <TouchableOpacity
                 style={v_d81136.phonePrefix}
-                onPress={() => v_a259be(true)}
+                onPress={() => {
+
+                  v_0e1f26.dismiss();
+                  v_a259be(true);
+                }}
                 activeOpacity={0.7}
               >
                 <Text style={v_d81136.flagEmoji}>{v_b9bbbd.flagEmoji}</Text>
@@ -1126,7 +1136,11 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
               placeholder={v_8d41d7("auth.signup.regionPlaceholder", { defaultValue: "지역 선택" })}
               value={v_a6c30b != null ? v_56743f : ""}
               editable={false}
-              onPress={() => v_c73419(true)}
+              onPress={() => {
+
+                v_0e1f26.dismiss();
+                v_c73419(true);
+              }}
             />
           ) : null}
 

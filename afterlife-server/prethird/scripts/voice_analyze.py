@@ -30,8 +30,16 @@ STT_DURATION_CAP_SEC = float(os.environ.get("STT_MAX_SEC", "10.0"))
 def _pick_end_reason(
     start: float, total: float, sil_starts: list[float], sil_ends: list[float],
 ) -> tuple[float | None, str]:
-    """make_prompt_ref.pick_end 미러(순수). (끝 시각|None, "ok"|"too_short"|"no_pause")."""
-    if total - start < RECORD_MIN_SEC:
+    """make_prompt_ref.pick_end 미러(순수). (끝 시각|None, "ok"|"too_short"|"no_pause").
+
+    2026-11-11: too_short 판정을 (total - start) < 15s 에서 total < 15s 로 완화.
+      - 기존: 녹음 총 16s + 선행 침묵 2s → total-start=14 → too_short 로 거절.
+      - 유저 체감: "15초 넘게 녹음해도 15초 이내라고 에러" (지속 보고됨).
+      - 변경 후: 녹음이 15s 이상이면 cut 지점 탐색으로 진행. 좋은 쉼을 못 찾으면
+        no_pause 로 자연히 폴백해 더 설명적인 에러를 준다. cosyvoice sample 이
+        발화 15s 에 못 미칠 가능성은 있으나 완전 거절보다 품질 저하가 더 낫다.
+    """
+    if total < RECORD_MIN_SEC:
         return None, "too_short"
     lo, hi = start + CUT_AFTER_SEC, start + MAX_PROMPT_SEC
     for i, s in enumerate(sil_starts):
@@ -176,6 +184,26 @@ async def analyze(voice_raw_url: str) -> dict:
     wav = os.path.join(tmpdir, "in.wav")
     try:
         await voice_fetch.fetch_to(voice_raw_url, src)
+        # 2026-11-11 디버그: src 파일 크기·ffprobe 결과도 로깅 (ffmpeg 변환 전).
+        try:
+            src_sz = os.path.getsize(src)
+        except OSError:
+            src_sz = -1
+        src_dur = 0.0
+        try:
+            import subprocess as _sp
+            src_dur_out = _sp.run(
+                ["ffprobe", "-v", "error", "-show_entries", "format=duration",
+                 "-of", "csv=p=0", src],
+                capture_output=True, text=True, timeout=10,
+            ).stdout.strip()
+            src_dur = float(src_dur_out) if src_dur_out else 0.0
+        except Exception as _e:
+            log.warning("[afl1005-diag] src ffprobe failed: %s", _e)
+        log.info(
+            "[afl1005-diag] src url=%s size=%dB dur=%.3f",
+            voice_raw_url, src_sz, src_dur,
+        )
         await voice_fetch._ffmpeg_to_wav(src, wav)
         # ffmpeg/ffprobe/STT 는 블로킹 → 이벤트 루프 밖에서.
         return await asyncio.get_running_loop().run_in_executor(None, _analyze_sync, wav)

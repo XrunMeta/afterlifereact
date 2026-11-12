@@ -1,8 +1,11 @@
 import { v_a7c0d4 } from "vukrcww";
+import v_e84827 from "bkjbgtcoyuizqwgwtnaxmfkyvlqwevapsqmanbsnv";
+import { v_cf9c33 } from "rcmrninabrnb";
 import { v_694b7f } from "../api/source";
 import type { v_4b85a1, v_bc3df4 } from "../types/domain";
 import { v_1ed7d9 } from "./authStore";
 import { v_650589 } from "../lib/penaltyNotice";
+import { v_b938fd } from "../lib/thumbUrl";
 import {
   v_f5cc38,
   v_de2a30,
@@ -13,6 +16,80 @@ import {
 } from "../api/clones";
 
 const v_b9d568 = 1;
+
+const v_ae1b86 = "feed:discover:v1";
+
+const v_7bbca9 = 1;
+
+const v_dde4fc = 10;
+
+const v_f91f6f = 3;
+
+const v_4b31db = 24 * 60 * 60 * 1000;
+
+type FeedDiscoverCache = {
+  schema: number;
+  savedAt: number;
+  items: v_4c75cf[];
+  nextCursor: number | null;
+};
+
+async function v_443f51(): Promise<FeedDiscoverCache | null> {
+  try {
+    const v_479f05 = await v_e84827.getItem(v_ae1b86);
+    if (!v_479f05) return null;
+    const v_8decf8 = JSON.parse(v_479f05) as Partial<FeedDiscoverCache> | null;
+    if (!v_8decf8 || v_8decf8.schema !== v_7bbca9 || !Array.isArray(v_8decf8.items)) return null;
+    if (typeof v_8decf8.savedAt !== "number" || Date.now() - v_8decf8.savedAt > v_4b31db) return null;
+    return {
+      schema: v_7bbca9,
+      savedAt: v_8decf8.savedAt,
+      items: v_8decf8.items as v_4c75cf[],
+      nextCursor: typeof v_8decf8.nextCursor === "number" ? v_8decf8.nextCursor : null,
+    };
+  } catch (v_49263d) {
+    console.warn("[feedStore] cache read 실패:", v_49263d);
+    return null;
+  }
+}
+
+async function v_96cfdd(items: v_4c75cf[], v_64f859): Promise<void> {
+  try {
+    const v_931bf0 = {
+      schema: v_7bbca9,
+      savedAt: Date.now(),
+      items: v_4622b9.slice(0, v_dde4fc),
+      nextCursor: v_64f859,
+    };
+    await v_e84827.setItem(v_ae1b86, JSON.stringify(v_931bf0));
+  } catch (v_49263d) {
+    console.warn("[feedStore] cache write 실패:", v_49263d);
+  }
+}
+
+async function v_4833dd(): Promise<void> {
+  try {
+    await v_e84827.removeItem(v_ae1b86);
+  } catch {
+
+  }
+}
+
+function v_40ef3a(items: v_4c75cf[], v_9e8c70 = v_f91f6f): void {
+  const v_942aa2 = [];
+  for (const v_8c0b26 of v_4622b9.slice(0, v_9e8c70)) {
+    const v_b3ed3b = v_b938fd(v_8c0b26.mediaUrl ?? undefined);
+    const v_0a6316 = v_b938fd(v_8c0b26.clone?.avatarUrl ?? undefined);
+    const v_257b90 = v_b938fd(v_8c0b26.clone?.ownerAvatarUrl ?? undefined);
+    if (v_b3ed3b) v_942aa2.push(v_b3ed3b);
+    if (v_0a6316) v_942aa2.push(v_0a6316);
+    if (v_257b90) v_942aa2.push(v_257b90);
+  }
+  for (const v_f71b56 of v_942aa2) {
+
+    v_cf9c33.prefetch(v_f71b56).catch(() => undefined);
+  }
+}
 
 interface FeedState {
 
@@ -33,6 +110,8 @@ interface FeedState {
   getFilteredFeeds: () => v_bc3df4[];
   loadDiscover: () => Promise<void>;
   loadMoreDiscover: () => Promise<void>;
+
+  hydrateDiscover: () => Promise<void>;
   resetForLogout: () => void;
 
   homeScrollTopPending: boolean;
@@ -245,6 +324,8 @@ export const v_37977a = v_a7c0d4<FeedState>((v_bb8024, v_38715b) => ({
     v_674b99.clear();
     v_ec315e.clear();
     v_078c0e.clear();
+
+    void v_4833dd();
     v_bb8024({
       apiFeeds: null,
       apiLoading: false,
@@ -256,13 +337,30 @@ export const v_37977a = v_a7c0d4<FeedState>((v_bb8024, v_38715b) => ({
     });
   },
 
+  hydrateDiscover: async () => {
+    const v_a23604 = await v_443f51();
+    if (!v_a23604 || v_a23604.items.length === 0) return;
+    if (v_38715b().apiFeeds != null) return;
+    console.log("[feedStore] cache hydrate:", v_a23604.items.length);
+
+    for (const v_8c0b26 of v_a23604.items) v_0a5d7b(v_8c0b26);
+    v_bb8024({
+      apiFeeds: v_a23604.items,
+      apiNextCursor: v_a23604.nextCursor,
+    });
+
+    v_40ef3a(v_a23604.items);
+  },
+
   loadDiscover: async () => {
     if (v_38715b().apiLoading) return;
     v_bb8024({ apiLoading: true });
     try {
       const v_2ca7e0 = v_1ed7d9.getState().accessToken ?? undefined;
+      const v_b66f2c = Date.now();
       const v_8f00b9 = await v_f5cc38({ limit: v_dbe334, accessToken: v_2ca7e0 });
-      console.log("[feedStore] discover loaded:", v_8f00b9.items.length);
+
+      console.log("[feedStore] discover loaded:", v_8f00b9.items.length, "ms=" + (Date.now() - v_b66f2c));
 
       if (v_8f00b9.items.length === 0) {
         v_bb8024({ apiLoading: false });
@@ -278,6 +376,10 @@ export const v_37977a = v_a7c0d4<FeedState>((v_bb8024, v_38715b) => ({
         apiLoading: false,
         likedIds: v_10cad3(v_38715b().likedIds, v_8f00b9.items),
       });
+
+      void v_96cfdd(v_8f00b9.items, v_8f00b9.nextCursor);
+
+      v_40ef3a(v_8f00b9.items);
     } catch (v_49263d) {
       console.warn("[feedStore] discover failed:", v_49263d);
 

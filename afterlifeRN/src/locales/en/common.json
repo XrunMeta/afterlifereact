@@ -1319,12 +1319,12 @@
       "pickFile": "Choose voice file",
       "filePickedUploadFailed": "File selected (job registration failed — retrying)",
       "scripts": {
-        "s1Title": "My day",
-        "s1Text": "The weather was so nice today. I stepped out for a bit after lunch, and the sun felt so warm that my mood just lifted. So I took the long way back on purpose. On days like this, just walking around without thinking about anything feels great, right? I'm already wondering what to have for dinner.",
-        "s2Title": "Favorite food",
-        "s2Text": "I really love a good bowl of hot soup. It tastes even better on a rainy day. One spoonful of that warm broth, and all the tiredness from the day just melts away. What have you been eating a lot lately? If you know a good place, let me know too.",
-        "s3Title": "A trip I remember",
-        "s3Text": "I still clearly remember going to the beach with my family when I was little. We ran around on the sand all day, listening to the waves. In the evening we all had grilled seafood together, and it was so good. It still makes me smile when I think about it. I'd love to go back to that day, just once."
+        "s1Title": "Your day",
+        "s1Text": "How was your day today? Nothing unusual, I hope? Lately I've had a lot on my mind, and the day just seems to fly by. Are you eating on time? I know you're busy, but try saying 'well done' to yourself once in a while. You need a moment to catch your breath, even a short one. Tonight, don't think about anything, just get some good sleep. Tomorrow will feel a little lighter. I'm always cheering for you.",
+        "s2Title": "Our time together",
+        "s2Text": "Lately I keep thinking about the time we spent together. Back then we used to laugh for hours about nothing in particular. Looking back now, those ordinary days were the ones that mattered the most. It wasn't anything special, just that you were there with me, and that was enough. Do you ever think about those days too? I remember them a lot these days. I think those moments are what keep me going.",
+        "s3Title": "Warm words",
+        "s3Text": "If something's hard, you can tell me anytime. Don't try to carry it all by yourself. You don't have to pretend you're okay, and if you want to cry, you can cry. That's not weakness. If anything, the person who's made it this far is the strong one. In this moment, the fact that you're still breathing is enough. Making it here today is already a big deal. I hope you can be a little gentler with yourself."
       },
       "warnTooShortTitle": "File is too short",
       "warnTooShortMsg": "The selected file is very short. Voice training needs a quiet 30-second to 1-minute recording. Please pick another file and upload again.",

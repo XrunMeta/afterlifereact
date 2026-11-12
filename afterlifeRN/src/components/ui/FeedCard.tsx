@@ -19,6 +19,8 @@ import type { v_19b433 } from "../../types/feed";
 import v_5778ce from "../common/HashtagText";
 import v_8fba67 from "./ExpertBadge";
 
+import { v_b938fd } from "../../lib/thumbUrl";
+
 const v_2c17d6 = /#[a-zA-Z0-9_가-힣ᄀ-ᇿㄱ-ㆎ]+/g;
 
 interface FeedCardProps {
@@ -115,7 +117,7 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
     <View style={[v_d81136.container, { height: v_3d6201 }]}>
       {}
       <Image
-        source={typeof v_8c0b26.image === "number" ? v_8c0b26.image : { uri: v_8c0b26.image }}
+        source={typeof v_8c0b26.image === "number" ? v_8c0b26.image : { uri: v_b938fd(v_8c0b26.image) ?? v_8c0b26.image }}
         style={v_d81136.bgImage}
       />
       {}
@@ -148,7 +150,7 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
             activeOpacity={0.7}
           >
             {v_8c0b26.ownerAvatarUrl ? (
-              <Image source={{ uri: v_8c0b26.ownerAvatarUrl }} style={v_d81136.ownerAvatar} />
+              <Image source={{ uri: v_b938fd(v_8c0b26.ownerAvatarUrl) ?? v_8c0b26.ownerAvatarUrl }} style={v_d81136.ownerAvatar} />
             ) : (
               <View style={[v_d81136.ownerAvatar, v_d81136.ownerAvatarPlaceholder]}>
                 <Feather name="user" size={14} color={v_1bfbd0.zinc400} />

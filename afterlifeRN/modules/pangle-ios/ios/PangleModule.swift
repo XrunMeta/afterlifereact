@@ -11,7 +11,10 @@ public class PangleModule: Module {
   public func definition() -> ModuleDefinition {
     Name("PangleModule")
 
-    Events("onRewardedAdClose", "onRewardedAdLoadError", "onRewardedAdReward")
+    Events(
+      "onRewardedAdClose", "onRewardedAdLoadError", "onRewardedAdReward",
+      "onAppOpenAdLoaded", "onAppOpenAdLoadError", "onAppOpenAdClose"
+    )
 
     AsyncFunction("initialize") { (promise: Promise) in
       PangleSdk.ensureInitialized { ok, message in
@@ -70,6 +73,20 @@ public class PangleModule: Module {
         ad.present(fromRootViewController: vc)
         promise.resolve(true)
       }
+    }
+
+    AsyncFunction("loadAppOpenAd") { (_: String, promise: Promise) in
+      promise.reject(
+        "UNSUPPORTED",
+        "App Open Ad not supported in current Pangle iOS SDK (Ads-Global does not expose PAGAppOpenAd)"
+      )
+    }
+
+    AsyncFunction("showAppOpenAd") { (_: String, promise: Promise) in
+      promise.reject(
+        "UNSUPPORTED",
+        "App Open Ad not supported in current Pangle iOS SDK (Ads-Global does not expose PAGAppOpenAd)"
+      )
     }
 
     View(PangleBannerAdView.self) {

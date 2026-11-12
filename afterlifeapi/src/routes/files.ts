@@ -5,6 +5,7 @@ import type { v_de0a25 } from "../lib/env";
 import { v_3ebe58 } from "../lib/errors";
 import { v_6690d9 } from "../middleware/auth";
 import { v_74defc } from "../lib/logger";
+import { v_6a8de9, v_dc8268, v_d0b3cf } from "../lib/imageThumb";
 
 export const v_ff9685 = new v_b7c41b<v_de0a25>();
 
@@ -126,6 +127,34 @@ v_ff9685.post("/", v_6690d9, async (v_3f4e2e) => {
     details: { fileId: v_81161e.id, purpose: v_fa63e0, contentType: v_4de33e.type, sizeBytes: v_4de33e.size },
   });
 
+  if (v_d0b3cf.has(v_4de33e.type)) {
+    const v_433c46 = v_81161e.id;
+    const v_73a93e = v_83ee53;
+    const v_ad3b2a = v_4de33e.type;
+    const v_99deb4 = v_dc8268(v_0037e3);
+    const v_c8eced = (async () => {
+      const v_b66f2c = Date.now();
+      const v_fbb6da = await v_6a8de9(v_73a93e, v_ad3b2a);
+      if (!v_fbb6da) return;
+      await v_3f4e2e.env.R2_ARCHIVE.put(v_99deb4, v_fbb6da, {
+        httpMetadata: { contentType: "image/webp" },
+        customMetadata: { ownerUserId: String(v_43e90c), kind: "thumb", sourceFileId: String(v_433c46) },
+      });
+      await v_3f4e2e.env.DB
+        .prepare(`UPDATE files SET thumb_r2_key = ? WHERE id = ?`)
+        .bind(v_99deb4, v_433c46)
+        .run();
+      console.log(`[files] thumb id=${v_433c46} bytes=${v_fbb6da.byteLength} ms=${Date.now() - v_b66f2c}`);
+    })().catch((v_49263d) => {
+      console.warn(`[files] thumb 생성 실패 id=${v_81161e.id}: ${(v_49263d as Error)?.message ?? v_49263d}`);
+    });
+    try {
+      v_3f4e2e.executionCtx.waitUntil(v_c8eced);
+    } catch {
+
+    }
+  }
+
   return v_3f4e2e.json(
     {
       id: v_81161e.id,
@@ -167,8 +196,11 @@ v_ff9685.get("/:id", async (v_3f4e2e) => {
     throw new v_3ebe58("VALIDATION_FAILED", "Invalid file id.");
   }
 
+  const v_367472 = v_3f4e2e.req.query("thumb") === "1";
+
   const v_a23604 = (globalThis as { caches?: { default?: Cache } }).caches?.default;
-  const v_7ac310 = new Request(`${new URL(v_3f4e2e.req.url).origin}/oth-path${v_389afb}`, { method: "GET" });
+  const v_0ceb54 = `${new URL(v_3f4e2e.req.url).origin}/oth-path${v_389afb}${v_367472 ? "?thumb=1" : ""}`;
+  const v_7ac310 = new Request(v_0ceb54, { method: "GET" });
   if (v_a23604) {
     const v_715950 = await v_a23604.match(v_7ac310).catch(() => undefined);
     if (v_715950) {
@@ -179,21 +211,27 @@ v_ff9685.get("/:id", async (v_3f4e2e) => {
   }
 
   const v_3ac7e7 = await v_3f4e2e.env.DB
-    .prepare(`SELECT r2_key, content_type FROM files WHERE id = ?`)
+    .prepare(`SELECT r2_key, content_type, thumb_r2_key FROM files WHERE id = ?`)
     .bind(v_389afb)
-    .first<{ r2_key: string; content_type: string }>();
+    .first<{ r2_key: string; content_type: string; thumb_r2_key: string | null }>();
 
   if (!v_3ac7e7) throw new v_3ebe58("NOT_FOUND", "File not found.");
 
-  const v_8839e3 = await v_3f4e2e.env.R2_ARCHIVE.get(v_3ac7e7.r2_key);
+  const v_a8818a = v_367472 && v_3ac7e7.thumb_r2_key;
+  const v_0037e3 = v_a8818a ? v_3ac7e7.thumb_r2_key! : v_3ac7e7.r2_key;
+  const v_c0c2d5 = v_a8818a ? "image/webp" : v_3ac7e7.content_type;
+
+  const v_8839e3 = await v_3f4e2e.env.R2_ARCHIVE.get(v_0037e3);
   if (!v_8839e3) throw new v_3ebe58("NOT_FOUND", "Object missing in storage.");
 
   const v_8f00b9 = new Response(v_8839e3.body, {
     headers: {
-      "Content-Type": v_3ac7e7.content_type,
+      "Content-Type": v_c0c2d5,
       "Cache-Control": "public, max-age=86400",
 
       "Cross-Origin-Resource-Policy": "cross-origin",
+
+      "X-Thumb": v_367472 ? (v_a8818a ? "hit" : "fallback") : "none",
     },
   });
   if (v_a23604) {

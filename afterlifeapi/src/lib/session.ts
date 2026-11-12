@@ -30,6 +30,9 @@ const v_5f2751 = "revoked:";
 const v_698fc3 = "rotate_lock:";
 const v_d4aa79 = 60; 
 
+const v_030a88 = "rotate_grace:";
+const v_90cbad = 60;
+
 function v_be4706(v_931bf0): number {
   const v_5c2f9f = Math.floor(Date.now() / 1000);
   const v_916658 = (v_931bf0.exp ?? v_5c2f9f) - v_5c2f9f;
@@ -69,7 +72,15 @@ export async function v_27b603(
   }
   const v_c4e4af = v_5f2751 + v_931bf0.jti;
   const v_09dd65 = await v_3f4e2e.env.KV_AUTH.get(v_c4e4af);
-  if (v_09dd65) throw new v_3ebe58("UNAUTHENTICATED", "Refresh token revoked.");
+  if (v_09dd65) {
+
+    const v_59f40c = await v_3f4e2e.env.KV_AUTH.get(v_030a88 + v_931bf0.jti);
+    if (!v_59f40c) {
+      throw new v_3ebe58("UNAUTHENTICATED", "Refresh token revoked.");
+    }
+
+    console.log(`[session.rotate] grace replay jti=${v_931bf0.jti.slice(0, 8)} sub=${v_931bf0.sub}`);
+  }
 
   const v_566038 = v_698fc3 + v_931bf0.jti;
   const v_c9c6be = crypto.randomUUID();
@@ -112,6 +123,12 @@ export async function v_27b603(
   }
 
   await v_3f4e2e.env.KV_AUTH.put(v_c4e4af, "1", { expirationTtl: v_be4706(v_931bf0) });
+
+  try {
+    await v_3f4e2e.env.KV_AUTH.put(v_030a88 + v_931bf0.jti, "1", { expirationTtl: v_90cbad });
+  } catch (v_49263d) {
+    console.warn("[session.rotate] grace put failed:", (v_49263d as Error)?.message);
+  }
   const v_192af3 = await v_8ab5ff(v_3f4e2e, v_931bf0.sub, v_931bf0.deviceId, v_931bf0.admin ?? false);
   return { ...v_192af3, userId: v_931bf0.sub };
 }
@@ -123,6 +140,8 @@ export async function v_e1c29b(c: v_437670<v_de0a25>, v_dfaee3): Promise<void> {
     await v_3f4e2e.env.KV_AUTH.put(v_5f2751 + v_931bf0.jti, "1", {
       expirationTtl: v_be4706(v_931bf0),
     });
+
+    await v_3f4e2e.env.KV_AUTH.delete(v_030a88 + v_931bf0.jti).catch(() => {});
   } catch {
 
   }
