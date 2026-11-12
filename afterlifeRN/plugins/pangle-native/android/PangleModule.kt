@@ -8,6 +8,10 @@ import android.os.Looper
 import android.util.Log
 import com.bytedance.sdk.openadsdk.api.init.PAGConfig
 import com.bytedance.sdk.openadsdk.api.init.PAGSdk
+import com.bytedance.sdk.openadsdk.api.open.PAGAppOpenAd
+import com.bytedance.sdk.openadsdk.api.open.PAGAppOpenAdInteractionListener
+import com.bytedance.sdk.openadsdk.api.open.PAGAppOpenAdLoadListener
+import com.bytedance.sdk.openadsdk.api.open.PAGAppOpenRequest
 import com.bytedance.sdk.openadsdk.api.reward.PAGRewardItem
 import com.bytedance.sdk.openadsdk.api.reward.PAGRewardedAd
 import com.bytedance.sdk.openadsdk.api.reward.PAGRewardedAdInteractionListener
@@ -29,6 +33,8 @@ class PangleModule(reactContext: ReactApplicationContext) :
     private var isInitialized = false
     private var rewardedAd: PAGRewardedAd? = null
     private var currentRewardedAdUnitId: String? = null
+    private var appOpenAd: PAGAppOpenAd? = null
+    private var currentAppOpenAdUnitId: String? = null
 
     init {
         reactContext.addLifecycleEventListener(this)
@@ -141,6 +147,87 @@ class PangleModule(reactContext: ReactApplicationContext) :
             Log.e(TAG, "rewarded show 외부 예외", e)
             promise.reject("SHOW_ERROR", e.message ?: "unknown")
         }
+    }
+
+    @ReactMethod
+    fun loadAppOpenAd(adUnitId: String, promise: Promise) {
+        try {
+            if (!isInitialized || !PAGSdk.isInitSuccess()) {
+                promise.reject("NOT_INITIALIZED", "Pangle 미초기화")
+                return
+            }
+            Log.d(TAG, "appOpen load: $adUnitId")
+            currentAppOpenAdUnitId = adUnitId
+            val request = PAGAppOpenRequest()
+
+            request.setTimeout(3000)
+            PAGAppOpenAd.loadAd(adUnitId, request, object : PAGAppOpenAdLoadListener {
+                override fun onError(code: Int, message: String) {
+                    Log.e(TAG, "appOpen load error: $message ($code)")
+                    sendEvent(
+                        "onAppOpenAdLoadError",
+                        mapOf("adUnitId" to adUnitId, "errorCode" to code, "errorMsg" to message)
+                    )
+                    promise.reject("LOAD_ERROR", message)
+                }
+                override fun onAdLoaded(ad: PAGAppOpenAd) {
+                    Log.d(TAG, "appOpen loaded: $adUnitId")
+                    appOpenAd = ad
+                    setAppOpenListener(ad, adUnitId)
+                    sendEvent("onAppOpenAdLoaded", mapOf("adUnitId" to adUnitId))
+                    promise.resolve(true)
+                }
+            })
+        } catch (e: Exception) {
+            Log.e(TAG, "appOpen load 예외", e)
+            promise.reject("LOAD_ERROR", e.message ?: "unknown")
+        }
+    }
+
+    @ReactMethod
+    fun showAppOpenAd(adUnitId: String, promise: Promise) {
+        try {
+            val ad = appOpenAd
+            if (ad == null) {
+                promise.reject("AD_NOT_LOADED", "광고 미로드")
+                return
+            }
+            val activity = reactApplicationContext.currentActivity
+            if (activity == null) {
+                promise.reject("NO_ACTIVITY", "Activity 없음")
+                return
+            }
+            Handler(Looper.getMainLooper()).post {
+                try {
+                    Log.d(TAG, "appOpen show: $adUnitId")
+                    ad.show(activity)
+                    promise.resolve(true)
+                } catch (e: Exception) {
+                    Log.e(TAG, "appOpen show 예외", e)
+                    promise.reject("SHOW_ERROR", e.message ?: "unknown")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "appOpen show 외부 예외", e)
+            promise.reject("SHOW_ERROR", e.message ?: "unknown")
+        }
+    }
+
+    private fun setAppOpenListener(ad: PAGAppOpenAd, adUnitId: String) {
+        ad.setAdInteractionListener(object : PAGAppOpenAdInteractionListener {
+            override fun onAdShowed() {
+                Log.d(TAG, "appOpen onAdShowed")
+            }
+            override fun onAdClicked() {
+                Log.d(TAG, "appOpen onAdClicked")
+            }
+            override fun onAdDismissed() {
+                Log.d(TAG, "appOpen onAdDismissed")
+                sendEvent("onAppOpenAdClose", mapOf("adUnitId" to adUnitId))
+                appOpenAd = null
+                currentAppOpenAdUnitId = null
+            }
+        })
     }
 
     private fun setRewardListener(ad: PAGRewardedAd, adUnitId: String) {

@@ -8,10 +8,16 @@ public class PangleModule: Module {
   fileprivate var rewardedAd: PAGRewardedAd?
   fileprivate var rewardedDelegate: PangleRewardedDelegate?
 
+  fileprivate var appOpenAd: PAGAppOpenAd?
+  fileprivate var appOpenDelegate: PangleAppOpenDelegate?
+
   public func definition() -> ModuleDefinition {
     Name("PangleModule")
 
-    Events("onRewardedAdClose", "onRewardedAdLoadError", "onRewardedAdReward")
+    Events(
+      "onRewardedAdClose", "onRewardedAdLoadError", "onRewardedAdReward",
+      "onAppOpenAdLoaded", "onAppOpenAdLoadError", "onAppOpenAdClose"
+    )
 
     AsyncFunction("initialize") { (promise: Promise) in
       PangleSdk.ensureInitialized { ok, message in
@@ -72,6 +78,54 @@ public class PangleModule: Module {
       }
     }
 
+    AsyncFunction("loadAppOpenAd") { (adUnitId: String, promise: Promise) in
+      guard PangleSdk.initialized else {
+        promise.reject("NOT_INITIALIZED", "Pangle 미초기화")
+        return
+      }
+      DispatchQueue.main.async {
+        let request = PAGAppOpenRequest()
+        request.timeout = 3  
+        PAGAppOpenAd.load(withSlotID: adUnitId, request: request) { [weak self] ad, error in
+          guard let self = self else { return }
+          if let error = error as NSError? {
+            self.sendEvent("onAppOpenAdLoadError", [
+              "adUnitId": adUnitId,
+              "errorCode": error.code,
+              "errorMsg": error.localizedDescription,
+            ])
+            promise.reject("LOAD_ERROR", error.localizedDescription)
+            return
+          }
+          guard let ad = ad else {
+            promise.reject("LOAD_ERROR", "광고 없음")
+            return
+          }
+          let delegate = PangleAppOpenDelegate(module: self, adUnitId: adUnitId)
+          ad.delegate = delegate
+          self.appOpenAd = ad
+          self.appOpenDelegate = delegate
+          self.sendEvent("onAppOpenAdLoaded", ["adUnitId": adUnitId])
+          promise.resolve(true)
+        }
+      }
+    }
+
+    AsyncFunction("showAppOpenAd") { (adUnitId: String, promise: Promise) in
+      DispatchQueue.main.async {
+        guard let ad = self.appOpenAd else {
+          promise.reject("AD_NOT_LOADED", "광고 미로드")
+          return
+        }
+        guard let vc = PangleSdk.topViewController() else {
+          promise.reject("NO_VIEW_CONTROLLER", "표시할 화면 없음")
+          return
+        }
+        ad.present(fromRootViewController: vc)
+        promise.resolve(true)
+      }
+    }
+
     View(PangleBannerAdView.self) {
       Events("onBannerLoaded", "onBannerError")
 
@@ -90,6 +144,12 @@ public class PangleModule: Module {
   fileprivate func rewardedEarned(_ adUnitId: String, name: String, amount: Int) {
     sendEvent("onRewardedAdReward", ["adUnitId": adUnitId, "type": name, "amount": amount])
   }
+
+  fileprivate func appOpenClosed(_ adUnitId: String) {
+    sendEvent("onAppOpenAdClose", ["adUnitId": adUnitId])
+    appOpenAd = nil
+    appOpenDelegate = nil
+  }
 }
 
 final class PangleRewardedDelegate: NSObject, PAGRewardedAdDelegate {
@@ -107,6 +167,20 @@ final class PangleRewardedDelegate: NSObject, PAGRewardedAdDelegate {
 
   func rewardedAd(_ rewardedAd: PAGRewardedAd, userDidEarnReward rewardModel: PAGRewardModel) {
     module?.rewardedEarned(adUnitId, name: rewardModel.rewardName, amount: rewardModel.rewardAmount)
+  }
+}
+
+final class PangleAppOpenDelegate: NSObject, PAGAppOpenAdDelegate {
+  private weak var module: PangleModule?
+  private let adUnitId: String
+
+  init(module: PangleModule, adUnitId: String) {
+    self.module = module
+    self.adUnitId = adUnitId
+  }
+
+  func adDidDismiss(_ ad: PAGAdProtocol) {
+    module?.appOpenClosed(adUnitId)
   }
 }
 

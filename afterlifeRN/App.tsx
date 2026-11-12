@@ -55,6 +55,8 @@ import { v_7cb644, v_9ff0b2 } from "./src/lib/appsFlyer";
 v_7cb644();
 v_8f5130("appsflyer-init");
 
+import { v_e55270 } from "./src/lib/pangle";
+
 v_b28903();
 
 v_61a1ef(v_04fed4);
@@ -231,6 +233,10 @@ export default function v_6540c3() {
       v_0189ac(true);
 
       setTimeout(() => v_b247cd("post-ready+2s"), 2000);
+
+      void v_e55270().then((v_cb35cb) => {
+        v_8f5130("appopen-ad-finished", { result: v_cb35cb });
+      });
 
       v_4d2e36();
 

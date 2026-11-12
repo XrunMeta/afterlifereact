@@ -15,6 +15,9 @@ const v_cfcd6e = "8874758";
 const v_9f718b = "983489678"; 
 const v_c7628e = "983489670";     
 
+const v_0b540a = "890199338";
+const v_285544 = "890199339";
+
 export type PangleBannerPlacement = "messages" | "chat";
 const v_bbd4c1 = {
   messages: { android: "983760615", ios: "983769946" },
@@ -30,6 +33,9 @@ type PangleModuleType = {
   isReady(): Promise<boolean>;
   loadRewardedAd(adUnitId: string): Promise<boolean>;
   showRewardedAd(adUnitId: string): Promise<boolean>;
+
+  loadAppOpenAd?(adUnitId: string): Promise<boolean>;
+  showAppOpenAd?(adUnitId: string): Promise<boolean>;
 };
 
 type EmitterLike = { addListener(event: string, cb: (e: unknown) => void): { remove(): void } };
@@ -117,8 +123,88 @@ export function v_3dc1fd(): string {
   return v_326be8.OS === "ios" ? v_c7628e : v_9f718b;
 }
 
+export function v_efbbe0(): string {
+  return v_326be8.OS === "ios" ? v_285544 : v_0b540a;
+}
+
 export function v_8dbaf4(): string {
   return v_326be8.OS === "ios" ? v_cfcd6e : v_a4f114;
+}
+
+export type AppOpenAdResult = "closed" | "timeout" | "unavailable" | "error";
+
+export async function v_e55270(
+  v_61418d,
+): Promise<AppOpenAdResult> {
+  const v_b66f2c = Date.now();
+  const v_a48992 = () => `+${Date.now() - v_b66f2c}ms`;
+  v_4b0422(`loadAndShowAppOpenAd() 호출 · nativeModule=${!!v_d57f84} emitter=${!!v_357489} platform=${v_326be8.OS} stub=${v_36f8a3()}`);
+
+  if (v_36f8a3()) {
+    v_4b0422(`STUB MODE on — AppOpen 시뮬레이션 skip (즉시 resolve)`);
+    return "unavailable";
+  }
+
+  if (!v_d57f84 || !v_357489) {
+    v_4b0422("native module/emitter 없음 → unavailable (Expo Go 또는 JS-only 빌드)");
+    return "unavailable";
+  }
+  if (!v_d57f84.loadAppOpenAd || !v_d57f84.showAppOpenAd) {
+    v_4b0422("네이티브에 AppOpen 메서드 없음 (구 바이너리 OTA) → unavailable");
+    return "unavailable";
+  }
+  const v_3ed4c3 = await v_f095b0();
+  v_4b0422(`initializePangle() → ${v_3ed4c3} (${v_a48992()})`);
+  if (!v_3ed4c3) return "unavailable";
+
+  const v_80cae9 = v_61418d ?? v_efbbe0();
+  v_4b0422(`appOpen adUnit=${v_80cae9}`);
+
+  return new Promise<AppOpenAdResult>((v_6f7712) => {
+    let v_35db80 = false;
+    const v_a983d4 = () => {
+      v_8d364c.remove();
+      v_ac7dac.remove();
+    };
+    const v_de1394 = (v_cb35cb) => {
+      if (v_35db80) return;
+      v_35db80 = true;
+      v_a983d4();
+      clearTimeout(v_3109d9);
+      v_6f7712(v_cb35cb);
+    };
+    const v_8d364c = v_357489.addListener("onAppOpenAdClose", (v_9e86fd) => {
+      v_4b0422(`event onAppOpenAdClose (${v_a48992()})`, v_9e86fd);
+      v_de1394("closed");
+    });
+    const v_ac7dac = v_357489.addListener("onAppOpenAdLoadError", (v_9e86fd) => {
+      const v_94d701 = (v_9e86fd as { errorCode?: unknown } | null)?.errorCode;
+      const v_131f0d = (v_9e86fd as { errorMsg?: unknown } | null)?.errorMsg;
+      v_4b0422(`event onAppOpenAdLoadError (${v_a48992()}) errorCode=${String(v_94d701)} errorMsg=${String(v_131f0d)}`, v_9e86fd);
+      v_1507f7("appopen-load-error", { code: v_94d701 ?? null, msg: v_131f0d ?? null, unit: v_80cae9 });
+      v_de1394("error");
+    });
+
+    (async () => {
+      try {
+        v_4b0422(`loadAppOpenAd(${v_80cae9}) 시작`);
+        await v_d57f84.loadAppOpenAd!(v_80cae9);
+        v_4b0422(`loadAppOpenAd 성공 (${v_a48992()}) → showAppOpenAd 시작`);
+        await v_d57f84.showAppOpenAd!(v_80cae9);
+        v_4b0422(`showAppOpenAd 성공 (${v_a48992()}) — 광고 표시됨, close 대기`);
+        v_1507f7("appopen-shown", { unit: v_80cae9 });
+      } catch (v_49263d) {
+        v_4b0422(`appOpen load/show 예외 (${v_a48992()}): ${(v_49263d as Error)?.message ?? String(v_49263d)}`);
+        v_1507f7("appopen-load-show-exception", { unit: v_80cae9, msg: (v_49263d as Error)?.message ?? String(v_49263d) });
+        v_de1394("error");
+      }
+    })();
+
+    const v_3109d9 = setTimeout(() => {
+      v_4b0422(`appOpen 타임아웃 7s (${v_a48992()})`);
+      v_de1394("timeout");
+    }, 7000);
+  });
 }
 
 export type RewardedAdResult = "closed" | "timeout";
