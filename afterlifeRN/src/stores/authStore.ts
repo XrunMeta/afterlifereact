@@ -225,6 +225,9 @@ export const v_1ed7d9 = v_a7c0d4<AuthState>((v_bb8024, v_38715b) => ({
       await v_b4902e.getState().resetForLogout();
       v_194498.getState().resetForLogout();
 
+      const { clearAllChatLocalImages: v_f94797 } = await import("../lib/chatLocalImages");
+      void v_f94797();
+
       const { clearPendingCloneShare: v_f18f70 } = await import("../lib/cloneShareDeferredLink");
       await v_f18f70();
     } catch (v_49263d) {
@@ -333,6 +336,9 @@ export const v_1ed7d9 = v_a7c0d4<AuthState>((v_bb8024, v_38715b) => ({
       v_37977a.getState().resetForLogout();
       await v_b4902e.getState().resetForLogout();
       v_98d20a.getState().resetForLogout();
+
+      const { clearAllChatLocalImages: v_f94797 } = await import("../lib/chatLocalImages");
+      void v_f94797();
     } catch (v_49263d) {
       console.warn("[authStore] reset on apiLogout failed:", v_49263d);
     }

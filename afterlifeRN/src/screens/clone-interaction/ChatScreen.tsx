@@ -524,7 +524,8 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       kind: "image",
       caption: null,
     };
-    v_c905f8(v_2413d4, v_4a0670);
+
+    void v_c905f8(v_2413d4, v_4a0670).then(() => v_2ed4c7());
     v_2ed4c7();
     v_7f73ef((v_ba2215) => [v_fa1cce, ...(v_ba2215 ?? [])]);
     v_10837f(true);
@@ -588,7 +589,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       void v_e6ff86();
     } catch (v_49263d) {
       console.warn("[Chat] send image failed:", (v_49263d as Error)?.message ?? v_49263d);
-      v_daaf83(v_2413d4);
+      void v_daaf83(v_2413d4);
       v_2ed4c7();
       v_7f73ef((v_ba2215) =>
         v_ba2215 ? v_ba2215.filter((v_23805a) => !(v_23805a.type === "chat" && v_23805a.id === v_2413d4)) : v_ba2215,
