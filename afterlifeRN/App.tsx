@@ -58,6 +58,8 @@ v_8f5130("appsflyer-init");
 
 import { v_e55270 } from "./src/lib/pangle";
 
+import { v_0ccb1f } from "./src/lib/chatLocalImages";
+
 v_b28903();
 
 v_61a1ef(v_04fed4);
@@ -229,6 +231,8 @@ export default function v_6540c3() {
       v_83ff11("authConfig", v_688424.getState().hydrate()),
 
       v_83ff11("feedDiscover", v_37977a.getState().hydrateDiscover()),
+
+      v_83ff11("chatLocalImages", v_0ccb1f()),
       __DEV__ ? v_83ff11("t208Crops", v_82d3c2()) : Promise.resolve(),
       __DEV__ ? v_83ff11("devOverlay", v_434962.getState().hydrate()) : Promise.resolve(),
     ]).then(() => {

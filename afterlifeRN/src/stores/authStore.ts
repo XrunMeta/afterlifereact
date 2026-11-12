@@ -145,6 +145,24 @@ export const v_1ed7d9 = v_a7c0d4<AuthState>((v_bb8024, v_38715b) => ({
           v_8f5130("authStore.hydrate:bg-getMe:error", { status: v_d308b5, msg: (v_49263d as Error)?.message });
           if (v_d308b5 === 401 || v_d308b5 === 403) {
 
+            v_8f5130("authStore.hydrate:bg-getMe:refresh:start");
+            const { refreshAccessToken: v_4dd1c9 } = await import("../lib/authFetch");
+            const v_4094c3 = await v_4dd1c9();
+            if (v_4094c3) {
+              try {
+                const v_48bbbd = await v_7ef860(v_4094c3);
+                v_bb8024({ apiUser: v_48bbbd.user });
+                void v_4b8b45(v_48bbbd.user);
+                v_8f5130("authStore.hydrate:bg-getMe:refresh:recovered");
+                return;
+              } catch (v_6773bf) {
+                const v_c94e2c = (v_6773bf as { status?: number })?.status;
+                v_8f5130("authStore.hydrate:bg-getMe:refresh:retry-fail", { status: v_c94e2c });
+              }
+            } else {
+              v_8f5130("authStore.hydrate:bg-getMe:refresh:fail");
+            }
+
             await v_e84827.removeItem(v_1278db);
             await v_e84827.removeItem(v_a19d89);
             await v_4b8b45(null);
@@ -158,16 +176,17 @@ export const v_1ed7d9 = v_a7c0d4<AuthState>((v_bb8024, v_38715b) => ({
 
     v_bb8024({ accessToken: v_21cc31, refreshToken: v_2474a1, sessionPersisted: true });
     let apiUser: v_7289ef | null = null;
+    let v_191c8b = v_21cc31;
     let v_8e39bb = v_21cc31;
     let v_78bc3c = v_2474a1;
     for (let v_bc21cd = 0; v_bc21cd < 3; v_bc21cd++) {
       try {
         v_8f5130(`authStore.hydrate:getMe:attempt${v_bc21cd + 1}:start`);
-        const v_8f00b9 = await v_7ef860(v_21cc31);
+        const v_8f00b9 = await v_7ef860(v_191c8b);
         v_8f5130(`authStore.hydrate:getMe:attempt${v_bc21cd + 1}:done`);
         v_b113dd = v_8f00b9.user;
         const v_fd5f43 = v_38715b();
-        v_8e39bb = v_fd5f43.accessToken ?? v_21cc31;
+        v_8e39bb = v_fd5f43.accessToken ?? v_191c8b;
         v_78bc3c = v_fd5f43.refreshToken ?? v_2474a1;
         void v_4b8b45(v_8f00b9.user);
         break;
@@ -178,6 +197,18 @@ export const v_1ed7d9 = v_a7c0d4<AuthState>((v_bb8024, v_38715b) => ({
           msg: (v_49263d as Error)?.message,
         });
         if (v_d308b5 === 401 || v_d308b5 === 403) {
+
+          v_8f5130(`authStore.hydrate:getMe:refresh:start`);
+          const { refreshAccessToken: v_4dd1c9 } = await import("../lib/authFetch");
+          const v_4094c3 = await v_4dd1c9();
+          if (v_4094c3) {
+            v_8f5130(`authStore.hydrate:getMe:refresh:ok`);
+            v_191c8b = v_4094c3;
+            v_8e39bb = v_4094c3;
+            v_78bc3c = v_38715b().refreshToken ?? v_2474a1;
+            continue; 
+          }
+          v_8f5130(`authStore.hydrate:getMe:refresh:fail`);
           await v_e84827.removeItem(v_1278db);
           await v_e84827.removeItem(v_a19d89);
           v_8e39bb = null;
@@ -224,6 +255,9 @@ export const v_1ed7d9 = v_a7c0d4<AuthState>((v_bb8024, v_38715b) => ({
       v_37977a.getState().resetForLogout();
       await v_b4902e.getState().resetForLogout();
       v_194498.getState().resetForLogout();
+
+      const { clearAllChatLocalImages: v_f94797 } = await import("../lib/chatLocalImages");
+      void v_f94797();
 
       const { clearPendingCloneShare: v_f18f70 } = await import("../lib/cloneShareDeferredLink");
       await v_f18f70();
@@ -333,6 +367,9 @@ export const v_1ed7d9 = v_a7c0d4<AuthState>((v_bb8024, v_38715b) => ({
       v_37977a.getState().resetForLogout();
       await v_b4902e.getState().resetForLogout();
       v_98d20a.getState().resetForLogout();
+
+      const { clearAllChatLocalImages: v_f94797 } = await import("../lib/chatLocalImages");
+      void v_f94797();
     } catch (v_49263d) {
       console.warn("[authStore] reset on apiLogout failed:", v_49263d);
     }

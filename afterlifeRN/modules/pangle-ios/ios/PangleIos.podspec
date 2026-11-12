@@ -14,7 +14,9 @@ Pod::Spec.new do |s|
   s.swift_version  = '5.9'
 
   s.dependency 'ExpoModulesCore'
-  s.dependency 'Ads-Global'
+  # 2026-11-12: AppOpen Ad 를 위해 Ads-Global 8.x 로 고정 (PAGLAppOpenAd 공식 지원).
+  #   참고: Pangle 공식 iOS App Open Ads 문서 — PAGLAppOpenAd + PAGOpenRequest + PAGLAppOpenAdDelegate.
+  s.dependency 'Ads-Global', '>= 8.4.0'
 
   s.source_files = '**/*.{h,m,mm,swift}'
 end
