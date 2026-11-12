@@ -22,6 +22,7 @@ import { v_98d20a } from "./src/stores/userFollowStore";
 import { v_0b10a6 } from "./src/stores/configStore";
 import { v_5b540b } from "./src/stores/callConfigStore";
 import { v_688424 } from "./src/stores/authConfigStore";
+import { v_37977a } from "./src/stores/feedStore";
 import { v_9bedf5 } from "./src/lib/pushNotifications";
 import { v_1aef7c } from "./src/lib/tracking";
 import { v_4d2e36 } from "./src/lib/localeSync";
@@ -226,6 +227,8 @@ export default function v_6540c3() {
       v_83ff11("config", v_0b10a6.getState().hydrate()),
       v_83ff11("callConfig", v_5b540b.getState().hydrate()),
       v_83ff11("authConfig", v_688424.getState().hydrate()),
+
+      v_83ff11("feedDiscover", v_37977a.getState().hydrateDiscover()),
       __DEV__ ? v_83ff11("t208Crops", v_82d3c2()) : Promise.resolve(),
       __DEV__ ? v_83ff11("devOverlay", v_434962.getState().hydrate()) : Promise.resolve(),
     ]).then(() => {
