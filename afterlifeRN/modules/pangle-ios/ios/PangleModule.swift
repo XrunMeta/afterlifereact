@@ -8,6 +8,9 @@ public class PangleModule: Module {
   fileprivate var rewardedAd: PAGRewardedAd?
   fileprivate var rewardedDelegate: PangleRewardedDelegate?
 
+  fileprivate var appOpenAd: PAGLAppOpenAd?
+  fileprivate var appOpenDelegate: PangleAppOpenDelegate?
+
   public func definition() -> ModuleDefinition {
     Name("PangleModule")
 
@@ -75,18 +78,54 @@ public class PangleModule: Module {
       }
     }
 
-    AsyncFunction("loadAppOpenAd") { (_: String, promise: Promise) in
-      promise.reject(
-        "UNSUPPORTED",
-        "App Open Ad not supported in current Pangle iOS SDK (Ads-Global does not expose PAGAppOpenAd)"
-      )
+    AsyncFunction("loadAppOpenAd") { (adUnitId: String, promise: Promise) in
+      guard PangleSdk.initialized else {
+        promise.reject("NOT_INITIALIZED", "Pangle 미초기화")
+        return
+      }
+      DispatchQueue.main.async {
+        let request = PAGOpenRequest()
+
+        request.timeout = 3
+        PAGLAppOpenAd.load(withSlotID: adUnitId, request: request) { [weak self] ad, error in
+          guard let self = self else { return }
+          if let error = error as NSError? {
+            self.sendEvent("onAppOpenAdLoadError", [
+              "adUnitId": adUnitId,
+              "errorCode": error.code,
+              "errorMsg": error.localizedDescription,
+            ])
+            promise.reject("LOAD_ERROR", error.localizedDescription)
+            return
+          }
+          guard let ad = ad else {
+            promise.reject("LOAD_ERROR", "광고 없음")
+            return
+          }
+          let delegate = PangleAppOpenDelegate(module: self, adUnitId: adUnitId)
+          ad.delegate = delegate
+          self.appOpenAd = ad
+          self.appOpenDelegate = delegate
+          self.sendEvent("onAppOpenAdLoaded", ["adUnitId": adUnitId])
+          promise.resolve(true)
+        }
+      }
     }
 
     AsyncFunction("showAppOpenAd") { (_: String, promise: Promise) in
-      promise.reject(
-        "UNSUPPORTED",
-        "App Open Ad not supported in current Pangle iOS SDK (Ads-Global does not expose PAGAppOpenAd)"
-      )
+      DispatchQueue.main.async {
+        guard let ad = self.appOpenAd else {
+          promise.reject("AD_NOT_LOADED", "광고 미로드")
+          return
+        }
+        guard let vc = PangleSdk.topViewController() else {
+          promise.reject("NO_VIEW_CONTROLLER", "표시할 화면 없음")
+          return
+        }
+
+        ad.present(fromRootViewController: vc)
+        promise.resolve(true)
+      }
     }
 
     View(PangleBannerAdView.self) {
@@ -106,6 +145,34 @@ public class PangleModule: Module {
 
   fileprivate func rewardedEarned(_ adUnitId: String, name: String, amount: Int) {
     sendEvent("onRewardedAdReward", ["adUnitId": adUnitId, "type": name, "amount": amount])
+  }
+
+  fileprivate func appOpenClosed(_ adUnitId: String) {
+    sendEvent("onAppOpenAdClose", ["adUnitId": adUnitId])
+    appOpenAd = nil
+    appOpenDelegate = nil
+  }
+}
+
+final class PangleAppOpenDelegate: NSObject, PAGLAppOpenAdDelegate {
+  private weak var module: PangleModule?
+  private let adUnitId: String
+
+  init(module: PangleModule, adUnitId: String) {
+    self.module = module
+    self.adUnitId = adUnitId
+  }
+
+  func adDidShow(_ ad: PAGLAppOpenAd) {
+
+  }
+
+  func adDidClick(_ ad: PAGLAppOpenAd) {
+
+  }
+
+  func adDidDismiss(_ ad: PAGLAppOpenAd) {
+    module?.appOpenClosed(adUnitId)
   }
 }
 
