@@ -57,6 +57,7 @@ import {
 import { v_e0c5af } from "../clone-creation/content/pickImageSource";
 import v_c7021f from "../clone-creation/content/ImageSourceSheet";
 import {
+  v_fa0492,
   v_c905f8,
   v_49c1e3,
   v_73c438,
@@ -206,6 +207,10 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         v_7f73ef(v_8f00b9.items);
         v_94405c(v_8f00b9.nextCursor);
         if (typeof v_8f00b9.intimacy === "number") v_b31b79(v_8f00b9.intimacy);
+
+        void v_fa0492(
+          v_8f00b9.items.filter((v_23805a) => v_23805a.type === "chat").map((v_23805a) => v_23805a.id),
+        );
       } else {
         v_ca35f0(true);
       }
@@ -316,6 +321,10 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     if (v_8f00b9) {
       v_7f73ef(v_8f00b9.items);
       v_94405c(v_8f00b9.nextCursor);
+
+      void v_fa0492(
+        v_8f00b9.items.filter((v_23805a) => v_23805a.type === "chat").map((v_23805a) => v_23805a.id),
+      );
     }
   };
 
@@ -333,6 +342,8 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
             )
         : v_ba2215,
     );
+
+    void v_daaf83(v_badeaf.id);
     try {
       await v_1c758d(v_badeaf.id, v_2ca7e0);
     } catch (v_49263d) {

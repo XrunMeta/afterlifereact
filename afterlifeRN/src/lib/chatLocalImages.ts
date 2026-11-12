@@ -142,6 +142,24 @@ export async function v_daaf83(v_7f4466): Promise<void> {
   }
 }
 
+export async function v_fa0492(v_99dac2): Promise<void> {
+  if (!Array.isArray(v_99dac2) || v_99dac2.length === 0) return;
+  const v_110a8b = new Set<number>();
+  for (const v_f4e98d of v_99dac2) if (Number.isFinite(v_f4e98d) && v_f4e98d > 0) v_110a8b.add(v_f4e98d);
+  if (v_110a8b.size === 0) return;
+  const v_02dcdb = Math.min(...v_110a8b);
+  const v_4d6101 = [];
+  for (const v_878e48 of v_e93b52.keys()) {
+
+    if (v_878e48 >= v_02dcdb && v_878e48 < 1_000_000_000 && !v_110a8b.has(v_878e48)) {
+      v_4d6101.push(v_878e48);
+    }
+  }
+  if (v_4d6101.length === 0) return;
+  console.log(`[chatLocalImages] reconcile: 서버에서 사라진 msg ${v_4d6101.length}개 로컬 파일 정리`);
+  await Promise.all(v_4d6101.map((v_389afb) => v_daaf83(v_389afb)));
+}
+
 export async function v_f94797(): Promise<void> {
   const v_d8a9e2 = Array.from(v_e93b52.values()).map((v_9e86fd) => v_9e86fd.path);
   v_e93b52.clear();
