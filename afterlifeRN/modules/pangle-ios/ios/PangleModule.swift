@@ -84,7 +84,8 @@ public class PangleModule: Module {
         return
       }
       DispatchQueue.main.async {
-        let request = PAGOpenRequest()
+
+        let request = PAGAppOpenRequest()
 
         request.timeout = 3
         PAGLAppOpenAd.load(withSlotID: adUnitId, request: request) { [weak self] ad, error in
