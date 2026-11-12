@@ -31,7 +31,8 @@ const v_698fc3 = "rotate_lock:";
 const v_d4aa79 = 60; 
 
 const v_030a88 = "rotate_grace:";
-const v_90cbad = 60;
+
+const v_90cbad = 1800;
 
 function v_be4706(v_931bf0): number {
   const v_5c2f9f = Math.floor(Date.now() / 1000);
