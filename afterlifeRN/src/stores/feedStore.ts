@@ -5,6 +5,7 @@ import { v_694b7f } from "../api/source";
 import type { v_4b85a1, v_bc3df4 } from "../types/domain";
 import { v_1ed7d9 } from "./authStore";
 import { v_650589 } from "../lib/penaltyNotice";
+import { v_b938fd } from "../lib/thumbUrl";
 import {
   v_f5cc38,
   v_de2a30,
@@ -77,9 +78,12 @@ async function v_4833dd(): Promise<void> {
 function v_40ef3a(items: v_4c75cf[], v_9e8c70 = v_f91f6f): void {
   const v_942aa2 = [];
   for (const v_8c0b26 of v_4622b9.slice(0, v_9e8c70)) {
-    if (v_8c0b26.mediaUrl) v_942aa2.push(v_8c0b26.mediaUrl);
-    if (v_8c0b26.clone?.avatarUrl) v_942aa2.push(v_8c0b26.clone.avatarUrl);
-    if (v_8c0b26.clone?.ownerAvatarUrl) v_942aa2.push(v_8c0b26.clone.ownerAvatarUrl);
+    const v_b3ed3b = v_b938fd(v_8c0b26.mediaUrl ?? undefined);
+    const v_0a6316 = v_b938fd(v_8c0b26.clone?.avatarUrl ?? undefined);
+    const v_257b90 = v_b938fd(v_8c0b26.clone?.ownerAvatarUrl ?? undefined);
+    if (v_b3ed3b) v_942aa2.push(v_b3ed3b);
+    if (v_0a6316) v_942aa2.push(v_0a6316);
+    if (v_257b90) v_942aa2.push(v_257b90);
   }
   for (const v_f71b56 of v_942aa2) {
 

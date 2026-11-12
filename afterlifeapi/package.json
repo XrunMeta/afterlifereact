@@ -26,6 +26,7 @@
     "@noble/hashes": "^2.2.0",
     "@simplewebauthn/server": "^13.3.0",
     "hono": "^4.12.10",
+    "wasm-image-optimization": "^1.2.72",
     "zod": "^4.3.6"
   },
   "devDependencies": {
