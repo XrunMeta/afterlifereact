@@ -39,6 +39,8 @@ import type { v_97a9a8, v_8ad91b } from "../../navigation/types";
 import { v_1c036d } from "../../components/common/ListStateViews";
 import { v_5401ae } from "../../testIDs";
 
+import { v_b938fd } from "../../lib/thumbUrl";
+
 type TabNav = v_34614d<
   v_5b8240<v_97a9a8>,
   v_390fcc<v_8ad91b>
@@ -346,7 +348,7 @@ export default function v_5db6c6() {
         style={{ width: v_675c6a, height: v_6367e4, marginRight: v_d88de1, marginBottom: v_296ef9 }}
       >
         {v_8c0b26.mediaUrl ? (
-          <Image source={{ uri: v_8c0b26.mediaUrl }} style={v_fd5f43.cellImage} />
+          <Image source={{ uri: v_b938fd(v_8c0b26.mediaUrl) ?? v_8c0b26.mediaUrl }} style={v_fd5f43.cellImage} />
         ) : (
           <View style={[v_fd5f43.cellImage, v_fd5f43.cellPlaceholder]}>
             <Feather name="image" size={24} color={v_1bfbd0.zinc400} />
@@ -387,7 +389,7 @@ export default function v_5db6c6() {
         }}
       >
         {v_8c0b26.avatarUrl ? (
-          <Image source={{ uri: v_8c0b26.avatarUrl }} style={v_fd5f43.rowAvatar} />
+          <Image source={{ uri: v_b938fd(v_8c0b26.avatarUrl) ?? v_8c0b26.avatarUrl }} style={v_fd5f43.rowAvatar} />
         ) : (
           <View style={[v_fd5f43.rowAvatar, v_fd5f43.rowAvatarPh]}>
             <Feather name="user" size={20} color={v_1bfbd0.zinc400} />
@@ -412,7 +414,7 @@ export default function v_5db6c6() {
       }}
     >
       {v_8c0b26.avatarUrl ? (
-        <Image source={{ uri: v_8c0b26.avatarUrl }} style={v_fd5f43.rowAvatar} />
+        <Image source={{ uri: v_b938fd(v_8c0b26.avatarUrl) ?? v_8c0b26.avatarUrl }} style={v_fd5f43.rowAvatar} />
       ) : (
         <View style={[v_fd5f43.rowAvatar, v_fd5f43.rowAvatarPh]}>
           <Feather name="user" size={20} color={v_1bfbd0.zinc400} />
