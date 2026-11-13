@@ -275,79 +275,69 @@ v_f1d06f.get("/discover", async (v_3f4e2e) => {
   if (v_8b86f5.length > 0) {
     const v_1cdc07 = v_8b86f5.map(() => "?").join(",");
 
-    const v_3555cc = v_3f4e2e.env.DB
-      .prepare(
+    const v_4d3761 = [
+      v_3f4e2e.env.DB.prepare(
         `SELECT clone_id, interest FROM clone_interests
           WHERE clone_id IN (${v_1cdc07})`,
-      )
-      .bind(...v_8b86f5)
-      .all<{ clone_id: number; interest: string }>();
-
-    const v_1a88bf = v_3f4e2e.env.DB
-      .prepare(
+      ).bind(...v_8b86f5),
+      v_3f4e2e.env.DB.prepare(
         `SELECT clone_id, COALESCE(SUM(likes_count), 0) AS likes
            FROM feeds WHERE clone_id IN (${v_1cdc07}) GROUP BY clone_id`,
-      )
-      .bind(...v_8b86f5)
-      .all<{ clone_id: number; likes: number }>();
-
-    const v_e35bbc = v_3f4e2e.env.DB
-      .prepare(
+      ).bind(...v_8b86f5),
+      v_3f4e2e.env.DB.prepare(
         `SELECT f.clone_id AS clone_id, COUNT(*) AS cnt
            FROM feed_comments fc JOIN feeds f ON f.id = fc.feed_id
           WHERE f.clone_id IN (${v_1cdc07})
           GROUP BY f.clone_id`,
-      )
-      .bind(...v_8b86f5)
-      .all<{ clone_id: number; cnt: number }>();
-
-    const v_ce6f05 = v_3f4e2e.env.DB
-      .prepare(
+      ).bind(...v_8b86f5),
+      v_3f4e2e.env.DB.prepare(
         `SELECT clone_id, COUNT(*) AS cnt
            FROM gift_logs WHERE clone_id IN (${v_1cdc07})
            GROUP BY clone_id`,
-      )
-      .bind(...v_8b86f5)
-      .all<{ clone_id: number; cnt: number }>();
+      ).bind(...v_8b86f5),
+    ];
+    if (v_013af2) {
+      v_4d3761.push(
+        v_3f4e2e.env.DB.prepare(
+          `SELECT DISTINCT f.clone_id AS clone_id FROM feed_likes fl
+             JOIN feeds f ON f.id = fl.feed_id
+            WHERE fl.user_id = ? AND f.clone_id IN (${v_1cdc07})`,
+        ).bind(v_013af2, ...v_8b86f5),
+      );
 
-    const v_d5d3dc = v_013af2
-      ? v_3f4e2e.env.DB
-          .prepare(
-            `SELECT DISTINCT f.clone_id AS clone_id FROM feed_likes fl
-               JOIN feeds f ON f.id = fl.feed_id
-              WHERE fl.user_id = ? AND f.clone_id IN (${v_1cdc07})`,
-          )
-          .bind(v_013af2, ...v_8b86f5)
-          .all<{ clone_id: number }>()
-      : Promise.resolve({ results: [] as { clone_id: number }[] });
+      v_4d3761.push(
+        v_3f4e2e.env.DB.prepare(
+          `SELECT clone_id, MIN(100, SUM(score)) AS score
+             FROM intimacy_events ie
+            WHERE user_id = ? AND clone_id IN (${v_1cdc07})
+                  ${v_991113("ie")}
+            GROUP BY clone_id`,
+        ).bind(v_013af2, ...v_8b86f5),
+      );
+    }
 
-    const v_84f2b8 = v_013af2
-      ? v_3f4e2e.env.DB
-          .prepare(
-            `SELECT clone_id, MIN(100, SUM(score)) AS score
-               FROM intimacy_events ie
-              WHERE user_id = ? AND clone_id IN (${v_1cdc07})
-                    ${v_991113("ie")}
-              GROUP BY clone_id`,
-          )
-          .bind(v_013af2, ...v_8b86f5)
-          .all<{ clone_id: number; score: number }>()
-      : Promise.resolve({ results: [] as { clone_id: number; score: number }[] });
+    const v_1db061 = await v_3f4e2e.env.DB.batch<Record<string, unknown>>(v_4d3761);
+    const v_e962f6 = (v_1db061[0]?.results ?? []) as { clone_id: number; interest: string }[];
+    const v_ba1e6d = (v_1db061[1]?.results ?? []) as { clone_id: number; likes: number }[];
+    const v_c77200 = (v_1db061[2]?.results ?? []) as { clone_id: number; cnt: number }[];
+    const v_d92f3d = (v_1db061[3]?.results ?? []) as { clone_id: number; cnt: number }[];
+    const v_a3caa0 = v_013af2
+      ? ((v_1db061[4]?.results ?? []) as { clone_id: number }[])
+      : [];
+    const v_fbaa5f = v_013af2
+      ? ((v_1db061[5]?.results ?? []) as { clone_id: number; score: number }[])
+      : [];
 
-    const [v_81c7c6, v_99ed51, v_28ae91, v_475305, v_181f66, v_1d2303] = await Promise.all(
-      [v_3555cc, v_1a88bf, v_e35bbc, v_ce6f05, v_d5d3dc, v_84f2b8],
-    );
-
-    for (const v_3ac7e7 of v_81c7c6.results ?? []) {
+    for (const v_3ac7e7 of v_e962f6) {
       const v_d0c056 = v_9afb14.get(v_3ac7e7.clone_id) ?? [];
       v_d0c056.push(v_3ac7e7.interest);
       v_9afb14.set(v_3ac7e7.clone_id, v_d0c056);
     }
-    for (const v_3ac7e7 of v_99ed51.results ?? []) v_3967a5.set(v_3ac7e7.clone_id, v_3ac7e7.likes);
-    for (const v_3ac7e7 of v_28ae91.results ?? []) v_12794e.set(v_3ac7e7.clone_id, v_3ac7e7.cnt);
-    for (const v_3ac7e7 of v_475305.results ?? []) v_50173f.set(v_3ac7e7.clone_id, v_3ac7e7.cnt);
-    for (const v_3ac7e7 of v_181f66.results ?? []) v_ff3805.add(v_3ac7e7.clone_id);
-    for (const v_3ac7e7 of v_1d2303.results ?? []) v_fc212f.set(v_3ac7e7.clone_id, v_3ac7e7.score);
+    for (const v_3ac7e7 of v_ba1e6d) v_3967a5.set(v_3ac7e7.clone_id, v_3ac7e7.likes);
+    for (const v_3ac7e7 of v_c77200) v_12794e.set(v_3ac7e7.clone_id, v_3ac7e7.cnt);
+    for (const v_3ac7e7 of v_d92f3d) v_50173f.set(v_3ac7e7.clone_id, v_3ac7e7.cnt);
+    for (const v_3ac7e7 of v_a3caa0) v_ff3805.add(v_3ac7e7.clone_id);
+    for (const v_3ac7e7 of v_fbaa5f) v_fc212f.set(v_3ac7e7.clone_id, v_3ac7e7.score);
   }
 
   return v_3f4e2e.json({
