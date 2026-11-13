@@ -20,6 +20,7 @@ import v_258c1c from "../../components/common/PageHeader";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_674023, type v_0b9d48, type v_347801 } from "../../api/clones";
 import { v_1bfbd0, v_8b0c90, v_9b1a04 } from "../../components/constants";
+import { v_b938fd } from "../../lib/thumbUrl";
 import type { v_e57140 } from "../../navigation/types";
 
 type Nav = v_390fcc<v_e57140>;
@@ -114,7 +115,7 @@ export default function v_14fa9c() {
         }}
       >
         {v_8c0b26.clone.avatarUrl ? (
-          <Image source={{ uri: v_8c0b26.clone.avatarUrl }} style={v_fd5f43.avatar} />
+          <Image source={{ uri: v_b938fd(v_8c0b26.clone.avatarUrl) ?? v_8c0b26.clone.avatarUrl }} style={v_fd5f43.avatar} />
         ) : (
           <View style={[v_fd5f43.avatar, v_fd5f43.avatarPh]}>
             <Feather name="user" size={18} color={v_1bfbd0.zinc400} />

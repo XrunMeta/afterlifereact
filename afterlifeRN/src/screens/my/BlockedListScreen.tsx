@@ -19,6 +19,7 @@ import { v_1ed7d9 } from "../../stores/authStore";
 import { v_dbedc9, v_c0dd8d, type v_370311 } from "../../api/clones";
 import { v_83b07d } from "../../api/users";
 import { v_1bfbd0, v_8b0c90, v_9b1a04 } from "../../components/constants";
+import { v_b938fd } from "../../lib/thumbUrl";
 
 export default function v_65df53() {
   const { t: v_8d41d7 } = v_772971();
@@ -98,7 +99,7 @@ export default function v_65df53() {
             return (
               <View style={v_fd5f43.row}>
                 {v_bf6b43 ? (
-                  <Image source={{ uri: v_bf6b43 }} style={v_fd5f43.avatar} />
+                  <Image source={{ uri: v_b938fd(v_bf6b43) ?? v_bf6b43 }} style={v_fd5f43.avatar} />
                 ) : (
                   <View style={[v_fd5f43.avatar, v_fd5f43.avatarPh]}>
                     <Feather name="user" size={18} color={v_1bfbd0.zinc400} />

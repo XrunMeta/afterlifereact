@@ -26,6 +26,7 @@ import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import { v_c18c22 } from "svuoaeceudfxfjvvpmmmchnwljywbphjgb";
 import { v_889fad } from "../../stores/dialogStore";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
+import { v_b938fd } from "../../lib/thumbUrl";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_98d20a } from "../../stores/userFollowStore";
 import {
@@ -189,7 +190,7 @@ export default function v_c501aa() {
       >
         <View style={[v_fd5f43.cellImageWrap, { width: v_e66b8c, height: v_e66b8c }]}>
           {v_8c0b26.avatarUrl ? (
-            <Image source={{ uri: v_8c0b26.avatarUrl }} style={v_fd5f43.cellImage} />
+            <Image source={{ uri: v_b938fd(v_8c0b26.avatarUrl) ?? v_8c0b26.avatarUrl }} style={v_fd5f43.cellImage} />
           ) : (
             <View style={[v_fd5f43.cellImage, v_fd5f43.cellPlaceholder]}>
               <Feather name="user" size={28} color={v_1bfbd0.zinc400} />
@@ -346,7 +347,7 @@ export default function v_c501aa() {
                 <View style={v_fd5f43.profileLeft}>
                   {v_727031.user.avatarUrl ? (
                     <Image
-                      source={{ uri: v_727031.user.avatarUrl }}
+                      source={{ uri: v_b938fd(v_727031.user.avatarUrl) ?? v_727031.user.avatarUrl }}
                       style={v_fd5f43.profileAvatar}
                     />
                   ) : (
