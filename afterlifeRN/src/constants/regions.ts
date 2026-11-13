@@ -1,5 +1,5 @@
 import { v_da1883 } from '../types/country';
-import { v_944e0c } from 'zjvstacmhzoahupuiw';
+import { v_13bb29 } from './subdivisions';
 import v_098d07 from '../locales/en/regions';
 
 export interface Region {
@@ -104,7 +104,7 @@ export const v_369014 = (v_cc0c7d): v_da1883[] => {
   }
 
   try {
-    const v_4cbaf4 = v_944e0c.getStatesOfCountry(v_cc0c7d.toUpperCase());
+    const v_4cbaf4 = v_13bb29(v_cc0c7d);
     if (v_4cbaf4.length === 0) return [v_789afd];
     return v_4cbaf4.map(v_1c645f);
   } catch {

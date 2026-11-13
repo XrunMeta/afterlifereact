@@ -33,6 +33,9 @@ import v_e2b396 from "../screens/my/EditProfileScreen";
 import v_4036d1 from "../screens/my/NotificationSettingsScreen";
 import v_9232cf from "../screens/my/PrivacySettingsScreen";
 import v_c78d4f from "../screens/my/AgreementsScreen";
+
+import v_e44da0 from "../screens/my/licenses/OpenSourceLicensesScreen";
+import v_14cf10 from "../screens/my/licenses/OpenSourceLicenseDetailScreen";
 import v_e797c6 from "../screens/my/SavedItemsScreen";
 import v_e6afa3 from "../screens/my/RememberingClonesScreen";
 import v_2b785f from "../screens/my/RememberingCloneDetailScreen";
@@ -51,8 +54,6 @@ import v_bf7ede from "../screens/dev/ThreeDLabScreen";
 import v_ecc90b from "../screens/dev/ThreeDPersonaScreen";
 
 import v_30f4d7 from "../screens/face-test/FaceThresholdTestScreen";
-
-import v_cca0cf from "../screens/dev/TtsVitsScreen";
 import v_89c9e9 from "../screens/dev/VoiceLangTestScreen";
 import v_1619c2 from "../screens/my/SettingsGroupScreen";
 import v_f0969e from "../screens/my/DeactivateAccountScreen";
@@ -107,6 +108,8 @@ function v_d9c5dd() {
       <MyStack.Screen name="NotificationSettings" component={v_4036d1} />
       <MyStack.Screen name="PrivacySettings" component={v_9232cf} />
       <MyStack.Screen name="Agreements" component={v_c78d4f} />
+      <MyStack.Screen name="OpenSourceLicenses" component={v_e44da0} />
+      <MyStack.Screen name="OpenSourceLicenseDetail" component={v_14cf10} />
       <MyStack.Screen name="SavedItems" component={v_e797c6} />
       <MyStack.Screen name="RememberingClones" component={v_e6afa3} />
       <MyStack.Screen name="RememberingCloneDetail" component={v_2b785f} />
@@ -121,7 +124,6 @@ function v_d9c5dd() {
       <MyStack.Screen name="FaceThresholdTest" component={v_30f4d7} />
       <MyStack.Screen name="ThreeDLab" component={v_bf7ede} />
       <MyStack.Screen name="ThreeDPersona" component={v_ecc90b} />
-      <MyStack.Screen name="TtsVits" component={v_cca0cf} />
       <MyStack.Screen name="VoiceLangTest" component={v_89c9e9} />
       <MyStack.Screen name="SettingsGroup" component={v_1619c2} />
       <MyStack.Screen name="DeactivateAccount" component={v_f0969e} />

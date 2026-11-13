@@ -13,6 +13,7 @@ import {
 } from "../lib/memoryStore";
 import { v_db508f, v_20b0e8 } from "../lib/personaBundle";
 import { v_74defc } from "../lib/logger";
+import { v_bb797a, v_d0b3cf, type v_e0174c } from "../lib/imageThumb";
 import { v_8d5056, v_900412 } from "../lib/consentGate";
 
 export const v_dcd415 = new v_b7c41b<v_de0a25>();
@@ -116,6 +117,50 @@ v_dcd415.post("/call-turns/encrypt-backfill", async (v_3f4e2e) => {
   const v_8d4337 = await v_0625b2(v_3f4e2e.env, v_02be30, v_7bc053);
   console.log(
     `[call-turns-backfill] afterId=${v_7bc053} processed=${v_8d4337.processed} erasedShredded=${v_8d4337.erasedShredded} lastId=${v_8d4337.lastId} remaining=${v_8d4337.remaining}`,
+  );
+  return v_3f4e2e.json(v_8d4337);
+});
+
+v_dcd415.post("/files/thumb-backfill", async (v_3f4e2e) => {
+  if (!v_4efd28(v_3f4e2e.req.header("Authorization"), v_3f4e2e.env.ORCH_SECRET)) {
+    return v_3f4e2e.json({ error: "unauthorized" }, 401);
+  }
+  const v_4d33b2 = await v_3f4e2e.req.json<{ limit?: unknown; afterId?: unknown }>()
+    .catch(() => ({}) as { limit?: unknown; afterId?: unknown });
+  const v_479f05 = typeof v_4d33b2.limit === "number" && Number.isInteger(v_4d33b2.limit) ? v_4d33b2.limit : 3;
+  const v_02be30 = Math.min(Math.max(v_479f05, 1), 10);
+  const v_7bc053 = typeof v_4d33b2.afterId === "number" && Number.isInteger(v_4d33b2.afterId) && v_4d33b2.afterId > 0
+    ? v_4d33b2.afterId : 0;
+
+  const v_db0487 = [...v_d0b3cf];
+  const v_db4738 = v_db0487.map(() => "?").join(", ");
+  const v_483de2 = `thumb_r2_key IS NULL AND content_type IN (${v_db4738}) AND id > ?`;
+  const { results: v_18b8bf } = await v_3f4e2e.env.DB
+    .prepare(`SELECT id, r2_key, content_type, owner_user_id FROM files WHERE ${v_483de2} ORDER BY id LIMIT ?`)
+    .bind(...v_db0487, v_7bc053, v_02be30)
+    .all<v_e0174c>();
+
+  let v_51146d = 0;
+  const v_0bc646 = [];
+  for (const v_3ac7e7 of v_18b8bf) {
+    try {
+      const v_8d4337 = await v_bb797a(v_3f4e2e.env, v_3ac7e7);
+      if (v_8d4337.ok) v_51146d += 1;
+      else v_0bc646.push({ id: v_3ac7e7.id, reason: v_8d4337.reason });
+    } catch (v_49263d) {
+      console.warn(`[thumb-backfill] id=${v_3ac7e7.id} 오류: ${(v_49263d as Error)?.message ?? v_49263d}`);
+      v_0bc646.push({ id: v_3ac7e7.id, reason: "error" });
+    }
+  }
+
+  const v_279c89 = v_18b8bf.length > 0 ? v_18b8bf[v_18b8bf.length - 1]!.id : v_7bc053;
+  const v_3300b9 = await v_3f4e2e.env.DB
+    .prepare(`SELECT COUNT(*) AS n FROM files WHERE ${v_483de2}`)
+    .bind(...v_db0487, v_279c89)
+    .first<{ n: number }>();
+  const v_8d4337 = { processed: v_18b8bf.length, made: v_51146d, failed: v_0bc646, lastId: v_279c89, remaining: v_3300b9?.n ?? 0 };
+  console.log(
+    `[thumb-backfill] afterId=${v_7bc053} processed=${v_8d4337.processed} made=${v_51146d} failed=${v_0bc646.length} lastId=${v_279c89} remaining=${v_8d4337.remaining}`,
   );
   return v_3f4e2e.json(v_8d4337);
 });

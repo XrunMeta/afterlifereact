@@ -20,6 +20,7 @@ import type { v_75de9d } from "zqqvxke";
 import v_570c34 from "../../components/ui/SafeScrollView";
 import v_258c1c from "../../components/common/PageHeader";
 import v_0e981f from "../../components/common/NotificationBell";
+import { v_b938fd } from "../../lib/thumbUrl";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_b4902e } from "../../stores/followStore";
 import { v_194498 } from "../../stores/cloneStore";
@@ -279,13 +280,6 @@ export default function v_ed02a5() {
           },
 
           {
-            icon: "mic" as const,
-            labelKey: "my.menu.vitsTts",
-            descKey: "my.menu.vitsTtsDesc",
-            action: () => v_c65f5d.navigate("TtsVits"),
-          },
-
-          {
             icon: "target" as const,
             labelKey: "my.menu.faceThreshold",
             descKey: "my.menu.faceThresholdDesc",
@@ -479,7 +473,7 @@ export default function v_ed02a5() {
                         }}
                       >
                         {v_3f4e2e.avatarUrl ? (
-                          <Image source={{ uri: v_3f4e2e.avatarUrl }} style={v_fd5f43.listAvatar} />
+                          <Image source={{ uri: v_b938fd(v_3f4e2e.avatarUrl) ?? v_3f4e2e.avatarUrl }} style={v_fd5f43.listAvatar} />
                         ) : (
                           <View style={[v_fd5f43.listAvatar, { backgroundColor: v_1bfbd0.zinc200 }]} />
                         )}
@@ -545,7 +539,7 @@ export default function v_ed02a5() {
                       onPress={() => v_74ecfc(v_3f4e2e.id)}
                     >
                       {v_3f4e2e.avatarUrl ? (
-                        <Image source={{ uri: v_3f4e2e.avatarUrl }} style={v_fd5f43.listAvatar} />
+                        <Image source={{ uri: v_b938fd(v_3f4e2e.avatarUrl) ?? v_3f4e2e.avatarUrl }} style={v_fd5f43.listAvatar} />
                       ) : (
                         <View style={[v_fd5f43.listAvatar, { backgroundColor: v_1bfbd0.zinc200 }]} />
                       )}

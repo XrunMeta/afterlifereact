@@ -854,6 +854,8 @@
       "reportsMenu": "신고하기 / 신고 내역",
       "termsConsent": "약관 및 동의 관리",
       "termsConsentDesc": "약관 보기 · 마케팅 정보 수신 동의",
+      "ossLicenses": "오픈소스 라이선스",
+      "ossLicensesDesc": "앱과 서버에 쓰인 오픈소스 고지",
       "notificationsListShort": "알림 리스트",
       "faceDetect": "얼굴 감지",
       "faceDetectDesc": "나를 기억하는 클론",
@@ -2626,5 +2628,19 @@
     "stoppedBody": "이용에 불편을 드려 죄송해요. 잠시 후 다시 이용해 주세요.",
     "retry": "다시 확인",
     "checking": "확인 중…"
+  },
+  "ossLicenses": {
+    "title": "오픈소스 라이선스",
+    "intro": "Afterlife 는 아래 오픈소스 소프트웨어와 데이터 {{count}}개를 사용해요. 항목을 누르면 라이선스 원문을 볼 수 있어요.",
+    "search": "이름 또는 라이선스로 검색",
+    "empty": "검색 결과가 없어요",
+    "noText": "이 항목의 라이선스 원문은 위 링크에서 확인할 수 있어요.",
+    "section": {
+      "app": "앱에 포함된 오픈소스",
+      "native": "앱 네이티브 구성요소",
+      "data": "데이터",
+      "server": "서버(API) 오픈소스",
+      "serverAi": "서버 AI 모델·구성요소"
+    }
   }
 }

@@ -17,6 +17,7 @@ import { v_772971 } from "jmpfvteuuztnp";
 import v_556baf from "../../components/ui/SafeView";
 import v_258c1c from "../../components/common/PageHeader";
 import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
+import { v_b938fd } from "../../lib/thumbUrl";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_b4902e } from "../../stores/followStore";
 import { v_9fd740, type v_d64743 } from "../../api/users";
@@ -128,7 +129,7 @@ export default function v_dab470() {
         activeOpacity={0.7}
       >
         {v_8c0b26.avatarUrl ? (
-          <Image source={{ uri: v_8c0b26.avatarUrl }} style={v_fd5f43.avatar} />
+          <Image source={{ uri: v_b938fd(v_8c0b26.avatarUrl) ?? v_8c0b26.avatarUrl }} style={v_fd5f43.avatar} />
         ) : (
           <View style={[v_fd5f43.avatar, v_fd5f43.avatarPh]}>
             <Feather name="user" size={20} color={v_1bfbd0.zinc400} />
