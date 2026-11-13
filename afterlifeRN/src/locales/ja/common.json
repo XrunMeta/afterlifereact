@@ -854,6 +854,8 @@
       "reportsMenu": "通報 / 通報履歴",
       "termsConsent": "規約と同意の管理",
       "termsConsentDesc": "規約の確認・マーケティング受信の同意",
+      "ossLicenses": "オープンソースライセンス",
+      "ossLicensesDesc": "アプリとサーバーで使用しているオープンソース",
       "notificationsListShort": "通知リスト",
       "faceDetect": "顔の検出",
       "faceDetectDesc": "私を覚えているクローン",
@@ -2631,5 +2633,19 @@
     "stoppedBody": "ご不便をおかけして申し訳ありません。しばらくしてから再度ご利用ください。",
     "retry": "もう一度確認",
     "checking": "確認中…"
+  },
+  "ossLicenses": {
+    "title": "オープンソースライセンス",
+    "intro": "Afterlife は以下のオープンソースソフトウェアとデータ {{count}} 件を使用しています。項目をタップするとライセンス全文を表示します。",
+    "search": "名前またはライセンスで検索",
+    "empty": "検索結果がありません",
+    "noText": "この項目のライセンス全文は上のリンクでご確認ください。",
+    "section": {
+      "app": "アプリに含まれるオープンソース",
+      "native": "ネイティブコンポーネント",
+      "data": "データ",
+      "server": "サーバー(API)のオープンソース",
+      "serverAi": "サーバーのAIモデル・コンポーネント"
+    }
   }
 }

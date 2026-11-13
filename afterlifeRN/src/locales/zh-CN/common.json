@@ -854,6 +854,8 @@
       "reportsMenu": "举报 / 举报记录",
       "termsConsent": "条款与同意管理",
       "termsConsentDesc": "查看条款 · 营销信息接收同意",
+      "ossLicenses": "开源许可",
+      "ossLicensesDesc": "应用和服务器使用的开源软件",
       "notificationsListShort": "通知列表",
       "faceDetect": "人脸检测",
       "faceDetectDesc": "记得我的克隆",
@@ -2628,5 +2630,19 @@
     "stoppedBody": "给您带来不便，敬请谅解。请稍后再试。",
     "retry": "重新检查",
     "checking": "检查中…"
+  },
+  "ossLicenses": {
+    "title": "开源许可",
+    "intro": "Afterlife 使用以下 {{count}} 项开源软件和数据。点击条目可查看许可证全文。",
+    "search": "按名称或许可证搜索",
+    "empty": "没有搜索结果",
+    "noText": "此条目的许可证全文请查看上方链接。",
+    "section": {
+      "app": "应用内的开源软件",
+      "native": "原生组件",
+      "data": "数据",
+      "server": "服务器(API)开源软件",
+      "serverAi": "服务器 AI 模型与组件"
+    }
   }
 }
