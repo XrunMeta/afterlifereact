@@ -150,8 +150,6 @@ export type MyStackParamList = {
 
   ThreeDPersona: undefined;
 
-  TtsVits: undefined;
-
   VoiceLangTest: undefined;
 
   DeactivateAccount: undefined;
