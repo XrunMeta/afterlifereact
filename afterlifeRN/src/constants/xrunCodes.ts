@@ -163,7 +163,7 @@ export function v_6491a7(v_733b65): ReadonlyArray<{ value: number; label: string
   return v_be9c13[v_733b65] ?? [];
 }
 
-import { v_944e0c } from "zjvstacmhzoahupuiw";
+import { v_13bb29 } from "./subdivisions";
 
 const v_f7102b = new Set([82, 81, 1]);
 
@@ -177,7 +177,7 @@ export function v_51973b(
   if (!v_cc0c7d) return v_6ef68e;
   let v_ef1482 = [];
   try {
-    const v_4cbaf4 = v_944e0c.getStatesOfCountry(v_cc0c7d.toUpperCase());
+    const v_4cbaf4 = v_13bb29(v_cc0c7d);
     v_ef1482 = v_4cbaf4.map((v_fd5f43, v_e86ad8) => ({ value: v_e86ad8 + 1, label: v_fd5f43.name }));
   } catch {
     v_ef1482 = [];
