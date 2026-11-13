@@ -854,6 +854,8 @@
       "reportsMenu": "Report / report history",
       "termsConsent": "Terms & consents",
       "termsConsentDesc": "View terms · marketing consent",
+      "ossLicenses": "Open source licenses",
+      "ossLicensesDesc": "Open source used in the app and servers",
       "notificationsListShort": "Notification list",
       "faceDetect": "Face detection",
       "faceDetectDesc": "Clones that remember me",
@@ -2629,5 +2631,19 @@
     "stoppedBody": "Sorry for the inconvenience. Please try again in a little while.",
     "retry": "Check again",
     "checking": "Checking…"
+  },
+  "ossLicenses": {
+    "title": "Open source licenses",
+    "intro": "Afterlife uses the {{count}} open source software and data listed below. Tap an item to see its license text.",
+    "search": "Search by name or license",
+    "empty": "No results",
+    "noText": "See the link above for the full license text of this item.",
+    "section": {
+      "app": "Open source in the app",
+      "native": "Native components",
+      "data": "Data",
+      "server": "Server (API) open source",
+      "serverAi": "Server AI models & components"
+    }
   }
 }

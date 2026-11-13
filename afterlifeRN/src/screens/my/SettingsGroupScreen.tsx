@@ -101,6 +101,12 @@ export default function v_1619c2() {
             key: "terms", icon: "check-square", labelKey: "my.menu.termsConsent", label: "약관 및 동의 관리",
             descKey: "my.menu.termsConsentDesc", onPress: () => v_c65f5d.navigate("Agreements", { section: "terms" }),
           },
+          {
+
+            key: "oss", icon: "file-text", labelKey: "my.menu.ossLicenses", label: "오픈소스 라이선스",
+            descKey: "my.menu.ossLicensesDesc", desc: "앱과 서버에 쓰인 오픈소스 고지",
+            onPress: () => v_c65f5d.navigate("OpenSourceLicenses"),
+          },
         ];
       case "app":
         return [

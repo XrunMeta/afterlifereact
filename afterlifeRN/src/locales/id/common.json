@@ -854,6 +854,8 @@
       "reportsMenu": "Laporkan / riwayat laporan",
       "termsConsent": "Ketentuan & persetujuan",
       "termsConsentDesc": "Lihat ketentuan · persetujuan pemasaran",
+      "ossLicenses": "Lisensi sumber terbuka",
+      "ossLicensesDesc": "Sumber terbuka yang dipakai aplikasi dan server",
       "notificationsListShort": "Daftar notifikasi",
       "faceDetect": "Deteksi wajah",
       "faceDetectDesc": "Klon yang mengingat saya",
@@ -2628,5 +2630,19 @@
     "stoppedBody": "Mohon maaf atas ketidaknyamanannya. Silakan coba lagi nanti.",
     "retry": "Periksa lagi",
     "checking": "Memeriksa…"
+  },
+  "ossLicenses": {
+    "title": "Lisensi sumber terbuka",
+    "intro": "Afterlife menggunakan {{count}} perangkat lunak dan data sumber terbuka di bawah ini. Ketuk item untuk melihat teks lisensinya.",
+    "search": "Cari nama atau lisensi",
+    "empty": "Tidak ada hasil",
+    "noText": "Lihat tautan di atas untuk teks lisensi lengkap item ini.",
+    "section": {
+      "app": "Sumber terbuka di aplikasi",
+      "native": "Komponen native",
+      "data": "Data",
+      "server": "Sumber terbuka server (API)",
+      "serverAi": "Model & komponen AI server"
+    }
   }
 }

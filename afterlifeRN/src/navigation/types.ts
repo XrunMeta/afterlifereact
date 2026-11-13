@@ -131,6 +131,9 @@ export type MyStackParamList = {
   PrivacySettings: undefined;
 
   Agreements: { section?: "face" | "terms" } | undefined;
+
+  OpenSourceLicenses: undefined;
+  OpenSourceLicenseDetail: { index: number };
   SavedItems: undefined;
   RememberingClones: undefined;
   RememberingCloneDetail: { cloneId: number; cloneName: string };
