@@ -345,7 +345,17 @@ export async function v_344b9e(
     .bind(v_43e90c, v_43e90c)
     .all<{ vectorize_id: string | null }>();
   const v_23dafb = v_c5fb18.results.map((v_cb35cb) => v_cb35cb.vectorize_id).filter((v_81e2ef): v_81e2ef is string => Boolean(v_81e2ef));
-  if (v_23dafb.length) await v_a8d2cc(v_c9c489).deleteByIds(v_23dafb);
+  if (v_23dafb.length) {
+
+    await Promise.all([
+      v_a8d2cc(v_c9c489, 'legacy_512').deleteByIds(v_23dafb).catch((v_9e86fd) =>
+        console.warn(`[memoryStore] legacy_512 deleteByIds failed: ${(v_9e86fd as Error).message}`),
+      ),
+      v_a8d2cc(v_c9c489, 'sface_v1').deleteByIds(v_23dafb).catch((v_9e86fd) =>
+        console.warn(`[memoryStore] sface_v1 deleteByIds failed: ${(v_9e86fd as Error).message}`),
+      ),
+    ]);
+  }
 
   await v_c9c489.DB.prepare(
     "DELETE FROM clone_person_faces WHERE person_id IN (SELECT id FROM persons WHERE user_id = ?)",

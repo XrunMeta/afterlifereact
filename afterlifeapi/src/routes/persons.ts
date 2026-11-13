@@ -4,7 +4,16 @@ import { v_b7c41b } from "zmui";
 import type { v_de0a25 } from "../lib/env";
 import { v_3ebe58 } from "../lib/errors";
 import { v_6690d9 } from "../middleware/auth";
-import { v_a8d2cc } from "../lib/faceVectors";
+import {
+  v_a8d2cc,
+  v_6bfc3e,
+  v_5b545a,
+  v_fdac1f,
+  type v_da485f,
+  v_2d7004,
+  v_3b55cf,
+  v_b67318,
+} from "../lib/faceVectors";
 import { v_430d2b } from "../lib/personDelete";
 import { v_d0fd96 } from "../lib/displayName";
 import { v_0b07b9 } from "../lib/cloneAccess";
@@ -124,10 +133,26 @@ v_fded81.post("/", v_6690d9, async (v_3f4e2e) => {
 
 const v_0eeb45 = 0.6;
 
-function v_91e67b(v_81e2ef): number[] {
-  if (!Array.isArray(v_81e2ef) || v_81e2ef.length !== 512 || v_81e2ef.some((v_62c214) => typeof v_62c214 !== "number" || !Number.isFinite(v_62c214)))
-    throw new v_3ebe58("VALIDATION_FAILED", "vector: 512차원 수치 배열이어야 합니다");
-  return v_81e2ef as number[];
+function v_91e67b(v_81e2ef, v_7cb279): { vector: number[]; version: v_da485f } {
+  if (!Array.isArray(v_81e2ef) || v_81e2ef.some((v_62c214) => typeof v_62c214 !== "number" || !Number.isFinite(v_62c214)))
+    throw new v_3ebe58("VALIDATION_FAILED", "vector: 128 또는 512차원 수치 배열이어야 합니다");
+  const v_0e1851 = v_6bfc3e(v_7cb279, v_81e2ef.length);
+  const v_505a6d = v_fdac1f(v_0e1851);
+  if (v_81e2ef.length !== v_505a6d)
+    throw new v_3ebe58("VALIDATION_FAILED", `vector: ${v_505a6d}차원 수치 배열이어야 합니다 (version=${v_0e1851})`);
+  return { vector: v_81e2ef as number[], version: v_0e1851 };
+}
+
+function v_43ec32(v_f94e64, v_7cb279): { vectors: number[][]; version: v_da485f } {
+  if (!Array.isArray(v_f94e64) || v_f94e64.length < 1 || v_f94e64.length > 10)
+    throw new v_3ebe58("VALIDATION_FAILED", "vectors: 1~10개의 수치 배열이어야 합니다");
+  if (v_f94e64.some((v_81e2ef) => !Array.isArray(v_81e2ef) || v_81e2ef.some((v_62c214) => typeof v_62c214 !== "number" || !Number.isFinite(v_62c214))))
+    throw new v_3ebe58("VALIDATION_FAILED", "vectors: 각 원소는 유한 수치 배열이어야 합니다");
+  const v_0e1851 = v_6bfc3e(v_7cb279, (v_f94e64[0] as unknown[]).length);
+  const v_505a6d = v_fdac1f(v_0e1851);
+  if ((v_f94e64 as unknown[][]).some((v_81e2ef) => v_81e2ef.length !== v_505a6d))
+    throw new v_3ebe58("VALIDATION_FAILED", `vectors: 각 원소가 ${v_505a6d}차원이어야 합니다 (version=${v_0e1851})`);
+  return { vectors: v_f94e64 as number[][], version: v_0e1851 };
 }
 
 const v_8294e8 = 0.5;
@@ -145,9 +170,9 @@ v_fded81.post("/match", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
   await v_94652e(v_3f4e2e.env, v_43e90c, "/oth-path"); 
   const v_4d33b2 = await v_3f4e2e.req
-    .json<{ vector?: number[]; cloneId?: number }>()
-    .catch(() => ({}) as { vector?: number[]; cloneId?: number });
-  const v_81e2ef = v_91e67b(v_4d33b2.vector);
+    .json<{ vector?: number[]; cloneId?: number; embeddingVersion?: string }>()
+    .catch(() => ({}) as { vector?: number[]; cloneId?: number; embeddingVersion?: string });
+  const { vector: v_81e2ef, version: v_0e1851 } = v_91e67b(v_4d33b2.vector, v_4d33b2.embeddingVersion);
 
   const v_6e0fd3 = v_4d33b2.cloneId;
   if (typeof v_6e0fd3 !== "number" || !Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0)
@@ -158,7 +183,7 @@ v_fded81.post("/match", v_6690d9, async (v_3f4e2e) => {
 
   const v_d361d7 = await v_4e929c(v_3f4e2e.env.DB);
 
-  const v_495447 = await v_97be02(v_3f4e2e.env, { userId: v_43e90c, cloneId: v_6e0fd3, vector: v_81e2ef });
+  const v_495447 = await v_97be02(v_3f4e2e.env, { userId: v_43e90c, cloneId: v_6e0fd3, vector: v_81e2ef, version: v_0e1851 });
   const v_52e08b = v_495447.map((v_35f85c) => v_35f85c.personId);
 
   const v_77b1ac = new Map<number, string | null>();
@@ -194,7 +219,7 @@ v_fded81.post("/match", v_6690d9, async (v_3f4e2e) => {
     console.log(`[match] self-check src=xrun user=${v_43e90c} clone=${v_6e0fd3} → ${v_a74d7a}`);
   } else if (!v_643757) {
     const v_1e6df3 = Math.min(v_d361d7, v_8294e8);
-    const v_b1d852 = await v_e7a6ec(v_3f4e2e.env, { userId: v_43e90c, cloneId: v_6e0fd3, vector: v_81e2ef, threshold: v_1e6df3 }).catch((v_9e86fd) => {
+    const v_b1d852 = await v_e7a6ec(v_3f4e2e.env, { userId: v_43e90c, cloneId: v_6e0fd3, vector: v_81e2ef, threshold: v_1e6df3, version: v_0e1851 }).catch((v_9e86fd) => {
       console.error(`[match] self-match check failed: ${(v_9e86fd as Error).message}`);
       return null;
     });
@@ -218,10 +243,13 @@ v_fded81.get("/face-gallery", v_6690d9, async (v_3f4e2e) => {
   const v_eb25ce = await v_0b07b9(v_3f4e2e.env.DB, v_6e0fd3, v_43e90c);
   if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "클론을 찾을 수 없습니다.");
 
+  const v_86a46e = v_6bfc3e(v_3f4e2e.req.query("embeddingVersion"), undefined);
+
   const v_d361d7 = await v_4e929c(v_3f4e2e.env.DB);
-  type Row = { person_id: number; vectorize_id: string; display_name: string | null; landmark_ratios?: string | null };
+  type Row = { person_id: number; vectorize_id: string; display_name: string | null; landmark_ratios?: string | null; dim?: number };
+
   const v_f8df46 = (v_8a6a5b) =>
-    `SELECT f.person_id, f.vectorize_id, p.display_name${v_8a6a5b ? ", f.landmark_ratios" : ""}
+    `SELECT f.person_id, f.vectorize_id, f.dim, p.display_name${v_8a6a5b ? ", f.landmark_ratios" : ""}
        FROM clone_person_faces f
        JOIN persons p ON p.id = f.person_id
       WHERE f.clone_id = ? AND p.user_id = ? AND p.clone_id = ?
@@ -235,16 +263,19 @@ v_fded81.get("/face-gallery", v_6690d9, async (v_3f4e2e) => {
     v_18b8bf = (await v_3f4e2e.env.DB.prepare(v_f8df46(false)).bind(v_6e0fd3, v_43e90c, v_6e0fd3).all<Row>()).results;
   }
 
-  const v_e86ad8 = v_a8d2cc(v_3f4e2e.env);
+  const v_b8d4ab = v_fdac1f(v_86a46e);
+  const v_e4cf17 = v_18b8bf.filter((v_cb35cb) => (v_cb35cb.dim ?? v_3b55cf) === v_b8d4ab);
+
+  const v_e86ad8 = v_a8d2cc(v_3f4e2e.env, v_86a46e);
   const v_6fea0b = new Map<string, number[]>();
-  const v_52e08b = v_18b8bf.map((v_cb35cb) => v_cb35cb.vectorize_id).filter(Boolean);
+  const v_52e08b = v_e4cf17.map((v_cb35cb) => v_cb35cb.vectorize_id).filter(Boolean);
   for (let v_ebec57 = 0; v_ebec57 < v_52e08b.length; v_ebec57 += v_c57f07) {
     const v_df0713 = await v_e86ad8.getByIds(v_52e08b.slice(v_ebec57, v_ebec57 + v_c57f07));
     for (const v_206b88 of v_df0713) v_6fea0b.set(v_206b88.id, v_206b88.values.map((v_62c214) => Math.round(v_62c214 * 1e5) / 1e5));
   }
 
   const v_8a69ab = new Map<number, { personId: number; displayName: string | null; vectors: number[][]; landmarkRatiosList: (Record<string, number> | null)[] }>();
-  for (const v_cb35cb of v_18b8bf) {
+  for (const v_cb35cb of v_e4cf17) {
     const v_81e2ef = v_6fea0b.get(v_cb35cb.vectorize_id);
     if (!v_81e2ef) continue; 
     const v_2b8338 = v_8a69ab.get(v_cb35cb.person_id) ?? { personId: v_cb35cb.person_id, displayName: v_cb35cb.display_name, vectors: [], landmarkRatiosList: [] };
@@ -258,7 +289,7 @@ v_fded81.get("/face-gallery", v_6690d9, async (v_3f4e2e) => {
   }
 
   v_3f4e2e.header("Cache-Control", "no-store");
-  return v_3f4e2e.json({ cloneId: v_6e0fd3, threshold: v_d361d7, persons: [...v_8a69ab.values()] });
+  return v_3f4e2e.json({ cloneId: v_6e0fd3, threshold: v_d361d7, persons: [...v_8a69ab.values()], embeddingVersion: v_86a46e });
 });
 
 v_fded81.get("/self-face", v_6690d9, async (v_3f4e2e) => {
@@ -272,13 +303,20 @@ v_fded81.post("/from-account-self", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
   await v_94652e(v_3f4e2e.env, v_43e90c, "/oth-path"); 
   const v_4d33b2 = await v_3f4e2e.req
-    .json<{ cloneId?: number; displayName?: string; vector?: number[]; vectors?: number[][] }>()
-    .catch(() => ({}) as { cloneId?: number; displayName?: string; vector?: number[]; vectors?: number[][] });
+    .json<{ cloneId?: number; displayName?: string; vector?: number[]; vectors?: number[][]; embeddingVersion?: string }>()
+    .catch(() => ({}) as { cloneId?: number; displayName?: string; vector?: number[]; vectors?: number[][]; embeddingVersion?: string });
 
   const v_76cd2a = Array.isArray(v_4d33b2.vectors) ? v_4d33b2.vectors : [v_4d33b2.vector];
   if (v_76cd2a.length < 1 || v_76cd2a.length > 5)
     throw new v_3ebe58("VALIDATION_FAILED", "vectors: 1~5개여야 합니다");
-  const v_f94e64 = v_76cd2a.map(v_91e67b);
+
+  const v_8decf8 = v_76cd2a.map((v_81e2ef) => v_91e67b(v_81e2ef, v_4d33b2.embeddingVersion));
+  const v_46b1ce = v_8decf8[0];
+  if (!v_46b1ce) throw new v_3ebe58("VALIDATION_FAILED", "vectors: 비어 있을 수 없습니다");
+  const v_0e1851 = v_46b1ce.version;
+  if (v_8decf8.some((v_e2a85c) => v_e2a85c.version !== v_0e1851))
+    throw new v_3ebe58("VALIDATION_FAILED", "vectors: 모두 같은 embeddingVersion 이어야 합니다");
+  const v_f94e64 = v_8decf8.map((v_e2a85c) => v_e2a85c.vector);
   const v_6e0fd3 = v_4d33b2.cloneId;
   if (typeof v_6e0fd3 !== "number" || !Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0)
     throw new v_3ebe58("VALIDATION_FAILED", "cloneId: 양의 정수여야 합니다");
@@ -309,7 +347,7 @@ v_fded81.post("/from-account-self", v_6690d9, async (v_3f4e2e) => {
   if (v_b1d852) {
     let v_9e1f58 = 0;
     for (const v_81e2ef of v_f94e64) {
-      const v_715950 = (await v_97be02(v_3f4e2e.env, { userId: v_43e90c, cloneId: v_b1d852.cloneId, vector: v_81e2ef })).find(
+      const v_715950 = (await v_97be02(v_3f4e2e.env, { userId: v_43e90c, cloneId: v_b1d852.cloneId, vector: v_81e2ef, version: v_0e1851 })).find(
         (v_65a2cd) => v_65a2cd.personId === v_b1d852.personId,
       );
       if (v_715950 && v_715950.score > v_9e1f58) v_9e1f58 = v_715950.score;
@@ -348,7 +386,7 @@ v_fded81.post("/from-account-self", v_6690d9, async (v_3f4e2e) => {
 
   let v_d81543;
   for (const v_81e2ef of v_f94e64) {
-    v_d81543 = (await v_97be02(v_3f4e2e.env, { userId: v_43e90c, cloneId: v_6e0fd3, vector: v_81e2ef })).find((v_65a2cd) => v_65a2cd.score >= v_d361d7);
+    v_d81543 = (await v_97be02(v_3f4e2e.env, { userId: v_43e90c, cloneId: v_6e0fd3, vector: v_81e2ef, version: v_0e1851 })).find((v_65a2cd) => v_65a2cd.score >= v_d361d7);
     if (v_d81543) break;
   }
   if (v_d81543) {
@@ -418,11 +456,15 @@ v_fded81.post("/calibrate", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
   await v_94652e(v_3f4e2e.env, v_43e90c, "/oth-path"); 
   const v_4d33b2 = await v_3f4e2e.req
-    .json<{ vector?: unknown; groundTruthPersonId?: string | null; cloneId?: number }>()
-    .catch(() => ({}) as { vector?: unknown; groundTruthPersonId?: string | null; cloneId?: number });
+    .json<{ vector?: unknown; groundTruthPersonId?: string | null; cloneId?: number; embeddingVersion?: string }>()
+    .catch(() => ({}) as { vector?: unknown; groundTruthPersonId?: string | null; cloneId?: number; embeddingVersion?: string });
   const v_81e2ef = v_4d33b2.vector;
-  if (!Array.isArray(v_81e2ef) || v_81e2ef.length !== 512 || !v_81e2ef.every((v_f4e98d) => typeof v_f4e98d === "number" && Number.isFinite(v_f4e98d))) {
+  if (!Array.isArray(v_81e2ef) || !v_81e2ef.every((v_f4e98d) => typeof v_f4e98d === "number" && Number.isFinite(v_f4e98d))) {
     return v_3f4e2e.json({ error: "invalid vector" }, 400); 
+  }
+  const v_0e1851 = v_6bfc3e(v_4d33b2.embeddingVersion, v_81e2ef.length);
+  if (v_81e2ef.length !== v_fdac1f(v_0e1851)) {
+    return v_3f4e2e.json({ error: "invalid vector dim" }, 400);
   }
   const v_01dcf5 = await v_3f4e2e.env.DB.prepare("SELECT value FROM app_config WHERE key='face.match_threshold'").first<{
     value: string;
@@ -433,7 +475,7 @@ v_fded81.post("/calibrate", v_6690d9, async (v_3f4e2e) => {
   if (typeof v_6b5963 !== "number" || !Number.isInteger(v_6b5963) || v_6b5963 <= 0) {
     return v_3f4e2e.json({ error: "invalid cloneId" }, 400);
   }
-  const { matches: v_a49907 } = await v_a8d2cc(v_3f4e2e.env).query(v_81e2ef as number[], {
+  const { matches: v_a49907 } = await v_a8d2cc(v_3f4e2e.env, v_0e1851).query(v_81e2ef as number[], {
 
     topK: 20,
     namespace: v_929ead(v_43e90c, v_6b5963),
@@ -581,18 +623,9 @@ v_fded81.post("/:id/faces", v_6690d9, async (v_3f4e2e) => {
   await v_94652e(v_3f4e2e.env, v_43e90c, "/oth-path"); 
   const v_ca1ec5 = v_5c8583(v_3f4e2e);
   const v_4d33b2 = await v_3f4e2e.req
-    .json<{ vectors?: number[][]; cloneId?: number; landmarkRatios?: (Record<string, number> | null)[] }>()
-    .catch(() => ({}) as { vectors?: number[][]; cloneId?: number; landmarkRatios?: (Record<string, number> | null)[] });
-  const v_f94e64 = v_4d33b2.vectors;
-  if (
-    !Array.isArray(v_f94e64) ||
-    v_f94e64.length < 1 ||
-    v_f94e64.length > 10 ||
-    v_f94e64.some(
-      (v_81e2ef) => !Array.isArray(v_81e2ef) || v_81e2ef.length !== 512 || v_81e2ef.some((v_62c214) => typeof v_62c214 !== "number" || !Number.isFinite(v_62c214))
-    )
-  )
-    throw new v_3ebe58("VALIDATION_FAILED", "vectors: 1~10개의 512차원 수치 배열이어야 합니다");
+    .json<{ vectors?: number[][]; cloneId?: number; landmarkRatios?: (Record<string, number> | null)[]; embeddingVersion?: string }>()
+    .catch(() => ({}) as { vectors?: number[][]; cloneId?: number; landmarkRatios?: (Record<string, number> | null)[]; embeddingVersion?: string });
+  const { vectors: v_f94e64, version: v_0e1851 } = v_43ec32(v_4d33b2.vectors, v_4d33b2.embeddingVersion);
 
   const v_6e0fd3 = v_4d33b2.cloneId;
   if (typeof v_6e0fd3 !== "number" || !Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0)
@@ -633,6 +666,7 @@ v_fded81.post("/:id/faces", v_6690d9, async (v_3f4e2e) => {
       vectors: v_f94e64,
       landmarkRatios: v_bef6f8,
       source: "call",
+      version: v_0e1851,
     });
 
     const v_0a2cd1 = await v_a752e9(v_3f4e2e.env.DB, v_6e0fd3, v_43e90c, v_ca1ec5).catch(() => false);

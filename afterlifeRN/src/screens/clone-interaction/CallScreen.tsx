@@ -82,6 +82,7 @@ import {
   sendNoConsentTurnFaceIfAsked,
 } from "../../face/faceConsentGate";
 import { computeLandmarkRatios, type LandmarkRatios } from "../../face/faceLandmarkRatios";
+import { preprocessSFace } from "../../face/embedModel";
 import { meanLuma, classifyFaceQualityGuarded, faceYawRatio, type FaceQuality } from "../../face/faceQuality";
 import { type TurnSample } from "../../face/faceTurnJudge";
 import { createTurnFaceGate, createWhoRetryArm, retryVerdict } from "../../face/turnFaceGate";
@@ -681,7 +682,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   useJsFpsDiag({ enabled: liveState === "live" });
 
   const faceEmbedModelPlugin = useTensorflowModel(
-    require("../../../assets/models/w600k_mbf.tflite"),
+    require("../../../assets/models/sface_2021dec.tflite"),
   );
   const faceEmbedModel =
     faceEmbedModelPlugin.state === "loaded" ? faceEmbedModelPlugin.model : undefined;
@@ -1347,10 +1348,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
             dataType: "float32",
           });
 
-          const normalized = new Float32Array(resized.length);
-          for (let i = 0; i < resized.length; i++) {
-            normalized[i] = resized[i] * 2 - 1;
-          }
+          const normalized = preprocessSFace(resized);
 
           const quality = classifyFaceQualityGuarded({
             luma: meanLuma(resized),

@@ -36,6 +36,7 @@ import { v_fa192b } from "../../face/faceAlignCrop";
 import { v_6efd56, type v_90e668 } from "../../face/faceLandmarkRatios";
 import { v_a40fe8 } from "../../face/frameTimestamp";
 import { v_a64bce } from "../../face/l2normalize";
+import { v_c42811, v_87d5cb } from "../../face/embedModel";
 import { v_1ed7d9 } from "../../stores/authStore";
 import {
   v_4e7b87,
@@ -303,8 +304,9 @@ export default function v_8640b9() {
   const v_ac8c13 = v_db5a6b("front");
   const { detectFaces: v_de4d76 } = v_ac8611(v_10f62f);
   const { resize: v_2e11e8 } = v_cb507d();
+
   const v_2ce97f = v_b24f74(
-    require("../../../assets/models/w600k_mbf.tflite"),
+    require("../../../assets/models/sface_2021dec.tflite"),
   );
   const v_23f1a4 = v_2ce97f.state === "loaded" ? v_2ce97f.model : null;
 
@@ -332,7 +334,7 @@ export default function v_8640b9() {
 
         const v_e86ad8 = v_4f103d.current;
         if (v_e86ad8 >= v_77ce37.length) return;
-        if (v_0b2889 === 0 || !v_f9a45c || v_f9a45c.length !== 512) return;
+        if (v_0b2889 === 0 || !v_f9a45c || v_f9a45c.length !== v_c42811) return;
         const v_7b22b3 = v_77ce37[v_e86ad8];
 
         const v_553640 = v_e1fdd2.current;
@@ -394,8 +396,8 @@ export default function v_8640b9() {
         pixelFormat: "rgb",
         dataType: "float32",
       });
-      const v_75195c = new Float32Array(v_2d3c27.length);
-      for (let v_ebec57 = 0; v_ebec57 < v_2d3c27.length; v_ebec57++) v_75195c[v_ebec57] = v_2d3c27[v_ebec57] * 2 - 1;
+
+      const v_75195c = v_87d5cb(v_2d3c27);
       const v_8d4337 = v_23f1a4.runSync([v_75195c])[0] as Float32Array;
 
       const v_c5ddcd = (v_127e92 as unknown as { yawAngle?: number }).yawAngle ?? 0;

@@ -20,6 +20,7 @@ export interface Bindings {
   R2_ARCHIVE: R2Bucket;
 
   FACE_VECTORS?: VectorizeIndex;
+  FACE_VECTORS_V2?: VectorizeIndex;
 
   JWT_ACCESS_SECRET: string;
   JWT_REFRESH_SECRET: string;

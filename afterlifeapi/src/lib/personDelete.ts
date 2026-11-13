@@ -3,6 +3,18 @@
 import type { v_273a0c } from "./env";
 import { v_a8d2cc } from "./faceVectors";
 
+async function v_d7a8d4(env: v_273a0c, v_52e08b): Promise<void> {
+  if (!v_52e08b.length) return;
+  await Promise.all([
+    v_a8d2cc(v_c9c489, 'legacy_512').deleteByIds(v_52e08b).catch((v_9e86fd) =>
+      console.warn(`[personDelete] legacy_512 deleteByIds failed: ${(v_9e86fd as Error).message}`),
+    ),
+    v_a8d2cc(v_c9c489, 'sface_v1').deleteByIds(v_52e08b).catch((v_9e86fd) =>
+      console.warn(`[personDelete] sface_v1 deleteByIds failed: ${(v_9e86fd as Error).message}`),
+    ),
+  ]);
+}
+
 export interface PersonDeleteResult {
   deletedEmbeddings: number;
 }
@@ -22,7 +34,7 @@ export async function v_430d2b(
     .all<{ vectorize_id: string | null }>();
   const v_23dafb = v_61c797.results.map((v_cb35cb) => v_cb35cb.vectorize_id).filter((v_81e2ef): v_81e2ef is string => Boolean(v_81e2ef));
 
-  if (v_23dafb.length) await v_a8d2cc(v_c9c489).deleteByIds(v_23dafb);
+  if (v_23dafb.length) await v_d7a8d4(v_c9c489, v_23dafb);
 
   const v_bee926 = Date.now();
 
@@ -98,7 +110,7 @@ export async function v_714639(
       .bind(v_6e0fd3, v_e2a85c.id)
       .all<{ vectorize_id: string }>();
     const v_30b80f = v_495447.results.map((v_cb35cb) => v_cb35cb.vectorize_id).filter(Boolean);
-    if (v_30b80f.length) await v_a8d2cc(v_c9c489).deleteByIds(v_30b80f);
+    if (v_30b80f.length) await v_d7a8d4(v_c9c489, v_30b80f);
 
     await v_c9c489.DB.prepare("DELETE FROM clone_person_faces WHERE clone_id = ? AND person_id = ?")
       .bind(v_6e0fd3, v_e2a85c.id)
@@ -126,7 +138,7 @@ export async function v_19963e(
       .bind(v_6e0fd3, v_e2a85c.id)
       .all<{ vectorize_id: string }>();
     const v_30b80f = v_495447.results.map((v_cb35cb) => v_cb35cb.vectorize_id).filter(Boolean);
-    if (v_30b80f.length) await v_a8d2cc(v_c9c489).deleteByIds(v_30b80f);
+    if (v_30b80f.length) await v_d7a8d4(v_c9c489, v_30b80f);
     const v_cb35cb = await v_430d2b(v_c9c489, v_e2a85c.id, v_e2a85c.user_id);
     v_834ce1 += Math.max(v_30b80f.length, v_cb35cb.deletedEmbeddings);
   }

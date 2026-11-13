@@ -3559,8 +3559,13 @@ v_b7f2b4.post("/face-test/match", v_c0a297, async (v_3f4e2e) => {
   }>().catch(() => ({} as { vector?: number[]; userId?: number; cloneId?: number; topK?: number }));
 
   const v_81e2ef = v_4d33b2.vector;
-  if (!Array.isArray(v_81e2ef) || v_81e2ef.length !== 512 || v_81e2ef.some((v_62c214) => typeof v_62c214 !== "number" || !Number.isFinite(v_62c214))) {
-    throw new v_3ebe58("VALIDATION_FAILED", "vector: 512차원 수치 배열이어야 합니다");
+  if (!Array.isArray(v_81e2ef) || v_81e2ef.some((v_62c214) => typeof v_62c214 !== "number" || !Number.isFinite(v_62c214))) {
+    throw new v_3ebe58("VALIDATION_FAILED", "vector: 수치 배열이어야 합니다");
+  }
+  const { embeddingVersionFromLength: v_5b545a } = await import("../lib/faceVectors");
+  const v_0e1851 = v_5b545a(v_81e2ef.length);
+  if (!v_0e1851) {
+    throw new v_3ebe58("VALIDATION_FAILED", "vector: 128(SFace) 또는 512(w600k_mbf) 차원이어야 합니다");
   }
   const v_43e90c = v_4d33b2.userId;
   if (typeof v_43e90c !== "number" || !Number.isInteger(v_43e90c) || v_43e90c <= 0) {
@@ -3573,7 +3578,7 @@ v_b7f2b4.post("/face-test/match", v_c0a297, async (v_3f4e2e) => {
   const v_171a8a = Math.max(1, Math.min(10, v_4d33b2.topK ?? 5));
 
   const { queryCloneScope: v_97be02 } = await import("../lib/cloneFaceScope");
-  const v_495447 = await v_97be02(v_3f4e2e.env, { userId: v_43e90c, cloneId: v_6e0fd3, vector: v_81e2ef, topK: v_171a8a });
+  const v_495447 = await v_97be02(v_3f4e2e.env, { userId: v_43e90c, cloneId: v_6e0fd3, vector: v_81e2ef, topK: v_171a8a, version: v_0e1851 });
 
   const v_52e08b = v_495447.map((v_35f85c) => v_35f85c.personId);
   const v_77b1ac = new Map<number, string | null>();

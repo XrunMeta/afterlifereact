@@ -9,6 +9,9 @@ import {
   v_414d1f,
 } from '../face/recentEnrollCache';
 import { v_0a1524, type v_198407 } from '../face/faceGallery';
+import { v_d3c5d6 } from '../face/embedModel';
+
+const v_366fa6 = { embeddingVersion: v_d3c5d6 } as const;
 
 export type ConsentState = 'none' | 'granted' | 'revoked';
 
@@ -128,7 +131,7 @@ export async function v_afc2e6(
 async function v_60ac61(v_2ca7e0, v_f9a45c, v_6e0fd3): Promise<MatchResult> {
   return v_04b58a<MatchResult>('/oth-path', v_2ca7e0, {
     method: 'POST',
-    body: JSON.stringify({ vector: v_f9a45c, cloneId: v_6e0fd3 }),
+    body: JSON.stringify({ vector: v_f9a45c, cloneId: v_6e0fd3, ...v_366fa6 }),
   });
 }
 
@@ -150,7 +153,7 @@ export async function v_4585d1(
   v_6e0fd3,
   v_bef6f8,
 ): Promise<{ enrolled: number }> {
-  const v_4d33b2 = { vectors: v_f94e64, cloneId: v_6e0fd3 };
+  const v_4d33b2 = { vectors: v_f94e64, cloneId: v_6e0fd3, ...v_366fa6 };
   if (v_bef6f8 !== undefined) v_4d33b2.landmarkRatios = v_bef6f8;
   const v_8f00b9 = await v_04b58a<{ enrolled: number }>(`/oth-path${v_ca1ec5}/faces`, v_2ca7e0, {
     method: 'POST',
@@ -227,6 +230,7 @@ export async function v_383262(
         vector: v_f9a45c,
         groundTruthPersonId: v_b0015d != null ? String(v_b0015d) : null,
         cloneId: v_6e0fd3,
+        ...v_366fa6,
       }),
     },
   );
@@ -249,7 +253,7 @@ export async function v_238ce0(
   v_f94e64,
   v_8a1355,
 ): Promise<{ personId: number; selfPersonId: number }> {
-  const v_4d33b2 = { vectors: v_f94e64 };
+  const v_4d33b2 = { vectors: v_f94e64, ...v_366fa6 };
   if (v_8a1355 !== undefined) v_4d33b2.displayName = v_8a1355;
   return v_04b58a<{ personId: number; selfPersonId: number }>(
     `/oth-path${v_6e0fd3}/self-confirm`,
@@ -331,7 +335,7 @@ export async function v_ce5a56(
   const v_8f00b9 = await v_04b58a<{ id: number; displayName: string }>(
     '/oth-path',
     v_2ca7e0,
-    { method: 'POST', body: JSON.stringify({ cloneId: v_6e0fd3, displayName: v_8a1355, vectors: v_f94e64 }) },
+    { method: 'POST', body: JSON.stringify({ cloneId: v_6e0fd3, displayName: v_8a1355, vectors: v_f94e64, ...v_366fa6 }) },
   );
   v_d65e3c(v_6e0fd3, v_8f00b9.id, v_f94e64, v_8f00b9.displayName ?? v_8a1355);
   v_909b7d.addVectors(v_6e0fd3, v_8f00b9.id, v_f94e64, v_8f00b9.displayName ?? v_8a1355);

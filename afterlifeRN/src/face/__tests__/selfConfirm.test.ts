@@ -1,8 +1,9 @@
 import { v_a5ab77, v_3353a2, v_7a4056 } from '../selfConfirm';
+import { v_c42811 } from '../embedModel';
 
 function v_46ff7a(v_bdb39e): number[] {
-  const v_81e2ef = new Array(512).fill(0);
-  v_81e2ef[v_bdb39e % 512] = 1;
+  const v_81e2ef = new Array(v_c42811).fill(0);
+  v_81e2ef[v_bdb39e % v_c42811] = 1;
   return v_81e2ef;
 }
 

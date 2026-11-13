@@ -1,7 +1,15 @@
 
 
 import type { v_273a0c } from "./env";
-import { v_a8d2cc } from "./faceVectors";
+import {
+  v_a8d2cc,
+  v_5b545a,
+  v_a546d9,
+  type v_da485f,
+  v_2d7004,
+  v_3b55cf,
+  v_b67318,
+} from "./faceVectors";
 import { v_862be2, v_0761b1 } from "./memoryStore";
 import { v_430d2b } from "./personDelete";
 import { v_3ebe58 } from "./errors";
@@ -21,10 +29,11 @@ export const v_b39ff0 = 20;
 
 export async function v_97be02(
   env: v_273a0c,
-  v_328259,
+  opts: { userId: number; cloneId: number; vector: number[]; topK?: number; version?: v_da485f },
 ): Promise<CloneScopeMatch[]> {
   const { userId: v_43e90c, cloneId: v_6e0fd3, vector: v_f9a45c, topK: v_171a8a = v_b39ff0 } = v_328259;
-  const v_e86ad8 = v_a8d2cc(v_c9c489);
+  const v_0e1851 = v_328259.version ?? v_5b545a(v_f9a45c.length) ?? v_2d7004;
+  const v_e86ad8 = v_a8d2cc(v_c9c489, v_0e1851);
   const v_cb35cb = await v_e86ad8.query(v_f9a45c, {
     topK: v_171a8a,
     namespace: v_929ead(v_43e90c, v_6e0fd3),
@@ -84,15 +93,30 @@ export interface EnrollResult {
 
 export async function v_003ee1(
   env: v_273a0c,
-  v_328259,
+  opts: {
+    userId: number;
+    cloneId: number;
+    personId: number;
+    vectors: number[][];
+
+    landmarkRatios?: (Record<string, number> | null)[];
+    source?: "enroll" | "call" | "self";
+
+    version?: v_da485f;
+  },
 ): Promise<EnrollResult> {
   const { userId: v_43e90c, cloneId: v_6e0fd3, personId: v_ca1ec5, vectors: v_f94e64, landmarkRatios: v_bef6f8, source: v_04e790 = "call" } = v_328259;
+  const v_ea719c = v_f94e64[0];
+  if (!v_ea719c) return { enrolled: 0 };
+  const v_0e1851 = v_328259.version ?? v_5b545a(v_ea719c.length) ?? v_2d7004;
+  const v_b6fcfe = v_a546d9(v_0e1851);
+  const v_f037dc = v_0e1851 === 'sface_v1' ? v_b67318 : v_3b55cf;
 
   const v_18b8bf = v_f94e64.map((v_6fea0b) => ({
     id: crypto.randomUUID(),
     values: v_6fea0b,
     namespace: v_929ead(v_43e90c, v_6e0fd3),
-    metadata: { personId: String(v_ca1ec5) },
+    metadata: { personId: String(v_ca1ec5), version: v_0e1851 },
   }));
 
   const v_9e67a6 = Date.now();
@@ -101,36 +125,57 @@ export async function v_003ee1(
 
   const v_657f41 = v_c9c489.DB.prepare(
     `INSERT INTO face_embeddings (person_id, vectorize_id, model, dim, source, created_at)
-     VALUES (?, ?, 'w600k_mbf', 512, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?)`,
   );
 
-  const v_eb55c5 = v_c9c489.DB.prepare(
+  const v_28fceb = v_c9c489.DB.prepare(
+    `INSERT INTO clone_person_faces (clone_id, person_id, vectorize_id, model, dim, source, created_at, landmark_ratios, embedding_version)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  );
+  const v_ded89f = v_c9c489.DB.prepare(
     `INSERT INTO clone_person_faces (clone_id, person_id, vectorize_id, model, dim, source, created_at, landmark_ratios)
-     VALUES (?, ?, ?, 'w600k_mbf', 512, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
   );
-  const v_437cb0 = v_c9c489.DB.prepare(
+  const v_c8304e = v_c9c489.DB.prepare(
     `INSERT INTO clone_person_faces (clone_id, person_id, vectorize_id, model, dim, source, created_at)
-     VALUES (?, ?, ?, 'w600k_mbf', 512, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
   );
-  try {
-    await v_c9c489.DB.batch([
-      ...v_18b8bf.map((v_cb35cb) => v_657f41.bind(v_ca1ec5, v_cb35cb.id, v_9b9019, v_9e67a6)),
-      ...v_18b8bf.map((v_cb35cb, v_ebec57) => {
-        const v_8c6427 = v_bef6f8?.[v_ebec57];
-        const v_4a4eb3 = v_8c6427 != null ? JSON.stringify(v_8c6427) : null;
-        return v_eb55c5.bind(v_6e0fd3, v_ca1ec5, v_cb35cb.id, v_04e790, v_9e67a6, v_4a4eb3);
-      }),
-    ]);
-  } catch {
+  const v_0895aa = async (): Promise<void> => {
+    try {
+      await v_c9c489.DB.batch([
+        ...v_18b8bf.map((v_cb35cb) => v_657f41.bind(v_ca1ec5, v_cb35cb.id, v_b6fcfe, v_f037dc, v_9b9019, v_9e67a6)),
+        ...v_18b8bf.map((v_cb35cb, v_ebec57) => {
+          const v_8c6427 = v_bef6f8?.[v_ebec57];
+          const v_4a4eb3 = v_8c6427 != null ? JSON.stringify(v_8c6427) : null;
+          return v_28fceb.bind(v_6e0fd3, v_ca1ec5, v_cb35cb.id, v_b6fcfe, v_f037dc, v_04e790, v_9e67a6, v_4a4eb3, v_0e1851);
+        }),
+      ]);
+      return;
+    } catch {
 
+    }
+    try {
+      await v_c9c489.DB.batch([
+        ...v_18b8bf.map((v_cb35cb) => v_657f41.bind(v_ca1ec5, v_cb35cb.id, v_b6fcfe, v_f037dc, v_9b9019, v_9e67a6)),
+        ...v_18b8bf.map((v_cb35cb, v_ebec57) => {
+          const v_8c6427 = v_bef6f8?.[v_ebec57];
+          const v_4a4eb3 = v_8c6427 != null ? JSON.stringify(v_8c6427) : null;
+          return v_ded89f.bind(v_6e0fd3, v_ca1ec5, v_cb35cb.id, v_b6fcfe, v_f037dc, v_04e790, v_9e67a6, v_4a4eb3);
+        }),
+      ]);
+      return;
+    } catch {
+
+    }
     await v_c9c489.DB.batch([
-      ...v_18b8bf.map((v_cb35cb) => v_657f41.bind(v_ca1ec5, v_cb35cb.id, v_9b9019, v_9e67a6)),
-      ...v_18b8bf.map((v_cb35cb) => v_437cb0.bind(v_6e0fd3, v_ca1ec5, v_cb35cb.id, v_04e790, v_9e67a6)),
+      ...v_18b8bf.map((v_cb35cb) => v_657f41.bind(v_ca1ec5, v_cb35cb.id, v_b6fcfe, v_f037dc, v_9b9019, v_9e67a6)),
+      ...v_18b8bf.map((v_cb35cb) => v_c8304e.bind(v_6e0fd3, v_ca1ec5, v_cb35cb.id, v_b6fcfe, v_f037dc, v_04e790, v_9e67a6)),
     ]);
-  }
+  };
+  await v_0895aa();
 
   try {
-    await v_a8d2cc(v_c9c489).insert(v_18b8bf);
+    await v_a8d2cc(v_c9c489, v_0e1851).insert(v_18b8bf);
   } catch (v_9e86fd) {
     const v_1cdc07 = v_18b8bf.map(() => "?").join(",");
     const v_23dafb = v_18b8bf.map((v_cb35cb) => v_cb35cb.id);
@@ -160,9 +205,10 @@ const v_ed9ca3 = 0.5;
 
 export async function v_4c5429(
   env: v_273a0c,
-  v_328259,
+  opts: { userId: number; cloneId: number; vectors: number[][]; displayName?: string | null; version?: v_da485f },
 ): Promise<SelfConfirmResult> {
   const { userId: v_43e90c, cloneId: v_6e0fd3, vectors: v_f94e64, displayName: v_8a1355 = null } = v_328259;
+  const v_0e1851 = v_328259.version ?? v_5b545a(v_f94e64[0]?.length ?? 0) ?? v_2d7004;
 
   const v_01dcf5 = await v_c9c489.DB.prepare("SELECT value FROM app_config WHERE key = 'face.match_threshold'").first<{
     value: string;
@@ -171,7 +217,7 @@ export async function v_4c5429(
   const v_fb4670 = Math.min(v_26e652, v_ed9ca3);
   let v_459e1f = null;
   for (const v_81e2ef of v_f94e64) {
-    const v_fbc0a4 = (await v_97be02(v_c9c489, { userId: v_43e90c, cloneId: v_6e0fd3, vector: v_81e2ef }))[0];
+    const v_fbc0a4 = (await v_97be02(v_c9c489, { userId: v_43e90c, cloneId: v_6e0fd3, vector: v_81e2ef, version: v_0e1851 }))[0];
     if (v_fbc0a4 && v_fbc0a4.score >= v_fb4670 && (!v_459e1f || v_fbc0a4.score > v_459e1f.score)) v_459e1f = v_fbc0a4;
   }
   if (v_459e1f) {
@@ -184,7 +230,7 @@ export async function v_4c5429(
         .run();
       if (v_b1eff4.meta.changes === 0) throw new v_3ebe58("CONFLICT", "이미 self가 확정된 클론입니다.");
 
-      await v_003ee1(v_c9c489, { userId: v_43e90c, cloneId: v_6e0fd3, personId: v_459e1f.personId, vectors: v_f94e64, source: "self" }).catch(
+      await v_003ee1(v_c9c489, { userId: v_43e90c, cloneId: v_6e0fd3, personId: v_459e1f.personId, vectors: v_f94e64, source: "self", version: v_0e1851 }).catch(
         (v_9e86fd) => console.error(`[self-confirm] reuse enroll failed clone=${v_6e0fd3}: ${(v_9e86fd as Error).message}`),
       );
       console.log(`[self-confirm] reuse clone=${v_6e0fd3} person=${v_459e1f.personId} score=${v_459e1f.score.toFixed(3)}`);
@@ -202,7 +248,7 @@ export async function v_4c5429(
   const v_ca1ec5 = v_43af15.meta.last_row_id as number;
 
   try {
-    await v_003ee1(v_c9c489, { userId: v_43e90c, cloneId: v_6e0fd3, personId: v_ca1ec5, vectors: v_f94e64, source: "self" });
+    await v_003ee1(v_c9c489, { userId: v_43e90c, cloneId: v_6e0fd3, personId: v_ca1ec5, vectors: v_f94e64, source: "self", version: v_0e1851 });
   } catch (v_9e86fd) {
     await v_430d2b(v_c9c489, v_ca1ec5, v_43e90c);
     throw v_9e86fd; 
@@ -289,12 +335,13 @@ export async function v_1bffe3(env: v_273a0c, v_43e90c): Promise<AccountSelfFace
 
 export async function v_e7a6ec(
   env: v_273a0c,
-  v_328259,
+  opts: { userId: number; cloneId: number; vector: number[]; threshold: number; version?: v_da485f },
 ): Promise<{ match: boolean; score: number | null }> {
   const { userId: v_43e90c, cloneId: v_6e0fd3, vector: v_f9a45c, threshold: v_d361d7 } = v_328259;
+  const v_0e1851 = v_328259.version ?? v_5b545a(v_f9a45c.length) ?? v_2d7004;
   const v_b1d852 = await v_1bffe3(v_c9c489, v_43e90c);
   if (!v_b1d852 || v_b1d852.cloneId === v_6e0fd3) return { match: false, score: null };
-  const v_688abd = await v_97be02(v_c9c489, { userId: v_43e90c, cloneId: v_b1d852.cloneId, vector: v_f9a45c });
+  const v_688abd = await v_97be02(v_c9c489, { userId: v_43e90c, cloneId: v_b1d852.cloneId, vector: v_f9a45c, version: v_0e1851 });
   const v_715950 = v_688abd.find((v_65a2cd) => v_65a2cd.personId === v_b1d852.personId);
   const v_740dd8 = v_715950?.score ?? 0;
   return { match: v_740dd8 >= v_d361d7, score: v_740dd8 };
@@ -321,12 +368,25 @@ export async function v_a4a855(
     .all<{ vectorize_id: string; landmark_ratios: string | null }>();
   const v_1b099b = new Map(v_315151.results.map((v_cb35cb) => [v_cb35cb.vectorize_id, v_cb35cb.landmark_ratios]));
   const v_52e08b = v_315151.results.map((v_cb35cb) => v_cb35cb.vectorize_id).filter(Boolean);
-  const v_e86ad8 = v_a8d2cc(v_c9c489);
+
+  let sourceVersion: v_da485f = v_2d7004;
+  try {
+    const v_3c070c = await v_c9c489.DB.prepare(
+      `SELECT dim FROM clone_person_faces WHERE vectorize_id = ? LIMIT 1`,
+    )
+      .bind(v_52e08b[0])
+      .first<{ dim: number }>();
+    const v_81e2ef = v_3c070c ? v_5b545a(v_3c070c.dim) : null;
+    if (v_81e2ef) v_dced6a = v_81e2ef;
+  } catch {  }
+
+  const v_e86ad8 = v_a8d2cc(v_c9c489, v_dced6a);
   const v_f94e64 = [];
   const v_bef6f8 = [];
+  const v_41fc34 = v_dced6a === 'sface_v1' ? v_b67318 : v_3b55cf;
   for (let v_ebec57 = 0; v_ebec57 < v_52e08b.length; v_ebec57 += 20) {
     for (const v_3ac7e7 of await v_e86ad8.getByIds(v_52e08b.slice(v_ebec57, v_ebec57 + 20))) {
-      if (v_3ac7e7.values?.length !== 512) continue;
+      if (v_3ac7e7.values?.length !== v_41fc34) continue;
       v_f94e64.push(v_3ac7e7.values);
       const v_8c6427 = v_1b099b.get(v_3ac7e7.id);
       let v_8decf8 = null;
@@ -337,7 +397,7 @@ export async function v_a4a855(
     }
   }
   if (v_f94e64.length === 0) return 0;
-  await v_003ee1(v_c9c489, { userId: v_43e90c, cloneId: v_6e0fd3, personId: v_847abc, vectors: v_f94e64, landmarkRatios: v_bef6f8, source: "self" });
+  await v_003ee1(v_c9c489, { userId: v_43e90c, cloneId: v_6e0fd3, personId: v_847abc, vectors: v_f94e64, landmarkRatios: v_bef6f8, source: "self", version: v_dced6a });
   return v_f94e64.length;
 }
 
@@ -346,12 +406,13 @@ export async function v_a783f9(
   v_328259,
 ): Promise<number> {
   const { userId: v_43e90c, cloneId: v_6e0fd3, copyPersonId: v_847abc, vector: v_f9a45c } = v_328259;
-  if (v_f9a45c.length !== 512) return 0;
+  const v_0e1851 = v_5b545a(v_f9a45c.length);
+  if (!v_0e1851) return 0; 
 
   const v_759436 = await v_c9c489.DB.prepare(`SELECT 1 AS ok FROM persons WHERE id = ? AND user_id = ? AND clone_id = ?`)
     .bind(v_847abc, v_43e90c, v_6e0fd3)
     .first();
   if (!v_759436) return 0;
-  await v_003ee1(v_c9c489, { userId: v_43e90c, cloneId: v_6e0fd3, personId: v_847abc, vectors: [v_f9a45c], source: "self" });
+  await v_003ee1(v_c9c489, { userId: v_43e90c, cloneId: v_6e0fd3, personId: v_847abc, vectors: [v_f9a45c], source: "self", version: v_0e1851 });
   return 1;
 }

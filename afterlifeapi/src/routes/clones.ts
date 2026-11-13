@@ -2306,17 +2306,24 @@ v_f891e6.post("/:cloneId/self-confirm", v_6690d9, async (v_3f4e2e) => {
     throw new v_3ebe58("VALIDATION_FAILED", "cloneId: 양의 정수여야 합니다");
 
   const v_4d33b2 = await v_3f4e2e.req
-    .json<{ vectors?: number[][]; displayName?: string }>()
-    .catch(() => ({}) as { vectors?: number[][]; displayName?: string });
+    .json<{ vectors?: number[][]; displayName?: string; embeddingVersion?: string }>()
+    .catch(() => ({}) as { vectors?: number[][]; displayName?: string; embeddingVersion?: string });
   const v_f94e64 = v_4d33b2.vectors;
   if (
     !Array.isArray(v_f94e64) ||
     v_f94e64.length !== 3 ||
     v_f94e64.some(
-      (v_81e2ef) => !Array.isArray(v_81e2ef) || v_81e2ef.length !== 512 || v_81e2ef.some((v_62c214) => typeof v_62c214 !== "number" || !Number.isFinite(v_62c214)),
+      (v_81e2ef) => !Array.isArray(v_81e2ef) || v_81e2ef.some((v_62c214) => typeof v_62c214 !== "number" || !Number.isFinite(v_62c214)),
     )
   )
-    throw new v_3ebe58("VALIDATION_FAILED", "vectors: 정확히 3개의 512차원 수치 배열이어야 합니다");
+    throw new v_3ebe58("VALIDATION_FAILED", "vectors: 정확히 3개의 수치 배열이어야 합니다");
+  const { inferEmbeddingVersion: v_6bfc3e, expectedVectorDim: v_fdac1f } = await import("../lib/faceVectors");
+  const v_3d63c8 = v_f94e64[0];
+  if (!v_3d63c8) throw new v_3ebe58("VALIDATION_FAILED", "vectors: 비어 있을 수 없습니다");
+  const v_87a143 = v_6bfc3e(v_4d33b2.embeddingVersion, v_3d63c8.length);
+  const v_37e7f9 = v_fdac1f(v_87a143);
+  if (v_f94e64.some((v_81e2ef) => v_81e2ef.length !== v_37e7f9))
+    throw new v_3ebe58("VALIDATION_FAILED", `vectors: 모두 ${v_37e7f9}차원이어야 합니다 (version=${v_87a143})`);
 
   const v_eb25ce = await v_3f4e2e.env.DB.prepare(
     `SELECT id, clone_type, self_person_id FROM clones WHERE id = ? AND owner_id = ? AND ${v_74c502()}`,
@@ -2329,7 +2336,7 @@ v_f891e6.post("/:cloneId/self-confirm", v_6690d9, async (v_3f4e2e) => {
   if (v_eb25ce.self_person_id !== null) throw new v_3ebe58("CONFLICT", "이미 self가 확정된 클론입니다.");
 
   const v_8a1355 = v_4d33b2.displayName !== undefined ? v_d0fd96(v_4d33b2.displayName) : null;
-  const v_43c42e = await v_4c5429(v_3f4e2e.env, { userId: v_43e90c, cloneId: v_6e0fd3, vectors: v_f94e64, displayName: v_8a1355 });
+  const v_43c42e = await v_4c5429(v_3f4e2e.env, { userId: v_43e90c, cloneId: v_6e0fd3, vectors: v_f94e64, displayName: v_8a1355, version: v_87a143 });
   return v_3f4e2e.json(v_43c42e);
 });
 
