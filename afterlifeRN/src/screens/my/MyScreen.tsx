@@ -279,13 +279,6 @@ export default function v_ed02a5() {
           },
 
           {
-            icon: "mic" as const,
-            labelKey: "my.menu.vitsTts",
-            descKey: "my.menu.vitsTtsDesc",
-            action: () => v_c65f5d.navigate("TtsVits"),
-          },
-
-          {
             icon: "target" as const,
             labelKey: "my.menu.faceThreshold",
             descKey: "my.menu.faceThresholdDesc",
