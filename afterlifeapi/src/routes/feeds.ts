@@ -209,12 +209,6 @@ v_f1d06f.get("/discover", async (v_3f4e2e) => {
     v_925171.push(v_75cbf4);
   }
 
-  const v_dd2234 = v_013af2
-    ? `COALESCE((SELECT MIN(100, SUM(ie.score)) FROM intimacy_events ie
-                  WHERE ie.user_id = ? AND ie.clone_id = c.id ${v_991113("ie")}), 0) AS myIntimacy`
-    : `0 AS myIntimacy`;
-  const v_9434a4 = v_013af2 ? [v_013af2] : [];
-
   const v_18b8bf = (
     await v_3f4e2e.env.DB
       .prepare(
@@ -233,15 +227,7 @@ v_f1d06f.get("/discover", async (v_3f4e2e) => {
                 f.content          AS feedContent,
                 f.media_url        AS feedMediaUrl,
                 f.media_type       AS feedMediaType,
-                f.created_at       AS feedCreatedAt,
-                (SELECT COALESCE(SUM(f2.likes_count), 0) FROM feeds f2
-                  WHERE f2.clone_id = c.id) AS likesCount,
-                (SELECT COUNT(*) FROM feed_comments fc
-                   JOIN feeds f3 ON f3.id = fc.feed_id
-                   WHERE f3.clone_id = c.id) AS commentsCount,
-                (SELECT COUNT(*) FROM gift_logs gl
-                   WHERE gl.clone_id = c.id) AS giftsReceived,
-                ${v_dd2234}
+                f.created_at       AS feedCreatedAt
            FROM clones c
            LEFT JOIN users u ON u.id = c.owner_id
            LEFT JOIN feeds f ON f.id = (
@@ -252,7 +238,7 @@ v_f1d06f.get("/discover", async (v_3f4e2e) => {
           ORDER BY c.id DESC
           LIMIT ?`,
       )
-      .bind(...v_9434a4, ...v_925171, v_02be30 + 1)
+      .bind(...v_925171, v_02be30 + 1)
       .all<{
         cloneId: number;
         cloneOwnerId: number;
@@ -270,10 +256,6 @@ v_f1d06f.get("/discover", async (v_3f4e2e) => {
         feedMediaUrl: string | null;
         feedMediaType: string | null;
         feedCreatedAt: string | null;
-        likesCount: number;
-        commentsCount: number;
-        giftsReceived: number;
-        myIntimacy: number;
       }>()
   ).results;
 
@@ -284,41 +266,88 @@ v_f1d06f.get("/discover", async (v_3f4e2e) => {
 
   const v_8b86f5 = Array.from(new Set(v_2365e9.map((v_cb35cb) => v_cb35cb.cloneId)));
   const v_9afb14 = new Map<number, string[]>();
+  const v_3967a5 = new Map<number, number>();
+  const v_12794e = new Map<number, number>();
+  const v_50173f = new Map<number, number>();
+  const v_fc212f = new Map<number, number>();
+  const v_ff3805 = new Set<number>();
+
   if (v_8b86f5.length > 0) {
     const v_1cdc07 = v_8b86f5.map(() => "?").join(",");
-    const v_b07d8e = (
-      await v_3f4e2e.env.DB
-        .prepare(
-          `SELECT clone_id, interest FROM clone_interests
-            WHERE clone_id IN (${v_1cdc07})`,
-        )
-        .bind(...v_8b86f5)
-        .all<{ clone_id: number; interest: string }>()
-    ).results ?? [];
-    for (const v_3ac7e7 of v_b07d8e) {
-      const v_d0c056 = v_9afb14.get(v_3ac7e7.clone_id) ?? [];
-      v_d0c056.push(v_3ac7e7.interest);
-      v_9afb14.set(v_3ac7e7.clone_id, v_d0c056);
-    }
-  }
 
-  const v_ff3805 = new Set<number>();
-  if (v_013af2) {
-    const v_2b96e4 = v_2365e9.map((v_cb35cb) => v_cb35cb.cloneId);
-    if (v_2b96e4.length > 0) {
-      const v_1cdc07 = v_2b96e4.map(() => "?").join(",");
-      const v_59d4e3 = (
-        await v_3f4e2e.env.DB
+    const v_3555cc = v_3f4e2e.env.DB
+      .prepare(
+        `SELECT clone_id, interest FROM clone_interests
+          WHERE clone_id IN (${v_1cdc07})`,
+      )
+      .bind(...v_8b86f5)
+      .all<{ clone_id: number; interest: string }>();
+
+    const v_1a88bf = v_3f4e2e.env.DB
+      .prepare(
+        `SELECT clone_id, COALESCE(SUM(likes_count), 0) AS likes
+           FROM feeds WHERE clone_id IN (${v_1cdc07}) GROUP BY clone_id`,
+      )
+      .bind(...v_8b86f5)
+      .all<{ clone_id: number; likes: number }>();
+
+    const v_e35bbc = v_3f4e2e.env.DB
+      .prepare(
+        `SELECT f.clone_id AS clone_id, COUNT(*) AS cnt
+           FROM feed_comments fc JOIN feeds f ON f.id = fc.feed_id
+          WHERE f.clone_id IN (${v_1cdc07})
+          GROUP BY f.clone_id`,
+      )
+      .bind(...v_8b86f5)
+      .all<{ clone_id: number; cnt: number }>();
+
+    const v_ce6f05 = v_3f4e2e.env.DB
+      .prepare(
+        `SELECT clone_id, COUNT(*) AS cnt
+           FROM gift_logs WHERE clone_id IN (${v_1cdc07})
+           GROUP BY clone_id`,
+      )
+      .bind(...v_8b86f5)
+      .all<{ clone_id: number; cnt: number }>();
+
+    const v_d5d3dc = v_013af2
+      ? v_3f4e2e.env.DB
           .prepare(
             `SELECT DISTINCT f.clone_id AS clone_id FROM feed_likes fl
                JOIN feeds f ON f.id = fl.feed_id
               WHERE fl.user_id = ? AND f.clone_id IN (${v_1cdc07})`,
           )
-          .bind(v_013af2, ...v_2b96e4)
+          .bind(v_013af2, ...v_8b86f5)
           .all<{ clone_id: number }>()
-      ).results ?? [];
-      for (const v_3ac7e7 of v_59d4e3) v_ff3805.add(v_3ac7e7.clone_id);
+      : Promise.resolve({ results: [] as { clone_id: number }[] });
+
+    const v_84f2b8 = v_013af2
+      ? v_3f4e2e.env.DB
+          .prepare(
+            `SELECT clone_id, MIN(100, SUM(score)) AS score
+               FROM intimacy_events ie
+              WHERE user_id = ? AND clone_id IN (${v_1cdc07})
+                    ${v_991113("ie")}
+              GROUP BY clone_id`,
+          )
+          .bind(v_013af2, ...v_8b86f5)
+          .all<{ clone_id: number; score: number }>()
+      : Promise.resolve({ results: [] as { clone_id: number; score: number }[] });
+
+    const [v_81c7c6, v_99ed51, v_28ae91, v_475305, v_181f66, v_1d2303] = await Promise.all(
+      [v_3555cc, v_1a88bf, v_e35bbc, v_ce6f05, v_d5d3dc, v_84f2b8],
+    );
+
+    for (const v_3ac7e7 of v_81c7c6.results ?? []) {
+      const v_d0c056 = v_9afb14.get(v_3ac7e7.clone_id) ?? [];
+      v_d0c056.push(v_3ac7e7.interest);
+      v_9afb14.set(v_3ac7e7.clone_id, v_d0c056);
     }
+    for (const v_3ac7e7 of v_99ed51.results ?? []) v_3967a5.set(v_3ac7e7.clone_id, v_3ac7e7.likes);
+    for (const v_3ac7e7 of v_28ae91.results ?? []) v_12794e.set(v_3ac7e7.clone_id, v_3ac7e7.cnt);
+    for (const v_3ac7e7 of v_475305.results ?? []) v_50173f.set(v_3ac7e7.clone_id, v_3ac7e7.cnt);
+    for (const v_3ac7e7 of v_181f66.results ?? []) v_ff3805.add(v_3ac7e7.clone_id);
+    for (const v_3ac7e7 of v_1d2303.results ?? []) v_fc212f.set(v_3ac7e7.clone_id, v_3ac7e7.score);
   }
 
   return v_3f4e2e.json({
@@ -331,8 +360,8 @@ v_f1d06f.get("/discover", async (v_3f4e2e) => {
       mediaUrl: v_cb35cb.feedMediaUrl ?? v_cb35cb.cloneAvatarUrl ?? null,
       mediaType: v_cb35cb.feedMediaType,
 
-      likesCount: v_cb35cb.likesCount,
-      commentsCount: v_cb35cb.commentsCount,
+      likesCount: v_3967a5.get(v_cb35cb.cloneId) ?? 0,
+      commentsCount: v_12794e.get(v_cb35cb.cloneId) ?? 0,
 
       likedByMe: v_ff3805.has(v_cb35cb.cloneId),
       createdAt: v_cb35cb.feedCreatedAt ?? v_cb35cb.cloneCreatedAt,
@@ -350,10 +379,10 @@ v_f1d06f.get("/discover", async (v_3f4e2e) => {
         ownerAvatarUrl: v_cb35cb.ownerAvatarUrl,
       },
 
-      giftsReceived: v_cb35cb.giftsReceived,
+      giftsReceived: v_50173f.get(v_cb35cb.cloneId) ?? 0,
       interests: v_9afb14.get(v_cb35cb.cloneId) ?? [],
 
-      myIntimacy: Math.min(100, Math.max(0, v_cb35cb.myIntimacy ?? 0)),
+      myIntimacy: Math.min(100, Math.max(0, v_fc212f.get(v_cb35cb.cloneId) ?? 0)),
     })),
     nextCursor: v_64f859,
   });
