@@ -106,8 +106,10 @@ const v_522724 = {
   "본인은 신고할 수 없어요.": "errors.cannotReportSelf",
 
   "이미 등록된 이름입니다.": "errors.nameAlreadyRegistered",
-  "vector: 512차원 수치 배열이어야 합니다": "errors.vectorInvalidShape",
-  "vectors: 1~5개의 512차원 수치 배열이어야 합니다": "errors.vectorsInvalidShape",
+  "vector: 128차원 수치 배열이어야 합니다": "errors.vectorInvalidShape",
+  "vectors: 1~5개의 128차원 수치 배열이어야 합니다": "errors.vectorsInvalidShape",
+  "vectors: 1~10개의 128차원 수치 배열이어야 합니다": "errors.vectorsInvalidShape",
+  "vectors: 정확히 3개의 128차원 수치 배열이어야 합니다": "errors.vectorsInvalidShape",
   "person이 존재하지 않습니다.": "errors.personNotFound",
   "얼굴정보 저장 동의(consent granted)가 필요합니다": "errors.faceConsentRequired",
   "enrolledVia는 'card' 또는 'auto_biometric'이어야 합니다.":

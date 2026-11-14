@@ -1,4 +1,4 @@
-
+﻿
 
 import { v_469bf2, v_23805a, v_4d37e3 } from "xualxe";
 import { v_1df298, v_c9c489 } from "lwkoweqmjbnvjqw";
@@ -67,7 +67,7 @@ v_469bf2("POST /oth-path (HTTP 통합 — 테스트 바인딩 on 고정)", () =>
     const v_43e90c = await v_bfb240("calibrate-on-save@test.local");
     const v_ea333d = await v_86c39f(v_43e90c);
     const v_6e0fd3 = await v_4d24a9(v_43e90c, "calibrate-on-save-clone");
-    const v_f9a45c = new Array(512).fill(0).map((v_37eab7, v_ebec57) => (v_ebec57 === 0 ? 1 : 0));
+    const v_f9a45c = new Array(128).fill(0).map((v_37eab7, v_ebec57) => (v_ebec57 === 0 ? 1 : 0));
 
     const v_8f00b9 = await v_4f438a(v_ea333d, { vector: v_f9a45c, groundTruthPersonId: "p1", cloneId: v_6e0fd3 });
     v_4d37e3(v_8f00b9.status).toBe(200);
@@ -104,7 +104,7 @@ v_469bf2("POST /oth-path (HTTP 통합 — 테스트 바인딩 on 고정)", () =>
     const v_43e90c = await v_bfb240("calibrate-no-gt@test.local");
     const v_ea333d = await v_86c39f(v_43e90c);
     const v_6e0fd3 = await v_4d24a9(v_43e90c, "calibrate-no-gt-clone");
-    const v_f9a45c = new Array(512).fill(0.05);
+    const v_f9a45c = new Array(128).fill(0.05);
 
     const v_8f00b9 = await v_4f438a(v_ea333d, { vector: v_f9a45c, cloneId: v_6e0fd3 });
     v_4d37e3(v_8f00b9.status).toBe(200);
@@ -123,7 +123,7 @@ v_469bf2("POST /oth-path (HTTP 통합 — 테스트 바인딩 on 고정)", () =>
     const v_825625 = await v_86c39f(v_7a3219);
     const v_3024f6 = await v_4d24a9(v_1badb6, "calibrate-owner-clone");
     const v_79e62f = await v_4d24a9(v_7a3219, "calibrate-other-clone");
-    const v_f9a45c = new Array(512).fill(0.02);
+    const v_f9a45c = new Array(128).fill(0.02);
 
     const v_2d1eeb = await v_4f438a(v_40444e, { vector: v_f9a45c, cloneId: v_3024f6 });
     v_4d37e3(v_2d1eeb.status).toBe(200);
@@ -157,7 +157,7 @@ v_469bf2("POST /oth-path (HTTP 통합 — 테스트 바인딩 on 고정)", () =>
   v_23805a("vector에 비수치 포함 → 400", async () => {
     const v_43e90c = await v_bfb240("calibrate-nonnumeric@test.local");
     const v_ea333d = await v_86c39f(v_43e90c);
-    const v_0af197 = new Array(512).fill(0.1);
+    const v_0af197 = new Array(128).fill(0.1);
     v_0af197[0] = "x";
     const v_8f00b9 = await v_4f438a(v_ea333d, { vector: v_0af197 });
     v_4d37e3(v_8f00b9.status).toBe(400);
@@ -167,7 +167,7 @@ v_469bf2("POST /oth-path (HTTP 통합 — 테스트 바인딩 on 고정)", () =>
     const v_8f00b9 = await v_1df298.fetch("http://localhost/oth-path", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ vector: new Array(512).fill(0.1) }),
+      body: JSON.stringify({ vector: new Array(128).fill(0.1) }),
     });
     v_4d37e3(v_8f00b9.status).toBe(401);
   });
@@ -178,7 +178,7 @@ v_469bf2("POST /oth-path (HTTP 통합 — 테스트 바인딩 on 고정)", () =>
     const v_6e0fd3 = await v_4d24a9(v_43e90c, "calibrate-no-metadata-clone");
 
     const v_e39ea6 = v_929ead(v_43e90c, v_6e0fd3);
-    const v_f9a45c = new Array(512).fill(0).map((v_37eab7, v_ebec57) => (v_ebec57 === 0 ? 1 : 0));
+    const v_f9a45c = new Array(128).fill(0).map((v_37eab7, v_ebec57) => (v_ebec57 === 0 ? 1 : 0));
 
     const v_e86ad8 = v_a8d2cc(v_c9c489 as unknown as { FACE_VECTORS?: VectorizeIndex; ENVIRONMENT?: string });
     await v_e86ad8.insert([
@@ -227,7 +227,7 @@ v_469bf2("POST /oth-path (HTTP 통합 — 테스트 바인딩 on 고정)", () =>
       .bind(v_6e0fd3, v_ca1ec5)
       .run();
 
-    const v_f9a45c = new Array(512).fill(0).map((v_37eab7, v_ebec57) => (v_ebec57 === 1 ? 1 : 0));
+    const v_f9a45c = new Array(128).fill(0).map((v_37eab7, v_ebec57) => (v_ebec57 === 1 ? 1 : 0));
     const v_e86ad8 = v_a8d2cc(v_c9c489 as unknown as { FACE_VECTORS?: VectorizeIndex; ENVIRONMENT?: string });
     await v_e86ad8.insert([
       {
@@ -257,7 +257,7 @@ v_469bf2("POST /oth-path (HTTP 통합 — 테스트 바인딩 on 고정)", () =>
     const v_6e0fd3 = await v_4d24a9(v_43e90c, "calibrate-l2p-no-clone");
     const v_ca1ec5 = await v_2f0be6(v_43e90c, v_6e0fd3, "L2P없음");
 
-    const v_f9a45c = new Array(512).fill(0).map((v_37eab7, v_ebec57) => (v_ebec57 === 2 ? 1 : 0));
+    const v_f9a45c = new Array(128).fill(0).map((v_37eab7, v_ebec57) => (v_ebec57 === 2 ? 1 : 0));
     const v_e86ad8 = v_a8d2cc(v_c9c489 as unknown as { FACE_VECTORS?: VectorizeIndex; ENVIRONMENT?: string });
     await v_e86ad8.insert([
       {
@@ -285,7 +285,7 @@ v_469bf2("POST /oth-path (HTTP 통합 — 테스트 바인딩 on 고정)", () =>
     const v_43e90c = await v_bfb240("calibrate-l2p-nomatch@test.local");
     const v_ea333d = await v_86c39f(v_43e90c);
     const v_6e0fd3 = await v_4d24a9(v_43e90c, "calibrate-l2p-nomatch-clone");
-    const v_f9a45c = new Array(512).fill(0.02);
+    const v_f9a45c = new Array(128).fill(0.02);
 
     const v_8f00b9 = await v_4f438a(v_ea333d, { vector: v_f9a45c, cloneId: v_6e0fd3 });
     v_4d37e3(v_8f00b9.status).toBe(200);
@@ -312,7 +312,7 @@ v_469bf2("POST /oth-path (HTTP 통합 — 테스트 바인딩 on 고정)", () =>
       .bind(v_65cfbc, v_ca1ec5)
       .run();
 
-    const v_f9a45c = new Array(512).fill(0).map((v_37eab7, v_ebec57) => (v_ebec57 === 3 ? 1 : 0));
+    const v_f9a45c = new Array(128).fill(0).map((v_37eab7, v_ebec57) => (v_ebec57 === 3 ? 1 : 0));
     const v_e86ad8 = v_a8d2cc(v_c9c489 as unknown as { FACE_VECTORS?: VectorizeIndex; ENVIRONMENT?: string });
     await v_e86ad8.insert([
       {

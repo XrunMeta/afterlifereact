@@ -1,4 +1,4 @@
-
+﻿
 
 import { v_469bf2, v_23805a, v_4d37e3, v_ff107d, v_719203 } from "xualxe";
 import { v_c9c489, v_8fd90d } from "lwkoweqmjbnvjqw";
@@ -9,7 +9,7 @@ const v_9542f7 = v_c9c489 as unknown as Parameters<typeof v_a298e2>[0];
 const v_cafb6f = new URL((v_c9c489 as unknown as { XRUN_API_URL: string }).XRUN_API_URL).origin;
 
 function v_80cae9(v_bdb39e): number[] {
-  const v_81e2ef = new Array(512).fill(0).map((v_37eab7, v_ebec57) => Math.sin(v_bdb39e * 31 + v_ebec57));
+  const v_81e2ef = new Array(128).fill(0).map((v_37eab7, v_ebec57) => Math.sin(v_bdb39e * 31 + v_ebec57));
   const v_f4e98d = Math.sqrt(v_81e2ef.reduce((v_fd5f43, v_62c214) => v_fd5f43 + v_62c214 * v_62c214, 0));
   return v_81e2ef.map((v_62c214) => v_62c214 / v_f4e98d);
 }

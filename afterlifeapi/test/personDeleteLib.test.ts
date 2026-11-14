@@ -1,4 +1,4 @@
-import { v_469bf2, v_23805a, v_4d37e3 } from "xualxe";
+﻿import { v_469bf2, v_23805a, v_4d37e3 } from "xualxe";
 import { v_1df298, v_c9c489 } from "lwkoweqmjbnvjqw";
 import { v_430d2b } from "../src/lib/personDelete";
 import { v_a8d2cc } from "../src/lib/faceVectors";
@@ -122,7 +122,7 @@ v_469bf2("deletePersonCascade (lib)", () => {
 
     await v_9542f7.DB.prepare(
       `INSERT INTO clone_person_faces (clone_id, person_id, vectorize_id, model, dim, source, created_at)
-       VALUES (?, ?, ?, 'w600k_mbf', 512, 'enroll', ?)`,
+       VALUES (?, ?, ?, 'sface', 128, 'enroll', ?)`,
     )
       .bind(v_6e0fd3, v_ca1ec5, v_f8758e, v_5c2f9f)
       .run();

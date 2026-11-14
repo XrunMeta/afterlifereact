@@ -60,7 +60,7 @@ export default function v_30f4d7() {
   const v_ac8c13 = v_db5a6b("front");
   const { detectFaces: v_de4d76 } = v_ac8611(v_10f62f);
   const { resize: v_2e11e8 } = v_cb507d();
-  const v_2ce97f = v_b24f74(require("../../../assets/models/w600k_mbf.tflite"));
+  const v_2ce97f = v_b24f74(require("../../../assets/models/sface.tflite"));
   const v_768389 = v_2ce97f.state === "loaded" ? v_2ce97f.model : null;
 
   const [v_f9f059, v_7c7b9c] = v_5ab095<boolean | null>(null);

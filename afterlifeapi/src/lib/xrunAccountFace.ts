@@ -1,10 +1,11 @@
 
 
 import type { v_273a0c } from "./env";
+import { v_60c684 } from "./faceEmbed";
 
 export type XrunFaceMatch = { status: "match"; embedding?: number[] } | { status: "mismatch" } | { status: "none" };
 
-const v_c523cc = 512;
+const v_c523cc = v_60c684;
 const v_8eab2f = 3_000;
 
 const v_e762f1 = 2 * 60_000;

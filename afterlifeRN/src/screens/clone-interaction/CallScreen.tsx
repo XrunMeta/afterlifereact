@@ -191,6 +191,7 @@ import { logAppsFlyerCallVideoStart } from "../../lib/appsFlyer";
 import { setCallActive, takePressedClone } from "../../lib/callActivity";
 import { reportError } from "../../lib/errorReporting/report";
 import { takeMidCallEnrollResult, setMidCallSelfVector } from "../../face/midCallEnrollHandoff";
+import { FACE_EMBED_DIM } from "../../face/faceEmbed";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Call">;
 
@@ -681,7 +682,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
   useJsFpsDiag({ enabled: liveState === "live" });
 
   const faceEmbedModelPlugin = useTensorflowModel(
-    require("../../../assets/models/w600k_mbf.tflite"),
+    require("../../../assets/models/sface.tflite"),
   );
   const faceEmbedModel =
     faceEmbedModelPlugin.state === "loaded" ? faceEmbedModelPlugin.model : undefined;
@@ -1024,7 +1025,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         alreadyConfirmed: selfConfirmed,
         faceIdentifyEnabled,
         samples: selfSamplesRef.current,
-        threshold: 0.45, 
+        threshold: 0.363, 
       });
 
       if (action.kind === "reset") {
@@ -1795,7 +1796,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
             const snap = unknownFaceSnapshotRef.current;
             const selfVecs = (snap && snap.length > 0 ? snap : getFaceEmbeddingBuffer().latest(5))
               .slice(-5)
-              .filter((v) => v.length === 512);
+              .filter((v) => v.length === FACE_EMBED_DIM);
             const useAccountSelf = accountSelfMatchRef.current && selfVecs.length > 0;
             console.log(
               `[Call][face] 등록 → accountSelfMatch=${accountSelfMatchRef.current} vectors=${selfVecs.length} → ${useAccountSelf ? "스캔 생략" : "스캔"}`,

@@ -5,6 +5,7 @@ import { v_e7b4d5 } from "../lib/loginDevices";
 import { v_b7c41b, type v_437670 } from "zmui";
 import type { v_de0a25 } from "../lib/env";
 import { v_3ebe58 } from "../lib/errors";
+import { v_60c684 } from "../lib/faceEmbed";
 import { v_74defc } from "../lib/logger";
 import { v_09b071 } from "../scheduled/cleanup";
 import { v_c0a297, v_b09138, v_d3c85b } from "../middleware/auth";
@@ -3559,8 +3560,8 @@ v_b7f2b4.post("/face-test/match", v_c0a297, async (v_3f4e2e) => {
   }>().catch(() => ({} as { vector?: number[]; userId?: number; cloneId?: number; topK?: number }));
 
   const v_81e2ef = v_4d33b2.vector;
-  if (!Array.isArray(v_81e2ef) || v_81e2ef.length !== 512 || v_81e2ef.some((v_62c214) => typeof v_62c214 !== "number" || !Number.isFinite(v_62c214))) {
-    throw new v_3ebe58("VALIDATION_FAILED", "vector: 512차원 수치 배열이어야 합니다");
+  if (!Array.isArray(v_81e2ef) || v_81e2ef.length !== v_60c684 || v_81e2ef.some((v_62c214) => typeof v_62c214 !== "number" || !Number.isFinite(v_62c214))) {
+    throw new v_3ebe58("VALIDATION_FAILED", `vector: ${v_60c684}차원 수치 배열이어야 합니다`);
   }
   const v_43e90c = v_4d33b2.userId;
   if (typeof v_43e90c !== "number" || !Number.isInteger(v_43e90c) || v_43e90c <= 0) {

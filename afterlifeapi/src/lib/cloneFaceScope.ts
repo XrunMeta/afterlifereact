@@ -5,6 +5,7 @@ import { v_a8d2cc } from "./faceVectors";
 import { v_862be2, v_0761b1 } from "./memoryStore";
 import { v_430d2b } from "./personDelete";
 import { v_3ebe58 } from "./errors";
+import { v_60c684, v_ddbd9b } from "./faceEmbed";
 
 export function v_929ead(v_43e90c, v_6e0fd3): string {
   return `${v_43e90c}:${v_6e0fd3}`;
@@ -101,16 +102,16 @@ export async function v_003ee1(
 
   const v_657f41 = v_c9c489.DB.prepare(
     `INSERT INTO face_embeddings (person_id, vectorize_id, model, dim, source, created_at)
-     VALUES (?, ?, 'w600k_mbf', 512, ?, ?)`,
+     VALUES (?, ?, '${v_ddbd9b}', ${v_60c684}, ?, ?)`,
   );
 
   const v_eb55c5 = v_c9c489.DB.prepare(
     `INSERT INTO clone_person_faces (clone_id, person_id, vectorize_id, model, dim, source, created_at, landmark_ratios)
-     VALUES (?, ?, ?, 'w600k_mbf', 512, ?, ?, ?)`,
+     VALUES (?, ?, ?, '${v_ddbd9b}', ${v_60c684}, ?, ?, ?)`,
   );
   const v_437cb0 = v_c9c489.DB.prepare(
     `INSERT INTO clone_person_faces (clone_id, person_id, vectorize_id, model, dim, source, created_at)
-     VALUES (?, ?, ?, 'w600k_mbf', 512, ?, ?)`,
+     VALUES (?, ?, ?, '${v_ddbd9b}', ${v_60c684}, ?, ?)`,
   );
   try {
     await v_c9c489.DB.batch([
@@ -326,7 +327,7 @@ export async function v_a4a855(
   const v_bef6f8 = [];
   for (let v_ebec57 = 0; v_ebec57 < v_52e08b.length; v_ebec57 += 20) {
     for (const v_3ac7e7 of await v_e86ad8.getByIds(v_52e08b.slice(v_ebec57, v_ebec57 + 20))) {
-      if (v_3ac7e7.values?.length !== 512) continue;
+      if (v_3ac7e7.values?.length !== v_60c684) continue;
       v_f94e64.push(v_3ac7e7.values);
       const v_8c6427 = v_1b099b.get(v_3ac7e7.id);
       let v_8decf8 = null;
@@ -346,7 +347,7 @@ export async function v_a783f9(
   v_328259,
 ): Promise<number> {
   const { userId: v_43e90c, cloneId: v_6e0fd3, copyPersonId: v_847abc, vector: v_f9a45c } = v_328259;
-  if (v_f9a45c.length !== 512) return 0;
+  if (v_f9a45c.length !== v_60c684) return 0;
 
   const v_759436 = await v_c9c489.DB.prepare(`SELECT 1 AS ok FROM persons WHERE id = ? AND user_id = ? AND clone_id = ?`)
     .bind(v_847abc, v_43e90c, v_6e0fd3)

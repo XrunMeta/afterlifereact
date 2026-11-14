@@ -1,4 +1,4 @@
-
+﻿
 
 import { v_469bf2, v_23805a, v_4d37e3, v_ba7107 } from "xualxe";
 import { v_1df298, v_c9c489 } from "lwkoweqmjbnvjqw";
@@ -51,7 +51,7 @@ async function v_2b3880(v_6e0fd3, v_ca1ec5, v_f4e98d): Promise<void> {
     await v_a1651b
       .prepare(
         `INSERT INTO clone_person_faces (clone_id, person_id, vectorize_id, model, dim, source, created_at)
-         VALUES (?, ?, ?, 'w600k_mbf', 512, 'call', ?)`
+         VALUES (?, ?, ?, 'sface', 128, 'call', ?)`
       )
       .bind(v_6e0fd3, v_ca1ec5, `vec-${v_6e0fd3}-${v_ca1ec5}-${v_ebec57}`, Date.now())
       .run();
@@ -121,7 +121,7 @@ v_469bf2("GET /oth-path — 얼굴 메타(faceCount·isSelf)", () => {
     await v_a1651b
       .prepare(
         `INSERT INTO clone_person_faces (clone_id, person_id, vectorize_id, model, dim, source, created_at)
-         VALUES (?, ?, 'vec-cross-contamination', 'w600k_mbf', 512, 'call', ?)`
+         VALUES (?, ?, 'vec-cross-contamination', 'sface', 128, 'call', ?)`
       )
       .bind(v_79e62f, v_35500c, Date.now())
       .run();
