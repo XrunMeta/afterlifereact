@@ -2357,7 +2357,7 @@
       "episodeLabel": "{{name}}님과 어떤 사이였는지 간단한 일화를 적어주세요.",
       "episodePlaceholder": "예: 매주 주말마다 등산 다니던 친구, 힘든 시기에 같이 야근한 사수",
       "addressLabel": "{{name}}님이 당신을 어떻게 불렀나요?",
-      "addressPlaceholder": "예: 은지야, 아들, 야, 지호 씨"
+      "addressPlaceholder": "예: 은지야, 아들, 야, 스미스 씨"
     },
     "q2": {
       "title": "{{name}}님과 서로 어떤 말투를 사용하는 사이였나요?"

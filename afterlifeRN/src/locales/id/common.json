@@ -2357,7 +2357,7 @@
       "episodeLabel": "Ceritakan singkat tentang hubungan Anda dengan {{name}}.",
       "episodePlaceholder": "mis. Teman yang hiking tiap akhir pekan; mentor yang menemani lembur",
       "addressLabel": "{{name}} memanggil Anda apa?",
-      "addressPlaceholder": "mis. Eunji, nak, hei, Pak Jiho"
+      "addressPlaceholder": "mis. Eunji, nak, hei, Pak Smith"
     },
     "q2": {
       "title": "Gaya bicara seperti apa yang digunakan antara Anda dan {{name}}?"

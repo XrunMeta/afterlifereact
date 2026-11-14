@@ -2360,7 +2360,7 @@
       "episodeLabel": "{{name}}とどんな間柄だったか短いエピソードを教えてください。",
       "episodePlaceholder": "例: 毎週末登山に行く友人、辛い時期に一緒に残業した上司",
       "addressLabel": "{{name}}はあなたを何と呼んでいましたか?",
-      "addressPlaceholder": "例: えみちゃん、息子、おい、太郎さん"
+      "addressPlaceholder": "例: えみちゃん、息子、おい、スミスさん"
     },
     "q2": {
       "title": "{{name}}とはお互いにどんな話し方をしていましたか?"

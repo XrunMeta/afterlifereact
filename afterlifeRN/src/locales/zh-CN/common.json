@@ -2357,7 +2357,7 @@
       "episodeLabel": "请简短讲述您与 {{name}} 的一段故事。",
       "episodePlaceholder": "例: 每周末一起登山的朋友, 艰难时期陪我加班的师父",
       "addressLabel": "{{name}} 怎样称呼您?",
-      "addressPlaceholder": "例: 恩熙啊, 儿子, 喂, 智浩先生"
+      "addressPlaceholder": "例: 恩熙啊, 儿子, 喂, 史密斯先生"
     },
     "q2": {
       "title": "您与 {{name}} 之间使用什么样的话语方式?"
