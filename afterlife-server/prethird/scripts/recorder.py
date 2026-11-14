@@ -1,5 +1,8 @@
 """recorder.py — prethird 통화 턴 기록 (text/wav/mp4) + 응답누락 진단.
 
+[디버그용] 통화 품질·오류 진단용 임시 기록이다. 30일 지나면 자동 삭제(AFL-1095,
+deploy/afterlife-records-retention.timer). 영상(mp4)은 주석처리. 목록 = DEBUG_DATA_INDEX.md
+
 설계 원칙:
 - NullObject 패턴: 기록 루트가 쓰기 불가하면 NullRecorder 반환 → 통화 영향 0.
 - 모든 파일 I/O 실패 흡수: 기록은 부가 기능, 통화 흐름을 절대 막지 않는다.
@@ -101,7 +104,8 @@ class Turn:
         self._wav_chunks: list[bytes] = []
         self._frames: list = []
         self._fps = 25
-        # AFL-1095 (2026-11-14 sungjius 지시): 영상(answer.mp4) 기록은 디버그용이라 주석처리.
+        # [디버그용] AFL-1095 (2026-11-14 sungjius 지시): 영상(answer.mp4) 기록 주석처리.
+        #   목록 = DEBUG_DATA_INDEX.md
         #   PRETHIRD_RECORD_MP4=1 이어도 기록하지 않는다. 다시 쓰려면 아래 줄 주석을 풀고
         #   그 아래 False 줄과 finalize 의 mp4 블록 주석을 함께 푼다.
         # self._record_mp4 = os.environ.get("PRETHIRD_RECORD_MP4", "0") == "1"
@@ -155,7 +159,7 @@ class Turn:
                             w.writeframes(bytes(frames))
             except Exception as e:
                 log.warning("answer.wav 합본 실패 ts=%s: %s", self._ts, e)
-        # answer.mp4 인코딩 — AFL-1095 주석처리 (디버그용, 위 __init__ 주석 참조).
+        # [디버그용] answer.mp4 인코딩 — AFL-1095 주석처리 (위 __init__ 주석 참조).
         # if self._record_mp4 and self._frames:
         #     try:
         #         import imageio

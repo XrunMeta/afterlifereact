@@ -1589,6 +1589,7 @@ class DialoguePipeline:
                 # LLM 원문(JSON·시그널 등)이 TTS 로 새는지 보려면 **글자 수가 아니라 원문**이
                 # 필요하다. 길이만으로는 5자·11자가 정상 발화인지 잘린 조각인지 구분되지 않는다.
                 # 기본은 꺼 둔다 — 통화 내용은 PII 다. 검증 중에만 env 로 켠다.
+                # [디버그용] AFL-1095 (2026-11-14): 운영에서 끔. 목록 = DEBUG_DATA_INDEX.md
                 if os.environ.get("PRETHIRD_TTS_TEXT_LOG", "0") == "1":
                     log.info("[T-113] TTS 입력 원문 ⟪%s⟫", full_text[:200])
                 # T-806 후속: 문장별 TTS + concat (Qwen3-TTS 문장 사이 filler

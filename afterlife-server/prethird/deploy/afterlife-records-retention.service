@@ -1,4 +1,5 @@
-# AFL-1095 (2026-11-14 sungjius 지시): 통화 기록(/data/records) 30일 보관 후 자동 삭제.
+# [디버그용] AFL-1095 (2026-11-14 sungjius 지시): 통화 기록(/data/records) 30일 보관 후 자동 삭제.
+#   목록 = ../DEBUG_DATA_INDEX.md
 #   통화 기록(input.txt·answer.txt·answer.wav·meta.json)은 디버그용이다. 30일 지난 파일을 지우고
 #   빈 턴·클론 폴더를 정리한다. 탈퇴·클론 삭제된 사람의 기록도 이 기준으로 30일 안에 사라진다.
 # 설치 (가비아, sudo):
