@@ -95,21 +95,8 @@ export interface LoginPayload {
   verificationCode?: string;
 }
 
-export interface ApiErrorBody {
-  error: { code: string; message: string; details?: unknown };
-}
-
-export class v_84a859 extends Error {
-  readonly code: string;
-  readonly status: number;
-  readonly details?: unknown;
-  constructor(v_d308b5, v_c99bd2, v_a8cd21, v_5ab5bd) {
-    super(v_a8cd21);
-    this.code = v_c99bd2;
-    this.status = v_d308b5;
-    this.details = v_5ab5bd;
-  }
-}
+import { v_84a859, type v_669377 } from "./authError";
+export { v_84a859, type v_669377 };
 
 async function v_c34e2f<T>(v_9fe22d, v_4d33b2): Promise<T> {
 
@@ -141,7 +128,7 @@ async function v_c34e2f<T>(v_9fe22d, v_4d33b2): Promise<T> {
   }
 
   if (!v_8f00b9.ok) {
-    const v_9be017 = v_8decf8 as ApiErrorBody | null;
+    const v_9be017 = v_8decf8 as v_669377 | null;
     const v_c99bd2 = v_9be017?.error?.code ?? "HTTP_ERROR";
     const v_a8cd21 = v_9be017?.error?.message ?? `HTTP ${v_8f00b9.status}`;
     if (v_7611fb) {

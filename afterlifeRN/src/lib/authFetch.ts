@@ -1,7 +1,7 @@
 
 
 import { v_cc9198 } from "../config/apiBase";
-import { v_84a859, type v_669377 } from "../api/auth";
+import { v_84a859, type v_669377 } from "../api/authError"; 
 import { v_3be591 } from "./errorI18n";
 import { v_9100c8, v_c57813 } from "./faceConsentError";
 import v_9c213b from "../i18n";
