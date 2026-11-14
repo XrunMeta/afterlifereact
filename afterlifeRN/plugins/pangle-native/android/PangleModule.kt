@@ -47,6 +47,12 @@ class PangleModule(reactContext: ReactApplicationContext) :
     override fun onHostDestroy() {}
 
     @ReactMethod
+    fun addListener(eventName: String) {}
+
+    @ReactMethod
+    fun removeListeners(count: Int) {}
+
+    @ReactMethod
     fun initialize(promise: Promise) {
         try {
             if (isInitialized) {

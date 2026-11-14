@@ -149,8 +149,6 @@ export type MyStackParamList = {
 
   FaceThresholdTest: undefined;
 
-  ThreeDLab: undefined;
-
   ThreeDPersona: undefined;
 
   VoiceLangTest: undefined;

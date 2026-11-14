@@ -47,6 +47,8 @@ export interface DomainClone {
 
   selfPersonId?: number | null;
 
+  voicePresetId?: number | null;
+
   myRole?: "owner" | "coowner";
   coownerCount?: number;
   likesCount?: number;

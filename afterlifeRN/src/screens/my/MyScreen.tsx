@@ -287,13 +287,6 @@ export default function v_ed02a5() {
           },
 
           {
-            icon: "box" as const,
-            labelKey: "my.menu.threeDLab",
-            descKey: "my.menu.threeDLabDesc",
-            action: () => v_c65f5d.navigate("ThreeDLab"),
-          },
-
-          {
             icon: "user" as const,
             labelKey: "my.menu.threeDPersonaDev",
             descKey: "my.menu.threeDPersonaDevDesc",

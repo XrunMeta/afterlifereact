@@ -32,8 +32,6 @@ export interface Bindings {
   L2_PREF_HISTORY_ENABLED?: string; 
 
   CALL_PRETHIRD_BASE?: string;
-
-  CALL_TRIPOSR_BASE?: string;
   CALL_ROUTE?: string;
 
   AUTH_GOOGLE_ENABLED_IOS?: string;

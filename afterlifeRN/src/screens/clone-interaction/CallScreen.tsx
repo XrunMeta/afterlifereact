@@ -1859,6 +1859,8 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
     }
   }, [transcript]);
+
+  const triggerEmoteRef = useRef<((key: EmoteKey, emoji: string, label: string) => void) | null>(null);
   useEffect(() => {
     if (!lastSignal) return;
     if (lastSignal.type === 'speech_start') {
@@ -1885,7 +1887,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
       faceCheckRef.current?.onCloneSpeechEnd(lastSignal.remainingMs);
     }
-  }, [lastSignal, dispatchRm, triggerEmote]);
+  }, [lastSignal, dispatchRm]);
 
   const canSpeak = (phase === 'listening' || phase === 'confirming') && sttActive && !sttRecovering;
 
@@ -1942,10 +1944,10 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
       if (pending) {
         pendingEmoteRef.current = null;
         console.log(`[Call][emote] fire on phase→sending (before speech): ${pending.key}`);
-        triggerEmote(pending.key, pending.emoji, pending.label);
+        triggerEmoteRef.current?.(pending.key, pending.emoji, pending.label);
       }
     }
-  }, [phase, triggerEmote]);
+  }, [phase]);
   useEffect(() => {
     if (!lastSignal) return;
     if (lastSignal.type === 'speech_start') {
@@ -1963,17 +1965,17 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
         /안녕|반가워|반갑|오랜만|고마워|고맙|감사|맞아|맞네|그렇지|그러네|좋아(?!해)|좋네|오케이|okay|okey|잘생|예쁘|이쁘|예뻐|이뻐|귀여|귀엽|멋져|멋지|멋있|대박|최고|잘\s*했|잘한|ㅋ{2,}|ㅎ{2,}|하하|헤헤|히히|웃긴|웃겨|재밌|재밋|사랑스|짱|훌륭|완벽|굿|나이스/.test(t)
       ) {
         emoteFiredThisTurn.current = true;
-        triggerEmote('smile', '🙂', '미소');
+        triggerEmoteRef.current?.('smile', '🙂', '미소');
       }
 
       else if (
         /사랑해|보고\s*싶|좋아해|좋아함|자기야|우리\s*(?:둘|사이)|안아|뽀뽀|설레|심쿵|❤|💕|💗|😘|😍/.test(t)
       ) {
         emoteFiredThisTurn.current = true;
-        triggerEmote('wink', '😉', '윙크');
+        triggerEmoteRef.current?.('wink', '😉', '윙크');
       }
     }
-  }, [lastSignal, cloneId, triggerEmote]);
+  }, [lastSignal, cloneId]);
 
   const startedRef = useRef(false);
 
@@ -2176,6 +2178,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     },
     [emoteAnim, cloneId, emotePlayer],
   );
+  triggerEmoteRef.current = triggerEmote; 
   useEffect(() => () => {
     if (emoteTimerRef.current) clearTimeout(emoteTimerRef.current);
   }, []);

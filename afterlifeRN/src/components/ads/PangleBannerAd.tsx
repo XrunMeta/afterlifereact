@@ -60,7 +60,7 @@ function v_eadb63(): boolean {
     if (typeof v_89b3da.getViewManagerConfig === "function") {
       return v_89b3da.getViewManagerConfig(v_ec44be) != null;
     }
-    return (v_89b3da as Record<string, unknown>)[v_ec44be] != null;
+    return (v_89b3da as unknown as Record<string, unknown>)[v_ec44be] != null;
   } catch {
     return false;
   }
