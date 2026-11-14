@@ -273,27 +273,6 @@ export default function v_ed02a5() {
           },
 
           {
-            icon: "activity" as const,
-            labelKey: "my.menu.visemeTest",
-            descKey: "my.menu.visemeTestDesc",
-            action: () => v_c65f5d.navigate("VisemeTest"),
-          },
-
-          {
-            icon: "target" as const,
-            labelKey: "my.menu.faceThreshold",
-            descKey: "my.menu.faceThresholdDesc",
-            action: () => v_c65f5d.navigate("FaceThresholdTest"),
-          },
-
-          {
-            icon: "user" as const,
-            labelKey: "my.menu.threeDPersonaDev",
-            descKey: "my.menu.threeDPersonaDevDesc",
-            action: () => v_c65f5d.navigate("ThreeDPersona"),
-          },
-
-          {
             icon: "user-plus" as const,
             labelKey: "my.menu.faceEnrollDev",
             descKey: "my.menu.faceEnrollDevDesc",
