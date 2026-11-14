@@ -381,16 +381,18 @@ describe("awaitWhoVerdict", () => {
   });
 });
 
-describe("점수 0.1 이하 불일치는 판정 불가", () => {
+describe("불일치 근거는 화면 상태로만 판단(AFL-1097)", () => {
   const v_728123 = (v_740dd8, quality: v_537043["quality"] = "dark"): v_537043 => ({ personId: null, score: v_740dd8, quality: v_c6feb4, atMs: 0 });
   test("judgeWho — 비켜선 본인(어두운 화면 0.101·0.095) → insufficient", () =>
     expect(v_c63cdb([v_728123(0.101), v_728123(0.095)], 175)).toMatchObject({ kind: "insufficient", quality: "dark" }));
-  test("judgeWho — 0.1 초과 불일치(사진 0.13)는 그대로 unknown", () =>
+  test("judgeWho — 불일치(사진 0.13, ok)는 unknown", () =>
     expect(v_c63cdb([v_728123(0.13, "ok")], 175)).toMatchObject({ kind: "unknown" }));
   test("judgeWho — 낮은 불일치가 섞여도 현재 화자 표본이 있으면 known", () =>
     expect(v_c63cdb([v_728123(0.05), v_f1a0c2(175)], 175)).toMatchObject({ kind: "known", personId: 175 }));
-  test("judgeWho — 화면 좋아도 0.1 이하 불일치는 insufficient", () =>
-    expect(v_c63cdb([v_728123(0.1, "ok")], 175)).toMatchObject({ kind: "insufficient" }));
-  test("retryVerdict — 0.08 불일치 → insufficient", () =>
-    expect(v_febfc7(v_728123(0.08, "ok"), 175)).toEqual({ kind: "insufficient", personId: null, score: null, quality: "ok" }));
+  test("judgeWho — 화면 좋은 0.067 불일치(SFace 남 얼굴) → unknown", () =>
+    expect(v_c63cdb([v_728123(0.067, "ok")], 175)).toMatchObject({ kind: "unknown", score: 0.067 }));
+  test("retryVerdict — 화면 좋은 0.08 불일치 → unknown", () =>
+    expect(v_febfc7(v_728123(0.08, "ok"), 175)).toEqual({ kind: "unknown", personId: null, score: 0.08, quality: "ok" }));
+  test("retryVerdict — 어두운 화면 0.08 불일치 → insufficient", () =>
+    expect(v_febfc7(v_728123(0.08), 175)).toEqual({ kind: "insufficient", personId: null, score: null, quality: "dark" }));
 });
