@@ -95,7 +95,7 @@ export default function v_39b6c7({
             style={v_d81136.input}
             value={v_1833e7}
             onChangeText={v_318f24}
-            placeholder={v_8d41d7("call.rememberMe.namePlaceholder", { defaultValue: "예: 지호" })}
+            placeholder={v_8d41d7("call.rememberMe.namePlaceholder", { defaultValue: "예: 스미스" })}
             placeholderTextColor="#9ca3af"
             autoFocus
             returnKeyType="next"

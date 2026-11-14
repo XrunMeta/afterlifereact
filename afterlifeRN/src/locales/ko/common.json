@@ -461,7 +461,7 @@
       "sheetTitle": "이 분은 누구신가요?",
       "sheetDesc": "알려주시면 다음 통화부터 기억할게요.",
       "nameLabel": "이름",
-      "namePlaceholder": "예: 지호",
+      "namePlaceholder": "예: 스미스",
       "relationLabel": "관계",
       "relationPlaceholder": "예: 손주, 오랜 친구",
       "later": "나중에"
@@ -2293,7 +2293,7 @@
       "updateName": "이름 업데이트",
       "existingHint": "새로운 사람이면 아래에 이름을 직접 입력하세요",
       "nameLabel": "이름",
-      "namePlaceholder": "예: 지호",
+      "namePlaceholder": "예: 스미스",
       "relationLabel": "관계 (선택)",
       "relationPlaceholder": "예: 손주, 오랜 친구",
       "needLogin": "로그인 정보가 없어요. 다시 시도해 주세요.",

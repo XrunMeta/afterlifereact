@@ -461,7 +461,7 @@
       "sheetTitle": "这位是谁?",
       "sheetDesc": "告诉我后,下次通话时我会记住。",
       "nameLabel": "姓名",
-      "namePlaceholder": "例如:志浩",
+      "namePlaceholder": "例如:史密斯",
       "relationLabel": "关系",
       "relationPlaceholder": "例如:孙子,老朋友",
       "later": "稍后"
@@ -2293,7 +2293,7 @@
       "updateName": "更新名字",
       "existingHint": "如果是新的人,请在下方直接输入姓名",
       "nameLabel": "姓名",
-      "namePlaceholder": "例: 智浩",
+      "namePlaceholder": "例: 史密斯",
       "relationLabel": "关系 (可选)",
       "relationPlaceholder": "例: 孙辈, 多年老友",
       "needLogin": "没有登录信息。请重试。",

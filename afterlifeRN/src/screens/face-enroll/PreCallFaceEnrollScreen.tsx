@@ -955,7 +955,7 @@ export default function v_8640b9() {
               style={v_fd5f43.formInput}
               value={v_595acb}
               onChangeText={v_9ad9a9}
-              placeholder={v_8d41d7("faceEnroll.form.namePlaceholder", { defaultValue: "예: 지호" })}
+              placeholder={v_8d41d7("faceEnroll.form.namePlaceholder", { defaultValue: "예: 스미스" })}
               placeholderTextColor={v_1bfbd0.zinc500}
               autoFocus
               returnKeyType="next"

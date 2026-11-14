@@ -461,7 +461,7 @@
       "sheetTitle": "Siapakah orang ini?",
       "sheetDesc": "Beri tahu saya, saya akan mengingatnya mulai panggilan berikutnya.",
       "nameLabel": "Nama",
-      "namePlaceholder": "mis. Jiho",
+      "namePlaceholder": "mis. Smith",
       "relationLabel": "Hubungan",
       "relationPlaceholder": "mis. cucu, teman lama",
       "later": "Nanti"
@@ -2293,7 +2293,7 @@
       "updateName": "Perbarui nama",
       "existingHint": "Jika ini orang baru, ketik namanya di bawah",
       "nameLabel": "Nama",
-      "namePlaceholder": "mis. Jiho",
+      "namePlaceholder": "mis. Smith",
       "relationLabel": "Hubungan (opsional)",
       "relationPlaceholder": "mis. Cucu, teman lama",
       "needLogin": "Tidak ada info login. Silakan coba lagi.",

@@ -461,7 +461,7 @@
       "sheetTitle": "Who is this person?",
       "sheetDesc": "Let me know and I'll remember from the next call.",
       "nameLabel": "Name",
-      "namePlaceholder": "e.g. Jiho",
+      "namePlaceholder": "e.g. Smith",
       "relationLabel": "Relationship",
       "relationPlaceholder": "e.g. grandchild, old friend",
       "later": "Later"
@@ -2296,7 +2296,7 @@
       "updateName": "Update name",
       "existingHint": "If this is someone new, type their name below",
       "nameLabel": "Name",
-      "namePlaceholder": "e.g. Jiho",
+      "namePlaceholder": "e.g. Smith",
       "relationLabel": "Relationship (optional)",
       "relationPlaceholder": "e.g. Grandchild, old friend",
       "needLogin": "No login info. Please try again.",
