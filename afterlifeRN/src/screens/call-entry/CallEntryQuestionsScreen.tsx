@@ -262,7 +262,7 @@ export default function v_601c02({
                   value={v_e58d6f}
                   onChangeText={v_b697a1}
                   placeholder={v_8d41d7("callEntry.q1.addressPlaceholder", {
-                    defaultValue: "예: 은지야, 아들, 야, 지호 씨",
+                    defaultValue: "예: 은지야, 아들, 야, 스미스 씨",
                   })}
                   placeholderTextColor={v_1bfbd0.zinc400}
                   style={v_fd5f43.textInputShort}

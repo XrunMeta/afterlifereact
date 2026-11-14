@@ -394,8 +394,9 @@ export default function v_8640b9() {
         pixelFormat: "rgb",
         dataType: "float32",
       });
+
       const v_75195c = new Float32Array(v_2d3c27.length);
-      for (let v_ebec57 = 0; v_ebec57 < v_2d3c27.length; v_ebec57++) v_75195c[v_ebec57] = v_2d3c27[v_ebec57] * 2 - 1;
+      for (let v_ebec57 = 0; v_ebec57 < v_2d3c27.length; v_ebec57++) v_75195c[v_ebec57] = v_2d3c27[v_ebec57] * 255;
       const v_8d4337 = v_23f1a4.runSync([v_75195c])[0] as Float32Array;
 
       const v_c5ddcd = (v_127e92 as unknown as { yawAngle?: number }).yawAngle ?? 0;
@@ -954,7 +955,7 @@ export default function v_8640b9() {
               style={v_fd5f43.formInput}
               value={v_595acb}
               onChangeText={v_9ad9a9}
-              placeholder={v_8d41d7("faceEnroll.form.namePlaceholder", { defaultValue: "예: 지호" })}
+              placeholder={v_8d41d7("faceEnroll.form.namePlaceholder", { defaultValue: "예: 스미스" })}
               placeholderTextColor={v_1bfbd0.zinc500}
               autoFocus
               returnKeyType="next"

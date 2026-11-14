@@ -24,14 +24,10 @@ export type TurnVerdict = {
   quality: v_13de12;
 };
 
-export const v_b4eadd = 0.1;
-
 export function v_e0418a(v_fd5f43): boolean {
   if (v_fd5f43.quality === "none") return false;
   if (v_fd5f43.personId != null) return true;
-
-  if (v_fd5f43.noCandidates) return v_fd5f43.quality === "ok";
-  return v_fd5f43.quality === "ok" && v_fd5f43.score > v_b4eadd;
+  return v_fd5f43.quality === "ok";
 }
 
 function v_29757a(v_5b2623): number | null {

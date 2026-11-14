@@ -175,7 +175,7 @@ export default function v_30f4d7() {
         dataType: "float32",
       });
       const v_75195c = new Float32Array(v_2d3c27.length);
-      for (let v_ebec57 = 0; v_ebec57 < v_2d3c27.length; v_ebec57++) v_75195c[v_ebec57] = v_2d3c27[v_ebec57] * 2 - 1;
+      for (let v_ebec57 = 0; v_ebec57 < v_2d3c27.length; v_ebec57++) v_75195c[v_ebec57] = v_2d3c27[v_ebec57] * 255;
       const v_8d4337 = v_768389.runSync([v_75195c])[0] as Float32Array;
       v_998534(Array.from(v_8d4337), true);
     },
