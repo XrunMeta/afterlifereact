@@ -1,4 +1,4 @@
-import { v_469bf2, v_23805a, v_4d37e3, v_ff107d } from "xualxe";
+﻿import { v_469bf2, v_23805a, v_4d37e3, v_ff107d } from "xualxe";
 import { v_1df298, v_c9c489 } from "lwkoweqmjbnvjqw";
 import { v_dbed3e } from "../src/lib/faceVectors";
 import { v_b2eae5 } from "../src/lib/jwt";
@@ -33,8 +33,8 @@ async function v_4d24a9(v_1badb6, v_556427, v_3a8949 = "memlow"): Promise<number
 }
 
 function v_46ff7a(v_bdb39e): number[] {
-  const v_81e2ef = new Array(512).fill(0);
-  v_81e2ef[v_bdb39e % 512] = 1;
+  const v_81e2ef = new Array(128).fill(0);
+  v_81e2ef[v_bdb39e % 128] = 1;
   return v_81e2ef;
 }
 

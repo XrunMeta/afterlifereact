@@ -21,6 +21,7 @@ import { v_a298e2, v_a43ce1 } from "../lib/xrunAccountFace";
 import { v_a752e9 } from "../lib/personaBundle";
 import { v_74defc } from "../lib/logger";
 import { v_94652e } from "../lib/faceApiConsent";
+import { v_60c684, v_0eeb45 } from "../lib/faceEmbed";
 
 export const v_fded81 = new v_b7c41b<v_de0a25>();
 
@@ -122,11 +123,9 @@ v_fded81.post("/", v_6690d9, async (v_3f4e2e) => {
   );
 });
 
-const v_0eeb45 = 0.6;
-
 function v_91e67b(v_81e2ef): number[] {
-  if (!Array.isArray(v_81e2ef) || v_81e2ef.length !== 512 || v_81e2ef.some((v_62c214) => typeof v_62c214 !== "number" || !Number.isFinite(v_62c214)))
-    throw new v_3ebe58("VALIDATION_FAILED", "vector: 512차원 수치 배열이어야 합니다");
+  if (!Array.isArray(v_81e2ef) || v_81e2ef.length !== v_60c684 || v_81e2ef.some((v_62c214) => typeof v_62c214 !== "number" || !Number.isFinite(v_62c214)))
+    throw new v_3ebe58("VALIDATION_FAILED", `vector: ${v_60c684}차원 수치 배열이어야 합니다`);
   return v_81e2ef as number[];
 }
 
@@ -421,7 +420,7 @@ v_fded81.post("/calibrate", v_6690d9, async (v_3f4e2e) => {
     .json<{ vector?: unknown; groundTruthPersonId?: string | null; cloneId?: number }>()
     .catch(() => ({}) as { vector?: unknown; groundTruthPersonId?: string | null; cloneId?: number });
   const v_81e2ef = v_4d33b2.vector;
-  if (!Array.isArray(v_81e2ef) || v_81e2ef.length !== 512 || !v_81e2ef.every((v_f4e98d) => typeof v_f4e98d === "number" && Number.isFinite(v_f4e98d))) {
+  if (!Array.isArray(v_81e2ef) || v_81e2ef.length !== v_60c684 || !v_81e2ef.every((v_f4e98d) => typeof v_f4e98d === "number" && Number.isFinite(v_f4e98d))) {
     return v_3f4e2e.json({ error: "invalid vector" }, 400); 
   }
   const v_01dcf5 = await v_3f4e2e.env.DB.prepare("SELECT value FROM app_config WHERE key='face.match_threshold'").first<{
@@ -589,10 +588,10 @@ v_fded81.post("/:id/faces", v_6690d9, async (v_3f4e2e) => {
     v_f94e64.length < 1 ||
     v_f94e64.length > 10 ||
     v_f94e64.some(
-      (v_81e2ef) => !Array.isArray(v_81e2ef) || v_81e2ef.length !== 512 || v_81e2ef.some((v_62c214) => typeof v_62c214 !== "number" || !Number.isFinite(v_62c214))
+      (v_81e2ef) => !Array.isArray(v_81e2ef) || v_81e2ef.length !== v_60c684 || v_81e2ef.some((v_62c214) => typeof v_62c214 !== "number" || !Number.isFinite(v_62c214))
     )
   )
-    throw new v_3ebe58("VALIDATION_FAILED", "vectors: 1~10개의 512차원 수치 배열이어야 합니다");
+    throw new v_3ebe58("VALIDATION_FAILED", `vectors: 1~10개의 ${v_60c684}차원 수치 배열이어야 합니다`);
 
   const v_6e0fd3 = v_4d33b2.cloneId;
   if (typeof v_6e0fd3 !== "number" || !Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0)

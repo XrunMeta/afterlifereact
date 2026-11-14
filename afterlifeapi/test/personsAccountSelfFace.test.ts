@@ -1,4 +1,4 @@
-
+﻿
 
 import { v_469bf2, v_23805a, v_4d37e3, v_ff107d } from "xualxe";
 import { v_1df298, v_c9c489 } from "lwkoweqmjbnvjqw";
@@ -33,8 +33,8 @@ async function v_4d24a9(v_1badb6, v_556427): Promise<number> {
 }
 
 function v_46ff7a(v_bdb39e): number[] {
-  const v_81e2ef = new Array(512).fill(0);
-  v_81e2ef[v_bdb39e % 512] = 1;
+  const v_81e2ef = new Array(128).fill(0);
+  v_81e2ef[v_bdb39e % 128] = 1;
   return v_81e2ef;
 }
 
@@ -385,8 +385,8 @@ v_469bf2("계정 본인 얼굴 — 보안 감사 반영", () => {
 });
 
 function v_64368f(v_bdb39e, v_a9cbf1, v_fa7d4c): number[] {
-  const v_81e2ef = new Array(512).fill(0);
-  v_81e2ef[v_bdb39e % 512] = v_fa7d4c;
+  const v_81e2ef = new Array(128).fill(0);
+  v_81e2ef[v_bdb39e % 128] = v_fa7d4c;
   v_81e2ef[v_a9cbf1 % 512] = Math.sqrt(1 - v_fa7d4c * v_fa7d4c);
   return v_81e2ef;
 }

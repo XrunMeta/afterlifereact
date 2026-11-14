@@ -1,8 +1,8 @@
-import { v_f644ce, v_48b3dc, v_65c90d } from '../useFaceIdentify';
+﻿import { v_f644ce, v_48b3dc, v_65c90d } from '../useFaceIdentify';
 import { v_0a1524 } from '../faceGallery';
 
 const v_e00746 = Object.assign(new Error('consent'), { status: 403, code: 'FACE_CONSENT_REQUIRED' });
-const v_46ff7a = new Array(512).fill(0).map((v_37eab7, v_ebec57) => (v_ebec57 === 0 ? 1 : 0));
+const v_46ff7a = new Array(128).fill(0).map((v_37eab7, v_ebec57) => (v_ebec57 === 0 ? 1 : 0));
 
 describe('runIdentifyCycle - AFL-1041', () => {
   test('FACE_CONSENT_REQUIRED 는 실패 카운트·백오프를 올리지 않는다', async () => {
