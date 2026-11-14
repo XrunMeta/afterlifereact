@@ -37,11 +37,16 @@ const v_a70c97 = {
 
 const v_abcfe4 = v_74a79c.resolver.resolveRequest;
 
+const v_2be839 = {
+  'event-target-shim/index': 'event-target-shim',
+};
+
 v_74a79c.resolver.resolveRequest = (v_e3aeb3, v_1388b6, v_81a27a) => {
   if (v_81a27a === 'web' && v_a70c97[v_1388b6]) {
     return { filePath: v_a70c97[v_1388b6], type: 'sourceFile' };
   }
-  return (v_abcfe4 || v_e3aeb3.resolveRequest)(v_e3aeb3, v_1388b6, v_81a27a);
+  const v_1833e7 = v_2be839[v_1388b6] || v_1388b6;
+  return (v_abcfe4 || v_e3aeb3.resolveRequest)(v_e3aeb3, v_1833e7, v_81a27a);
 };
 
 v_74a79c.maxWorkers = 2;

@@ -425,7 +425,7 @@ export default function v_e2b396() {
             <View style={v_fd5f43.selectWrap}>
               <SelectField<number>
                 options={v_ac0935}
-                value={v_f83808 ?? undefined}
+                value={v_f83808 ?? null}
                 onChange={(v_81e2ef) => v_64a312(v_81e2ef ?? null)}
                 placeholder={v_8d41d7("auth.signup.ageRangePlaceholder", { defaultValue: "연령대" })}
               />
@@ -474,7 +474,7 @@ export default function v_e2b396() {
               {v_afb146.length > 0 ? (
                 <SelectField<number>
                   options={v_afb146.map((v_b6c474) => ({ value: v_b6c474.value, label: v_b6c474.label }))}
-                  value={v_a6c30b ?? undefined}
+                  value={v_a6c30b ?? null}
                   onChange={(v_81e2ef) => v_c030e3(v_81e2ef ?? null)}
                   placeholder={v_8d41d7("auth.signup.regionPlaceholder", { defaultValue: "지역을 선택해주세요" })}
                 />

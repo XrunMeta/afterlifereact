@@ -25,7 +25,6 @@
     { "section": "serverAi", "name": "MediaPipe (Face Mesh)", "license": "Apache-2.0", "url": "https://github.com/google-ai-edge/mediapipe", "notice": "Copyright The MediaPipe Authors." },
     { "section": "serverAi", "name": "OpenVoice", "license": "MIT", "url": "https://github.com/myshell-ai/OpenVoice" },
     { "section": "serverAi", "name": "MeloTTS", "license": "MIT", "url": "https://github.com/myshell-ai/MeloTTS" },
-    { "section": "serverAi", "name": "TripoSR", "license": "MIT", "url": "https://github.com/VAST-AI-Research/TripoSR" },
     { "section": "serverAi", "name": "PyTorch", "license": "BSD-3-Clause", "url": "https://github.com/pytorch/pytorch" },
     { "section": "serverAi", "name": "Transformers", "license": "Apache-2.0", "url": "https://github.com/huggingface/transformers" },
     { "section": "serverAi", "name": "Diffusers", "license": "Apache-2.0", "url": "https://github.com/huggingface/diffusers" },
