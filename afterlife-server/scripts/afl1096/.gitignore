@@ -1,0 +1,4 @@
+# A/B 산출 이미지·영상은 로컬 보관만 (수치는 ab/result.jsonl 로 커밋)
+ab/*.png
+ab/err.log
+render/
