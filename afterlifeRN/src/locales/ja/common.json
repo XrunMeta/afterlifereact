@@ -461,7 +461,7 @@
       "sheetTitle": "この方はどなたですか?",
       "sheetDesc": "教えていただければ次の通話から覚えておきます。",
       "nameLabel": "名前",
-      "namePlaceholder": "例: 지호",
+      "namePlaceholder": "例: スミス",
       "relationLabel": "関係",
       "relationPlaceholder": "例: 孫、旧友",
       "later": "後で"
@@ -2296,7 +2296,7 @@
       "updateName": "名前を更新",
       "existingHint": "新しい人の場合は、下に名前を直接入力してください",
       "nameLabel": "名前",
-      "namePlaceholder": "例: 太郎",
+      "namePlaceholder": "例: スミス",
       "relationLabel": "関係 (任意)",
       "relationPlaceholder": "例: 孫、長い友人",
       "needLogin": "ログイン情報がありません。もう一度お試しください。",
@@ -2360,7 +2360,7 @@
       "episodeLabel": "{{name}}とどんな間柄だったか短いエピソードを教えてください。",
       "episodePlaceholder": "例: 毎週末登山に行く友人、辛い時期に一緒に残業した上司",
       "addressLabel": "{{name}}はあなたを何と呼んでいましたか?",
-      "addressPlaceholder": "例: えみちゃん、息子、おい、太郎さん"
+      "addressPlaceholder": "例: えみちゃん、息子、おい、スミスさん"
     },
     "q2": {
       "title": "{{name}}とはお互いにどんな話し方をしていましたか?"

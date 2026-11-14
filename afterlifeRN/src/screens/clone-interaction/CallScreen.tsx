@@ -1350,7 +1350,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
           const normalized = new Float32Array(resized.length);
           for (let i = 0; i < resized.length; i++) {
-            normalized[i] = resized[i] * 2 - 1;
+            normalized[i] = resized[i] * 255;
           }
 
           const quality = classifyFaceQualityGuarded({
