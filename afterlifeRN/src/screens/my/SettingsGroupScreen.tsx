@@ -114,7 +114,6 @@ export default function v_1619c2() {
             key: "language", icon: "globe", labelKey: "my.menu.language", label: "언어 설정",
             descKey: "settings.language.title", onPress: () => v_c65f5d.navigate("LanguageSettings"),
           },
-
         ];
     }
   })();

@@ -145,14 +145,6 @@ export type MyStackParamList = {
   Purchase: undefined; 
   Reports: { tab?: "made" | "received" } | undefined;
 
-  VisemeTest: undefined;
-
-  FaceThresholdTest: undefined;
-
-  ThreeDPersona: undefined;
-
-  VoiceLangTest: undefined;
-
   DeactivateAccount: undefined;
   SettingsGroup: { group: "account" | "notifications" | "face" | "service" | "app" };
 };
