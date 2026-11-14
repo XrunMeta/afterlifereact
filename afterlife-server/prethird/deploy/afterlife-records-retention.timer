@@ -1,0 +1,11 @@
+# AFL-1095: 통화 기록 30일 보관 — 매일 새벽 4시(서버 시간) 한 번 실행. 꺼져 있던 동안 놓친 실행은 부팅 후 바로 한다.
+[Unit]
+Description=Daily call records retention for Afterlife
+
+[Timer]
+OnCalendar=*-*-* 04:00:00
+Persistent=true
+RandomizedDelaySec=10m
+
+[Install]
+WantedBy=timers.target

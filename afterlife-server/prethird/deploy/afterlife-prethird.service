@@ -31,10 +31,11 @@ Environment=PREBUILD_MAX_CONCURRENCY=3
 Environment=PRETHIRD_ASSET_HOST_ALLOWLIST=edge-alt-preview.example.invalid
 # PREBUILD_SECRET 은 git 미추적 — 배포 스크립트가 prebuild-secret.conf drop-in 으로 주입(M-3).
 #
-# ── 대화 기록(records) — 통화 턴 input/answer/meta(+wav/mp4) 기록 + 응답누락 진단 ──
+# ── [디버그용] 대화 기록(records) — 통화 턴 input/answer/meta(+wav) 기록 + 응답누락 진단 ──
 # recorder.py: NullObject graceful skip, 모든 I/O 예외 흡수(통화 차단 0), 파일 0o600.
+# 30일 후 자동 삭제: afterlife-records-retention.timer. 목록 = ../DEBUG_DATA_INDEX.md
 Environment=PRETHIRD_RECORDS_ROOT=/data/records
-# Phase3 mp4(입싱크 영상)는 기본 off — 프레임 RAM·디스크 비용. 진단 필요 시에만 1.
+# [디버그용] mp4(입싱크 영상) 기록은 AFL-1095 로 코드에서 주석처리 — 이 값은 더 이상 쓰이지 않는다.
 Environment=PRETHIRD_RECORD_MP4=0
 # /data 쓰기 허용 (systemd 샌드박싱 강화 시에도 records 기록 보장).
 ReadWritePaths=/data
