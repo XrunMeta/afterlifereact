@@ -28,7 +28,6 @@ from transformers import WhisperModel
 import sys
 
 from musetalk.utils.blending import get_image, get_image_prepare_material, get_image_blending, get_image_blending_fast
-from musetalk.utils.face_parsing import FaceParsing
 from musetalk.utils.audio_processor import AudioProcessor
 from musetalk.utils.utils import get_file_type, get_video_fps, datagen, load_all_model
 from musetalk.utils.preprocessing import get_landmark_and_bbox, read_imgs, coord_placeholder
@@ -36,6 +35,7 @@ from musetalk.utils.preprocessing import get_landmark_and_bbox, read_imgs, coord
 
 from unet_bucket import bucket_size, bucket_sizes
 from frame_rotation import MASK_CACHE_TAG, mask_cache_index
+from face_parser import make_face_parser, mask_tag
 import cache_slim
 # AFL-1071 P2: face_threshold import 가 실패해도 렌더는 돌아야 한다 → 기존 동작(get_landmark_and_bbox 그대로).
 try:
@@ -124,13 +124,14 @@ def load_models(args):
     whisper.requires_grad_(False)
     
     # Initialize face parser with configurable parameters based on version
+    # AFL-1096: PRETHIRD_FACE_PARSER=mediapipe 면 BiSeNet 대신 MediaPipe (face_parser.py). 기본은 BiSeNet 그대로.
     if args.version == "v15":
-        fp = FaceParsing(
+        fp = make_face_parser(
             left_cheek_width=args.left_cheek_width,
             right_cheek_width=args.right_cheek_width
         )
     else:  # v1
-        fp = FaceParsing()
+        fp = make_face_parser()
     return {
         "device": device,
         "vae": vae,
@@ -408,7 +409,8 @@ def run_inference(args, models, frame_callback=None, timing_out=None, batch_emit
             # 같은 reference video 면 디스크 pkl 캐시 (saved_coord 와 동일 정책).
             # 2026-10-29: 캐시는 회전 전 원래 프레임 번호로 저장한다(frame_rotation.py).
             #   옛 파일은 회전된 번호로 저장돼 있어 MASK_CACHE_TAG 로 이름을 바꿔 새로 만든다.
-            mask_cache_path = os.path.join(args.result_dir, "../", input_basename + f".mask_{args.parsing_mode}_em{args.extra_margin}_lc{args.left_cheek_width}_rc{args.right_cheek_width}_{MASK_CACHE_TAG}.pkl")
+            # AFL-1096: 분할기 꼬리표(mask_tag) — MediaPipe 는 "_mp", BiSeNet 은 "" (기존 파일명 그대로).
+            mask_cache_path = os.path.join(args.result_dir, "../", input_basename + f".mask_{args.parsing_mode}_em{args.extra_margin}_lc{args.left_cheek_width}_rc{args.right_cheek_width}_{MASK_CACHE_TAG}{mask_tag(fp)}.pkl")
             mask_cache_list = None
             _mask_n_initial = 0  # 029-F-latency2: load 시점 채워진 수 — 저장 조건 판단(불필요한 241MB write 방지)
             if getattr(args, "use_saved_coord", True) and os.path.exists(mask_cache_path):
