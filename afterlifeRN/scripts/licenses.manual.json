@@ -1,5 +1,5 @@
 {
-  "_comment": "AFL-1093 · npm 패키지로 잡히지 않는 구성요소. native=앱 바이너리 안 SDK·폰트, data=데이터, serverAi=가비아 서버 통화 경로. 서버 목록 근거=docs/license-audit-server-20261113.md 5-3절·R-2 OK 항목. 미판정(InsightFace R-1·face-parse R-2·Gemma R-3·ElevenLabs R-4)은 결론 전까지 넣지 않는다. 상용 SDK(Pangle·AppsFlyer)·상용 API(OpenAI)는 오픈소스가 아니라 제외.",
+  "_comment": "AFL-1093 · npm 패키지로 잡히지 않는 구성요소. native=앱 바이너리 안 SDK·폰트, data=데이터, serverAi=가비아 서버 통화 경로. 서버 목록 근거=docs/license-audit-server-20261113.md 5-3절·R-2 OK 항목. 미판정(face-parse R-2)은 결론 전까지 넣지 않는다. InsightFace(R-1)는 AFL-1094 로 MediaPipe 로 교체돼 넣지 않는다. Gemma(R-3·운영 미사용)·Higgsfield/ElevenLabs(R-4·상용 서비스, 표기 의무 없음)는 제외. 상용 SDK(Pangle·AppsFlyer)·상용 API(OpenAI)는 오픈소스가 아니라 제외.",
   "entries": [
     { "section": "native", "name": "WebRTC", "license": "BSD-3-Clause", "url": "https://webrtc.googlesource.com/src/+/main/LICENSE", "notice": "Copyright (c) 2011, The WebRTC project authors. All rights reserved." },
     { "section": "native", "name": "Filament", "license": "Apache-2.0", "url": "https://github.com/google/filament", "notice": "Copyright (C) 2015 The Android Open Source Project" },
@@ -22,6 +22,7 @@
     { "section": "serverAi", "name": "DWPose", "license": "Apache-2.0", "url": "https://github.com/IDEA-Research/DWPose" },
     { "section": "serverAi", "name": "LivePortrait", "license": "MIT", "url": "https://github.com/KwaiVGI/LivePortrait" },
     { "section": "serverAi", "name": "FasterLivePortrait", "license": "MIT", "url": "https://github.com/warmshao/FasterLivePortrait" },
+    { "section": "serverAi", "name": "MediaPipe (Face Mesh)", "license": "Apache-2.0", "url": "https://github.com/google-ai-edge/mediapipe", "notice": "Copyright The MediaPipe Authors." },
     { "section": "serverAi", "name": "OpenVoice", "license": "MIT", "url": "https://github.com/myshell-ai/OpenVoice" },
     { "section": "serverAi", "name": "MeloTTS", "license": "MIT", "url": "https://github.com/myshell-ai/MeloTTS" },
     { "section": "serverAi", "name": "TripoSR", "license": "MIT", "url": "https://github.com/VAST-AI-Research/TripoSR" },
