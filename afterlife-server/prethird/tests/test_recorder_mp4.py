@@ -73,20 +73,18 @@ def test_mp4_off_does_not_accumulate_frames(tmp_path, monkeypatch):
     assert turn._frames == []  # 누적 안 함
 
 
-def test_mp4_written_when_enabled(tmp_path, monkeypatch):
+def test_mp4_not_written_even_when_env_enabled(tmp_path, monkeypatch):
+    # AFL-1095: 영상 기록은 디버그용이라 주석처리 — env=1 이어도 프레임 누적·mp4 생성 없음.
     monkeypatch.setenv("PRETHIRD_RECORD_MP4", "1")
     import recorder
     importlib.reload(recorder)
     _resync_recorder_symbols()
-    try:
-        import imageio  # noqa
-        import imageio_ffmpeg  # noqa
-    except ImportError:
-        pytest.skip("imageio/imageio-ffmpeg 미설치 — 인코딩 테스트 skip")
     rec = recorder.make_recorder(9051, "sX", root=str(tmp_path))
     turn = rec.begin_turn("say", "hi", seq=1)
     turn.append_frames([np.zeros((64, 64, 3), np.uint8) for _ in range(10)], fps=25)
+    assert turn._frames == []
     turn.append_token("x")
     turn.finalize(se_present=True)
     clone_dir = tmp_path / "9051"
-    assert any(p.name.endswith("-answer.mp4") for p in clone_dir.iterdir())
+    assert not any(p.name.endswith("-answer.mp4") for p in clone_dir.iterdir())
+    assert any(p.name.endswith("-answer.txt") for p in clone_dir.iterdir())

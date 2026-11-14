@@ -1,0 +1,22 @@
+# AFL-1095 (2026-11-14 sungjius 지시): 통화 기록(/data/records) 30일 보관 후 자동 삭제.
+#   통화 기록(input.txt·answer.txt·answer.wav·meta.json)은 디버그용이다. 30일 지난 파일을 지우고
+#   빈 턴·클론 폴더를 정리한다. 탈퇴·클론 삭제된 사람의 기록도 이 기준으로 30일 안에 사라진다.
+# 설치 (가비아, sudo):
+#   sudo cp deploy/afterlife-records-retention.{service,timer} /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now afterlife-records-retention.timer
+# 수동 실행: sudo systemctl start afterlife-records-retention.service
+# 확인: journalctl -u afterlife-records-retention.service -n 20
+[Unit]
+Description=Afterlife call records retention (delete files older than 30 days)
+# 기록 루트가 없으면 아무것도 하지 않는다.
+ConditionPathIsDirectory=/data/records
+
+[Service]
+Type=oneshot
+User=afterlife
+Group=afterlife
+Nice=10
+IOSchedulingClass=idle
+ExecStart=/usr/bin/find /data/records -mindepth 2 -type f -mtime +30 -delete
+# 빈 폴더는 하루 이상 지난 것만 — 통화 시작 때 막 만든 폴더를 지우지 않게.
+ExecStart=/usr/bin/find /data/records -mindepth 1 -type d -empty -mtime +1 -delete

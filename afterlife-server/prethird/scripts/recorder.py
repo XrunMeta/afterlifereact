@@ -101,7 +101,11 @@ class Turn:
         self._wav_chunks: list[bytes] = []
         self._frames: list = []
         self._fps = 25
-        self._record_mp4 = os.environ.get("PRETHIRD_RECORD_MP4", "0") == "1"
+        # AFL-1095 (2026-11-14 sungjius 지시): 영상(answer.mp4) 기록은 디버그용이라 주석처리.
+        #   PRETHIRD_RECORD_MP4=1 이어도 기록하지 않는다. 다시 쓰려면 아래 줄 주석을 풀고
+        #   그 아래 False 줄과 finalize 의 mp4 블록 주석을 함께 푼다.
+        # self._record_mp4 = os.environ.get("PRETHIRD_RECORD_MP4", "0") == "1"
+        self._record_mp4 = False
 
     def _path(self, suffix: str) -> str:
         return os.path.join(self._dir, f"{self._ts}-{suffix}")
@@ -151,21 +155,22 @@ class Turn:
                             w.writeframes(bytes(frames))
             except Exception as e:
                 log.warning("answer.wav 합본 실패 ts=%s: %s", self._ts, e)
-        # answer.mp4 인코딩 — PRETHIRD_RECORD_MP4=1 일 때만 (RAM·디스크 비용)
-        if self._record_mp4 and self._frames:
-            try:
-                import imageio
-                mpath = self._path("answer.mp4")
-                imageio.mimwrite(mpath, self._frames, fps=self._fps,
-                                 codec="libx264", quality=8)
-                try:
-                    os.chmod(mpath, 0o600)
-                except OSError:
-                    pass
-            except Exception as e:
-                log.warning("answer.mp4 인코딩 실패 ts=%s: %s", self._ts, e)
-            finally:
-                self._frames = []  # RAM 즉시 회수
+        # answer.mp4 인코딩 — AFL-1095 주석처리 (디버그용, 위 __init__ 주석 참조).
+        # if self._record_mp4 and self._frames:
+        #     try:
+        #         import imageio
+        #         mpath = self._path("answer.mp4")
+        #         imageio.mimwrite(mpath, self._frames, fps=self._fps,
+        #                          codec="libx264", quality=8)
+        #         try:
+        #             os.chmod(mpath, 0o600)
+        #         except OSError:
+        #             pass
+        #     except Exception as e:
+        #         log.warning("answer.mp4 인코딩 실패 ts=%s: %s", self._ts, e)
+        #     finally:
+        #         self._frames = []  # RAM 즉시 회수
+        self._frames = []
         m = dict(meta)
         m.update({
             "ts_ms": self._ts,
