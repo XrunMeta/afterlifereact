@@ -835,8 +835,6 @@
       "vitsTtsDesc": "sherpa-onnx · 模型缓存 · 1秒目标测量",
       "faceThreshold": "面部阈值测试 (dev)",
       "faceThresholdDesc": "上传图像 → 查看匹配分数",
-      "threeDLab": "3D生成测试 (dev)",
-      "threeDLabDesc": "照片 → mesh + 5角度渲染 · 5~30秒",
       "threeDPersonaDev": "3D角色 (dev)",
       "threeDPersonaDevDesc": "GLB头部渲染 + 唇形同步演示 · Phase 1",
       "faceEnrollDev": "面部5角度登记 (dev)",

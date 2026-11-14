@@ -835,8 +835,6 @@
       "vitsTtsDesc": "sherpa-onnx · 모델 캐시 · 1초 목표 측정",
       "faceThreshold": "얼굴 임계값 테스트 (dev)",
       "faceThresholdDesc": "이미지 업로드 → 매칭 score 확인",
-      "threeDLab": "3D 생성 테스트 (dev)",
-      "threeDLabDesc": "사진 → mesh + 5각도 렌더 · 5~30초",
       "threeDPersonaDev": "3D 페르소나 (dev)",
       "threeDPersonaDevDesc": "GLB 헤드 렌더 + 립싱크 데모 · Phase 1",
       "faceEnrollDev": "얼굴 5각도 등록 (dev)",

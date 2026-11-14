@@ -49,7 +49,6 @@ import v_9e01f7 from "../screens/my/TransactionsScreen";
 import v_0035e1 from "../screens/my/PurchaseScreen";
 
 import v_38f630 from "../screens/dev/VisemeTestScreen";
-import v_bf7ede from "../screens/dev/ThreeDLabScreen";
 
 import v_ecc90b from "../screens/dev/ThreeDPersonaScreen";
 
@@ -122,7 +121,6 @@ function v_d9c5dd() {
       <MyStack.Screen name="Reports" component={v_7e6637} />
       <MyStack.Screen name="VisemeTest" component={v_38f630} />
       <MyStack.Screen name="FaceThresholdTest" component={v_30f4d7} />
-      <MyStack.Screen name="ThreeDLab" component={v_bf7ede} />
       <MyStack.Screen name="ThreeDPersona" component={v_ecc90b} />
       <MyStack.Screen name="VoiceLangTest" component={v_89c9e9} />
       <MyStack.Screen name="SettingsGroup" component={v_1619c2} />

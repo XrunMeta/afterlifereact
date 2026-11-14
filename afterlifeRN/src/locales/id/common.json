@@ -835,8 +835,6 @@
       "vitsTtsDesc": "sherpa-onnx · cache model · target 1 detik",
       "faceThreshold": "Tes threshold wajah (dev)",
       "faceThresholdDesc": "Upload gambar → cek skor cocok",
-      "threeDLab": "Tes generasi 3D (dev)",
-      "threeDLabDesc": "Foto → mesh + render 5 sudut · 5~30 detik",
       "threeDPersonaDev": "Persona 3D (dev)",
       "threeDPersonaDevDesc": "Render kepala GLB + demo lip-sync · Phase 1",
       "faceEnrollDev": "Daftar wajah 5 sudut (dev)",

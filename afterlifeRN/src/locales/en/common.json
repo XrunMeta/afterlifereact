@@ -835,8 +835,6 @@
       "vitsTtsDesc": "sherpa-onnx · model cache · 1-second target",
       "faceThreshold": "Face threshold test (dev)",
       "faceThresholdDesc": "Upload image → check match score",
-      "threeDLab": "3D generation test (dev)",
-      "threeDLabDesc": "Photo → mesh + 5-angle render · 5-30 s",
       "threeDPersonaDev": "3D persona (dev)",
       "threeDPersonaDevDesc": "GLB head render + lip-sync demo · Phase 1",
       "faceEnrollDev": "Face 5-angle enroll (dev)",
