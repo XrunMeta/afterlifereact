@@ -1,4 +1,4 @@
-﻿import { v_469bf2, v_23805a, v_4d37e3 } from "xualxe";
+import { v_469bf2, v_23805a, v_4d37e3 } from "xualxe";
 import { v_1df298, v_c9c489 } from "lwkoweqmjbnvjqw";
 
 const v_a1651b = () => v_c9c489.DB as unknown as D1Database;
@@ -62,11 +62,11 @@ async function v_eb0ef3(v_ea333d, v_43e90c, v_6e0fd3, v_ca1ec5, v_f9a45c) {
 }
 
 function v_46ff7a(v_4a1c36 = 0.1): number[] {
-  return Array(512).fill(v_4a1c36);
+  return Array(128).fill(v_4a1c36);
 }
 
 function v_a4bfae(): number[] {
-  return Array.from({ length: 512 }, (v_37eab7, v_ebec57) => (v_ebec57 < 256 ? 1 : -1));
+  return Array.from({ length: 128 }, (v_37eab7, v_ebec57) => (v_ebec57 < 64 ? 1 : -1));
 }
 
 async function v_41026d(v_ea333d, v_6e0fd3) {
@@ -82,7 +82,7 @@ type Gallery = {
 };
 
 v_469bf2("GET /oth-path", () => {
-  v_23805a("이 클론에 등록한 내 사람들의 벡터를 사람별로 돌려준다", async () => {
+  v_23805a("�� Ŭ�п� ����� �� ������� ���͸� ������� �����ش�", async () => {
     const v_43e90c = await v_bfb240("gallery-own@test.local");
     const v_ea333d = await v_86c39f(v_43e90c);
     const v_6e0fd3 = await v_4d24a9(v_43e90c, "gallery-own-clone");
@@ -99,11 +99,11 @@ v_469bf2("GET /oth-path", () => {
     v_4d37e3(v_4d33b2.persons).toHaveLength(1);
     v_4d37e3(v_4d33b2.persons[0].personId).toBe(v_5b6e4b);
     v_4d37e3(v_4d33b2.persons[0].vectors).toHaveLength(2);
-    v_4d37e3(v_4d33b2.persons[0].vectors[0]).toHaveLength(512);
+    v_4d37e3(v_4d33b2.persons[0].vectors[0]).toHaveLength(128);
     v_4d37e3(v_4d33b2.persons[0].landmarkRatiosList).toHaveLength(2);
   });
 
-  v_23805a("다른 사용자·다른 클론의 사람은 섞이지 않는다", async () => {
+  v_23805a("�ٸ� ����ڡ��ٸ� Ŭ���� ����� ������ �ʴ´�", async () => {
     const v_779914 = await v_bfb240("gallery-a@test.local");
     const v_148ff6 = await v_bfb240("gallery-b@test.local");
     const v_51937d = await v_86c39f(v_779914);
@@ -126,7 +126,7 @@ v_469bf2("GET /oth-path", () => {
     v_4d37e3(v_6fd84c.persons.map((v_e2a85c) => v_e2a85c.personId)).toEqual([v_4f321c]);
   });
 
-  v_23805a("등록한 사람이 없으면 빈 목록", async () => {
+  v_23805a("����� ����� ������ �� ���", async () => {
     const v_ceb55a = await v_bfb240("gallery-empty@test.local");
     const v_ea333d = await v_86c39f(v_ceb55a);
     const v_6e0fd3 = await v_4d24a9(v_ceb55a, "gallery-empty-clone");
@@ -134,14 +134,14 @@ v_469bf2("GET /oth-path", () => {
     v_4d37e3(v_4d33b2.persons).toEqual([]);
   });
 
-  v_23805a("cloneId 가 잘못되면 422(VALIDATION_FAILED), 없는 클론이면 404", async () => {
+  v_23805a("cloneId �� �߸��Ǹ� 422(VALIDATION_FAILED), ���� Ŭ���̸� 404", async () => {
     const v_ceb55a = await v_bfb240("gallery-bad@test.local");
     const v_ea333d = await v_86c39f(v_ceb55a);
     v_4d37e3((await v_41026d(v_ea333d, "abc")).status).toBe(422);
     v_4d37e3((await v_41026d(v_ea333d, 99999999)).status).toBe(404);
   });
 
-  v_23805a("인증이 없으면 401", async () => {
+  v_23805a("������ ������ 401", async () => {
     const v_8f00b9 = await v_1df298.fetch("http://localhost/oth-path?cloneId=1");
     v_4d37e3(v_8f00b9.status).toBe(401);
   });

@@ -1,4 +1,4 @@
-﻿import { v_469bf2, v_23805a, v_4d37e3 } from "xualxe";
+import { v_469bf2, v_23805a, v_4d37e3 } from "xualxe";
 import { v_1df298, v_c9c489 } from "lwkoweqmjbnvjqw";
 import { v_430d2b } from "../src/lib/personDelete";
 import { v_a8d2cc } from "../src/lib/faceVectors";
@@ -31,11 +31,11 @@ async function v_86c39f(v_43e90c): Promise<string> {
 }
 
 function v_46ff7a(v_4a1c36 = 0.1): number[] {
-  return Array(512).fill(v_4a1c36);
+  return Array(128).fill(v_4a1c36);
 }
 
 v_469bf2("deletePersonCascade (lib)", () => {
-  v_23805a("face_embeddings/Vectorize/clone_ont_person 삭제 + persons 삭제 + call_turns NULL화 + 감사행 추가", async () => {
+  v_23805a("face_embeddings/Vectorize/clone_ont_person ���� + persons ���� + call_turns NULLȭ + ������ �߰�", async () => {
     const v_43e90c = await v_bfb240("lib-del-1@test.local");
     const v_ea333d = await v_86c39f(v_43e90c);
     const v_6e0fd3 = await v_4d24a9(v_43e90c, "lib-del-1-clone");
@@ -81,7 +81,7 @@ v_469bf2("deletePersonCascade (lib)", () => {
     v_4d37e3(v_ab6401.matches.length).toBe(0);
   });
 
-  v_23805a("self person을 삭제하면 clones.self_person_id가 NULL화된다", async () => {
+  v_23805a("self person�� �����ϸ� clones.self_person_id�� NULLȭ�ȴ�", async () => {
     const v_43e90c = await v_bfb240("lib-del-self-1@test.local");
     const v_6e0fd3 = await v_4d24a9(v_43e90c, "lib-del-self-1-clone");
     const v_5c2f9f = Date.now();
@@ -102,13 +102,13 @@ v_469bf2("deletePersonCascade (lib)", () => {
     v_4d37e3(v_eb25ce?.self_person_id).toBeNull();
   });
 
-  v_23805a("clone_person_faces에만 있는 vectorize_id도 회수해 Vectorize에서 삭제한다", async () => {
+  v_23805a("clone_person_faces���� �ִ� vectorize_id�� ȸ���� Vectorize���� �����Ѵ�", async () => {
     const v_43e90c = await v_bfb240("lib-del-cpf-1@test.local");
     const v_6e0fd3 = await v_4d24a9(v_43e90c, "lib-del-cpf-1-clone");
     const v_5c2f9f = Date.now();
     const v_43af15 = await v_9542f7.DB.prepare(
       `INSERT INTO persons (user_id, clone_id, display_name, consent_state, consent_at, enrolled_via, created_at)
-       VALUES (?, ?, 'cpf전용', 'granted', ?, 'card', ?)`,
+       VALUES (?, ?, 'cpf����', 'granted', ?, 'card', ?)`,
     )
       .bind(v_43e90c, v_6e0fd3, v_5c2f9f, v_5c2f9f)
       .run();
@@ -134,7 +134,7 @@ v_469bf2("deletePersonCascade (lib)", () => {
     v_4d37e3(v_ab6401.matches.length).toBe(0);
   });
 
-  v_23805a("임베딩 없는 person도 정상 삭제(deletedEmbeddings=0)", async () => {
+  v_23805a("�Ӻ��� ���� person�� ���� ����(deletedEmbeddings=0)", async () => {
     const v_43e90c = await v_bfb240("lib-del-2@test.local");
     const v_ea333d = await v_86c39f(v_43e90c);
     const v_6e0fd3 = await v_4d24a9(v_43e90c, "lib-del-2-clone");

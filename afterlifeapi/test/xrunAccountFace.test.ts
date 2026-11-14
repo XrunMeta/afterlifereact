@@ -1,4 +1,4 @@
-﻿
+
 
 import { v_469bf2, v_23805a, v_4d37e3, v_ff107d, v_719203 } from "xualxe";
 import { v_c9c489, v_8fd90d } from "lwkoweqmjbnvjqw";
@@ -57,7 +57,7 @@ v_719203(() => {
 });
 
 v_469bf2("matchXrunAccountFace", () => {
-  v_23805a("match + 대표 벡터 → status match · embedding 512 왕복", async () => {
+  v_23805a("match + ��ǥ ���� �� status match �� embedding 128 �պ�", async () => {
     const v_0c8987 = await v_bfb240("m1@x.test", 2855);
     const v_f10744 = v_80cae9(1);
     let v_f966e3 = null;
@@ -69,7 +69,7 @@ v_469bf2("matchXrunAccountFace", () => {
     const v_cb35cb = await v_a298e2(v_9542f7, v_0c8987, v_bb280b, { withEmbedding: true });
     v_4d37e3(v_cb35cb.status).toBe("match");
     if (v_cb35cb.status !== "match") return;
-    v_4d37e3(v_cb35cb.embedding).toHaveLength(512);
+    v_4d37e3(v_cb35cb.embedding).toHaveLength(128);
     v_4d37e3(Math.abs(v_cb35cb.embedding![0] - v_f10744[0])).toBeLessThan(1e-6);
     v_4d37e3(v_f966e3.member).toBe(2855);
     v_4d37e3(v_f966e3.withEmbedding).toBe(true);
@@ -78,7 +78,7 @@ v_469bf2("matchXrunAccountFace", () => {
     v_4d37e3(Math.abs(v_56e16d[5] - v_bb280b[1][5])).toBeLessThan(1e-6);
   });
 
-  v_23805a("match false → mismatch · enrolled false → none", async () => {
+  v_23805a("match false �� mismatch �� enrolled false �� none", async () => {
     const v_0c8987 = await v_bfb240("m2@x.test", 2856);
     v_84f079("/oth-path").reply(200, { status: "success", data: { enrolled: true, match: false } });
     v_4d37e3((await v_a298e2(v_9542f7, v_0c8987, [v_80cae9(1)])).status).toBe("mismatch");
@@ -86,7 +86,7 @@ v_469bf2("matchXrunAccountFace", () => {
     v_4d37e3((await v_a298e2(v_9542f7, v_0c8987, [v_80cae9(1)])).status).toBe("none");
   });
 
-  v_23805a("500 · 네트워크 오류 · 시간 초과 · 임베딩 길이 이상 → none", async () => {
+  v_23805a("500 �� ��Ʈ��ũ ���� �� �ð� �ʰ� �� �Ӻ��� ���� �̻� �� none", async () => {
     const v_0c8987 = await v_bfb240("m3@x.test", 2857);
     v_84f079("/oth-path").reply(500, { status: "error" });
     v_4d37e3((await v_a298e2(v_9542f7, v_0c8987, [v_80cae9(1)])).status).toBe("none");
@@ -101,12 +101,12 @@ v_469bf2("matchXrunAccountFace", () => {
     v_525d9f();
     v_84f079("/oth-path").reply(200, {
       status: "success",
-      data: { enrolled: true, match: true, embedding: v_4c4400(v_80cae9(1).slice(0, 511)) },
+      data: { enrolled: true, match: true, embedding: v_4c4400(v_80cae9(1).slice(0, 127)) },
     });
     v_4d37e3((await v_a298e2(v_9542f7, v_0c8987, [v_80cae9(1)], { withEmbedding: true })).status).toBe("none");
   });
 
-  v_23805a("xrun_member_id 없음 → xrun 을 부르지 않고 none", async () => {
+  v_23805a("xrun_member_id ���� �� xrun �� �θ��� �ʰ� none", async () => {
     const v_0c8987 = await v_bfb240("m4@x.test", null);
 
     const v_cb35cb = await v_a298e2(v_9542f7, v_0c8987, [v_80cae9(1)]);
@@ -115,8 +115,8 @@ v_469bf2("matchXrunAccountFace", () => {
   });
 });
 
-v_469bf2("xrun 얼굴 없음 기억", () => {
-  v_23805a("enrolled=false·오류는 잠깐 기억해 다시 묻지 않는다(얼굴 없는 계정이 대부분) · match/mismatch 는 기억 안 함", async () => {
+v_469bf2("xrun �� ���� ���", () => {
+  v_23805a("enrolled=false�������� ��� ����� �ٽ� ���� �ʴ´�(�� ���� ������ ��κ�) �� match/mismatch �� ��� �� ��", async () => {
     const v_0c8987 = await v_bfb240("c1@x.test", 2870);
     v_84f079("/oth-path").reply(200, { status: "success", data: { enrolled: false, match: false } });
     v_4d37e3((await v_a298e2(v_9542f7, v_0c8987, [v_80cae9(1)])).status).toBe("none");
@@ -132,7 +132,7 @@ v_469bf2("xrun 얼굴 없음 기억", () => {
 });
 
 v_469bf2("xrunAccountFaceEnrolled", () => {
-  v_23805a("faceStatus active → true · 그 외·오류 → false", async () => {
+  v_23805a("faceStatus active �� true �� �� �ܡ����� �� false", async () => {
     const v_0c8987 = await v_bfb240("s1@x.test", 2860);
     v_84f079("/oth-path").reply(200, { status: "success", data: { enabled: true, faceStatus: "active" } });
     v_4d37e3(await v_a43ce1(v_9542f7, v_0c8987)).toBe(true);
