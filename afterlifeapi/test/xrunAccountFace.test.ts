@@ -9,7 +9,7 @@ const v_9542f7 = v_c9c489 as unknown as Parameters<typeof v_a298e2>[0];
 const v_cafb6f = new URL((v_c9c489 as unknown as { XRUN_API_URL: string }).XRUN_API_URL).origin;
 
 function v_80cae9(v_bdb39e): number[] {
-  const v_81e2ef = new Array(512).fill(0).map((v_37eab7, v_ebec57) => Math.sin(v_bdb39e * 31 + v_ebec57));
+  const v_81e2ef = new Array(128).fill(0).map((v_37eab7, v_ebec57) => Math.sin(v_bdb39e * 31 + v_ebec57));
   const v_f4e98d = Math.sqrt(v_81e2ef.reduce((v_fd5f43, v_62c214) => v_fd5f43 + v_62c214 * v_62c214, 0));
   return v_81e2ef.map((v_62c214) => v_62c214 / v_f4e98d);
 }
@@ -57,7 +57,7 @@ v_719203(() => {
 });
 
 v_469bf2("matchXrunAccountFace", () => {
-  v_23805a("match + 대표 벡터 → status match · embedding 512 왕복", async () => {
+  v_23805a("match + 대표 벡터 → status match · embedding 128 왕복", async () => {
     const v_0c8987 = await v_bfb240("m1@x.test", 2855);
     const v_f10744 = v_80cae9(1);
     let v_f966e3 = null;
@@ -69,7 +69,7 @@ v_469bf2("matchXrunAccountFace", () => {
     const v_cb35cb = await v_a298e2(v_9542f7, v_0c8987, v_bb280b, { withEmbedding: true });
     v_4d37e3(v_cb35cb.status).toBe("match");
     if (v_cb35cb.status !== "match") return;
-    v_4d37e3(v_cb35cb.embedding).toHaveLength(512);
+    v_4d37e3(v_cb35cb.embedding).toHaveLength(128);
     v_4d37e3(Math.abs(v_cb35cb.embedding![0] - v_f10744[0])).toBeLessThan(1e-6);
     v_4d37e3(v_f966e3.member).toBe(2855);
     v_4d37e3(v_f966e3.withEmbedding).toBe(true);
@@ -101,7 +101,7 @@ v_469bf2("matchXrunAccountFace", () => {
     v_525d9f();
     v_84f079("/oth-path").reply(200, {
       status: "success",
-      data: { enrolled: true, match: true, embedding: v_4c4400(v_80cae9(1).slice(0, 511)) },
+      data: { enrolled: true, match: true, embedding: v_4c4400(v_80cae9(1).slice(0, 127)) },
     });
     v_4d37e3((await v_a298e2(v_9542f7, v_0c8987, [v_80cae9(1)], { withEmbedding: true })).status).toBe("none");
   });

@@ -84,7 +84,8 @@ class AvatarVideoTrack(VideoStreamTrack):
         self._drop_total = 0        # 이 트랙 수명 동안 버린 총 프레임 수
         self._drop_pending = 0      # 아직 로그로 못 뱉은 누적분
         self._drop_log_ts = 0.0     # 마지막 드롭 로그 시각(0=아직 없음 → 첫 건 즉시 로그)
-        # [2026-09-23 임시] idle 스트림 dump — PRETHIRD_RECORD_IDLE=1 일 때만.
+        # [디버그용] [2026-09-23 임시] idle 스트림 dump — PRETHIRD_RECORD_IDLE=1 일 때만.
+        #   운영 드롭인 idle-rec.conf 는 2026-10-21 비활성. 목록 = DEBUG_DATA_INDEX.md
         #   목적: 사용자가 idle 시간에 실제로 본 프레임을 사후 회수. answer.mp4 는
         #   말하는 프레임만 담기고 idle 은 없어서 debug 시 재구성 불가.
         #   구조: recv() idle 분기에서 arr 를 buffer 에 누적, 다음 real frame 이

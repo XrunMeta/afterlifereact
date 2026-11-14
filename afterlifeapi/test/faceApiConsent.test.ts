@@ -28,7 +28,7 @@ async function v_4d24a9(v_1badb6, v_556427): Promise<number> {
 async function v_ea333d(v_43e90c): Promise<string> {
   return v_b2eae5({ sub: v_43e90c, kind: "access" }, (v_c9c489 as { JWT_ACCESS_SECRET: string }).JWT_ACCESS_SECRET, 600);
 }
-const v_46ff7a = () => Array.from({ length: 512 }, (v_37eab7, v_ebec57) => (v_ebec57 === 0 ? 1 : 0));
+const v_46ff7a = () => Array.from({ length: 128 }, (v_37eab7, v_ebec57) => (v_ebec57 === 0 ? 1 : 0));
 async function v_51c3d2(v_bfe9b9, v_9fe22d, v_21cc31, v_4d33b2) {
   return v_1df298.fetch(`http://localhost${v_9fe22d}`, {
     method: v_bfe9b9,

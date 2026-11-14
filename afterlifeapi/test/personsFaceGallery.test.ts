@@ -62,11 +62,11 @@ async function v_eb0ef3(v_ea333d, v_43e90c, v_6e0fd3, v_ca1ec5, v_f9a45c) {
 }
 
 function v_46ff7a(v_4a1c36 = 0.1): number[] {
-  return Array(512).fill(v_4a1c36);
+  return Array(128).fill(v_4a1c36);
 }
 
 function v_a4bfae(): number[] {
-  return Array.from({ length: 512 }, (v_37eab7, v_ebec57) => (v_ebec57 < 256 ? 1 : -1));
+  return Array.from({ length: 128 }, (v_37eab7, v_ebec57) => (v_ebec57 < 64 ? 1 : -1));
 }
 
 async function v_41026d(v_ea333d, v_6e0fd3) {
@@ -99,7 +99,7 @@ v_469bf2("GET /oth-path", () => {
     v_4d37e3(v_4d33b2.persons).toHaveLength(1);
     v_4d37e3(v_4d33b2.persons[0].personId).toBe(v_5b6e4b);
     v_4d37e3(v_4d33b2.persons[0].vectors).toHaveLength(2);
-    v_4d37e3(v_4d33b2.persons[0].vectors[0]).toHaveLength(512);
+    v_4d37e3(v_4d33b2.persons[0].vectors[0]).toHaveLength(128);
     v_4d37e3(v_4d33b2.persons[0].landmarkRatiosList).toHaveLength(2);
   });
 

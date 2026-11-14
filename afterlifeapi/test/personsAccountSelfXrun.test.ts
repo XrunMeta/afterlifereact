@@ -1,4 +1,4 @@
-
+﻿
 
 import { v_469bf2, v_23805a, v_4d37e3, v_ff107d, v_719203 } from "xualxe";
 import { v_1df298, v_c9c489, v_8fd90d } from "lwkoweqmjbnvjqw";
@@ -35,8 +35,8 @@ async function v_4d24a9(v_1badb6, v_556427): Promise<number> {
 }
 
 function v_46ff7a(v_bdb39e): number[] {
-  const v_81e2ef = new Array(512).fill(0);
-  v_81e2ef[v_bdb39e % 512] = 1;
+  const v_81e2ef = new Array(128).fill(0);
+  v_81e2ef[v_bdb39e % 128] = 1;
   return v_81e2ef;
 }
 function v_8a9589(v_81e2ef): string {
@@ -186,7 +186,7 @@ v_469bf2("AFL-1065 from-account-self — xrun 계정 얼굴 복사", () => {
 
     const v_ba2215 = (await (await v_51c3d2("/oth-path", v_9edd60, { cloneId: v_148ff6, displayName: "히즈키", enrolledVia: "card" })).json()) as { id: number };
     await v_a1651b()
-      .prepare(`INSERT INTO clone_person_faces (clone_id, person_id, vectorize_id, model, dim, source, created_at) VALUES (?, ?, 'pending-v', 'w600k_mbf', 512, 'self', ?)`)
+      .prepare(`INSERT INTO clone_person_faces (clone_id, person_id, vectorize_id, model, dim, source, created_at) VALUES (?, ?, 'pending-v', 'sface', 128, 'self', ?)`)
       .bind(v_148ff6, v_ba2215.id, Date.now())
       .run();
     v_949537({ enrolled: true, match: true, embedding: v_8a9589(v_46ff7a(7)) });

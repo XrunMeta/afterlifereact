@@ -4,6 +4,7 @@
     { "section": "native", "name": "WebRTC", "license": "BSD-3-Clause", "url": "https://webrtc.googlesource.com/src/+/main/LICENSE", "notice": "Copyright (c) 2011, The WebRTC project authors. All rights reserved." },
     { "section": "native", "name": "Filament", "license": "Apache-2.0", "url": "https://github.com/google/filament", "notice": "Copyright (C) 2015 The Android Open Source Project" },
     { "section": "native", "name": "TensorFlow Lite (LiteRT)", "license": "Apache-2.0", "url": "https://github.com/tensorflow/tensorflow", "notice": "Copyright The TensorFlow Authors." },
+    { "section": "native", "name": "OpenCV Zoo SFace (face recognition model)", "license": "Apache-2.0", "url": "https://github.com/opencv/opencv_zoo/tree/main/models/face_recognition_sface", "notice": "SFace model from OpenCV Zoo, licensed under Apache-2.0. Converted from ONNX to TensorFlow Lite (float16) for on-device use." },
     { "section": "native", "name": "Firebase SDK", "license": "Apache-2.0", "url": "https://github.com/firebase/firebase-android-sdk" },
     { "section": "native", "name": "Google ML Kit", "license": "ML Kit Terms of Service", "url": "https://developers.google.com/ml-kit/terms" },
     { "section": "native", "name": "Feather Icons", "license": "MIT", "url": "https://github.com/feathericons/feather", "notice": "Copyright (c) 2013-2017 Cole Bemis" },

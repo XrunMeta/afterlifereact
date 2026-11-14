@@ -4,7 +4,7 @@ import { v_a8d2cc, v_dbed3e } from "../src/lib/faceVectors";
 v_469bf2("faceVectors", () => {
   v_ff107d(() => v_dbed3e());
   const v_c9c489 = (v_b71f86 = {}) => ({ ENVIRONMENT: "staging", ...v_b71f86 }) as any;
-  const v_46ff7a = (v_bdb39e) => Array.from({ length: 512 }, (v_37eab7, v_ebec57) => Math.sin(v_bdb39e * 1000 + v_ebec57));
+  const v_46ff7a = (v_bdb39e) => Array.from({ length: 128 }, (v_37eab7, v_ebec57) => Math.sin(v_bdb39e * 1000 + v_ebec57));
 
   v_23805a("insert 후 같은 namespace에서 query 매칭", async () => {
     const v_e86ad8 = v_a8d2cc(v_c9c489());

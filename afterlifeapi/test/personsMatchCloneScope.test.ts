@@ -1,4 +1,4 @@
-
+﻿
 
 import { v_469bf2, v_23805a, v_4d37e3, v_ff107d } from "xualxe";
 import { v_1df298, v_c9c489 } from "lwkoweqmjbnvjqw";
@@ -33,8 +33,8 @@ async function v_4d24a9(v_1badb6, v_556427, v_3a8949 = "memlow"): Promise<number
 }
 
 function v_46ff7a(v_bdb39e): number[] {
-  const v_81e2ef = new Array(512).fill(0);
-  v_81e2ef[v_bdb39e % 512] = 1;
+  const v_81e2ef = new Array(128).fill(0);
+  v_81e2ef[v_bdb39e % 128] = 1;
   return v_81e2ef;
 }
 
@@ -52,7 +52,7 @@ async function v_a09be7(v_43e90c, v_6e0fd3, v_ca1ec5, v_f9a45c) {
   await v_a1651b()
     .prepare(
       `INSERT INTO clone_person_faces (clone_id, person_id, vectorize_id, model, dim, source, created_at)
-       VALUES (?, ?, ?, 'w600k_mbf', 512, 'enroll', ?)`,
+       VALUES (?, ?, ?, 'sface', 128, 'enroll', ?)`,
     )
     .bind(v_6e0fd3, v_ca1ec5, v_f8758e, Date.now())
     .run();
@@ -366,7 +366,7 @@ v_469bf2("unknown → L2′ 생성 왕복", () => {
     await v_a1651b()
       .prepare(
         `INSERT INTO clone_person_faces (clone_id, person_id, vectorize_id, model, dim, source, created_at)
-         VALUES (?, ?, ?, 'w600k_mbf', 512, 'enroll', ?)`,
+         VALUES (?, ?, ?, 'sface', 128, 'enroll', ?)`,
       )
       .bind(v_c521ce, v_306a28.id, v_f8758e, Date.now())
       .run();
@@ -461,7 +461,7 @@ v_469bf2("POST /oth-path — 한 사람이 후보를 독점하지 않는다", ()
   });
 
   function v_80cae9(v_468545): number[] {
-    const v_81e2ef = new Array(512).fill(0);
+    const v_81e2ef = new Array(128).fill(0);
     for (const [v_ebec57, v_62c214] of Object.entries(v_468545)) v_81e2ef[Number(v_ebec57)] = v_62c214;
     const v_f4e98d = Math.hypot(...v_81e2ef);
     return v_81e2ef.map((v_62c214) => v_62c214 / v_f4e98d);

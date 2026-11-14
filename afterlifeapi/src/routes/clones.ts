@@ -44,6 +44,7 @@ import { v_842ce7 } from "../lib/guideJob";
 import { v_4c5429 } from "../lib/cloneFaceScope";
 import { v_94652e } from "../lib/faceApiConsent";
 import { v_d0fd96 } from "../lib/displayName";
+import { v_60c684 } from "../lib/faceEmbed";
 
 export const v_f891e6 = new v_b7c41b<v_de0a25>();
 
@@ -2313,10 +2314,10 @@ v_f891e6.post("/:cloneId/self-confirm", v_6690d9, async (v_3f4e2e) => {
     !Array.isArray(v_f94e64) ||
     v_f94e64.length !== 3 ||
     v_f94e64.some(
-      (v_81e2ef) => !Array.isArray(v_81e2ef) || v_81e2ef.length !== 512 || v_81e2ef.some((v_62c214) => typeof v_62c214 !== "number" || !Number.isFinite(v_62c214)),
+      (v_81e2ef) => !Array.isArray(v_81e2ef) || v_81e2ef.length !== v_60c684 || v_81e2ef.some((v_62c214) => typeof v_62c214 !== "number" || !Number.isFinite(v_62c214)),
     )
   )
-    throw new v_3ebe58("VALIDATION_FAILED", "vectors: 정확히 3개의 512차원 수치 배열이어야 합니다");
+    throw new v_3ebe58("VALIDATION_FAILED", `vectors: 정확히 3개의 ${v_60c684}차원 수치 배열이어야 합니다`);
 
   const v_eb25ce = await v_3f4e2e.env.DB.prepare(
     `SELECT id, clone_type, self_person_id FROM clones WHERE id = ? AND owner_id = ? AND ${v_74c502()}`,

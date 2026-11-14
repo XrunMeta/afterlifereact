@@ -31,7 +31,7 @@ async function v_86c39f(v_43e90c): Promise<string> {
 }
 
 function v_46ff7a(v_4a1c36 = 0.1): number[] {
-  return Array(512).fill(v_4a1c36);
+  return Array(128).fill(v_4a1c36);
 }
 
 v_469bf2("deletePersonCascade (lib)", () => {
@@ -122,7 +122,7 @@ v_469bf2("deletePersonCascade (lib)", () => {
 
     await v_9542f7.DB.prepare(
       `INSERT INTO clone_person_faces (clone_id, person_id, vectorize_id, model, dim, source, created_at)
-       VALUES (?, ?, ?, 'w600k_mbf', 512, 'enroll', ?)`,
+       VALUES (?, ?, ?, 'sface', 128, 'enroll', ?)`,
     )
       .bind(v_6e0fd3, v_ca1ec5, v_f8758e, v_5c2f9f)
       .run();

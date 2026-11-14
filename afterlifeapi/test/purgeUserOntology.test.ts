@@ -8,7 +8,7 @@ import type { v_273a0c } from "../src/lib/env";
 const v_9542f7 = v_c9c489 as unknown as v_273a0c;
 
 function v_46ff7a(v_4a1c36): number[] {
-  return Array(512).fill(v_4a1c36);
+  return Array(128).fill(v_4a1c36);
 }
 
 async function v_bfb240(v_389afb): Promise<void> {
@@ -98,14 +98,14 @@ v_469bf2("purgeUserOntology", () => {
     await v_a1651b
       .prepare(
         `INSERT INTO clone_person_faces (clone_id, person_id, vectorize_id, model, dim, source, created_at)
-         VALUES (?, ?, 'vec-purge-1', 'w600k_mbf', 512, 'call', ?)`,
+         VALUES (?, ?, 'vec-purge-1', 'sface', 128, 'call', ?)`,
       )
       .bind(v_6e0fd3, v_ca1ec5, Date.now())
       .run();
     await v_a1651b
       .prepare(
         `INSERT INTO face_embeddings (person_id, vectorize_id, model, dim, source, created_at)
-         VALUES (?, 'vec-purge-2', 'w600k_mbf', 512, 'enroll', ?)`,
+         VALUES (?, 'vec-purge-2', 'sface', 128, 'enroll', ?)`,
       )
       .bind(v_ca1ec5, Date.now())
       .run();

@@ -1,4 +1,4 @@
-import { v_469bf2, v_23805a, v_4d37e3, v_ff107d } from "xualxe";
+﻿import { v_469bf2, v_23805a, v_4d37e3, v_ff107d } from "xualxe";
 import { v_1df298, v_c9c489 } from "lwkoweqmjbnvjqw";
 import { v_dbed3e } from "../src/lib/faceVectors";
 import { v_54846c } from "../src/lib/password";
@@ -156,7 +156,7 @@ v_469bf2("나를 기억하는 클론", () => {
     await v_a1651b
       .prepare(
         `INSERT INTO clone_person_faces (clone_id, person_id, vectorize_id, model, dim, source, created_at)
-         VALUES (?, ?, ?, 'w600k_mbf', 512, 'self', ?)`,
+         VALUES (?, ?, ?, 'sface', 128, 'self', ?)`,
       )
       .bind(v_6e0fd3, v_7019c8, "vec-self-1", Date.now())
       .run();
@@ -165,7 +165,7 @@ v_469bf2("나를 기억하는 클론", () => {
     await v_a1651b
       .prepare(
         `INSERT INTO clone_person_faces (clone_id, person_id, vectorize_id, model, dim, source, created_at)
-         VALUES (?, ?, ?, 'w600k_mbf', 512, 'enroll', ?)`,
+         VALUES (?, ?, ?, 'sface', 128, 'enroll', ?)`,
       )
       .bind(v_6e0fd3, v_912627, "vec-other-1", Date.now())
       .run();

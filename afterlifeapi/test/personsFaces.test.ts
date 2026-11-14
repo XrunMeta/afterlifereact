@@ -53,7 +53,7 @@ async function v_a56201(v_ea333d, v_ca1ec5) {
 }
 
 function v_46ff7a(v_4a1c36 = 0.1): number[] {
-  return Array(512).fill(v_4a1c36);
+  return Array(128).fill(v_4a1c36);
 }
 
 v_469bf2("POST /oth-path", () => {

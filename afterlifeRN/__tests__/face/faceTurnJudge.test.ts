@@ -96,13 +96,17 @@ describe("judgeTurn", () => {
   });
 });
 
-describe("judgeTurn — 점수 0.1 이하 불일치는 판정 불가(2026-10-23)", () => {
-  test("3개 모두 0.1 이하 불일치 → insufficient", () =>
-    expect(v_6fea6b([v_fd5f43(null, 0.1), v_fd5f43(null, 0.05), v_fd5f43(null, 0.09)], 175).kind).toBe("insufficient"));
-  test("하나라도 0.1 이하가 섞이면 unknown 이 아니다 — 현재 화자 유지", () =>
-    expect(v_6fea6b([v_fd5f43(null, 0.2), v_fd5f43(null, 0.05), v_fd5f43(null, 0.3)], 175)).toMatchObject({ kind: "known", personId: 175 }));
-  test("모두 0.1 초과 불일치 → unknown", () =>
-    expect(v_6fea6b([v_fd5f43(null, 0.11), v_fd5f43(null, 0.2), v_fd5f43(null, 0.3)], 175).kind).toBe("unknown"));
+describe("judgeTurn — 화면 좋은 불일치는 점수와 상관없이 근거(AFL-1097)", () => {
+  test("실통화 9246 — 남 얼굴 0.067·0.097·0.128(ok) → unknown", () =>
+    expect(v_6fea6b([v_fd5f43(null, 0.067), v_fd5f43(null, 0.097), v_fd5f43(null, 0.128)], 197)).toMatchObject({ kind: "unknown", score: 0.128 }));
+  test("실통화 9246 — ok 불일치 2개 + 어두운 화면 1개 → unknown 아님, 현재 화자 유지", () =>
+    expect(v_6fea6b([v_fd5f43(null, 0.147), v_fd5f43(null, 0.123), v_fd5f43(null, 0.09, "dark")], 197)).toMatchObject({ kind: "known", personId: 197 }));
+  test("점수 0 인 ok 불일치 3개도 unknown", () =>
+    expect(v_6fea6b([v_fd5f43(null, 0), v_fd5f43(null, 0), v_fd5f43(null, 0)], null).kind).toBe("unknown"));
+  test("어두운 화면 낮은 점수 불일치(비켜선 본인 0.101·0.095) → insufficient", () =>
+    expect(v_6fea6b([v_fd5f43(null, 0.101, "dark"), v_fd5f43(null, 0.095, "dark"), v_fd5f43(null, 0.09, "dark")], null).kind).toBe("insufficient"));
+  test("옆모습·작은 얼굴 불일치도 근거 아님 → 현재 화자 유지", () =>
+    expect(v_6fea6b([v_fd5f43(null, 0.05, "turned"), v_fd5f43(null, 0.05, "small"), v_fd5f43(null, 0.05)], 175)).toMatchObject({ kind: "known", personId: 175 }));
 });
 
 describe("judgeTurn — 등록 얼굴이 하나도 없는 클론(2026-10-23)", () => {
@@ -111,6 +115,4 @@ describe("judgeTurn — 등록 얼굴이 하나도 없는 클론(2026-10-23)", (
     expect(v_6fea6b([v_d6db99(), v_d6db99(), v_d6db99()], null).kind).toBe("unknown"));
   test("비교 대상이 없어도 어두운 화면은 근거가 아니다", () =>
     expect(v_6fea6b([v_d6db99("dark"), v_d6db99("dark"), v_d6db99("dark")], null).kind).toBe("insufficient"));
-  test("비교 대상이 있는데 점수 0 이면(0.1 이하) 그대로 근거 아님", () =>
-    expect(v_6fea6b([v_fd5f43(null, 0), v_fd5f43(null, 0), v_fd5f43(null, 0)], null).kind).toBe("insufficient"));
 });

@@ -53,7 +53,7 @@ async function v_a56201(v_ea333d, v_ca1ec5) {
 }
 
 function v_46ff7a(v_4a1c36 = 0.1): number[] {
-  return Array(512).fill(v_4a1c36);
+  return Array(128).fill(v_4a1c36);
 }
 
 async function v_eb0ef3(v_ea333d, v_6e0fd3, v_ca1ec5, v_4a1c36 = 0.1) {
