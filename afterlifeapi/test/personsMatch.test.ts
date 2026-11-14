@@ -78,7 +78,7 @@ async function v_a63110(v_ea333d, v_f9a45c, v_6e0fd3) {
 }
 
 v_469bf2("POST /oth-path", () => {
-  v_23805a("enroll�� person�� ���� ���� �� best ��ġ��score>0.99", async () => {
+  v_23805a("enroll된 person과 같은 벡터 → best 일치·score>0.99", async () => {
     const v_43e90c = await v_bfb240("match-same@test.local");
     const v_ea333d = await v_86c39f(v_43e90c);
     const v_6e0fd3 = await v_4d24a9(v_43e90c, "match-same-clone");
@@ -98,7 +98,7 @@ v_469bf2("POST /oth-path", () => {
     v_4d37e3(v_4d33b2.best!.score).toBeGreaterThan(0.99);
   });
 
-  v_23805a("���� �ٸ�(����) ���� �� best null", async () => {
+  v_23805a("전혀 다른(직교) 벡터 → best null", async () => {
     const v_43e90c = await v_bfb240("match-orth@test.local");
     const v_ea333d = await v_86c39f(v_43e90c);
     const v_6e0fd3 = await v_4d24a9(v_43e90c, "match-orth-clone");
@@ -112,7 +112,7 @@ v_469bf2("POST /oth-path", () => {
     v_4d37e3(v_4d33b2.best).toBeNull();
   });
 
-  v_23805a("����� B�� A ���� ���� Ŭ������ match �õ� �� 200������ A�� ����� ������ �ʴ´�(namespace �ݸ�)", async () => {
+  v_23805a("사용자 B가 A 소유 공개 클론으로 match 시도 → 200이지만 A의 등록은 보이지 않는다(namespace 격리)", async () => {
     const v_1badb6 = await v_bfb240("match-owner@test.local");
     const v_7f0625 = await v_bfb240("match-attacker@test.local");
     const v_40444e = await v_86c39f(v_1badb6);
@@ -130,7 +130,7 @@ v_469bf2("POST /oth-path", () => {
     v_4d37e3(v_4d33b2.matches).toHaveLength(0);
   });
 
-  v_23805a("�����(private) Ŭ������ Ÿ���� match �õ� �� 404(��¥ �������� ��� ����)", async () => {
+  v_23805a("비공개(private) 클론으로 타인이 match 시도 → 404(진짜 비접근은 계속 차단)", async () => {
     const v_1badb6 = await v_bfb240("match-priv-owner@test.local");
     await v_a1651b()
       .prepare(
@@ -149,7 +149,7 @@ v_469bf2("POST /oth-path", () => {
     v_4d37e3(v_8f00b9.status).toBe(404);
   });
 
-  v_23805a("vector ���� ����(���� ����) �� 422 VALIDATION_FAILED", async () => {
+  v_23805a("vector 형식 오류(길이 부족) → 422 VALIDATION_FAILED", async () => {
     const v_43e90c = await v_bfb240("match-badvec@test.local");
     const v_ea333d = await v_86c39f(v_43e90c);
 
@@ -159,7 +159,7 @@ v_469bf2("POST /oth-path", () => {
     v_4d37e3(v_4d33b2.error.code).toBe("VALIDATION_FAILED");
   });
 
-  v_23805a("vector�� ���ġ ���� �� 422 VALIDATION_FAILED", async () => {
+  v_23805a("vector에 비수치 포함 → 422 VALIDATION_FAILED", async () => {
     const v_43e90c = await v_bfb240("match-nonnumeric@test.local");
     const v_ea333d = await v_86c39f(v_43e90c);
     const v_0af197 = v_46ff7a();
@@ -171,7 +171,7 @@ v_469bf2("POST /oth-path", () => {
     v_4d37e3(v_4d33b2.error.code).toBe("VALIDATION_FAILED");
   });
 
-  v_23805a("app_config face.match_threshold �ݿ� �� ���� threshold �ʵ� ��ġ(�Ӱ谪 ���� �Ұ��ϸ� best null)", async () => {
+  v_23805a("app_config face.match_threshold 반영 → 응답 threshold 필드 일치(임계값 충족 불가하면 best null)", async () => {
     const v_43e90c = await v_bfb240("match-threshold@test.local");
     const v_ea333d = await v_86c39f(v_43e90c);
     const v_6e0fd3 = await v_4d24a9(v_43e90c, "match-threshold-clone");

@@ -86,7 +86,7 @@ async function v_2266b0(v_ca1ec5): Promise<number> {
 }
 
 v_469bf2("DELETE /oth-path", () => {
-  v_23805a("enroll??person ??�� ??200, face_embeddings/clone_ont_person ??0 + consent_log 보존(??�� 감사??추�?) + call_turns FK NULL??+ 같�? 벡터 match �?결과", async () => {
+  v_23805a("enroll된 person 삭제 → 200, face_embeddings/clone_ont_person 행 0 + consent_log 보존(삭제 감사행 추가) + call_turns FK NULL화 + 같은 벡터 match 빈 결과", async () => {
     const v_a1651b = v_c9c489.DB as unknown as D1Database;
     const v_43e90c = await v_bfb240("del-full@test.local");
     const v_ea333d = await v_86c39f(v_43e90c);
@@ -147,7 +147,7 @@ v_469bf2("DELETE /oth-path", () => {
     v_4d37e3(v_80a1ce.matches.length).toBe(0);
   });
 
-  v_23805a("?�전 ??�� ???�호�???404", async () => {
+  v_23805a("완전 삭제 후 재호출 → 404", async () => {
     const v_43e90c = await v_bfb240("del-redelete@test.local");
     const v_ea333d = await v_86c39f(v_43e90c);
     const v_6e0fd3 = await v_4d24a9(v_43e90c, "del-redelete-clone");
@@ -164,7 +164,7 @@ v_469bf2("DELETE /oth-path", () => {
     v_4d37e3(v_4d33b2.error.code).toBe("NOT_FOUND");
   });
 
-  v_23805a("부�??�패 ???�시??진짜 ?�현) ??Vectorize�?먼�? ?�멸(?�우??�?직접 ?�출)???�태?�서 ?�호출해??deleteByIds no-op?�로 200 ?�결·???�이�??�리", async () => {
+  v_23805a("부분 실패 후 재시도(진짜 재현) — Vectorize만 먼저 소멸(라우트 밖 직접 호출)된 상태에서 재호출해도 deleteByIds no-op으로 200 완결·전 테이블 정리", async () => {
     const v_a1651b = v_c9c489.DB as unknown as D1Database;
     const v_43e90c = await v_bfb240("del-partial@test.local");
     const v_ea333d = await v_86c39f(v_43e90c);
@@ -211,7 +211,7 @@ v_469bf2("DELETE /oth-path", () => {
     v_4d37e3(v_8dbe6c?.speaker_person_id).toBe(null);
   });
 
-  v_23805a("?�???�유 person ??404", async () => {
+  v_23805a("타인 소유 person → 404", async () => {
     const v_257b90 = await v_bfb240("del-owner@test.local");
     const v_53bb36 = await v_bfb240("del-attacker@test.local");
     const v_40444e = await v_86c39f(v_257b90);
@@ -226,7 +226,7 @@ v_469bf2("DELETE /oth-path", () => {
     v_4d37e3(v_4d33b2.error.code).toBe("NOT_FOUND");
   });
 
-  v_23805a("비정??person id ??422 VALIDATION_FAILED", async () => {
+  v_23805a("비정수 person id → 422 VALIDATION_FAILED", async () => {
     const v_43e90c = await v_bfb240("del-nanid@test.local");
     const v_ea333d = await v_86c39f(v_43e90c);
 

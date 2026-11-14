@@ -1,4 +1,4 @@
-﻿
+
 
 import { v_469bf2, v_23805a, v_4d37e3, v_ff107d } from "xualxe";
 import { v_1df298, v_c9c489 } from "lwkoweqmjbnvjqw";
@@ -387,11 +387,11 @@ v_469bf2("계정 본인 얼굴 — 보안 감사 반영", () => {
 function v_64368f(v_bdb39e, v_a9cbf1, v_fa7d4c): number[] {
   const v_81e2ef = new Array(128).fill(0);
   v_81e2ef[v_bdb39e % 128] = v_fa7d4c;
-  v_81e2ef[v_a9cbf1 % 512] = Math.sqrt(1 - v_fa7d4c * v_fa7d4c);
+  v_81e2ef[v_a9cbf1 % 128] = Math.sqrt(1 - v_fa7d4c * v_fa7d4c);
   return v_81e2ef;
 }
 
-v_469bf2("계정 본인 얼굴 — 판정 하한 0.5", () => {
+v_469bf2("계정 본인 얼굴 — 판정 하한(SFace 운영 임계 0.363)", () => {
   v_ff107d(() => v_dbed3e());
 
   async function v_9a4ebd(v_cd931c) {
@@ -404,22 +404,22 @@ v_469bf2("계정 본인 얼굴 — 판정 하한 0.5", () => {
     return { tk: v_9edd60, b: v_148ff6 };
   }
 
-  v_23805a("점수 0.55(운영 임계 0.6 미만)도 selfMatch=true, best 는 null 유지", async () => {
+  v_23805a("점수 0.40(운영 임계 이상)도 selfMatch=true, best 는 null 유지", async () => {
     const { tk: v_9edd60, b: v_148ff6 } = await v_9a4ebd("th1");
-    const v_8f00b9 = (await (await v_51c3d2("/oth-path", v_9edd60, { vector: v_64368f(31, 32, 0.55), cloneId: v_148ff6 })).json()) as MatchRes;
+    const v_8f00b9 = (await (await v_51c3d2("/oth-path", v_9edd60, { vector: v_64368f(31, 32, 0.4), cloneId: v_148ff6 })).json()) as MatchRes;
     v_4d37e3(v_8f00b9.best).toBeNull();
     v_4d37e3(v_8f00b9.selfMatch).toBe(true);
   });
 
-  v_23805a("점수 0.45 는 selfMatch=false", async () => {
+  v_23805a("점수 0.30 는 selfMatch=false", async () => {
     const { tk: v_9edd60, b: v_148ff6 } = await v_9a4ebd("th2");
-    const v_8f00b9 = (await (await v_51c3d2("/oth-path", v_9edd60, { vector: v_64368f(31, 32, 0.45), cloneId: v_148ff6 })).json()) as MatchRes;
+    const v_8f00b9 = (await (await v_51c3d2("/oth-path", v_9edd60, { vector: v_64368f(31, 32, 0.3), cloneId: v_148ff6 })).json()) as MatchRes;
     v_4d37e3(v_8f00b9.selfMatch).toBe(false);
   });
 
-  v_23805a("from-account-self 도 0.55 를 본인으로 받아 201", async () => {
+  v_23805a("from-account-self 도 0.40 를 본인으로 받아 201", async () => {
     const { tk: v_9edd60, b: v_148ff6 } = await v_9a4ebd("th3");
-    const v_cb35cb = await v_51c3d2("/oth-path", v_9edd60, { cloneId: v_148ff6, displayName: "나", vector: v_64368f(31, 32, 0.55) });
+    const v_cb35cb = await v_51c3d2("/oth-path", v_9edd60, { cloneId: v_148ff6, displayName: "나", vector: v_64368f(31, 32, 0.4) });
     v_4d37e3(v_cb35cb.status).toBe(201);
   });
 });
@@ -427,7 +427,7 @@ v_469bf2("계정 본인 얼굴 — 판정 하한 0.5", () => {
 v_469bf2("계정 본인 얼굴 — 여러 장 중 최고 점수로 판정", () => {
   v_ff107d(() => v_dbed3e());
 
-  v_23805a("한 장은 0.45 여도 다른 한 장이 0.55 면 201", async () => {
+  v_23805a("한 장은 0.30 여도 다른 한 장이 0.40 면 201", async () => {
     const v_0c8987 = await v_bfb240("mv1@t.com");
     const v_779914 = await v_4d24a9(v_0c8987, "mv1_a");
     const v_148ff6 = await v_4d24a9(v_0c8987, "mv1_b");
@@ -435,12 +435,12 @@ v_469bf2("계정 본인 얼굴 — 여러 장 중 최고 점수로 판정", () =
     const v_d4923e = await v_9ef1c2(v_0c8987, v_779914, v_9edd60, "나", 41);
     v_4d37e3((await v_51c3d2(`/oth-path${v_d4923e}/account-self`, v_9edd60, {})).status).toBe(200);
     const v_cb35cb = await v_51c3d2("/oth-path", v_9edd60, {
-      cloneId: v_148ff6, displayName: "나", vectors: [v_64368f(41, 42, 0.45), v_64368f(41, 43, 0.55)],
+      cloneId: v_148ff6, displayName: "나", vectors: [v_64368f(41, 42, 0.3), v_64368f(41, 43, 0.4)],
     });
     v_4d37e3(v_cb35cb.status).toBe(201);
   });
 
-  v_23805a("모든 장이 0.5 미만이면 422 SELF_FACE_MISMATCH", async () => {
+  v_23805a("모든 장이 운영 임계 미만이면 422 SELF_FACE_MISMATCH", async () => {
     const v_0c8987 = await v_bfb240("mv2@t.com");
     const v_779914 = await v_4d24a9(v_0c8987, "mv2_a");
     const v_148ff6 = await v_4d24a9(v_0c8987, "mv2_b");
@@ -448,7 +448,7 @@ v_469bf2("계정 본인 얼굴 — 여러 장 중 최고 점수로 판정", () =
     const v_d4923e = await v_9ef1c2(v_0c8987, v_779914, v_9edd60, "나", 51);
     v_4d37e3((await v_51c3d2(`/oth-path${v_d4923e}/account-self`, v_9edd60, {})).status).toBe(200);
     const v_cb35cb = await v_51c3d2("/oth-path", v_9edd60, {
-      cloneId: v_148ff6, displayName: "나", vectors: [v_64368f(51, 52, 0.4), v_64368f(51, 53, 0.45)],
+      cloneId: v_148ff6, displayName: "나", vectors: [v_64368f(51, 52, 0.25), v_64368f(51, 53, 0.3)],
     });
     v_4d37e3(v_cb35cb.status).toBe(422);
   });
