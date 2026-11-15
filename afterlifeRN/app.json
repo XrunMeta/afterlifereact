@@ -49,7 +49,7 @@
     },
     "android": {
       "package": "run.xrun.afterlifeRN",
-      "versionCode": 110,
+      "versionCode": 111,
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
