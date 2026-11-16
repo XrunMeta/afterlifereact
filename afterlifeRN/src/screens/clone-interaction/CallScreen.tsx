@@ -118,7 +118,6 @@ import {
   selfConfirm,
   fetchFacePolicy,
   enrollFaces,
-  createPersonFromAccountSelf,
   faceMatcher,
   type Person,
 } from "../../api/persons";
@@ -814,9 +813,6 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
   const accountSelfMatchRef = useRef(false);
 
-  const autoSelfRegisterInFlightRef = useRef(false);
-  const autoSelfRegisteredRef = useRef(false);
-
   const calibrateOpt = useMemo(
     () => (FACE_DIAG_ENABLED ? { accessToken: accessToken ?? "", groundTruthPersonId: gtPersonId } : null),
     [accessToken, gtPersonId],
@@ -887,36 +883,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     calibrate: calibrateOpt,
     onCollected: angleCollector.observe,
 
-    onSelfMatch: (v: boolean) => {
-      if (!v) return;
-      accountSelfMatchRef.current = true;
-      if (autoSelfRegisteredRef.current || autoSelfRegisterInFlightRef.current) return;
-      if (!accessToken) return;
-      const snap = unknownFaceSnapshotRef.current;
-      const vectors = (snap && snap.length > 0 ? snap : getFaceEmbeddingBuffer().latest(FACE_ENROLL_VECTOR_COUNT))
-        .slice(-FACE_ENROLL_VECTOR_COUNT)
-        .filter((vv) => vv.length === FACE_EMBED_DIM);
-      if (vectors.length === 0) return;
-      const displayName = (myNameRef.current ?? "").trim() || "본인";
-      autoSelfRegisterInFlightRef.current = true;
-      createPersonFromAccountSelf(accessToken, cloneId, displayName, vectors)
-        .then((res) => {
-          autoSelfRegisteredRef.current = true;
-          console.log(`[Call][face] AFL-1101 자동 self 등록 → personId=${res.id} name=${res.displayName}`);
-        })
-        .catch((err) => {
-          const code = err instanceof AuthApiError ? err.code : "";
-          if (code === "ALREADY_REGISTERED") {
-            autoSelfRegisteredRef.current = true;
-            console.log(`[Call][face] AFL-1101 자동 self 등록 → 이미 등록됨 (skip)`);
-          } else {
-            console.warn(`[Call][face] AFL-1101 자동 self 등록 실패 code=${code || "?"}:`, err);
-          }
-        })
-        .finally(() => {
-          autoSelfRegisterInFlightRef.current = false;
-        });
-    },
+    onSelfMatch: (v: boolean) => { if (v) accountSelfMatchRef.current = true; },
 
     onCycle: handleFaceCycle,
 
@@ -931,9 +898,6 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
   useEffect(() => {
     resetFaceRoster();
-
-    autoSelfRegisterInFlightRef.current = false;
-    autoSelfRegisteredRef.current = false;
     return () => resetFaceRoster();
   }, []);
 
