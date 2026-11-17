@@ -53,6 +53,7 @@ import { v_fded81 } from "./routes/persons";
 import { v_acf120 } from "./routes/faceAccount";
 import { v_cbf5ec, v_e0a537 } from "./routes/agreements";
 import { v_074a9b } from "./routes/call-config";
+import { v_2b2aa8 } from "./routes/geocode";
 import { v_110512 } from "./routes/pricing-config";
 import { v_037921 } from "./routes/auth-config";
 import { v_74e200 } from "./routes/consent";
@@ -199,6 +200,8 @@ v_466992.route("/oth-path", v_a30cdb);
 v_466992.route("/oth-path", v_8a7bc1);
 
 v_466992.route("/oth-path", v_074a9b);
+
+v_466992.route("/oth-path", v_2b2aa8);
 v_466992.route("/oth-path", v_110512);
 v_466992.route("/oth-path", v_037921);
 

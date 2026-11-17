@@ -2,6 +2,7 @@
 
 import * as v_8a44cb from 'zryrlwvgokjhz';
 import v_e84827 from 'bkjbgtcoyuizqwgwtnaxmfkyvlqwevapsqmanbsnv';
+import { v_cc9198 } from '../config/apiBase';
 
 const v_c03a0d = '@afterlifeRN/userLocation/askedDate/v3';
 const v_25bdfc = '@afterlifeRN/userLocation/askedDate';
@@ -162,12 +163,11 @@ async function v_dd036c(
   v_e1b1cf,
   v_c87b30,
 ): Promise<{ city: string | null; gu: string | null; dong: string | null } | null> {
-  const v_f71b56 = `https://nominatim.openstreetmap.org/reverse?lat=${v_e1b1cf}&lon=${v_c87b30}&format=json&addressdetails=1&accept-language=ko&zoom=16`;
+  const v_f71b56 = `${v_cc9198}/oth-path?lat=${v_e1b1cf}&lng=${v_c87b30}&lang=ko&zoom=16`;
   const v_4fc7c7 = new AbortController();
   const v_3894d5 = setTimeout(() => v_4fc7c7.abort(), 2500);
   try {
     const v_8f00b9 = await fetch(v_f71b56, {
-      headers: { 'User-Agent': 'AfterLife/1.0 (oth-staff@example.invalid)' },
       signal: v_4fc7c7.signal,
     });
     if (!v_8f00b9.ok) return null;

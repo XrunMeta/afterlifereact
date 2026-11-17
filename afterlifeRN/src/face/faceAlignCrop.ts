@@ -6,6 +6,10 @@ export interface FaceLandmarksLike {
   landmarks?: {
     LEFT_EYE?: EyePoint;
     RIGHT_EYE?: EyePoint;
+
+    NOSE_BASE?: EyePoint;
+    MOUTH_LEFT?: EyePoint;
+    MOUTH_RIGHT?: EyePoint;
   } | null;
 }
 
@@ -16,6 +20,18 @@ const v_c71323 = 112;
 const v_4ebe87 = 56 - 51.60; 
 const v_ff6b87 = 55.91;
 const v_170803 = 51.60;
+
+const v_addd8a = {
+  leftEye:    { x: 38.29, y: 51.69 },
+  rightEye:   { x: 73.53, y: 51.50 },
+  nose:       { x: 56.02, y: 72.00 },
+  mouthLeft:  { x: 41.55, y: 92.37 },
+  mouthRight: { x: 70.72, y: 92.37 },
+} as const;
+const v_19de8e = {
+  x: (v_addd8a.leftEye.x + v_addd8a.rightEye.x + v_addd8a.nose.x + v_addd8a.mouthLeft.x + v_addd8a.mouthRight.x) / 5,
+  y: (v_addd8a.leftEye.y + v_addd8a.rightEye.y + v_addd8a.nose.y + v_addd8a.mouthLeft.y + v_addd8a.mouthRight.y) / 5,
+};
 
 const v_961af1 = (1.5 * Math.PI) / 180;
 
@@ -35,10 +51,95 @@ interface AlignedCropWithRoll {
   rollExpand: number;
 }
 
+interface FivePointFit {
+  scale: number;       
+  rollRad: number;     
+  cropCenter: { x: number; y: number }; 
+}
+
+function v_107cf7<T extends FaceLandmarksLike>(v_7d769d): FivePointFit | null {
+  'worklet';
+  const v_8c6427 = v_7d769d.landmarks;
+  if (v_8c6427 == null) return null;
+  const { LEFT_EYE: v_e37196, RIGHT_EYE: v_d95200, NOSE_BASE: v_e39ea6, MOUTH_LEFT: v_f95599, MOUTH_RIGHT: v_c1fa8d } = v_8c6427;
+  if (v_e37196 == null || v_d95200 == null || v_e39ea6 == null || v_f95599 == null || v_c1fa8d == null) return null;
+
+  const v_553162 = [v_e37196, v_d95200, v_e39ea6, v_f95599, v_c1fa8d];
+  for (const v_e2a85c of v_553162) {
+    if (typeof v_e2a85c.x !== 'number' || typeof v_e2a85c.y !== 'number') return null;
+    if (!Number.isFinite(v_e2a85c.x) || !Number.isFinite(v_e2a85c.y)) return null;
+  }
+  const v_2b3f7c = [
+    v_addd8a.leftEye,
+    v_addd8a.rightEye,
+    v_addd8a.nose,
+    v_addd8a.mouthLeft,
+    v_addd8a.mouthRight,
+  ];
+
+  let v_54e7f0 = 0, v_a97bb6 = 0, v_5d98a3 = 0, v_ed9f38 = 0;
+  for (let v_ebec57 = 0; v_ebec57 < 5; v_ebec57++) {
+    v_54e7f0 += v_553162[v_ebec57]!.x; v_a97bb6 += v_553162[v_ebec57]!.y;
+    v_5d98a3 += v_2b3f7c[v_ebec57]!.x; v_ed9f38 += v_2b3f7c[v_ebec57]!.y;
+  }
+  v_54e7f0 /= 5; v_a97bb6 /= 5; v_5d98a3 /= 5; v_ed9f38 /= 5;
+
+  let v_f50528 = 0, v_e78b66 = 0, v_370b05 = 0;
+  for (let v_ebec57 = 0; v_ebec57 < 5; v_ebec57++) {
+    const v_e5f36b = v_553162[v_ebec57]!.x - v_54e7f0;
+    const v_e37af0 = v_553162[v_ebec57]!.y - v_a97bb6;
+    const v_a35347 = v_2b3f7c[v_ebec57]!.x - v_5d98a3;
+    const v_92e88e = v_2b3f7c[v_ebec57]!.y - v_ed9f38;
+    v_f50528 += v_a35347 * v_e5f36b + v_92e88e * v_e37af0;
+    v_e78b66 += v_92e88e * v_e5f36b - v_a35347 * v_e37af0;
+    v_370b05 += v_e5f36b * v_e5f36b + v_e37af0 * v_e37af0;
+  }
+  if (!(v_370b05 > 0)) return null;
+  const v_64e654 = v_f50528 / v_370b05;
+  const v_3164f3 = v_e78b66 / v_370b05;
+  const v_787b92 = Math.sqrt(v_64e654 * v_64e654 + v_3164f3 * v_3164f3);
+  if (!(v_787b92 > 0) || !Number.isFinite(v_787b92)) return null;
+
+  const v_b476a0 = -Math.atan2(v_3164f3, v_64e654);
+  const v_a37637 = v_787b92; 
+
+  const v_94bbae = v_64e654 * v_64e654 + v_3164f3 * v_3164f3;
+  const v_17d9f0 = v_64e654 / v_94bbae;
+  const v_b91965 = -v_3164f3 / v_94bbae;
+  const v_6b26d3 = 56 - v_5d98a3;
+  const v_8e5557 = 56 - v_ed9f38;
+
+  const v_4148d9 = v_6b26d3 * v_17d9f0 - v_8e5557 * v_b91965 + v_54e7f0;
+  const v_85ddfd = v_6b26d3 * v_b91965 + v_8e5557 * v_17d9f0 + v_a97bb6;
+  return { scale: v_a37637, rollRad: v_b476a0, cropCenter: { x: v_4148d9, y: v_85ddfd } };
+}
+
 function v_af002e<T extends FaceLandmarksLike>(v_7d769d): AlignedCropWithRoll | null {
   'worklet';
   const v_8c6427 = v_7d769d.landmarks;
   if (v_8c6427 == null) return null;
+
+  const v_9ad07a = v_107cf7(v_7d769d);
+  if (v_9ad07a != null) {
+    const v_075d74 = v_e24300(v_9ad07a.rollRad);
+
+    const v_199e12 = (v_c71323 / v_9ad07a.scale) * v_075d74;
+    if (!(v_199e12 > 0) || !Number.isFinite(v_199e12)) {
+
+    } else {
+      return {
+        crop: {
+          x: Math.max(0, v_9ad07a.cropCenter.x - v_199e12 / 2),
+          y: Math.max(0, v_9ad07a.cropCenter.y - v_199e12 / 2),
+          width: v_199e12,
+          height: v_199e12,
+        },
+        rollRad: v_9ad07a.rollRad,
+        rollExpand: v_075d74,
+      };
+    }
+  }
+
   const v_e37196 = v_8c6427.LEFT_EYE;
   const v_d95200 = v_8c6427.RIGHT_EYE;
   if (v_e37196 == null || v_d95200 == null) return null;
@@ -65,6 +166,8 @@ function v_af002e<T extends FaceLandmarksLike>(v_7d769d): AlignedCropWithRoll | 
     rollExpand: v_075d74,
   };
 }
+
+export { v_107cf7 };
 
 export function v_2c12f7<T extends FaceLandmarksLike>(v_7d769d): CropRect | null {
   'worklet';

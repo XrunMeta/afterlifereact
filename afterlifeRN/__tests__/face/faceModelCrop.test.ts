@@ -1,5 +1,6 @@
 import {
   v_e2ddec,
+  v_107cf7,
   v_2c12f7,
   v_12b919,
   v_516b4f,
@@ -111,5 +112,94 @@ describe("얼굴 crop — roll(고개 기울기) 정렬", () => {
     expect(v_8d4337).not.toBe(v_38d084);
     expect(v_8d4337.length).toBe(v_38d084.length);
     for (let v_ebec57 = 0; v_ebec57 < v_8d4337.length; v_ebec57++) expect(Number.isFinite(v_8d4337[v_ebec57]!)).toBe(true);
+  });
+});
+
+describe("얼굴 crop — 5점 affine (eyes·nose·mouth)", () => {
+
+  const v_00295f = {
+    LEFT_EYE: { x: 38.29, y: 51.69 },
+    RIGHT_EYE: { x: 73.53, y: 51.50 },
+    NOSE_BASE: { x: 56.02, y: 72.00 },
+    MOUTH_LEFT: { x: 41.55, y: 92.37 },
+    MOUTH_RIGHT: { x: 70.72, y: 92.37 },
+  };
+
+  function v_f00331(v_e2a85c, v_fd5f43, v_e1f329, v_2f6fcc, v_275fdb) {
+    const v_3f4e2e = Math.cos(v_e1f329), v_7924cc = Math.sin(v_e1f329);
+    return { x: v_fd5f43 * (v_3f4e2e * v_e2a85c.x - v_7924cc * v_e2a85c.y) + v_2f6fcc, y: v_fd5f43 * (v_7924cc * v_e2a85c.x + v_3f4e2e * v_e2a85c.y) + v_275fdb };
+  }
+
+  function v_7f5f6a(v_fd5f43, v_e1f329, v_2f6fcc, v_275fdb) {
+    const v_e3b1de = (k: keyof typeof v_00295f) => v_f00331(v_00295f[v_0eb677], v_fd5f43, v_e1f329, v_2f6fcc, v_275fdb);
+    return {
+      bounds: { x: 0, y: 0, width: 400, height: 400 },
+      landmarks: {
+        LEFT_EYE: v_e3b1de("LEFT_EYE"),
+        RIGHT_EYE: v_e3b1de("RIGHT_EYE"),
+        NOSE_BASE: v_e3b1de("NOSE_BASE"),
+        MOUTH_LEFT: v_e3b1de("MOUTH_LEFT"),
+        MOUTH_RIGHT: v_e3b1de("MOUTH_RIGHT"),
+      },
+    };
+  }
+
+  test("템플릿 그대로 넣으면 scale=1, roll=0", () => {
+    const v_7d769d = v_7f5f6a(1, 0, 0, 0);
+    const v_0c7e5e = v_107cf7(v_7d769d);
+    expect(v_0c7e5e).not.toBeNull();
+    expect(v_0c7e5e!.scale).toBeCloseTo(1, 5);
+    expect(v_0c7e5e!.rollRad).toBeCloseTo(0, 5);
+  });
+
+  test("scale 3, roll 15°, 평행이동 → fit 이 역변환 복원", () => {
+    const v_e1f329 = (15 * Math.PI) / 180;
+    const v_fd5f43 = 3;
+    const v_7d769d = v_7f5f6a(v_fd5f43, v_e1f329, 200, 150);
+    const v_0c7e5e = v_107cf7(v_7d769d);
+    expect(v_0c7e5e).not.toBeNull();
+
+    expect(v_0c7e5e!.scale).toBeCloseTo(1 / v_fd5f43, 5);
+    expect(v_0c7e5e!.rollRad).toBeCloseTo(v_e1f329, 5);
+
+    const v_505a6d = v_f00331({ x: 56, y: 56 }, v_fd5f43, v_e1f329, 200, 150);
+    expect(v_0c7e5e!.cropCenter.x).toBeCloseTo(v_505a6d.x, 4);
+    expect(v_0c7e5e!.cropCenter.y).toBeCloseTo(v_505a6d.y, 4);
+  });
+
+  test("랜드마크 하나 빠지면 null — 2점 폴백 유도", () => {
+    const v_7d769d = {
+      bounds: { x: 0, y: 0, width: 400, height: 400 },
+      landmarks: {
+        LEFT_EYE: { x: 100, y: 100 },
+        RIGHT_EYE: { x: 150, y: 100 },
+
+        MOUTH_LEFT: { x: 110, y: 160 },
+        MOUTH_RIGHT: { x: 140, y: 160 },
+      },
+    };
+    expect(v_107cf7(v_7d769d)).toBeNull();
+  });
+
+  test("modelCropFor: 5점 다 있으면 2점만 썼을 때와 다른 crop (pitch 보정)", () => {
+
+    const v_7dce79 = {
+      bounds: { x: 0, y: 0, width: 400, height: 400 },
+      landmarks: {
+        LEFT_EYE: { x: 100, y: 100 },
+        RIGHT_EYE: { x: 150, y: 100 },
+        NOSE_BASE: { x: 125, y: 160 }, 
+        MOUTH_LEFT: { x: 110, y: 200 },
+        MOUTH_RIGHT: { x: 140, y: 200 },
+      },
+    };
+    const v_e7adb8 = {
+      bounds: v_7dce79.bounds,
+      landmarks: { LEFT_EYE: v_7dce79.landmarks.LEFT_EYE, RIGHT_EYE: v_7dce79.landmarks.RIGHT_EYE },
+    };
+    const v_fd5674 = v_fa192b(v_7dce79, 640, 480, "portrait").crop;
+    const v_3881e0 = v_fa192b(v_e7adb8, 640, 480, "portrait").crop;
+
+    expect(v_fd5674.y).not.toBeCloseTo(v_3881e0.y, 1);
   });
 });

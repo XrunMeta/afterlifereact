@@ -312,7 +312,10 @@ export function v_3d8d48(v_328259): v_b01667 {
     v_8c8005(null);   
     v_2d5539.current = 0;    
 
-    const v_12cd99 = v_84b93d.createPeerConnection({ iceServers: v_506dd1 });
+    const v_b2a158 = v_5b540b.getState().iceServers;
+    const v_12cd99 = v_84b93d.createPeerConnection({
+      iceServers: v_b2a158 as unknown as typeof v_506dd1,
+    });
     v_f98743.current = v_12cd99;
     v_12cd99.addEventListener('track', (ev: { streams?: v_802da4[]; track: any }) => {
       if (!v_759436()) return;

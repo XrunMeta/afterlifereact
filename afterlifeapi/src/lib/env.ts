@@ -40,6 +40,8 @@ export interface Bindings {
 
   CALL_EXPERIMENTAL_BASE?: string;
 
+  CALL_ICE_SERVERS?: string;
+
   EMOTE_RENDER_SECRET?: string;
 
   ADMIN_BOOTSTRAP_TOKEN?: string;
