@@ -73,7 +73,7 @@ import { INITIAL_FACE_COUNT_TRIGGER, stepFaceCountTrigger } from "../../face/fac
 import { useFaceDetection } from "../../hooks/useFaceDetection";
 import { largestFace, significantFaces } from "../../face/largestFace";
 import { normalizeFrameTimestampMs } from "../../face/frameTimestamp";
-import { modelCropFor } from "../../face/faceAlignCrop";
+import { applyRollAlignFloat32, modelCropFor } from "../../face/faceAlignCrop";
 import { detectWhoIntent } from "../../face/whoIntent";
 import {
   isFaceConsentGrantedState,
@@ -1336,25 +1336,23 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
           const fo = (frame as unknown as { orientation?: string }).orientation;
           const mc = modelCropFor(primary, frame.width, frame.height, fo);
-          const cropX = mc.crop.x;
-          const cropY = mc.crop.y;
-          const cropW = mc.crop.width;
-          const cropH = mc.crop.height;
           const resized = resize(frame, {
-            crop: { x: cropX, y: cropY, width: cropW, height: cropH },
+            crop: mc.crop,
             scale: { width: 112, height: 112 },
             rotation: mc.rotation,
             pixelFormat: "rgb",
             dataType: "float32",
           });
 
-          const normalized = new Float32Array(resized.length);
-          for (let i = 0; i < resized.length; i++) {
-            normalized[i] = resized[i] * 255;
+          const aligned = applyRollAlignFloat32(resized, 112, mc.rollRad, mc.rollExpand);
+
+          const normalized = new Float32Array(aligned.length);
+          for (let i = 0; i < aligned.length; i++) {
+            normalized[i] = aligned[i] * 255;
           }
 
           const quality = classifyFaceQualityGuarded({
-            luma: meanLuma(resized),
+            luma: meanLuma(aligned),
             faceWidthRatio: primary.bounds.width / frame.width,
             yawRatio: faceYawRatio(
               (primary as unknown as {
