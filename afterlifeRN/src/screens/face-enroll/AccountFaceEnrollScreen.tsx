@@ -5,15 +5,19 @@ import { v_3094a2, v_19b633, v_472849, v_4623af, v_39a996, v_a2349e, v_d49152 } 
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import v_f595b9, { v_bf60de } from "vpztcxjmsfanunln";
 import { v_e82960, v_0e491a } from "qmmwyqbwrg";
-import * as v_3c288d from "bxoplsnixpmvnirxbbkstg";
 import { v_862296 as v_628d75, v_db5a6b, v_b08ef3 } from "mkqptszwrsxiemcjrtdlshyxlm";
 import { v_d73d29, v_fc0657 } from "fkysyevuehkssftyrtweoolhfw";
+import { v_b24f74 } from "hpkstesipoootxeqkajlxyxt";
+import { v_cb507d } from "hbzwhsuegbhzscystubugxnkiwe";
 
 import { v_fd3d66 as v_ac8611 } from "../../face/safeFaceDetector";
 import { v_772971 } from "jmpfvteuuztnp";
 import type { v_75de9d } from "zqqvxke";
 import { v_e74bab } from "../../face/largestFace";
 import { v_a40fe8 } from "../../face/frameTimestamp";
+import { v_fa192b, v_e2ddec } from "../../face/faceAlignCrop";
+import { v_a64bce } from "../../face/l2normalize";
+import { v_60c684 } from "../../face/faceEmbed";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_84a859 } from "../../api/auth";
 import { v_d24cb4, v_62d015, type v_7282a2 } from "../../api/faceAccount";
@@ -85,19 +89,19 @@ export default function v_5b71e1({ onDone: v_7b5712 }: { onDone: () => void }) {
   const [v_f9f059, v_7c7b9c] = v_5ab095<boolean | null>(null);
   const [v_62f5a9, v_7c0eee] = v_5ab095<{ id: string; shots: ShotKey[] } | null>(null);
   const [v_85f251, v_024d7d] = v_5ab095(0);
-  const [v_db2e13, v_3c192b] = v_5ab095<string[]>([]);
+  const [v_f94e64, v_3e13e5] = v_5ab095<number[][]>([]);
   const [v_cb66b4, v_ee9ec1] = v_5ab095(false);
   const [v_5e9bfe, v_3a7d09] = v_5ab095<string | null>(null);
   const [v_26803c, v_807576] = v_5ab095<{ yaw: number; pitch: number } | null>(null);
 
-  const v_1a165b = v_e662ae<v_628d75>(null);
   const v_4bc1f9 = v_e662ae(0);
   const v_6ba760 = v_e662ae<ShotKey[]>([]);
   const v_ab47d1 = v_e662ae(false);
   const v_e1fdd2 = v_e662ae<{ yaw: number; pitch: number } | null>(null);
   const v_c260c5 = v_e662ae(0);
 
-  const v_35e6eb = v_e662ae(0);
+  const v_d0be9c = v_e662ae<number[]>([]);
+  const v_5428c9 = v_e662ae<number>(0);
   v_c4deb2(() => { v_4bc1f9.current = v_85f251; }, [v_85f251]);
   v_c4deb2(() => { v_6ba760.current = v_62f5a9?.shots ?? []; }, [v_62f5a9]);
 
@@ -139,7 +143,7 @@ export default function v_5b71e1({ onDone: v_7b5712 }: { onDone: () => void }) {
   const v_fd0d55 = v_de06a3(async () => {
     if (!v_2ca7e0) return;
     v_3a7d09(null);
-    v_3c192b([]);
+    v_3e13e5([]);
     v_024d7d(0);
     v_4bc1f9.current = 0;
     v_c260c5.current = 0;
@@ -161,53 +165,34 @@ export default function v_5b71e1({ onDone: v_7b5712 }: { onDone: () => void }) {
 
   }, []);
 
-  const v_e6b3ef = v_de06a3(async () => {
-    const v_375edd = v_1a165b.current;
+  const v_e6b3ef = v_de06a3(() => {
     const v_e86ad8 = v_4bc1f9.current;
-    if (!v_375edd || v_ab47d1.current || v_e86ad8 >= v_6ba760.current.length) return;
-
-    const v_f2a27f = v_e1fdd2.current;
-    console.log(
-      `[AccountFaceEnroll] takeShot: idx=${v_e86ad8} step=${v_6ba760.current[v_e86ad8]} ` +
-        `yaw=${v_f2a27f?.yaw.toFixed(1) ?? "n/a"} pitch=${v_f2a27f?.pitch.toFixed(1) ?? "n/a"}`,
-    );
+    if (v_ab47d1.current || v_e86ad8 >= v_6ba760.current.length) return;
+    const v_81e2ef = v_d0be9c.current;
+    if (!v_81e2ef || v_81e2ef.length !== v_60c684 || v_5428c9.current !== 1) return;
     v_ab47d1.current = true;
     try {
-      const v_2a5a61 = await v_375edd.takePhoto({ flash: "off", enableShutterSound: false });
-      const v_f5dbce = await v_3c288d.manipulateAsync(
-        v_2a5a61.path.startsWith("file://") ? v_2a5a61.path : `file://${v_2a5a61.path}`,
-        [{ resize: { width: 640 } }],
-        { compress: 0.85, format: v_3c288d.SaveFormat.JPEG },
-      );
+      const v_825625 = Array.from(v_a64bce(Float32Array.from(v_81e2ef)));
       v_d49152.vibrate(v_e86ad8 >= v_6ba760.current.length - 1 ? [0, 120, 90, 260] : 120);
       v_1eef66(v_e1989a[v_7c0430[v_6ba760.current[v_e86ad8]].sfx]);
       v_a2349e.sequence([
         v_a2349e.timing(v_ac8592, { toValue: 0.5, duration: 70, useNativeDriver: true }),
         v_a2349e.timing(v_ac8592, { toValue: 0, duration: 200, useNativeDriver: true }),
       ]).start();
-      v_3c192b((v_ba2215) => [...v_ba2215, v_f5dbce.uri]);
+      v_3e13e5((v_ba2215) => [...v_ba2215, v_825625]);
       v_4bc1f9.current = v_e86ad8 + 1;
       v_024d7d(v_e86ad8 + 1);
-    } catch (v_9e86fd) {
-      console.warn("[AccountFaceEnroll] takePhoto failed:", (v_9e86fd as Error).message);
     } finally {
       v_c260c5.current = 0;
       v_ab47d1.current = false;
     }
   }, [v_ac8592, v_1eef66, v_e1989a]);
 
-  const v_88ac29 = v_df9f57(
+  const v_998534 = v_df9f57(
     () =>
-      v_d73d29.createRunOnJS((v_0b2889, v_c81315, v_e4ff5e) => {
-
-        const v_67e77e = Date.now();
-        if (v_67e77e - v_35e6eb.current >= 1000) {
-          v_35e6eb.current = v_67e77e;
-          console.log(
-            `[AccountFaceEnroll] pose: faces=${v_0b2889} yaw=${v_c81315.toFixed(1)} pitch=${v_e4ff5e.toFixed(1)} ` +
-              `shotIdx=${v_4bc1f9.current} step=${v_6ba760.current[v_4bc1f9.current] ?? "-"}`,
-          );
-        }
+      v_d73d29.createRunOnJS((v_f9a45c, v_0b2889, v_c81315, v_e4ff5e) => {
+        v_d0be9c.current = v_f9a45c;
+        v_5428c9.current = v_0b2889;
         if (v_0b2889 !== 1) {
           v_807576(null);
           v_c260c5.current = 0;
@@ -226,15 +211,20 @@ export default function v_5b71e1({ onDone: v_7b5712 }: { onDone: () => void }) {
           return;
         }
         v_c260c5.current += 1;
-        if (v_c260c5.current >= 3) void v_e6b3ef();
+        if (v_c260c5.current >= 3) v_e6b3ef();
       }),
     [v_e6b3ef],
   );
 
   const v_ac8c13 = v_db5a6b("front");
   const { detectFaces: v_de4d76 } = v_ac8611(v_10f62f);
+  const { resize: v_2e11e8 } = v_cb507d();
+  const v_2ce97f = v_b24f74(require("../../../assets/models/sface.tflite"));
+  const v_23f1a4 = v_2ce97f.state === "loaded" ? v_2ce97f.model : null;
+
   const v_adbd66 = v_fc0657(0);
   const v_44c2eb = v_df9f57(() => require("rcmrninabrnb").Platform.OS === "android", []);
+
   const v_f001a7 = v_b08ef3(
     (v_143cb5) => {
       "worklet";
@@ -242,31 +232,46 @@ export default function v_5b71e1({ onDone: v_7b5712 }: { onDone: () => void }) {
       if (v_67e77e - v_adbd66.value < 200) return;
       v_adbd66.value = v_67e77e;
       const v_a51d09 = v_de4d76(v_143cb5);
-      const v_127e92 = v_e74bab(v_a51d09);
-      if (v_127e92 == null) {
-        v_88ac29(0, 0, 0);
+      if (v_23f1a4 == null) {
+
+        const v_127e92 = v_e74bab(v_a51d09);
+        if (v_127e92 == null) { v_998534([], 0, 0, 0); return; }
+        const v_c81315 = (v_127e92 as unknown as { yawAngle?: number }).yawAngle ?? 0;
+        const v_e4ff5e = (v_127e92 as unknown as { pitchAngle?: number }).pitchAngle ?? 0;
+        v_998534([], v_a51d09.length, v_c81315, v_e4ff5e);
         return;
       }
+      const v_127e92 = v_e74bab(v_a51d09);
+      if (v_127e92 == null) { v_998534([], 0, 0, 0); return; }
+
+      const v_17297c = v_fa192b(v_127e92, v_143cb5.width, v_143cb5.height, (v_143cb5 as unknown as { orientation?: string }).orientation);
+      const v_2d3c27 = v_2e11e8(v_143cb5, {
+        crop: v_17297c.crop,
+        scale: { width: 112, height: 112 },
+        rotation: v_17297c.rotation,
+        pixelFormat: "rgb",
+        dataType: "float32",
+      });
+      const v_b855bd = v_e2ddec(v_2d3c27, 112, v_17297c.rollRad, v_17297c.rollExpand);
+
+      const v_75195c = new Float32Array(v_b855bd.length);
+      for (let v_ebec57 = 0; v_ebec57 < v_b855bd.length; v_ebec57++) v_75195c[v_ebec57] = v_b855bd[v_ebec57] * 255;
+      const v_8d4337 = v_23f1a4.runSync([v_75195c])[0] as Float32Array;
       const v_c81315 = (v_127e92 as unknown as { yawAngle?: number }).yawAngle ?? 0;
       const v_e4ff5e = (v_127e92 as unknown as { pitchAngle?: number }).pitchAngle ?? 0;
-      v_88ac29(v_a51d09.length, v_c81315, v_e4ff5e);
+      v_998534(Array.from(v_8d4337), v_a51d09.length, v_c81315, v_e4ff5e);
     },
-    [v_de4d76, v_adbd66, v_44c2eb, v_88ac29],
+    [v_de4d76, v_23f1a4, v_2e11e8, v_adbd66, v_44c2eb, v_998534],
   );
 
   const v_c83285 = v_62f5a9?.shots.length ?? 0;
-  const v_1e2ad6 = v_c83285 > 0 && v_db2e13.length >= v_c83285;
+  const v_1e2ad6 = v_c83285 > 0 && v_f94e64.length >= v_c83285;
   v_c4deb2(() => {
     if (!v_1e2ad6 || v_cb66b4 || !v_62f5a9 || !v_2ca7e0) return;
     v_ee9ec1(true);
     void (async () => {
       try {
-
-        console.log(
-          `[AccountFaceEnroll] submit: challengeId=${v_62f5a9.id} uris=${v_db2e13.length}/${v_62f5a9.shots.length} ` +
-            `shots=${v_62f5a9.shots.join(",")}`,
-        );
-        await v_62d015(v_2ca7e0, v_62f5a9.id, v_db2e13, "login");
+        await v_62d015(v_2ca7e0, v_62f5a9.id, v_f94e64, "login");
         setTimeout(() => v_1eef66(v_343670), 300);
         v_7b5712();
       } catch (v_9e86fd) {
@@ -330,11 +335,9 @@ export default function v_5b71e1({ onDone: v_7b5712 }: { onDone: () => void }) {
         <View style={v_fd5f43.centerBlock}>
           <View style={v_fd5f43.cameraBox}>
             <VisionCamera
-              ref={v_1a165b}
               style={v_472849.absoluteFill}
               device={v_ac8c13}
               isActive={v_5e2db7}
-              photo
               frameProcessor={v_62f5a9 ? v_f001a7 : undefined}
               pixelFormat="yuv"
             />
@@ -372,7 +375,7 @@ export default function v_5b71e1({ onDone: v_7b5712 }: { onDone: () => void }) {
 
       <Text style={v_fd5f43.privacyNote}>
         {v_8d41d7("accountFace.privacyNote", {
-          defaultValue: "정면 사진 1장은 암호화해 보관하고, 같은 사람의 중복 가입 확인에만 써요.",
+          defaultValue: "얼굴 데이터는 암호화해 보관하고, 같은 사람의 중복 가입 확인에만 써요.",
         })}
       </Text>
 
