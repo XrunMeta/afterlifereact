@@ -5,6 +5,7 @@ import type { v_de0a25 } from "../lib/env";
 import { v_3ebe58 } from "../lib/errors";
 import { v_6690d9 } from "../middleware/auth";
 import { v_430d2b, v_714639 } from "../lib/personDelete";
+import { v_344b9e } from "../lib/memoryStore";
 
 export const v_74e200 = new v_b7c41b<v_de0a25>();
 
@@ -29,6 +30,17 @@ v_74e200.post("/consent/call-learning", v_6690d9, async (v_3f4e2e) => {
        VALUES (?, 'call_learning', ?, ?, ?, ?)`,
     ).bind(v_43e90c, v_b6e533, v_5ba503, v_8e9fad, v_5c2f9f),
   ]);
+
+  if (v_b6e533 === "revoked") {
+    try {
+      await v_344b9e(v_3f4e2e.env, v_43e90c);
+    } catch (v_49263d) {
+      console.warn(JSON.stringify({
+        event: "call_learning_revoke_purge_failed",
+        userId: v_43e90c, error: (v_49263d as Error).message,
+      }));
+    }
+  }
 
   return v_3f4e2e.json({ ok: true, state: v_b6e533 });
 });
