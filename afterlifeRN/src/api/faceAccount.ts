@@ -31,21 +31,17 @@ export async function v_d24cb4(
 export async function v_62d015(
   v_2ca7e0,
   v_d789aa,
-  v_8f4582,
+  v_f94e64,
   v_04e790,
 ): Promise<{ ok: boolean; faceStatus: string; held: boolean }> {
-  const v_ebd523 = new FormData();
-  v_ebd523.append("challengeId", v_d789aa);
-  v_ebd523.append("source", v_04e790);
-  v_8f4582.forEach((v_cd1446, v_ebec57) => {
-    v_ebd523.append("frames", { uri: v_cd1446, name: `f${v_ebec57}.jpg`, type: "image/jpeg" } as unknown as Blob);
-  });
   const v_cb35cb = await v_04b58a<{ ok: true; data: { ok: boolean; faceStatus: string; held: boolean } }>(
     "/oth-path",
     v_2ca7e0,
-    { method: "POST", body: v_ebd523 },
-    undefined,
-    { multipart: true },
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ challengeId: v_d789aa, source: v_04e790, vectors: v_f94e64 }),
+    },
   );
   return v_cb35cb.data;
 }

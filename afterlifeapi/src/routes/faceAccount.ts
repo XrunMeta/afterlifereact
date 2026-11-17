@@ -8,7 +8,7 @@ import { v_769690 } from "../lib/xrunAccountFace";
 export const v_acf120 = new v_b7c41b<v_de0a25>();
 
 const v_d291e8 = 4;
-const v_b9cb1f = 2_000_000;
+const v_c523cc = 128;
 const v_21bb34 = new Set(["afl_signup", "login"]);
 
 type XrunJson = { status?: string; code?: string | number; message?: string; data?: unknown };
@@ -81,23 +81,31 @@ v_acf120.post("/challenge", v_6690d9, async (v_3f4e2e) => {
 v_acf120.post("/enroll", v_6690d9, async (v_3f4e2e) => {
   const v_660822 = await v_68d2b9(v_3f4e2e);
   if (v_660822 instanceof Response) return v_660822;
-  const v_ebd523 = await v_3f4e2e.req.formData().catch(() => null);
-  if (!v_ebd523) return v_d5bb0f(v_3f4e2e, "FRAMES_INVALID", 400);
-  const v_3b40dd = (v_ebd523.getAll("frames") as unknown[]).filter((v_8b5cd8) => typeof v_8b5cd8 !== "string") as File[];
-  if (v_3b40dd.length < 2 || v_3b40dd.length > v_d291e8 || v_3b40dd.some((v_8b5cd8) => v_8b5cd8.size <= 0 || v_8b5cd8.size > v_b9cb1f)) {
+  const v_4d33b2 = (await v_3f4e2e.req.json().catch(() => null)) as
+    | { challengeId?: unknown; source?: unknown; vectors?: unknown }
+    | null;
+  if (!v_4d33b2 || typeof v_4d33b2 !== "object") return v_d5bb0f(v_3f4e2e, "FRAMES_INVALID", 400);
+  const v_d789aa = String(v_4d33b2.challengeId ?? "");
+  if (!v_d789aa) return v_d5bb0f(v_3f4e2e, "FRAMES_INVALID", 400);
+  const v_f94e64 = v_4d33b2.vectors;
+  if (!Array.isArray(v_f94e64) || v_f94e64.length < 2 || v_f94e64.length > v_d291e8) {
     return v_d5bb0f(v_3f4e2e, "FRAMES_INVALID", 400);
   }
-  const v_04e790 = String(v_ebd523.get("source") ?? "");
-  const v_8d4337 = new FormData();
-  v_8d4337.set("member", String(v_660822));
-  v_8d4337.set("challengeId", String(v_ebd523.get("challengeId") ?? ""));
-  v_8d4337.set("source", v_21bb34.has(v_04e790) ? v_04e790 : "login");
-  v_3b40dd.forEach((v_8b5cd8, v_ebec57) => v_8d4337.append("frames", new File([v_8b5cd8], `f${v_ebec57}.jpg`, { type: "image/jpeg" })));
+  for (const v_81e2ef of v_f94e64) {
+    if (!Array.isArray(v_81e2ef) || v_81e2ef.length !== v_c523cc) return v_d5bb0f(v_3f4e2e, "BAD_EMBEDDING", 400);
+    for (const v_62c214 of v_81e2ef) if (typeof v_62c214 !== "number" || !Number.isFinite(v_62c214)) return v_d5bb0f(v_3f4e2e, "BAD_EMBEDDING", 400);
+  }
+  const v_04e790 = String(v_4d33b2.source ?? "");
   try {
     const v_8f00b9 = await fetch(`${v_3f4e2e.env.XRUN_API_URL}/oth-path`, {
       method: "POST",
-      headers: v_9765c6(v_3f4e2e, false),
-      body: v_8d4337,
+      headers: v_9765c6(v_3f4e2e, true),
+      body: JSON.stringify({
+        member: v_660822,
+        challengeId: v_d789aa,
+        source: v_21bb34.has(v_04e790) ? v_04e790 : "login",
+        vectors: v_f94e64,
+      }),
     });
     return v_0bb1df(v_3f4e2e, v_8f00b9);
   } catch {
