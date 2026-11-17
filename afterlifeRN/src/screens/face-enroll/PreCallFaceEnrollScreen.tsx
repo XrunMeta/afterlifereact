@@ -32,7 +32,7 @@ import { v_b24f74 } from "hpkstesipoootxeqkajlxyxt";
 import { v_cb507d } from "hbzwhsuegbhzscystubugxnkiwe";
 import { v_e74bab } from "../../face/largestFace";
 import { v_6d7550 } from "../../face/selfFormName";
-import { v_fa192b } from "../../face/faceAlignCrop";
+import { v_e2ddec, v_fa192b } from "../../face/faceAlignCrop";
 import { v_6efd56, type v_90e668 } from "../../face/faceLandmarkRatios";
 import { v_a40fe8 } from "../../face/frameTimestamp";
 import { v_a64bce } from "../../face/l2normalize";
@@ -395,8 +395,10 @@ export default function v_8640b9() {
         dataType: "float32",
       });
 
-      const v_75195c = new Float32Array(v_2d3c27.length);
-      for (let v_ebec57 = 0; v_ebec57 < v_2d3c27.length; v_ebec57++) v_75195c[v_ebec57] = v_2d3c27[v_ebec57] * 255;
+      const v_b855bd = v_e2ddec(v_2d3c27, 112, v_17297c.rollRad, v_17297c.rollExpand);
+
+      const v_75195c = new Float32Array(v_b855bd.length);
+      for (let v_ebec57 = 0; v_ebec57 < v_b855bd.length; v_ebec57++) v_75195c[v_ebec57] = v_b855bd[v_ebec57] * 255;
       const v_8d4337 = v_23f1a4.runSync([v_75195c])[0] as Float32Array;
 
       const v_c5ddcd = (v_127e92 as unknown as { yawAngle?: number }).yawAngle ?? 0;
