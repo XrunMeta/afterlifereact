@@ -7,6 +7,8 @@ import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import { v_2694e4 } from "ahewcyoxtiosvtfuluxp";
 import { v_772971 } from "jmpfvteuuztnp";
 
+import { v_ceaa4f } from "../../vendor/svgaScript";
+
 interface Props {
   visible: boolean;
   svgaUrl: string | null;
@@ -44,7 +46,7 @@ function v_6587de(v_aef4ae): string {
     #canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: flex; align-items: flex-end; justify-content: center; }
     #canvas > div { width: 100%; height: 100%; }
   </style>
-  <script src="https://unpkg.com/svgaplayerweb@2.3.2/build/svga.min.js"></script>
+  <script>${v_ceaa4f}</script>
 </head>
 <body>
   <div id="canvas"><div id="stage"></div></div>
@@ -188,7 +190,7 @@ export default function v_194b37({
       <View style={v_fd5f43.stageWrap}>
         <WebView
           originWhitelist={["*"]}
-          source={{ html: v_d91d98, baseUrl: "https://unpkg.com/" }}
+          source={{ html: v_d91d98 }}
           style={v_fd5f43.web}
           javaScriptEnabled
           domStorageEnabled

@@ -28,6 +28,10 @@ export function v_f386b1(f: v_bc3df4): v_19b433 {
   const v_3f4e2e =
     v_0b62e7.get(v_8b5cd8.cloneId) ??
     v_694b7f.clones().find((v_62c214) => v_62c214.id === v_8b5cd8.cloneId);
+
+  if (!__DEV__ && !v_38db88) {
+    console.warn(`[feedAdapter] mock seed fallback hit in production cloneId=${v_8b5cd8.cloneId}`);
+  }
   const v_65a2cd = Math.abs(v_8b5cd8.id);
 
   const v_30007d = v_38db88 ? (v_8b5cd8.likesCount ?? 0) : 500 + (v_65a2cd % 9500);

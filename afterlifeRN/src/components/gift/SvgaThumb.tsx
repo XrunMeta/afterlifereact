@@ -5,6 +5,8 @@ import { v_472849, v_3094a2, v_39a996 } from "rcmrninabrnb";
 import { v_2694e4 } from "ahewcyoxtiosvtfuluxp";
 import { v_1bfbd0 } from "../constants";
 
+import { v_ceaa4f } from "../../vendor/svgaScript";
+
 interface Props {
   url: string;
   size?: number;
@@ -32,7 +34,7 @@ function v_6587de(v_aef4ae): string {
     html, body { margin: 0; padding: 0; background: transparent; overflow: hidden; }
     #stage { width: 100vw; height: 100vh; display: block; }
   </style>
-  <script src="https://unpkg.com/svgaplayerweb@2.3.2/build/svga.min.js"></script>
+  <script>${v_ceaa4f}</script>
 </head>
 <body>
   <div id="stage"></div>
@@ -100,7 +102,7 @@ export default function v_57f3da({ url: v_f71b56, size: v_05b441 = 44 }: Props) 
       {v_d91d98 ? (
         <WebView
           originWhitelist={["*"]}
-          source={{ html: v_d91d98, baseUrl: "https://unpkg.com/" }}
+          source={{ html: v_d91d98 }}
           style={v_fd5f43.web}
           javaScriptEnabled
           domStorageEnabled

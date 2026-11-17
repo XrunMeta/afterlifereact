@@ -79,12 +79,6 @@ const MOCK_CONSUMABLES: v_678322[] = [
   { id: "run.xrun.afterlife.credit.300", title: "Recharge 300min", description: "300분 충전 · 5년 유효", displayPrice: "₩19,900", price: 19900, currency: "KRW", platform: "ios", type: "in-app" } as unknown as v_678322,
 ].map((v_e2a85c) => ({ ...v_e2a85c, id: `${v_5348ba}${v_e2a85c.id}` }) as v_678322);
 
-const MOCK_GIFT_PACKS: v_678322[] = [
-  { id: "run.xrun.afterlife.gift.pack.1", title: "꽃 1개", description: "선물하기 1회 사용", displayPrice: "₩3,000", price: 3000, currency: "KRW", platform: "ios", type: "in-app" } as unknown as v_678322,
-  { id: "run.xrun.afterlife.gift.pack.5", title: "꽃 5개", description: "선물하기 5회 사용", displayPrice: "₩14,000", price: 14000, currency: "KRW", platform: "ios", type: "in-app" } as unknown as v_678322,
-  { id: "run.xrun.afterlife.gift.pack.10", title: "꽃 10개", description: "선물하기 10회 사용", displayPrice: "₩27,000", price: 27000, currency: "KRW", platform: "ios", type: "in-app" } as unknown as v_678322,
-].map((v_e2a85c) => ({ ...v_e2a85c, id: `${v_5348ba}${v_e2a85c.id}` }) as v_678322);
-
 function v_664ef7<T extends { id: string; title?: string; description?: string }>(
   v_e2a85c,
   t: v_75de9d,
@@ -124,20 +118,11 @@ function v_664ef7<T extends { id: string; title?: string; description?: string }
   if (v_694b25 === "run.xrun.afterlife.credit.300") {
     return { ...v_e2a85c, title: v_8d41d7("purchase.rechargeTitle300", { defaultValue: "Recharge 300min" }), description: v_8d41d7("purchase.rechargeDesc300", { defaultValue: "300분 충전 · 5년 유효" }) } as T;
   }
-  if (v_694b25 === "run.xrun.afterlife.gift.pack.1") {
-    return { ...v_e2a85c, title: v_8d41d7("purchase.flowerPack.p1Title", { defaultValue: "꽃 1개" }), description: v_8d41d7("purchase.flowerPack.p1Desc", { defaultValue: "선물하기 1회 사용" }) } as T;
-  }
-  if (v_694b25 === "run.xrun.afterlife.gift.pack.5") {
-    return { ...v_e2a85c, title: v_8d41d7("purchase.flowerPack.p5Title", { defaultValue: "꽃 5개" }), description: v_8d41d7("purchase.flowerPack.p5Desc", { defaultValue: "선물하기 5회 사용" }) } as T;
-  }
-  if (v_694b25 === "run.xrun.afterlife.gift.pack.10") {
-    return { ...v_e2a85c, title: v_8d41d7("purchase.flowerPack.p10Title", { defaultValue: "꽃 10개" }), description: v_8d41d7("purchase.flowerPack.p10Desc", { defaultValue: "선물하기 10회 사용" }) } as T;
-  }
+
   return v_e2a85c;
 }
 const v_2cc272 = (v_389afb): boolean => v_389afb.startsWith(v_5348ba);
 const v_4bfbf2 = (v_389afb): boolean => v_389afb === v_2c427c;
-const v_03b27f = (v_389afb): boolean => v_9fe308(v_389afb).startsWith("run.xrun.afterlife.gift.pack.");
 
 function v_9fe308(v_389afb): string {
   return v_389afb.startsWith(v_5348ba) ? v_389afb.slice(v_5348ba.length) : v_389afb;
@@ -311,18 +296,25 @@ export default function v_0035e1() {
     try {
       const { subscriptions: v_60a14d, consumables: v_cfc98b } = await v_1c6d94();
 
-      const v_8626ec = v_60a14d.length === 0 && v_cfc98b.length === 0;
+      const v_8626ec = __DEV__ && v_60a14d.length === 0 && v_cfc98b.length === 0;
       v_8c27a2(v_8626ec);
       v_0cf94e(v_8626ec ? v_246db7 : v_60a14d);
       v_cb5356(v_8626ec ? v_45e2bf : v_cfc98b);
       console.log(
-        `[purchase] loaded ${v_60a14d.length} subs, ${v_cfc98b.length} consumables${v_8626ec ? " (mock 삽입)" : ""}`,
+        `[purchase] loaded ${v_60a14d.length} subs, ${v_cfc98b.length} consumables${v_8626ec ? " (dev mock)" : ""}`,
       );
     } catch (v_49263d) {
-      console.warn("[purchase] product fetch failed, falling back to mocks:", v_49263d);
-      v_8c27a2(true);
-      v_0cf94e(v_246db7);
-      v_cb5356(v_45e2bf);
+      console.warn("[purchase] product fetch failed:", v_49263d);
+
+      if (__DEV__) {
+        v_8c27a2(true);
+        v_0cf94e(v_246db7);
+        v_cb5356(v_45e2bf);
+      } else {
+        v_8c27a2(false);
+        v_0cf94e([]);
+        v_cb5356([]);
+      }
     } finally {
       v_6d964e(false);
     }
@@ -584,38 +576,7 @@ export default function v_0035e1() {
         )}
 
         {
-
 }
-        <Text style={[v_fd5f43.sectionTitle, { marginTop: v_1e3d67 ? 0 : 32 }]}>
-          {v_8d41d7("purchase.flowerSectionTitle", { defaultValue: "꽃 구매" })}
-        </Text>
-        <Text style={v_fd5f43.sectionDesc}>
-          {v_8d41d7("purchase.flowerSectionDesc", {
-            defaultValue: "선물하기 전용 · 구매 후 통화 중 사용 가능.",
-          })}
-        </Text>
-        {v_5ff45c.map((v_479f05) => {
-          const v_e2a85c = v_664ef7(v_479f05, v_8d41d7);
-          return (
-            <TouchableOpacity
-              key={v_e2a85c.id}
-              style={[v_fd5f43.card, v_c63375 === v_e2a85c.id && v_fd5f43.cardDisabled]}
-              onPress={() => v_bdb045(v_e2a85c.id)}
-              disabled={v_c63375 !== null}
-            >
-              <View style={{ flex: 1 }}>
-                <Text style={v_fd5f43.cardName}>{v_e2a85c.title || v_e2a85c.id}</Text>
-                <Text style={v_fd5f43.cardDesc}>{v_e2a85c.description || ""}</Text>
-              </View>
-              <View style={v_fd5f43.cardPriceCol}>
-                <Text style={v_fd5f43.cardPrice}>{v_e2a85c.displayPrice}</Text>
-                {v_c63375 === v_e2a85c.id && (
-                  <ActivityIndicator color={v_1bfbd0.violet600} size="small" />
-                )}
-              </View>
-            </TouchableOpacity>
-          );
-        })}
 
         {
 }

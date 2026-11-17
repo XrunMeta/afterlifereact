@@ -74,6 +74,7 @@
       "./plugins/withNotifeeCallFgsType.js",
       "./plugins/withPangle.js",
       "./plugins/withAdIdPermission.js",
+      "./plugins/withAllowBackupFalse.js",
       [
         "expo-splash-screen",
         {
