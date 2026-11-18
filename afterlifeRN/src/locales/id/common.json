@@ -1090,6 +1090,15 @@
       "termsServiceTitle": "Ketentuan Layanan",
       "termsPrivacyTitle": "Kebijakan Privasi"
     },
+    "birthDateGate": {
+      "title": "Masukkan tanggal lahir Anda",
+      "desc": "Untuk menggunakan layanan, mohon masukkan tanggal lahir. Hanya pengguna berusia 14 tahun ke atas yang dapat mendaftar.",
+      "submit": "Konfirmasi",
+      "submitting": "Menyimpan...",
+      "underAgeTitle": "Pendaftaran dibatasi",
+      "underAgeDesc": "Pengguna di bawah 14 tahun tidak dapat menggunakan layanan, akun dikunci selama 7 hari.\nJika tidak ada permintaan pemulihan dalam 7 hari, akun akan dihapus.",
+      "saveFailed": "Gagal menyimpan tanggal lahir. Silakan coba lagi nanti."
+    },
     "emailVerify": {
       "title": "Verifikasi Email",
       "desc": "Silakan masukkan kode verifikasi 6 digit yang dikirim ke {{email}}.",
