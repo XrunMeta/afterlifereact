@@ -15,7 +15,6 @@ export interface CleanupResult {
   usersHardDeleted: number;
   clonesHardDeleted: number;
   messagesHardDeleted: number;
-  inactivityContactsTriggered: number;
   coownerRemindersScheduled: number;
   gabiaPurge: v_c32b88;
 }
@@ -161,40 +160,6 @@ export async function v_09b071(env: v_de0a25["Bindings"]): Promise<CleanupResult
     `SELECT id FROM messages WHERE deletion_state='archived_cold' AND created_at < datetime('now', '-365 days') LIMIT 50`,
   );
 
-  const v_bebd1c = (
-    await v_a1651b
-      .prepare(
-        `SELECT ec.id, ec.principal_user_id, ec.trigger_param
-           FROM emergency_contacts ec
-           JOIN users u ON u.id = ec.principal_user_id
-          WHERE ec.status = 'accepted'
-            AND ec.trigger_condition = 'inactivity_N_days'
-            AND ec.trigger_param IS NOT NULL
-            AND u.last_activity_at IS NOT NULL
-            AND u.deletion_state = 'active'
-            AND julianday('now') - julianday(u.last_activity_at) >= CAST(ec.trigger_param AS INTEGER)
-            AND NOT EXISTS (
-              SELECT 1 FROM inheritance_release_logs l
-               WHERE l.emergency_contact_id = ec.id AND l.event = 'triggered'
-            )
-          LIMIT 100`,
-      )
-      .all<{ id: number; principal_user_id: number; trigger_param: string }>()
-  ).results;
-
-  let v_9146f3 = 0;
-  for (const v_3f4e2e of v_bebd1c) {
-    await v_a1651b
-      .prepare(
-        `INSERT INTO inheritance_release_logs
-           (emergency_contact_id, event, reason)
-         VALUES (?, 'triggered', ?)`,
-      )
-      .bind(v_3f4e2e.id, `inactivity:${v_3f4e2e.trigger_param}d`)
-      .run();
-    v_9146f3 += 1;
-  }
-
   const v_411f75 = await v_a1651b
     .prepare(
       `UPDATE clones
@@ -228,7 +193,6 @@ export async function v_09b071(env: v_de0a25["Bindings"]): Promise<CleanupResult
     usersHardDeleted: v_bb10c0,
     clonesHardDeleted: v_7668e0,
     messagesHardDeleted: v_93422b,
-    inactivityContactsTriggered: v_9146f3,
     coownerRemindersScheduled: v_21c6eb,
     gabiaPurge: v_f3b492,
   };

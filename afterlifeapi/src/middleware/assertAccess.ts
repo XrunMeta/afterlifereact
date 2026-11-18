@@ -8,7 +8,7 @@ export type CloneRole = "owner" | "viewer";
 export type AccessRole = CloneRole | "self" | "admin";
 
 export interface AccessResult {
-  kind: "clone" | "user" | "message" | "emergency_contact";
+  kind: "clone" | "user" | "message";
   resourceId: number;
   role: AccessRole;
 }
@@ -67,28 +67,6 @@ async function v_09f6d6(
   return { kind: "message", resourceId: v_7f4466, role: v_e290d2.role };
 }
 
-async function v_5de085(
-  v_a1651b,
-  v_b6d18d,
-  v_43e90c,
-): Promise<AccessResult | null> {
-  const v_3ac7e7 = await v_a1651b
-    .prepare(
-      `SELECT principal_user_id, contact_user_id
-         FROM emergency_contacts WHERE id = ?`,
-    )
-    .bind(v_b6d18d)
-    .first<{ principal_user_id: number; contact_user_id: number | null }>();
-  if (!v_3ac7e7) return null;
-  if (v_3ac7e7.principal_user_id === v_43e90c) {
-    return { kind: "emergency_contact", resourceId: v_b6d18d, role: "owner" };
-  }
-  if (v_3ac7e7.contact_user_id === v_43e90c) {
-    return { kind: "emergency_contact", resourceId: v_b6d18d, role: "viewer" };
-  }
-  return null;
-}
-
 export interface AssertAccessOpts {
   kind: AccessResult["kind"];
   resourceId: number;
@@ -115,9 +93,6 @@ export async function v_a5cf83(
       break;
     case "message":
       v_a0737a = await v_09f6d6(v_3f4e2e.env.DB, v_328259.resourceId, v_43e90c);
-      break;
-    case "emergency_contact":
-      v_a0737a = await v_5de085(v_3f4e2e.env.DB, v_328259.resourceId, v_43e90c);
       break;
   }
   if (!v_a0737a) throw new v_3ebe58("FORBIDDEN", `No access to ${v_328259.kind} #${v_328259.resourceId}.`);

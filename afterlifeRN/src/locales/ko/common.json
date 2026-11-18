@@ -1754,38 +1754,6 @@
     "empty": "아직 팔로우 중인 사람이 없습니다",
     "confirmWithCount": "확인 ({{n}}명)"
   },
-  "safety": {
-    "emergency": {
-      "title": "비상연락처 & 상속지정",
-      "helper": "일정 기간 미활동 시 지정된 연락처로 상속 이관 절차가 시작됩니다. 관리자 승인 후 이관이 집행됩니다.",
-      "emailLabel": "이메일",
-      "roleLabel": "역할",
-      "roleNotifyOnly": "(가) 알림만",
-      "rolePrimary": "(나) 1순위",
-      "roleSecondary": "(다) 2순위",
-      "inactivityLabel": "미활동 기준 (일)",
-      "inviteAction": "초대 발송",
-      "invalidEmail": "이메일 형식을 확인해 주십시오.",
-      "inviteSentTitle": "초대 발송",
-      "inviteSentDesc": "{{email}}에게 비상연락처 초대를 보냈습니다.",
-      "registeredContacts": "등록된 연락처",
-      "emptyContacts": "아직 등록된 연락처가 없습니다.",
-      "revoke": "철회"
-    },
-    "inheritance": {
-      "title": "상속 초대 응답",
-      "intro": "다른 사용자로부터 비상연락처/상속 지정 초대를 받으셨습니다. 초대 토큰을 확인한 후 수락 또는 거절을 선택해 주십시오. 수락 시 상속 이관 조건이 충족되면 관리자 승인 하에 일부 권한이 이관될 수 있습니다.",
-      "tokenLabel": "초대 토큰",
-      "tokenPlaceholder": "이메일에 포함된 토큰을 입력하십시오",
-      "accept": "수락",
-      "decline": "거절",
-      "invalidToken": "유효한 초대 토큰이 필요합니다.",
-      "acceptDoneTitle": "수락 완료",
-      "declineDoneTitle": "거절 완료",
-      "acceptDoneDesc": "상속 지정이 수락되었습니다. 실제 이관은 관리자 검증 후 집행됩니다.",
-      "declineDoneDesc": "초대를 거절했습니다."
-    }
-  },
   "transactions": {
     "title": "전체 거래 내역",
     "empty": "아직 거래 내역이 없습니다",

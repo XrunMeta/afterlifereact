@@ -45,7 +45,6 @@ const v_caf51a = `SELECT
   OR EXISTS (SELECT 1 FROM clone_shorts WHERE clone_id != ?3 AND ${v_7b2645("media_url")})
   OR EXISTS (SELECT 1 FROM voice_presets WHERE ${v_7b2645("sample_url")})
   OR EXISTS (SELECT 1 FROM gift_inventory_events WHERE ${v_7b2645("gift_image_url_snapshot")})
-  OR EXISTS (SELECT 1 FROM inheritance_release_logs WHERE ${v_7b2645("evidence_url")})
   -- 다른 클론, 또는 아직 클론에 연결 전(clone_id NULL)인 생성 작업이 원본·결과물로 쓰는 중.
   OR EXISTS (SELECT 1 FROM clone_asset_jobs WHERE (clone_id IS NULL OR clone_id != ?3)
              AND (src_file_id = ?4 OR out_file_id = ?4)) AS shared`;
@@ -62,7 +61,6 @@ const v_b8fdaf = `SELECT
   OR EXISTS (SELECT 1 FROM clone_shorts WHERE ${v_6df056("clone_id")} AND ${v_7b2645("media_url")})
   OR EXISTS (SELECT 1 FROM voice_presets WHERE ${v_7b2645("sample_url")})
   OR EXISTS (SELECT 1 FROM gift_inventory_events WHERE ${v_7b2645("gift_image_url_snapshot")})
-  OR EXISTS (SELECT 1 FROM inheritance_release_logs WHERE ${v_7b2645("evidence_url")})
   OR EXISTS (SELECT 1 FROM clone_asset_jobs WHERE (src_file_id = ?4 OR out_file_id = ?4)
              AND (${v_6df056("clone_id")} OR (clone_id IS NULL AND user_id != ?3))) AS shared`;
 

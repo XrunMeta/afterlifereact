@@ -48,13 +48,6 @@ export const v_ec7c86 = {
     { method: 'GET', path: '/oth-path' },
     { method: 'PATCH', path: '/oth-path', note: 'accept/decline' },
   ],
-  EmergencyContacts: [
-    { method: 'GET', path: '/oth-path' },
-    { method: 'POST', path: '/oth-path' },
-  ],
-  InheritanceAccept: [
-    { method: 'POST', path: '/oth-path', note: 'token 수락' },
-  ],
   RestoreDeleted: [
     { method: 'GET', path: '/oth-path' },
     { method: 'POST', path: '/oth-path' },

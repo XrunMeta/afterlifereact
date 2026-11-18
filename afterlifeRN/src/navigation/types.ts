@@ -15,8 +15,6 @@ export type RootStackParamList = {
 
     accountSelfMatch?: boolean;
   };
-  EmergencyContacts: undefined;
-  InheritanceAccept: { token?: string };
   RestoreDeleted: undefined;
   GDPRDelete: undefined;
 

@@ -16,8 +16,6 @@ describe('screenApiMap', () => {
       'Signup',
       'Chat',
       'Call',
-      'EmergencyContacts',
-      'InheritanceAccept',
       'RestoreDeleted',
       'GDPRDelete',
       'Dashboard',

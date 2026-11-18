@@ -1754,38 +1754,6 @@
     "empty": "还没有关注任何人",
     "confirmWithCount": "确认 ({{n}} 人)"
   },
-  "safety": {
-    "emergency": {
-      "title": "紧急联系人与继承指定",
-      "helper": "在一段时间无活动后，将向指定联系人启动继承移交流程。经管理员审核后执行移交。",
-      "emailLabel": "邮箱",
-      "roleLabel": "身份",
-      "roleNotifyOnly": "(甲) 仅通知",
-      "rolePrimary": "(乙) 第一顺位",
-      "roleSecondary": "(丙) 第二顺位",
-      "inactivityLabel": "无活动判定期 (天)",
-      "inviteAction": "发送邀请",
-      "invalidEmail": "请检查邮箱格式。",
-      "inviteSentTitle": "邀请已发送",
-      "inviteSentDesc": "已向 {{email}} 发送紧急联系人邀请。",
-      "registeredContacts": "已登记的联系人",
-      "emptyContacts": "尚未登记任何联系人。",
-      "revoke": "撤销"
-    },
-    "inheritance": {
-      "title": "继承邀请响应",
-      "intro": "您收到了其他用户发来的紧急联系人/继承指定邀请。请确认邀请令牌后选择接受或拒绝。接受后，若满足继承移交条件，将在管理员审核下移交部分权限。",
-      "tokenLabel": "邀请令牌",
-      "tokenPlaceholder": "请输入邮件中包含的令牌",
-      "accept": "接受",
-      "decline": "拒绝",
-      "invalidToken": "请输入有效的邀请令牌。",
-      "acceptDoneTitle": "接受完成",
-      "declineDoneTitle": "拒绝完成",
-      "acceptDoneDesc": "已接受继承指定。实际移交将在管理员审核后执行。",
-      "declineDoneDesc": "已拒绝该邀请。"
-    }
-  },
   "transactions": {
     "title": "全部交易记录",
     "empty": "还没有交易记录",
