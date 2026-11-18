@@ -819,20 +819,6 @@
       "giftInventoryDesc": "Tukar hadiah yang diterima menjadi kredit XRUN",
       "logout": "Keluar",
       "flower": "Hadiah Bunga",
-      "pangleTest": "Tes Iklan Pangle",
-      "pangleTestDesc": "Tampilkan iklan rewarded langsung (dev)",
-      "animPersona": "Buat persona animasi",
-      "animPersonaDesc": "Foto → kedip·kepala·tubuh idle · ±3 menit",
-      "experimentalPersona": "Persona eksperimen (beta)",
-      "experimentalPersonaDesc": "Wajah lebih alami · delay respon 5~10 detik",
-      "visemePersona": "Persona split playback (eksperimen)",
-      "visemePersonaDesc": "TTS + sinkron klip viseme pra-render",
-      "threeDPersona": "Persona 3D (beta)",
-      "threeDPersonaDesc": "Avatar SDK wajah 3D · perlu setel GLB URL terpisah",
-      "vitsTts": "VITS TTS · AFL-737 (dev)",
-      "vitsTtsDesc": "sherpa-onnx · cache model · target 1 detik",
-      "faceEnrollDev": "Daftar wajah 5 sudut (dev)",
-      "faceEnrollDevDesc": "Depan·kiri·kanan·atas·bawah → siap panggilan pertama",
       "profileEdit": "Profil / info pribadi",
       "deactivate": "Nonaktifkan akun (jeda)",
       "deactivateDesc": "Jeda akun Anda untuk sementara",
@@ -856,19 +842,6 @@
       "title": "Keluar?",
       "desc": "Anda perlu masuk kembali untuk memakai aplikasi.",
       "confirm": "Keluar"
-    },
-    "pangleTest": {
-      "title": "Tes Pangle",
-      "okMessage": "Iklan selesai normal.",
-      "failTitle": "Tes Pangle gagal"
-    },
-    "navError": {
-      "title": "Kesalahan",
-      "personaNavFail": "Gagal pindah ke layar pembuatan persona"
-    },
-    "faceEnrollDev": {
-      "noneTitle": "Belum ada persona",
-      "noneDesc": "Buat persona terlebih dahulu."
     },
     "version": {
       "otaEmergency": "OTA peluncuran darurat (embedded fallback)",
