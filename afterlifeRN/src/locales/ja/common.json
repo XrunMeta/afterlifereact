@@ -5,6 +5,8 @@
     "cancel": "キャンセル",
     "confirm": "確認",
     "close": "閉じる",
+    "aiBadge": "AI",
+    "aiBadgeA11y": "AI 生成クローン",
     "agree": "同意",
     "delete": "削除",
     "edit": "編集",
@@ -411,6 +413,11 @@
     "sendA11y": "送信"
   },
   "call": {
+    "aiNotice": {
+      "title": "AI 通話のご案内",
+      "body": "これから通話する相手は実在の人物ではなく、AI で生成されたクローンです。声・顔・会話内容はすべて AI が生成します。",
+      "bodySub": "AI が人間のふりをしないようサービスが設計されています。"
+    },
     "calling": "接続中...",
     "ended": "通話終了",
     "ringing": "呼び出し中",

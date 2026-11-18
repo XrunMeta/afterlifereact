@@ -76,6 +76,45 @@ async function v_576f5a<T>(v_9fe22d, v_b36f96): Promise<T> {
   return v_8f00b9.json();
 }
 
+async function v_f8ed11<T>(v_9fe22d, v_ebd523): Promise<T> {
+  const v_a215ca = async (): Promise<Response> => {
+    const v_3f4675 = {};
+    const v_21cc31 = v_8da5ba();
+    if (v_21cc31) v_3f4675["Authorization"] = `Bearer ${v_21cc31}`;
+    return await fetch(`${v_b6d386()}${v_9fe22d}`, {
+      method: "POST",
+      headers: v_3f4675,
+      body: v_ebd523,
+    });
+  };
+  let v_8f00b9 = await v_a215ca();
+  if (v_8f00b9.status === 401) {
+    const v_f7a7f7 = await v_bae635();
+    if (v_f7a7f7) v_8f00b9 = await v_a215ca();
+    if (v_8f00b9.status === 401) {
+      v_83779a();
+      throw new Error("unauthorized");
+    }
+  }
+  if (!v_8f00b9.ok) {
+    const v_49263d = await v_8f00b9.json().catch(() => ({ error: v_8f00b9.statusText }));
+    throw new Error((v_49263d as { error: string }).error || v_8f00b9.statusText);
+  }
+  return v_8f00b9.json();
+}
+
+export async function v_f13fe1(v_bea8c6): Promise<string> {
+  const v_21cc31 = v_8da5ba();
+  const v_3f4675 = {};
+  if (v_21cc31) v_3f4675["Authorization"] = `Bearer ${v_21cc31}`;
+  const v_8f00b9 = await fetch(`${v_b6d386()}${v_bea8c6}`, { headers: v_3f4675 });
+  if (!v_8f00b9.ok) {
+    throw new Error(`음성 샘플 로드 실패 (${v_8f00b9.status}).`);
+  }
+  const v_3263c7 = await v_8f00b9.blob();
+  return URL.createObjectURL(v_3263c7);
+}
+
 export interface RawResponse {
   status: number;
   ok: boolean;
@@ -395,6 +434,20 @@ export const v_05a921 = {
       method: "PUT",
       body: JSON.stringify(v_4d33b2),
     }),
+
+  uploadVoiceSample: (v_4de33e) => {
+    const v_ebd523 = new FormData();
+    v_ebd523.append("file", v_4de33e);
+    return v_f8ed11<{
+      r2Key: string;
+      contentType: string;
+      sizeBytes: number;
+      previewUrl: string;
+    }>(`/oth-path`, v_ebd523);
+  },
+
+  voiceSamplePreviewPath: (v_0037e3) =>
+    `/oth-path?r2Key=${encodeURIComponent(v_0037e3)}`,
 
   getReportPenaltyRules: () =>
     v_576f5a<{

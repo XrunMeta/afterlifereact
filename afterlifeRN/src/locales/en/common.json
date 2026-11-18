@@ -5,6 +5,8 @@
     "cancel": "Cancel",
     "confirm": "Confirm",
     "close": "Close",
+    "aiBadge": "AI",
+    "aiBadgeA11y": "AI-generated clone",
     "agree": "Agree",
     "delete": "Delete",
     "edit": "Edit",
@@ -411,6 +413,11 @@
     "sendA11y": "Send"
   },
   "call": {
+    "aiNotice": {
+      "title": "AI call notice",
+      "body": "You are about to talk with an AI-generated clone, not a real person. Its voice, face, and replies are all AI-generated.",
+      "bodySub": "The service is designed so the AI won't pretend to be human."
+    },
     "calling": "Connecting...",
     "ended": "Call ended",
     "ringing": "Ringing",

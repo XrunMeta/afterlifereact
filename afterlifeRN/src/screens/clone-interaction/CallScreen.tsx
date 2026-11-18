@@ -192,6 +192,8 @@ import { setCallActive, takePressedClone } from "../../lib/callActivity";
 import { reportError } from "../../lib/errorReporting/report";
 import { takeMidCallEnrollResult, setMidCallSelfVector } from "../../face/midCallEnrollHandoff";
 import { FACE_EMBED_DIM } from "../../face/faceEmbed";
+import AiBadge from "../../components/ui/AiBadge";
+import AiCallNoticeModal, { useAiCallNoticeGate } from "./AiCallNoticeModal";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Call">;
 
@@ -287,6 +289,8 @@ export default function CallScreen(props: Props) {
   const faceConsent = useCallFaceConsentGate(wrapperAccessToken);
   const faceConsentGate = faceConsent.gate; 
 
+  const aiNotice = useAiCallNoticeGate();
+
   const [prefetchedPipeline, setPrefetchedPipeline] = React.useState<string | null | undefined>(undefined);
   React.useEffect(() => {
     if (!wrapperAccessToken) {
@@ -332,13 +336,13 @@ export default function CallScreen(props: Props) {
       {
 
 }
-      {callEntryOpen !== false || !heavyReady || prefetchedPipeline === undefined || faceConsentGate !== "ok" ? (
+      {callEntryOpen !== false || !heavyReady || prefetchedPipeline === undefined || faceConsentGate !== "ok" || aiNotice.loading || aiNotice.needsNotice ? (
         <DialingScreen
           liveState="idle"
           personaName={paramName ?? ""}
           personaImage={placeholderImage}
 
-          silent={callEntryOpen !== false || prefetchedPipeline === undefined || faceConsentGate !== "ok"}
+          silent={callEntryOpen !== false || prefetchedPipeline === undefined || faceConsentGate !== "ok" || aiNotice.loading || aiNotice.needsNotice}
           onConnected={() => {}}
           onCancel={() => props.navigation.goBack()}
           onRetry={() => {}}
@@ -394,6 +398,13 @@ export default function CallScreen(props: Props) {
         visible={faceConsent.gate === "prompt"}
         onAgree={faceConsent.agree}
         onCancel={() => void faceConsent.cancel()}
+      />
+
+      {}
+      <AiCallNoticeModal
+        visible={aiNotice.needsNotice && !aiNotice.loading && callEntryOpen === false && faceConsentGate === "ok"}
+        onConfirm={() => void aiNotice.acknowledge()}
+        onCancel={() => props.navigation.goBack()}
       />
     </View>
   );
@@ -3382,9 +3393,13 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
 
       {}
 
-      {}
+      {
+}
       <View style={[s.callInfo, { top: insets.top + 24 }]}>
-        <Text style={s.callName}>{personaName}</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+          <Text style={s.callName}>{personaName}</Text>
+          <AiBadge size="md" />
+        </View>
         <Text style={s.callTimeText}>
           {liveState === "live"
             ? callTimeStr

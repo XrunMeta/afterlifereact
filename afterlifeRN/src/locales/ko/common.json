@@ -5,6 +5,8 @@
     "cancel": "취소",
     "confirm": "확인",
     "close": "닫기",
+    "aiBadge": "AI",
+    "aiBadgeA11y": "AI 생성 클론",
     "agree": "동의",
     "delete": "삭제",
     "edit": "수정",
@@ -411,6 +413,11 @@
     "sendA11y": "보내기"
   },
   "call": {
+    "aiNotice": {
+      "title": "AI 통화 안내",
+      "body": "지금부터 통화하는 상대는 실제 사람이 아니라 AI 로 생성된 클론입니다. 목소리·얼굴·대화 내용 모두 AI 가 생성합니다.",
+      "bodySub": "AI 가 사람인 척 답하지 않도록 서비스가 설계되어 있습니다."
+    },
     "calling": "연결 중...",
     "ended": "통화 종료",
     "ringing": "호출 중",
