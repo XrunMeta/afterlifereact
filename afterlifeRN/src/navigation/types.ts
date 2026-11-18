@@ -49,7 +49,8 @@ export type AuthStackParamList = {
     name: string;
     phone?: string;
     gender?: "male" | "female" | "other";
-    age?: number;
+
+    birthDate: string;
     interests?: string[];
 
     country?: string;

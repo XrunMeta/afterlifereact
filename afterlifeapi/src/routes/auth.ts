@@ -51,6 +51,42 @@ function v_e8cd3d(v_3a5fef): number {
 
 v_68f0aa.get("/health", (v_3f4e2e) => v_3f4e2e.json({ ok: true, module: "auth" }));
 
+function v_85a555(v_598ded): number {
+  const v_35f85c = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v_598ded);
+  if (!v_35f85c) throw new v_3ebe58("VALIDATION_FAILED", "Invalid birthDate format.");
+  const [v_1f7c90, v_21e753, v_a12b48] = [v_35f85c[1], v_35f85c[2], v_35f85c[3]];
+  const v_64877a = Number(v_1f7c90);
+  const v_c307e0 = Number(v_21e753);
+  const v_d5dda0 = Number(v_a12b48);
+  if (!Number.isFinite(v_64877a) || !Number.isFinite(v_c307e0) || !Number.isFinite(v_d5dda0)) {
+    throw new v_3ebe58("VALIDATION_FAILED", "Invalid birthDate.");
+  }
+  if (v_c307e0 < 1 || v_c307e0 > 12 || v_d5dda0 < 1 || v_d5dda0 > 31) {
+    throw new v_3ebe58("VALIDATION_FAILED", "Invalid birthDate.");
+  }
+
+  const v_f52139 = new Date(Date.UTC(v_64877a, v_c307e0 - 1, v_d5dda0));
+  if (
+    v_f52139.getUTCFullYear() !== v_64877a ||
+    v_f52139.getUTCMonth() !== v_c307e0 - 1 ||
+    v_f52139.getUTCDate() !== v_d5dda0
+  ) {
+    throw new v_3ebe58("VALIDATION_FAILED", "Invalid birthDate.");
+  }
+  const v_5c2f9f = new Date();
+  const v_51dd5a = v_5c2f9f.getUTCFullYear();
+  const v_ca529e = v_5c2f9f.getUTCMonth() + 1;
+  const v_ad0a4d = v_5c2f9f.getUTCDate();
+  let v_2694bd = v_51dd5a - v_64877a;
+  if (v_ca529e < v_c307e0 || (v_ca529e === v_c307e0 && v_ad0a4d < v_d5dda0)) v_2694bd -= 1;
+  if (v_2694bd < 0 || v_2694bd > 150) {
+    throw new v_3ebe58("VALIDATION_FAILED", "Invalid birthDate.");
+  }
+  return v_2694bd;
+}
+
+const v_a2381d = 14;
+
 const v_7b8b17 = v_1f4ea7.object({
   email: v_ae1ce0(),
 
@@ -64,7 +100,10 @@ const v_7b8b17 = v_1f4ea7.object({
   googleIdToken: v_1f4ea7.string().min(20).optional(),
   phone: v_1f4ea7.string().min(4).max(40).optional(),
   gender: v_1f4ea7.enum(["male", "female", "other"]).optional(),
-  age: v_1f4ea7.number().int().min(13).max(120).optional(),
+
+  birthDate: v_1f4ea7
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "birthDate must be YYYY-MM-DD"),
   interests: v_1f4ea7.array(v_1f4ea7.string().min(1).max(40)).max(20).optional(),
 
   country: v_1f4ea7.string().length(2).regex(/^[A-Z]{2}$/).optional(),
@@ -576,13 +615,25 @@ v_68f0aa.post("/signup", async (v_3f4e2e) => {
     await v_656e8b(v_3f4e2e.env, v_4d33b2.email, v_4d33b2.verificationCode);
   }
 
+  const v_692671 = v_85a555(v_4d33b2.birthDate);
+  if (v_692671 < v_a2381d) {
+    throw new v_3ebe58("UNDER_AGE", "만 14세 미만은 가입할 수 없습니다.");
+  }
+
   const v_df7439 = await v_54846c(v_4d33b2.password);
   const v_849998 = v_4d33b2.phone
     ? v_85de88(v_4d33b2.phone, v_a8614b(v_3f4e2e.env.ALE_KEK), "user.phone")
     : null;
-  const v_1f5d19 = v_4d33b2.age
-    ? v_85de88(String(v_4d33b2.age), v_a8614b(v_3f4e2e.env.ALE_KEK), "user.age")
-    : null;
+  const v_1f5d19 = v_85de88(
+    String(v_692671),
+    v_a8614b(v_3f4e2e.env.ALE_KEK),
+    "user.age",
+  );
+  const v_63b1db = v_85de88(
+    v_4d33b2.birthDate,
+    v_a8614b(v_3f4e2e.env.ALE_KEK),
+    "user.birth_date",
+  );
 
   const v_3c8572 = await v_a1651b
     .prepare(`SELECT id, deletion_state, deleted_at FROM users WHERE email = ? LIMIT 1`)
@@ -604,6 +655,7 @@ v_68f0aa.post("/signup", async (v_3f4e2e) => {
       .prepare(
         `UPDATE users
             SET name = ?, password_hash = ?, phone = ?, gender = ?, age = ?, age_enc = ?,
+                birth_date_enc = ?,
                 marketing_consent = ?, country = ?, mobile_code = ?, region = ?,
                 deletion_state = 'active', soft_deleted_at = NULL, deleted_at = NULL,
                 -- 2026-11-10: revive 시 consent 플래그 리셋 — face/call/location 는
@@ -627,6 +679,7 @@ v_68f0aa.post("/signup", async (v_3f4e2e) => {
         v_4d33b2.gender ?? null,
         null,
         v_1f5d19,
+        v_63b1db,
         v_4d33b2.marketingConsent ? 1 : 0,
         v_4d33b2.country ?? null,
         v_4d33b2.mobileCode ?? null,
@@ -639,8 +692,8 @@ v_68f0aa.post("/signup", async (v_3f4e2e) => {
     try {
       v_81161e = await v_a1651b
         .prepare(
-          `INSERT INTO users (name, email, password_hash, phone, gender, age, age_enc, marketing_consent, country, mobile_code, region, sso_consent_version, sso_consent_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+          `INSERT INTO users (name, email, password_hash, phone, gender, age, age_enc, birth_date_enc, marketing_consent, country, mobile_code, region, sso_consent_version, sso_consent_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
            RETURNING id, name, email, funnel_stage, created_at`,
         )
         .bind(
@@ -651,6 +704,7 @@ v_68f0aa.post("/signup", async (v_3f4e2e) => {
           v_4d33b2.gender ?? null,
           null, 
           v_1f5d19,
+          v_63b1db,
           v_4d33b2.marketingConsent ? 1 : 0,
           v_4d33b2.country ?? null,
           v_4d33b2.mobileCode ?? null,
@@ -747,7 +801,7 @@ v_68f0aa.post("/signup", async (v_3f4e2e) => {
       password: v_4d33b2.password,
       phone: v_4d33b2.phone,
       gender: v_4d33b2.gender,
-      age: v_4d33b2.age,
+      age: v_692671,
       country: v_4d33b2.country,
       mobileCode: v_4d33b2.mobileCode,
       region: v_4d33b2.region,

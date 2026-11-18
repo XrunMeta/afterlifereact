@@ -31,6 +31,7 @@ v_469bf2("가입 추천인 코드", () => {
         email: "ref-test@example.com",
         password: "Abcdefg1x",
         name: "R",
+        birthDate: "1990-01-01",
         verificationCode: "123456",
         referralCode: "ZZZZZZ",
       }),
