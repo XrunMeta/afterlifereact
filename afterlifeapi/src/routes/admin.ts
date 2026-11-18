@@ -1007,6 +1007,84 @@ v_b7f2b4.post("/voices", v_b09138, async (v_3f4e2e) => {
   return v_3f4e2e.json({ id: v_43af15!.id }, 201);
 });
 
+const v_2d66b8 = 8 * 1024 * 1024; 
+const v_8cc706 = {
+  "audio/mpeg": ".mp3",
+  "audio/mp3": ".mp3",
+  "audio/wav": ".wav",
+  "audio/x-wav": ".wav",
+  "audio/ogg": ".ogg",
+  "audio/mp4": ".m4a",
+  "audio/x-m4a": ".m4a",
+  "audio/aac": ".m4a",
+};
+v_b7f2b4.post("/voices/upload-sample", v_b09138, async (v_3f4e2e) => {
+  let v_ebd523;
+  try {
+    v_ebd523 = await v_3f4e2e.req.formData();
+  } catch {
+    throw new v_3ebe58("VALIDATION_FAILED", "multipart/form-data required.");
+  }
+  const v_479f05 = v_ebd523.get("file");
+  if (
+    !v_479f05 ||
+    typeof v_479f05 !== "object" ||
+    typeof (v_479f05 as { arrayBuffer?: unknown }).arrayBuffer !== "function"
+  ) {
+    throw new v_3ebe58("VALIDATION_FAILED", "Missing 'file' field.");
+  }
+  const v_4de33e = v_479f05 as {
+    name?: string;
+    type: string;
+    size: number;
+    arrayBuffer: () => Promise<ArrayBuffer>;
+  };
+  const v_40a923 = v_8cc706[v_4de33e.type];
+  if (!v_40a923) {
+    throw new v_3ebe58(
+      "VALIDATION_FAILED",
+      `Unsupported content-type: ${v_4de33e.type}. mp3/wav/ogg/m4a only.`,
+    );
+  }
+  if (v_4de33e.size > v_2d66b8) {
+    throw new v_3ebe58(
+      "VALIDATION_FAILED",
+      `File too large (${v_4de33e.size} bytes). Max ${v_2d66b8} bytes.`,
+    );
+  }
+  const v_fc3f08 = Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10);
+  const v_8d41d7 = Date.now().toString(36);
+  const v_0037e3 = `voice/sample/${v_8d41d7}${v_fc3f08}${v_40a923}`;
+  const v_83ee53 = await v_4de33e.arrayBuffer();
+  await v_3f4e2e.env.R2_ARCHIVE.put(v_0037e3, v_83ee53, {
+    httpMetadata: { contentType: v_4de33e.type },
+    customMetadata: { purpose: "voice.sample", uploader: "admin" },
+  });
+  const v_f17108 = new URL(v_3f4e2e.req.url).origin;
+  return v_3f4e2e.json({
+    r2Key: v_0037e3,
+    contentType: v_4de33e.type,
+    sizeBytes: v_4de33e.size,
+
+    previewUrl: `${v_f17108}/oth-path?r2Key=${encodeURIComponent(v_0037e3)}`,
+  }, 201);
+});
+
+v_b7f2b4.get("/voices/sample-preview", v_c0a297, async (v_3f4e2e) => {
+  const v_0037e3 = v_3f4e2e.req.query("r2Key") ?? "";
+  if (!v_0037e3.startsWith("voice/")) {
+    throw new v_3ebe58("VALIDATION_FAILED", "r2Key must start with 'voice/'.");
+  }
+  const v_8839e3 = await v_3f4e2e.env.R2_ARCHIVE.get(v_0037e3);
+  if (!v_8839e3) throw new v_3ebe58("NOT_FOUND", "Object missing in storage.");
+  return new Response(v_8839e3.body, {
+    headers: {
+      "Content-Type": v_8839e3.httpMetadata?.contentType ?? "audio/mpeg",
+      "Cache-Control": "private, max-age=60",
+    },
+  });
+});
+
 v_b7f2b4.put("/voices/:id", v_b09138, async (v_3f4e2e) => {
   const v_389afb = Number(v_3f4e2e.req.param("id"));
   if (!Number.isFinite(v_389afb) || v_389afb <= 0) throw new v_3ebe58("VALIDATION_FAILED", "Invalid id.");
