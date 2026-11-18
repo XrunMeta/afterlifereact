@@ -1090,6 +1090,15 @@
       "termsServiceTitle": "服务条款",
       "termsPrivacyTitle": "隐私政策"
     },
+    "birthDateGate": {
+      "title": "请告诉我们您的出生日期",
+      "desc": "使用服务需要输入出生日期。仅满 14 周岁以上可注册。",
+      "submit": "确认",
+      "submitting": "保存中...",
+      "underAgeTitle": "注册已受限",
+      "underAgeDesc": "未满 14 周岁不可使用,账户已锁定 7 天。\n若 7 天内未申请恢复,账户将被删除。",
+      "saveFailed": "出生日期保存失败,请稍后再试。"
+    },
     "emailVerify": {
       "title": "邮箱验证",
       "desc": "请输入发送至 {{email}} 的 6 位验证码。",

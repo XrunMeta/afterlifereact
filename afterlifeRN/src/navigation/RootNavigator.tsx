@@ -8,6 +8,9 @@ import v_6d377c from "../permissions/PermissionGateScreen";
 import { v_2f5414 } from "../hooks/useSsoReconsentGate";
 import v_ac767f from "../screens/auth/SsoReconsentScreen";
 
+import { v_90396a } from "../hooks/useBirthDateGate";
+import v_cb9b4f from "../screens/auth/BirthDateEntryScreen";
+
 import { v_c9b96f } from "../hooks/useAccountFaceGate";
 import v_5b71e1 from "../screens/face-enroll/AccountFaceEnrollScreen";
 
@@ -63,12 +66,17 @@ export default function v_3b950c() {
   const { decision: v_403b73, loading: v_decd98 } = v_b5d684();
 
   const v_65e1e2 = v_2f5414();
+  const v_807f7b = v_90396a();
   const v_075310 = v_c9b96f();
 
   const v_8a15d2 = v_042a8b && (v_decd98 || !v_403b73.pass);
 
   if (v_042a8b && !v_65e1e2.loading && v_65e1e2.needs) {
     return <SsoReconsentScreen onDone={v_65e1e2.refresh} />;
+  }
+
+  if (v_042a8b && !v_807f7b.loading && v_807f7b.needs) {
+    return <BirthDateEntryScreen onDone={v_807f7b.refresh} />;
   }
 
   if (v_8a15d2) {

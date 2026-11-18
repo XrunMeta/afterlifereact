@@ -1090,6 +1090,15 @@
       "termsServiceTitle": "Terms of Service",
       "termsPrivacyTitle": "Privacy Policy"
     },
+    "birthDateGate": {
+      "title": "Please enter your date of birth",
+      "desc": "To use the service, enter your date of birth. Only users 14 or older can sign up.",
+      "submit": "Confirm",
+      "submitting": "Saving...",
+      "underAgeTitle": "Sign-up restricted",
+      "underAgeDesc": "You must be at least 14 to use the service, so your account has been locked for 7 days.\nIf no recovery is requested within 7 days, the account will be deleted.",
+      "saveFailed": "Failed to save your date of birth. Please try again later."
+    },
     "emailVerify": {
       "title": "Verify Email",
       "desc": "Enter the 6-digit code sent to {{email}}.",

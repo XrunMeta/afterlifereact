@@ -1090,6 +1090,15 @@
       "termsServiceTitle": "서비스 약관",
       "termsPrivacyTitle": "개인정보 약관"
     },
+    "birthDateGate": {
+      "title": "생년월일을 알려주세요",
+      "desc": "서비스 이용을 위해 생년월일 입력이 필요합니다. 만 14세 이상만 이용할 수 있어요.",
+      "submit": "확인",
+      "submitting": "저장 중...",
+      "underAgeTitle": "가입이 제한되었습니다",
+      "underAgeDesc": "만 14세 미만은 이용할 수 없어 계정이 7일간 잠겼습니다.\n7일 내 복구 요청이 없으면 계정이 삭제됩니다.",
+      "saveFailed": "생년월일 저장에 실패했어요. 잠시 후 다시 시도해 주세요."
+    },
     "emailVerify": {
       "title": "이메일 인증",
       "desc": "{{email}} 로 발송된 6자리 인증 코드를 입력해 주십시오.",

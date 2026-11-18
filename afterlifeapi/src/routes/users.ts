@@ -36,6 +36,8 @@ interface UserRow {
   gender: string | null;
   age: number | null;
   age_enc: string | null;
+
+  birth_date_enc: string | null;
   created_at: string;
   country: string | null;
   mobile_code: number | null;
@@ -101,7 +103,7 @@ v_de7ba7.get("/me", v_6690d9, async (v_3f4e2e) => {
   const v_a1651b = v_3f4e2e.env.DB;
   const v_3ac7e7 = await v_a1651b
     .prepare(
-      `SELECT id, name, email, avatar_url, credits, funnel_stage, phone, gender, age, age_enc, created_at,
+      `SELECT id, name, email, avatar_url, credits, funnel_stage, phone, gender, age, age_enc, birth_date_enc, created_at,
               country, mobile_code, region,
               xrun_member_id, xrun_guid, xrun_wallet, xrun_linked_at,
               sso_consent_version
@@ -212,6 +214,8 @@ v_de7ba7.get("/me", v_6690d9, async (v_3f4e2e) => {
 
       ssoConsentVersion: v_3ac7e7.sso_consent_version,
       needsSsoReconsent: v_3ac7e7.sso_consent_version !== v_31fb59,
+
+      needsBirthDate: !v_3ac7e7.birth_date_enc,
     },
     interests: (v_774c91.results ?? []).map((v_cb35cb) => v_cb35cb.interest),
   });
@@ -253,6 +257,109 @@ v_de7ba7.post("/me/sso-reconsent", v_6690d9, async (v_3f4e2e) => {
     );
   }
   return v_3f4e2e.json({ ok: true, version: v_31fb59 });
+});
+
+const v_3c8aa2 = v_1f4ea7.object({
+  birthDate: v_1f4ea7.string().regex(/^\d{4}-\d{2}-\d{2}$/, "birthDate must be YYYY-MM-DD"),
+});
+
+function v_213f8c(v_598ded): number {
+
+  const v_35f85c = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v_598ded);
+  if (!v_35f85c) throw new v_3ebe58("VALIDATION_FAILED", "Invalid birthDate format.");
+  const v_64877a = Number(v_35f85c[1]);
+  const v_c307e0 = Number(v_35f85c[2]);
+  const v_d5dda0 = Number(v_35f85c[3]);
+  if (v_c307e0 < 1 || v_c307e0 > 12 || v_d5dda0 < 1 || v_d5dda0 > 31) {
+    throw new v_3ebe58("VALIDATION_FAILED", "Invalid birthDate.");
+  }
+  const v_f52139 = new Date(Date.UTC(v_64877a, v_c307e0 - 1, v_d5dda0));
+  if (v_f52139.getUTCFullYear() !== v_64877a || v_f52139.getUTCMonth() !== v_c307e0 - 1 || v_f52139.getUTCDate() !== v_d5dda0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "Invalid birthDate.");
+  }
+  const v_5c2f9f = new Date();
+  let v_2694bd = v_5c2f9f.getUTCFullYear() - v_64877a;
+  const v_3bafb7 = v_5c2f9f.getUTCMonth() + 1;
+  const v_f0b456 = v_5c2f9f.getUTCDate();
+  if (v_3bafb7 < v_c307e0 || (v_3bafb7 === v_c307e0 && v_f0b456 < v_d5dda0)) v_2694bd -= 1;
+  if (v_2694bd < 0 || v_2694bd > 150) throw new v_3ebe58("VALIDATION_FAILED", "Invalid birthDate.");
+  return v_2694bd;
+}
+
+const v_9ecdb4 = 14;
+const v_88e857 = 7;
+
+v_de7ba7.post("/me/birth-date", v_6690d9, async (v_3f4e2e) => {
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_a1651b = v_3f4e2e.env.DB;
+  const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_3c8aa2);
+
+  const v_3ac7e7 = await v_a1651b
+    .prepare(`SELECT birth_date_enc, deletion_state FROM users WHERE id = ?`)
+    .bind(v_43e90c)
+    .first<{ birth_date_enc: string | null; deletion_state: string }>();
+  if (!v_3ac7e7) throw new v_3ebe58("NOT_FOUND", "User not found.");
+  if (v_3ac7e7.birth_date_enc) {
+    throw new v_3ebe58("CONFLICT", "birthDate already set.");
+  }
+  if (v_3ac7e7.deletion_state !== "active") {
+    throw new v_3ebe58("ACCOUNT_DELETED", "Account is not active.");
+  }
+
+  const v_2694bd = v_213f8c(v_4d33b2.birthDate);
+
+  if (v_2694bd < v_9ecdb4) {
+    const v_f0538b = Date.now() + v_88e857 * 24 * 60 * 60 * 1000;
+    const v_a1c4ea = new Date(v_f0538b).toISOString().replace("T", " ").slice(0, 19);
+
+    const v_dac30a = v_a8614b(v_3f4e2e.env.ALE_KEK);
+    const v_63b1db = v_85de88(v_4d33b2.birthDate, v_dac30a, "user.birth_date");
+    const v_1f5d19 = v_85de88(String(v_2694bd), v_dac30a, "user.age");
+    await v_a1651b
+      .prepare(
+        `UPDATE users
+            SET birth_date_enc = ?, age_enc = ?,
+                deletion_state = 'soft_deleted',
+                soft_deleted_at = CURRENT_TIMESTAMP,
+                banned_until = ?,
+                updated_at = CURRENT_TIMESTAMP
+          WHERE id = ?`,
+      )
+      .bind(v_63b1db, v_1f5d19, v_a1c4ea, v_43e90c)
+      .run();
+    await v_74defc(v_3f4e2e, {
+      userId: v_43e90c,
+      action: "auth.under_age_lock",
+      details: { age: v_2694bd, lockDays: v_88e857 },
+    });
+    throw new v_3ebe58("UNDER_AGE", "만 14세 미만은 이용할 수 없어 계정이 7일간 잠겼습니다.", {
+      lockDays: v_88e857,
+    });
+  }
+
+  const v_dac30a = v_a8614b(v_3f4e2e.env.ALE_KEK);
+  const v_63b1db = v_85de88(v_4d33b2.birthDate, v_dac30a, "user.birth_date");
+  const v_1f5d19 = v_85de88(String(v_2694bd), v_dac30a, "user.age");
+  await v_a1651b
+    .prepare(
+      `UPDATE users SET birth_date_enc = ?, age_enc = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+    )
+    .bind(v_63b1db, v_1f5d19, v_43e90c)
+    .run();
+
+  const v_38066f = await v_a1651b
+    .prepare(`SELECT xrun_member_id, email FROM users WHERE id = ?`)
+    .bind(v_43e90c)
+    .first<{ xrun_member_id: number | null; email: string }>();
+  if (v_38066f?.xrun_member_id && v_38066f.email) {
+    v_3f4e2e.executionCtx.waitUntil(
+      v_c0f252(v_3f4e2e.env, v_38066f.email, { age: v_2694bd })
+        .then((v_cb35cb) => { if (!v_cb35cb.ok) console.warn(`[birth-date] xrun ages sync failed: ${v_cb35cb.reason}`); }),
+    );
+  }
+
+  await v_74defc(v_3f4e2e, { userId: v_43e90c, action: "auth.birth_date_set", details: { age: v_2694bd } });
+  return v_3f4e2e.json({ ok: true, age: v_2694bd });
 });
 
 type NotificationPrefsBody = {
