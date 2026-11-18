@@ -752,7 +752,7 @@ export async function v_9deb40(
   v_2ca7e0,
   v_6e0fd3,
   v_58ca36,
-): Promise<{ ok: true; reported: true; blocked: true }> {
+): Promise<{ ok: true; reported: true; blocked: true; autoPrivated: boolean }> {
   return v_04b58a(
     `/oth-path${v_6e0fd3}/report`,
     v_2ca7e0,

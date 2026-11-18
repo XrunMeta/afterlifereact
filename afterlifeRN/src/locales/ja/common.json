@@ -83,6 +83,7 @@
       "commentReported": "コメントを通報しました",
       "reportFailed": "通報に失敗しました",
       "reportSuccessBlocked": "通報を受け付けました。このクローンをブロックしました",
+      "reportSuccessAutoPrivated": "通報を受け付けました。審査までこのクローンは非公開になりました",
       "userBlocked": "ブロックしました",
       "blockUserFailed": "ブロックに失敗しました",
       "visibilityUpdated": "公開範囲を変更しました",

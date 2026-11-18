@@ -1290,11 +1290,15 @@ export default function v_c316d8() {
 
           try {
             const { reportClone: v_9deb40 } = await import("../../api/clones");
-            await v_9deb40(v_2ca7e0, v_5f5d6d.cloneId, v_58ca36 || undefined);
+            const v_8f00b9 = await v_9deb40(v_2ca7e0, v_5f5d6d.cloneId, v_58ca36 || undefined);
             v_15c939(
-              v_8d41d7("home.toasts.reportSuccessBlocked", {
-                defaultValue: "신고가 접수됐어요. 이 클론은 차단됐어요",
-              }),
+              v_8f00b9.autoPrivated
+                ? v_8d41d7("home.toasts.reportSuccessAutoPrivated", {
+                    defaultValue: "신고가 접수됐어요. 운영 검토까지 이 클론은 비공개로 전환됐어요",
+                  })
+                : v_8d41d7("home.toasts.reportSuccessBlocked", {
+                    defaultValue: "신고가 접수됐어요. 이 클론은 차단됐어요",
+                  }),
             );
             const v_c3bc75 = v_37977a.getState().apiFeeds;
             if (v_c3bc75) {

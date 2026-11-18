@@ -83,6 +83,7 @@
       "commentReported": "댓글이 신고됐습니다",
       "reportFailed": "신고에 실패했습니다",
       "reportSuccessBlocked": "신고가 접수됐습니다. 이 클론은 차단됐습니다",
+      "reportSuccessAutoPrivated": "신고가 접수됐습니다. 운영 검토까지 이 클론은 비공개로 전환됐습니다",
       "userBlocked": "차단되었습니다",
       "blockUserFailed": "차단에 실패했습니다",
       "visibilityUpdated": "공개 범위가 변경됐어요",
