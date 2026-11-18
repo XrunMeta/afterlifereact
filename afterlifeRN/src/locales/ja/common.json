@@ -1151,9 +1151,9 @@
       "memlowLabel": "追悼",
       "memlowShortDesc": "共に過ごした時間を会話で繋げます",
       "defaultTitle": "一般クローン",
-      "defaultDesc": "友達・メンター・有名人など自由なクローン",
+      "defaultDesc": "友達・メンターなど自由なクローン",
       "defaultLabel": "一般",
-      "defaultShortDesc": "友達・メンター・有名人など自由なクローン"
+      "defaultShortDesc": "友達・メンターなど自由なクローン"
     },
     "relations": {
       "self": "本人",

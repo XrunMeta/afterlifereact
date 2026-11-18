@@ -1151,9 +1151,9 @@
       "memlowLabel": "追思",
       "memlowShortDesc": "让共度的时光在对话中延续",
       "defaultTitle": "普通克隆",
-      "defaultDesc": "朋友·导师·名人等自由克隆",
+      "defaultDesc": "朋友·导师等自由克隆",
       "defaultLabel": "普通",
-      "defaultShortDesc": "朋友·导师·名人等自由克隆"
+      "defaultShortDesc": "朋友·导师等自由克隆"
     },
     "relations": {
       "self": "本人",
