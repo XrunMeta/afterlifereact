@@ -5,6 +5,9 @@ import type { v_de0a25 } from "../lib/env";
 import { v_3ebe58 } from "../lib/errors";
 import { v_6690d9 } from "../middleware/auth";
 import { v_a8d2cc } from "../lib/faceVectors";
+import { v_666e61 } from "../lib/faceVectorSeal";
+import { v_a8614b } from "../lib/ale";
+import { v_9c55e0, v_c74d52 } from "../lib/faceFingerprint";
 import { v_430d2b } from "../lib/personDelete";
 import { v_d0fd96 } from "../lib/displayName";
 import { v_0b07b9 } from "../lib/cloneAccess";
@@ -218,9 +221,10 @@ v_fded81.get("/face-gallery", v_6690d9, async (v_3f4e2e) => {
   if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "클론을 찾을 수 없습니다.");
 
   const v_d361d7 = await v_4e929c(v_3f4e2e.env.DB);
-  type Row = { person_id: number; vectorize_id: string; display_name: string | null; landmark_ratios?: string | null };
-  const v_f8df46 = (v_8a6a5b) =>
-    `SELECT f.person_id, f.vectorize_id, p.display_name${v_8a6a5b ? ", f.landmark_ratios" : ""}
+
+  type Row = { person_id: number; vectorize_id: string; display_name: string | null; landmark_ratios?: string | null; vector_enc?: string | null };
+  const v_f8df46 = (v_8a6a5b, v_73476b) =>
+    `SELECT f.person_id, f.vectorize_id, p.display_name${v_8a6a5b ? ", f.landmark_ratios" : ""}${v_73476b ? ", f.vector_enc" : ""}
        FROM clone_person_faces f
        JOIN persons p ON p.id = f.person_id
       WHERE f.clone_id = ? AND p.user_id = ? AND p.clone_id = ?
@@ -228,18 +232,27 @@ v_fded81.get("/face-gallery", v_6690d9, async (v_3f4e2e) => {
       LIMIT ${v_23583f}`;
   let v_18b8bf;
   try {
-    v_18b8bf = (await v_3f4e2e.env.DB.prepare(v_f8df46(true)).bind(v_6e0fd3, v_43e90c, v_6e0fd3).all<Row>()).results;
+    v_18b8bf = (await v_3f4e2e.env.DB.prepare(v_f8df46(true, true)).bind(v_6e0fd3, v_43e90c, v_6e0fd3).all<Row>()).results;
   } catch {
+    try {
 
-    v_18b8bf = (await v_3f4e2e.env.DB.prepare(v_f8df46(false)).bind(v_6e0fd3, v_43e90c, v_6e0fd3).all<Row>()).results;
+      v_18b8bf = (await v_3f4e2e.env.DB.prepare(v_f8df46(true, false)).bind(v_6e0fd3, v_43e90c, v_6e0fd3).all<Row>()).results;
+    } catch {
+
+      v_18b8bf = (await v_3f4e2e.env.DB.prepare(v_f8df46(false, false)).bind(v_6e0fd3, v_43e90c, v_6e0fd3).all<Row>()).results;
+    }
   }
 
-  const v_e86ad8 = v_a8d2cc(v_3f4e2e.env);
+  const v_e38ca2 = v_a8614b(v_3f4e2e.env.ALE_KEK);
   const v_6fea0b = new Map<string, number[]>();
-  const v_52e08b = v_18b8bf.map((v_cb35cb) => v_cb35cb.vectorize_id).filter(Boolean);
-  for (let v_ebec57 = 0; v_ebec57 < v_52e08b.length; v_ebec57 += v_c57f07) {
-    const v_df0713 = await v_e86ad8.getByIds(v_52e08b.slice(v_ebec57, v_ebec57 + v_c57f07));
-    for (const v_206b88 of v_df0713) v_6fea0b.set(v_206b88.id, v_206b88.values.map((v_62c214) => Math.round(v_62c214 * 1e5) / 1e5));
+  for (const v_cb35cb of v_18b8bf) {
+    if (!v_cb35cb.vector_enc) continue; 
+    try {
+      const v_e13cd0 = v_666e61(v_cb35cb.vector_enc, v_e38ca2);
+      v_6fea0b.set(v_cb35cb.vectorize_id, v_e13cd0.map((v_62c214) => Math.round(v_62c214 * 1e5) / 1e5));
+    } catch {
+
+    }
   }
 
   const v_8a69ab = new Map<number, { personId: number; displayName: string | null; vectors: number[][]; landmarkRatiosList: (Record<string, number> | null)[] }>();
@@ -432,7 +445,10 @@ v_fded81.post("/calibrate", v_6690d9, async (v_3f4e2e) => {
   if (typeof v_6b5963 !== "number" || !Number.isInteger(v_6b5963) || v_6b5963 <= 0) {
     return v_3f4e2e.json({ error: "invalid cloneId" }, 400);
   }
-  const { matches: v_a49907 } = await v_a8d2cc(v_3f4e2e.env).query(v_81e2ef as number[], {
+
+  const v_c21a6a = v_9c55e0(v_3f4e2e.env.ALE_KEK);
+  const v_21bd6d = v_c74d52(v_81e2ef as number[], v_c21a6a);
+  const { matches: v_a49907 } = await v_a8d2cc(v_3f4e2e.env).query(v_21bd6d, {
 
     topK: 20,
     namespace: v_929ead(v_43e90c, v_6b5963),
