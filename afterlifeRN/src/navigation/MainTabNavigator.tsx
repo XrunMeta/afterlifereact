@@ -46,7 +46,6 @@ import v_65df53 from "../screens/my/BlockedListScreen";
 import v_7e6637 from "../screens/my/ReportsScreen";
 import v_9e01f7 from "../screens/my/TransactionsScreen";
 
-import v_0035e1 from "../screens/my/PurchaseScreen";
 import v_1619c2 from "../screens/my/SettingsGroupScreen";
 import v_f0969e from "../screens/my/DeactivateAccountScreen";
 
@@ -110,7 +109,6 @@ function v_d9c5dd() {
       <MyStack.Screen name="InviteStatus" component={v_14fa9c} />
       <MyStack.Screen name="BlockedList" component={v_65df53} />
       <MyStack.Screen name="Transactions" component={v_9e01f7} />
-      <MyStack.Screen name="Purchase" component={v_0035e1} />
       <MyStack.Screen name="Reports" component={v_7e6637} />
       <MyStack.Screen name="SettingsGroup" component={v_1619c2} />
       <MyStack.Screen name="DeactivateAccount" component={v_f0969e} />

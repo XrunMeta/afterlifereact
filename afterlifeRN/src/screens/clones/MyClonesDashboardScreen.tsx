@@ -37,7 +37,6 @@ import v_4c2648 from "./components/FriendPickerModal";
 import v_92380d from "./components/VisibilityPickerModal";
 import { v_194498 } from "../../stores/cloneStore";
 import { v_1ed7d9 } from "../../stores/authStore";
-import { v_84d546 } from "../../lib/callGuard";
 import { v_38f9da } from "../../lib/callActivity";
 import { v_b4902e } from "../../stores/followStore";
 import { v_694b7f } from "../../api/source";
@@ -743,14 +742,8 @@ export default function v_def15b() {
         <View style={v_fd5f43.actionsRow}>
           <TouchableOpacity
             style={v_fd5f43.actionBtn}
-            onPress={async () => {
+            onPress={() => {
 
-              const v_3ed4c3 = await v_84d546(v_2ca7e0, () => {
-                v_f4c991.dispatch(
-                  v_650cfa.navigate({ name: "MyTab", params: { screen: "Purchase" } }),
-                );
-              });
-              if (!v_3ed4c3) return;
               v_38f9da({ cloneId: v_eb25ce.id, source: "my-clones" });
               v_f4c991.navigate("Call", { cloneId: v_eb25ce.id });
             }}
@@ -1122,14 +1115,8 @@ export default function v_def15b() {
                     <View style={v_fd5f43.actionsRow}>
                       <TouchableOpacity
                         style={v_fd5f43.actionBtn}
-                        onPress={async () => {
+                        onPress={() => {
 
-                          const v_3ed4c3 = await v_84d546(v_2ca7e0, () => {
-                            v_f4c991.dispatch(
-                              v_650cfa.navigate({ name: "MyTab", params: { screen: "Purchase" } }),
-                            );
-                          });
-                          if (!v_3ed4c3) return;
                           v_38f9da({ cloneId: v_69bba6.id, name: v_69bba6.name, source: "my-clones-shared" });
                           v_f4c991.navigate("Call", { cloneId: v_69bba6.id, name: v_69bba6.name });
                         }}
