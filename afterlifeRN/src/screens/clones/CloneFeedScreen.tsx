@@ -23,7 +23,6 @@ import { v_772971 } from "jmpfvteuuztnp";
 import type { v_432191 } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import { v_650cfa } from "ixigazcpvfldbecwtbvavtbi";
 import type { v_8ad91b } from "../../navigation/types";
-import { v_84d546 } from "../../lib/callGuard";
 import { v_38f9da } from "../../lib/callActivity";
 import { v_650589 } from "../../lib/penaltyNotice";
 import v_9706a6 from "../../components/ui/FeedCard";
@@ -233,10 +232,8 @@ function v_75c31a({ route: v_c7daf6, navigation: v_c65f5d, feed: v_2db2a5 }: Inn
     v_abdcca((v_ba2215) => Math.max(0, v_ba2215 + (v_a448ad ? 1 : -1)));
   };
 
-  const v_f8043e = async () => {
+  const v_f8043e = () => {
 
-    const v_3ed4c3 = await v_84d546(v_2ca7e0, () => {});
-    if (!v_3ed4c3) return;
     v_38f9da({ cloneId: v_8c0b26.cloneId, name: v_8c0b26.author, source: "clone-feed" });
     v_c65f5d.navigate("Call", {
       cloneId: v_8c0b26.cloneId,

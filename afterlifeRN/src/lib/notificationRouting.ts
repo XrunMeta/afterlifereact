@@ -67,10 +67,6 @@ function v_6be210(v_9390e8): void {
   }
 
   if (v_3b27d9 === "clone_gift") {
-    v_3c9f12.navigate("Main", {
-      screen: "MyTab",
-      params: { screen: "Purchase" },
-    });
     return;
   }
 
