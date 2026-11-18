@@ -1,13 +1,13 @@
 import type { v_c2a674, v_affcc0, v_d79d7f } from '../../src/types/clone';
 
-test('CloneType enum is memlow/friend/mentor/celeb', () => {
-  const types: v_d79d7f[] = ['memlow', 'friend', 'mentor', 'celeb'];
-  expect(v_db0487).toHaveLength(4);
+test('CloneType enum is friend/mentor/celeb (T19 이후)', () => {
+  const types: v_d79d7f[] = ['friend', 'mentor', 'celeb'];
+  expect(v_db0487).toHaveLength(3);
 });
 
 test('CloneCreationDraft accepts new fields', () => {
   const d: v_c2a674 = {
-    cloneType: 'memlow',
+    cloneType: 'friend',
     name: '엄마',
     username: '@mom',
     description: '',
@@ -21,7 +21,7 @@ test('CloneCreationDraft accepts new fields', () => {
     visibility: 'private',
     coownerInvites: ['x@y.com'],
   };
-  expect(v_d5dda0.cloneType).toBe('memlow');
+  expect(v_d5dda0.cloneType).toBe('friend');
 });
 
 test('Clone has status field', () => {

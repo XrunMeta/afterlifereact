@@ -17,12 +17,6 @@ test('renders DefaultVoiceUpload (sample cards) when cloneType=friend', () => {
   expect(v_2b0f8a('Nova')).toBeTruthy();
 });
 
-test('renders MemlowVoiceUpload (letter scripts) when cloneType=memlow', () => {
-  v_194498.getState().setCreationDraft({ cloneType: 'memlow' });
-  const { getByText: v_2b0f8a } = v_624657(<Step4VoiceUploadScreen {...v_3c9f12} />);
-  expect(v_2b0f8a(/편지 1/)).toBeTruthy();
-});
-
 test('default with no voice → next disabled', () => {
   v_194498.getState().setCreationDraft({ cloneType: 'friend' });
   const { getByText: v_2b0f8a } = v_624657(<Step4VoiceUploadScreen {...v_3c9f12} />);
@@ -37,12 +31,3 @@ test('default with voiceSampleId → next enabled', () => {
   expect(v_7b8db1).toHaveBeenCalledWith('Step5');
 });
 
-test('memlow with voiceFile → next enabled', () => {
-  v_194498.getState().setCreationDraft({
-    cloneType: 'memlow',
-    voiceFile: 'file://x.m4a',
-  });
-  const { getByText: v_2b0f8a } = v_624657(<Step4VoiceUploadScreen {...v_3c9f12} />);
-  v_77aa68.press(v_2b0f8a('다음 단계로 이동'));
-  expect(v_7b8db1).toHaveBeenCalledWith('Step5');
-});

@@ -11,14 +11,14 @@ test('creationDraft starts with interests=[] and coownerInvites=[]', () => {
 });
 
 test('setCreationDraft merges partial updates', () => {
-  v_194498.getState().setCreationDraft({ cloneType: 'memlow', name: '엄마' });
+  v_194498.getState().setCreationDraft({ cloneType: 'friend', name: '엄마' });
   const v_d5dda0 = v_194498.getState().creationDraft;
-  expect(v_d5dda0.cloneType).toBe('memlow');
+  expect(v_d5dda0.cloneType).toBe('friend');
   expect(v_d5dda0.name).toBe('엄마');
 });
 
 test('resetCreationDraft restores empty defaults', () => {
-  v_194498.getState().setCreationDraft({ cloneType: 'memlow' });
+  v_194498.getState().setCreationDraft({ cloneType: 'friend' });
   v_194498.getState().resetCreationDraft();
   expect(v_194498.getState().creationDraft.cloneType).toBeUndefined();
   expect(v_194498.getState().creationDraft.interests).toEqual([]);

@@ -19,23 +19,10 @@ test('shows entry banner by default and hides after dismiss', () => {
   expect(v_480380(/타입·관계는 수정할 수 없어요/)).toBeNull();
 });
 
-test('renders MemlowImageUpload (skip hint) when cloneType=memlow', () => {
-  v_194498.getState().setCreationDraft({ cloneType: 'memlow' });
-  const { getByText: v_2b0f8a } = v_624657(<Step3ImageUploadScreen {...v_3c9f12} />);
-  expect(v_2b0f8a(/사진을 선택하거나 건너뛸 수 있어요/)).toBeTruthy();
-});
-
 test('renders DefaultImageUpload (guide section) when cloneType=friend', () => {
   v_194498.getState().setCreationDraft({ cloneType: 'friend' });
   const { getByText: v_2b0f8a } = v_624657(<Step3ImageUploadScreen {...v_3c9f12} />);
   expect(v_2b0f8a('가이드')).toBeTruthy();
-});
-
-test('memlow with no image → next enabled (skip allowed)', () => {
-  v_194498.getState().setCreationDraft({ cloneType: 'memlow' });
-  const { getByText: v_2b0f8a } = v_624657(<Step3ImageUploadScreen {...v_3c9f12} />);
-  v_77aa68.press(v_2b0f8a('다음 단계로 이동'));
-  expect(v_7b8db1).toHaveBeenCalledWith('Step4');
 });
 
 test('default with no image → next disabled', () => {

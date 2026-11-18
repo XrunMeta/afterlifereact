@@ -111,15 +111,7 @@ export default function v_51ae06({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     v_15c939(v_8d41d7("detail.paymentPending", { defaultValue: "결제 준비 중이에요" }));
   };
 
-  const v_c279e3 =
-    v_eb25ce && v_eb25ce.cloneType === "memlow"
-      ? v_694b7f.coowners()
-          .filter(
-            (v_c4a45b) => v_c4a45b.cloneId === v_eb25ce.id && v_c4a45b.status === "approved",
-          )
-          .map((v_c4a45b) => v_694b7f.users().find((v_ceb55a) => v_ceb55a.id === v_c4a45b.userId))
-          .filter((v_ceb55a): v_ceb55a is NonNullable<typeof v_ceb55a> => Boolean(v_ceb55a))
-      : [];
+  const approvedCoowners: NonNullable<ReturnType<typeof v_694b7f.users>[number]>[] = [];
 
   if (!v_eb25ce) {
 

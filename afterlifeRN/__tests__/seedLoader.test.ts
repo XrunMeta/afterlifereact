@@ -58,7 +58,7 @@ describe('seedLoader assertions', () => {
       v_8e78d0([
         {
           id: 1,
-          cloneType: 'memlow',
+          cloneType: 'friend',
           ownerId: 1,
           displayName: 'x',
           description: 'x',
@@ -76,7 +76,7 @@ describe('seedLoader assertions', () => {
       v_8e78d0([
         {
           id: 1,
-          cloneType: 'memlow',
+          cloneType: 'friend',
           ownerId: 1,
           displayName: 'x',
           description: 'x',
@@ -134,7 +134,7 @@ describe('assertShorts', () => {
 describe('assertClones optional primaryEditorUserId + l1Profile', () => {
   const v_694b25 = {
     id: 1,
-    cloneType: 'memlow' as const,
+    cloneType: 'friend' as const,
     ownerId: 1,
     displayName: 'x',
     description: 'x',
@@ -169,7 +169,7 @@ describe('domain type shape (compile-time)', () => {
   it('DomainClone exposes optional l1Profile + primaryEditorUserId', () => {
     const c: v_4b85a1 = {
       id: 1,
-      cloneType: 'memlow',
+      cloneType: 'friend',
       ownerId: 1,
       displayName: 'x',
       description: 'x',

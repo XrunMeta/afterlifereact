@@ -9,7 +9,6 @@ import v_258c1c from '../../components/common/PageHeader';
 import v_1a40c4 from '../../components/ui/Button';
 import { v_194498 } from '../../stores/cloneStore';
 import { v_889fad } from '../../stores/dialogStore';
-import v_95a2dd from './content/MemlowVoiceUpload';
 import v_872645, { v_2ba26d } from './content/DefaultVoiceUpload';
 import { v_1bfbd0, v_9b1a04 } from '../../components/constants';
 
@@ -20,18 +19,13 @@ export default function v_710783({ navigation: v_c65f5d }: Props) {
   const v_f04727 = v_194498(v_fd5f43 => v_fd5f43.creationDraft);
   const v_5795de = v_194498(v_fd5f43 => v_fd5f43.setCreationDraft);
 
-  const v_e93e18 = v_f04727.cloneType === 'memlow';
-  const v_b94c69 = v_e93e18 ? v_95a2dd : v_872645;
+  const v_b94c69 = v_872645;
   const v_04fddf = v_b94c69.validate(v_f04727);
   const v_5ca6b8 = v_e662ae<v_122070>(null);
   const v_6c7889 = v_de06a3(() => v_5ca6b8.current?.scrollToEnd({ animated: true }), []);
 
   const v_c3dcaf = () => {
     const v_9f1622 = v_8d41d7('create.voice.nextBlockedTitle', { defaultValue: '음성 등록 필요' });
-    if (v_e93e18) {
-      v_889fad(v_9f1622, v_8d41d7('create.voice.nextBlockedGeneric', { defaultValue: '먼저 음성을 등록해 주십시오.' }));
-      return;
-    }
     let v_badeaf;
     switch (v_2ba26d(v_f04727)) {
       case 'record':

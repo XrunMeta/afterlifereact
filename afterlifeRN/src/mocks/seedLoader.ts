@@ -13,7 +13,7 @@ import type {
   v_00cac1,
 } from '../types/domain';
 
-const CLONE_TYPES: readonly v_d79d7f[] = ['memlow', 'friend', 'mentor', 'celeb'];
+const CLONE_TYPES: readonly v_d79d7f[] = ['friend', 'mentor', 'celeb'];
 const v_6f5c13 = ['queued', 'processing', 'ready', 'failed'] as const;
 const VISIBILITIES: readonly v_b0b271[] = ['public', 'followers', 'private'];
 const STATUSES: readonly v_7b4861[] = ['active', 'pending_assets'];

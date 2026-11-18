@@ -58,15 +58,6 @@ beforeEach(() => {
   v_194498.setState({ localClones: [] });
 });
 
-test.skip('memlow copy shows 추모 톤 [DEBT-SP4]', () => {
-  v_194498.getState().setCreationDraft({
-    cloneType: 'memlow', name: '엄마', username: '@mom',
-    relation: 'mother', imageFile: 'f', voiceFile: 'v',
-  });
-  const { getByText: v_2b0f8a } = v_624657(<Step7CompleteScreen {...v_3c9f12} />);
-  expect(v_2b0f8a(/추억을 이어가요/)).toBeTruthy();
-});
-
 test.skip('friend copy shows 발랄 톤 [DEBT-SP4]', () => {
   v_194498.getState().setCreationDraft({
     cloneType: 'friend', name: '루나', username: '@luna',

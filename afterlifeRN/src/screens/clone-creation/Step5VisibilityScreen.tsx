@@ -8,7 +8,6 @@ import v_570c34 from '../../components/ui/SafeScrollView';
 import v_258c1c from '../../components/common/PageHeader';
 import v_1a40c4 from '../../components/ui/Button';
 import { v_194498 } from '../../stores/cloneStore';
-import v_25b857 from './content/MemlowVisibility';
 import v_bba87e from './content/DefaultVisibility';
 import { v_1bfbd0, v_9b1a04 } from '../../components/constants';
 
@@ -19,7 +18,7 @@ export default function v_f275b6({ navigation: v_c65f5d }: Props) {
   const v_f04727 = v_194498(v_fd5f43 => v_fd5f43.creationDraft);
   const v_5795de = v_194498(v_fd5f43 => v_fd5f43.setCreationDraft);
 
-  const v_b94c69 = v_f04727.cloneType === 'memlow' ? v_25b857 : v_bba87e;
+  const v_b94c69 = v_bba87e;
   const v_04fddf = v_b94c69.validate(v_f04727);
 
   return (

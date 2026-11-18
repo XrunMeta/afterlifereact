@@ -53,16 +53,3 @@ test('shows follower count badge on owned clones', () => {
   expect(v_aab306.props.children.join('')).toMatch(/팔로워/);
 });
 
-test('shows coowner badge for memlow clones with approved coowners', () => {
-  v_624657(<MyClonesDashboardScreen />);
-  const v_f043f6 = v_35d5ed.clones.find(
-    (v_3f4e2e) =>
-      v_3f4e2e.ownerId === 1 &&
-      v_3f4e2e.cloneType === 'memlow' &&
-      v_35d5ed.coowners.some(
-        (v_c4a45b) => v_c4a45b.cloneId === v_3f4e2e.id && v_c4a45b.status === 'approved',
-      ),
-  );
-  expect(v_f043f6).toBeTruthy();
-  expect(v_53746a.getAllByText(/공동관리자.*명/).length).toBeGreaterThan(0);
-});

@@ -7,7 +7,7 @@ import { v_86ee62 } from "../lib/cloneUsername";
 import type { v_2c17b5 } from "../types/clone";
 import v_9c213b from "../i18n";
 
-export type CloneType = "memlow" | "friend" | "mentor" | "celeb";
+export type CloneType = "friend" | "mentor" | "celeb";
 
 export type Visibility = "public" | "private" | "followers" | "selected";
 

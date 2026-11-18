@@ -5,7 +5,6 @@ import { v_a554a7 } from "./images";
 import { v_0b62e7, v_10e36e, v_674b99, v_ec315e, v_078c0e } from "../stores/feedStore";
 
 const CLONE_TYPE_LABEL: Record<v_d79d7f, string> = {
-  memlow: "멤로우",
   friend: "친구",
   mentor: "멘토",
   celeb: "셀럽",

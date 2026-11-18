@@ -8,7 +8,6 @@ import v_570c34 from '../../components/ui/SafeScrollView';
 import v_258c1c from '../../components/common/PageHeader';
 import v_1a40c4 from '../../components/ui/Button';
 import { v_194498 } from '../../stores/cloneStore';
-import v_922cea from './content/MemlowImageUpload';
 import v_a6e1ad from './content/DefaultImageUpload';
 
 import { v_1bfbd0, v_9b1a04 } from '../../components/constants';
@@ -25,7 +24,7 @@ export default function v_3d9025({ navigation: v_c65f5d }: Props) {
   const v_2ca7e0 = v_1ed7d9(v_fd5f43 => v_fd5f43.accessToken);
   const [v_cb66b4, v_ee9ec1] = v_5ab095(false);
 
-  const v_b94c69 = v_f04727.cloneType === 'memlow' ? v_922cea : v_a6e1ad;
+  const v_b94c69 = v_a6e1ad;
   const v_04fddf = v_b94c69.validate(v_f04727);
 
   const v_420661 = async () => {

@@ -609,7 +609,8 @@ export default function v_def15b() {
   const v_b80d74 = ({ item: v_eb25ce }: { item: v_affcc0 }) => {
     const v_b6e533 = v_699459[v_eb25ce.id];
     const v_818579 = v_b6e533?.visibility ?? v_eb25ce.visibility;
-    const v_e93e18 = v_eb25ce.cloneType === "memlow";
+
+    const v_e93e18 = false;
 
     const v_e17daa =
       typeof v_eb25ce.followersCount === "number"
@@ -1259,10 +1260,7 @@ export default function v_def15b() {
           <Pressable style={v_fd5f43.modalBox} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
             <Text style={v_fd5f43.modalTitle}>{v_8d41d7("dashboard.deleteTitle")}</Text>
             <Text style={v_fd5f43.modalDesc}>
-              {v_c9d3fa &&
-              v_4cd149.find((v_3f4e2e) => v_3f4e2e.id === v_c9d3fa)?.cloneType === "memlow"
-                ? v_8d41d7("dashboard.deleteDescMemlow")
-                : v_8d41d7("dashboard.deleteDescDefault")}
+              {v_8d41d7("dashboard.deleteDescDefault")}
             </Text>
             <View style={v_fd5f43.modalBtns}>
               <Button

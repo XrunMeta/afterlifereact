@@ -23,25 +23,12 @@ function v_222dba(v_6e0fd3): any {
   };
 }
 
-test('renders coowner section for memlow clone with approved coowners', () => {
-  const v_f043f6 = v_35d5ed.clones.find(
-    (v_3f4e2e) =>
-      v_3f4e2e.cloneType === 'memlow' &&
-      v_35d5ed.coowners.some(
-        (v_c4a45b) => v_c4a45b.cloneId === v_3f4e2e.id && v_c4a45b.status === 'approved',
-      ),
-  );
-  expect(v_f043f6).toBeTruthy();
-  v_624657(<CloneDetailScreen {...v_222dba(v_f043f6!.id)} />);
-  expect(v_53746a.getByTestId('coowner-section')).toBeTruthy();
-  expect(v_53746a.getByText(/공동관리자.*명/)).toBeTruthy();
-});
-
-test('does not render coowner section for non-memlow clones', () => {
+test('does not render coowner section for any clone (T19 이후)', () => {
   const v_61ce26 = v_35d5ed.clones.find((v_3f4e2e) => v_3f4e2e.cloneType === 'friend');
-  expect(v_61ce26).toBeTruthy();
-  v_624657(<CloneDetailScreen {...v_222dba(v_61ce26!.id)} />);
-  expect(v_53746a.queryByTestId('coowner-section')).toBeNull();
+  if (v_61ce26) {
+    v_624657(<CloneDetailScreen {...v_222dba(v_61ce26.id)} />);
+    expect(v_53746a.queryByTestId('coowner-section')).toBeNull();
+  }
 });
 
 test('owner/primary editor (viewer=1, clone=1) sees edit entry', () => {

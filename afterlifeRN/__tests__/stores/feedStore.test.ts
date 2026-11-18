@@ -31,20 +31,6 @@ describe('feedStore.getVisibleFeeds', () => {
     expect(v_632473.length).toBeGreaterThan(0);
   });
 
-  it('private (memlow) clones do not leak to a non-owner non-coowner user', async () => {
-    v_1ed7d9.setState({
-      user: { id: 20 } as any,
-      isLoggedIn: true,
-      hydrated: true,
-    });
-    const v_f36555 = new Set(
-      v_35d5ed.clones.filter((v_3f4e2e) => v_3f4e2e.cloneType === 'memlow').map((v_3f4e2e) => v_3f4e2e.id),
-    );
-    const v_632473 = v_37977a.getState().getVisibleFeeds();
-    const v_3881cf = v_632473.some((v_8b5cd8) => v_f36555.has(v_8b5cd8.cloneId));
-    expect(v_3881cf).toBe(false);
-  });
-
   it('getFilteredFeeds returns subset of getVisibleFeeds when interests selected', () => {
     v_37977a.setState({ selectedInterests: ['일상 대화'] });
     const v_cf55be = v_37977a.getState().getVisibleFeeds();

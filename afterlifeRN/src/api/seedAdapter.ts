@@ -16,7 +16,6 @@ import type {
 } from './types';
 
 const CATEGORY_BY_TYPE: Record<v_d79d7f, string> = {
-  memlow: 'family',
   friend: 'friend',
   mentor: 'mentor',
   celeb: 'celeb',

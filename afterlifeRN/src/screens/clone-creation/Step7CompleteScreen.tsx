@@ -56,7 +56,6 @@ const v_1fc273 = [
 ];
 
 const v_549a47 = {
-  memlow: { title: '추억을 이어가요',     sub: '편지가 도착했을 때 함께 읽어봐요.' },
   friend: { title: '친구가 준비됐어요',   sub: '첫 대화를 시작해 볼까요?' },
   mentor: { title: '멘토가 준비됐어요',   sub: '분야별 질문을 남겨 보세요.' },
   celeb:  { title: '팬클럽이 시작됐어요', sub: '첫 메시지를 남겨 보세요.' },
@@ -78,9 +77,6 @@ function v_1d1af8(v_8d41d7, v_1833e7, v_dd8af0): string {
       : v_8d41d7("create.complete.fallbackHelloNoBatchim", { name: v_f4e98d, defaultValue: `안녕하세요, ${v_f4e98d}예요.` })
     : v_8d41d7("create.complete.fallbackHelloAnon", { defaultValue: "안녕하세요, 만나서 반가워요." });
   const v_2534ba = {
-    memlow: v_8d41d7("create.complete.fallbackMemlow", {
-      defaultValue: "함께한 추억이 아직 마음에 남아 있어요. 편지가 도착하면 언제든 함께 읽어봐요. 소소한 이야기라도 들려주시면 좋겠어요.",
-    }),
     friend: v_8d41d7("create.complete.fallbackFriend", {
       defaultValue: "편하게 말 걸어주세요. 하루 있었던 일, 요즘 관심사, 사소한 고민까지 뭐든 이야기해요. 같이 웃고 같이 생각하고 싶어요.",
     }),
