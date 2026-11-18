@@ -1,7 +1,7 @@
 
 
-import { v_c4deb2, v_5ab095 } from "bapkr";
-import { v_05a921 } from "../api/client";
+import { v_c4deb2, v_e662ae, v_5ab095 } from "bapkr";
+import { v_05a921, v_f13fe1 } from "../api/client";
 
 type VoicePreset = {
   id: number;
@@ -91,6 +91,19 @@ export function v_9febbb() {
   const [v_8b56ae, v_d3cb17] = v_5ab095<number | "new" | null>(null);
   const [v_f04727, v_a07441] = v_5ab095<EditDraft>(v_ce6ae5);
   const [v_35bf26, v_04e389] = v_5ab095(false);
+  const [v_11c383, v_bbded0] = v_5ab095(false);
+  const [v_222f88, v_840cdd] = v_5ab095<string | null>(null); 
+  const [v_84df1e, v_89fb86] = v_5ab095<string | null>(null); 
+  const v_998823 = v_e662ae<HTMLInputElement | null>(null);
+
+  const [v_3c7a82, v_e1b851] = v_5ab095<"all" | "en" | "ja" | "zh_cn" | "id">("all");
+  const v_550718 = v_18b8bf.filter((v_81e2ef) => {
+    if (v_3c7a82 === "all") return true;
+    const v_c8b83f = `name_${v_3c7a82}` as keyof VoicePreset;
+    return !v_81e2ef[v_c8b83f];
+  });
+
+  v_c4deb2(() => () => { if (v_222f88) URL.revokeObjectURL(v_222f88); }, [v_222f88]);
 
   const v_f6f5de = () => {
     v_34a50a(true);
@@ -157,6 +170,41 @@ export function v_9febbb() {
       v_f6f5de();
     } catch (v_9e86fd) {
       v_3a7d09(v_9e86fd instanceof Error ? v_9e86fd.message : String(v_9e86fd));
+    }
+  };
+
+  const v_169a56 = () => {
+    v_998823.current?.click();
+  };
+  const v_ccd144 = async (v_9e86fd) => {
+    const v_8b5cd8 = v_9e86fd.target.files?.[0];
+    v_9e86fd.target.value = ""; 
+    if (!v_8b5cd8) return;
+    v_bbded0(true);
+    v_3a7d09(null);
+    try {
+      const { r2Key: v_0037e3 } = await v_05a921.uploadVoiceSample(v_8b5cd8);
+      v_a07441((v_d5dda0) => ({ ...v_d5dda0, r2_key: v_0037e3 }));
+
+      await v_8007ca(v_0037e3);
+    } catch (v_49263d) {
+      v_3a7d09(v_49263d instanceof Error ? v_49263d.message : String(v_49263d));
+    } finally {
+      v_bbded0(false);
+    }
+  };
+
+  const v_8007ca = async (v_0037e3) => {
+    if (!v_0037e3.trim()) return;
+    if (v_222f88) URL.revokeObjectURL(v_222f88);
+    v_840cdd(null);
+    v_89fb86(null);
+    try {
+      const v_f71b56 = await v_f13fe1(v_05a921.voiceSamplePreviewPath(v_0037e3.trim()));
+      v_840cdd(v_f71b56);
+      v_89fb86(v_0037e3.trim());
+    } catch (v_49263d) {
+      v_3a7d09(v_49263d instanceof Error ? v_49263d.message : String(v_49263d));
     }
   };
 
@@ -265,25 +313,51 @@ export function v_9febbb() {
             />
           </Field>
 
-          <div style={v_d81136.sectionTitle}>파일 키</div>
-          <div style={v_d81136.grid2}>
-            <Field label="R2 key (샘플 오디오, voice/ 로 시작)">
+          <div style={v_d81136.sectionTitle}>음성 파일</div>
+          <Field label="R2 key (업로드 후 자동 세팅 · voice/ 로 시작)">
+            <div style={{ display: "flex", gap: 8, alignItems: "stretch" }}>
               <input
-                style={v_d81136.input}
+                style={{ ...v_d81136.input, flex: 1 }}
                 value={v_f04727.r2_key}
                 onChange={(v_9e86fd) => v_a07441({ ...v_f04727, r2_key: v_9e86fd.target.value })}
-                placeholder="voice/sample/xxx.mp3"
+                placeholder="voice/sample/xxx.mp3 — 업로드 하거나 직접 입력"
               />
-            </Field>
-            <Field label="Se key (레거시)">
-              <input
-                style={v_d81136.input}
-                value={v_f04727.se_key}
-                onChange={(v_9e86fd) => v_a07441({ ...v_f04727, se_key: v_9e86fd.target.value })}
-                placeholder="레거시 se 식별자"
-              />
-            </Field>
-          </div>
+              <button
+                type="button"
+                onClick={v_169a56}
+                disabled={v_11c383}
+                style={{ ...v_d81136.secondaryBtn, whiteSpace: "nowrap" }}
+              >
+                {v_11c383 ? "업로드 중..." : "파일 업로드"}
+              </button>
+              <button
+                type="button"
+                onClick={() => void v_8007ca(v_f04727.r2_key)}
+                disabled={!v_f04727.r2_key.trim() || v_11c383}
+                style={{ ...v_d81136.secondaryBtn, whiteSpace: "nowrap" }}
+              >
+                미리듣기
+              </button>
+            </div>
+            <input
+              ref={v_998823}
+              type="file"
+              accept="audio/mpeg,audio/mp3,audio/wav,audio/x-wav,audio/ogg,audio/mp4,audio/x-m4a,audio/aac"
+              style={{ display: "none" }}
+              onChange={(v_9e86fd) => void v_ccd144(v_9e86fd)}
+            />
+            {v_222f88 && v_84df1e === v_f04727.r2_key.trim() && (
+              <audio controls src={v_222f88} style={{ width: "100%", marginTop: 6 }} />
+            )}
+          </Field>
+          <Field label="Se key (레거시)">
+            <input
+              style={v_d81136.input}
+              value={v_f04727.se_key}
+              onChange={(v_9e86fd) => v_a07441({ ...v_f04727, se_key: v_9e86fd.target.value })}
+              placeholder="레거시 se 식별자"
+            />
+          </Field>
 
           <div style={{ marginTop: 8 }}>
             <label style={v_d81136.checkboxLabel}>
@@ -307,6 +381,32 @@ export function v_9febbb() {
         </div>
       )}
 
+      {}
+      <div style={v_d81136.filterRow}>
+        <span style={v_d81136.filterLabel}>번역 필터:</span>
+        {([
+          ["all", "전체"],
+          ["en", "English 비어있음"],
+          ["ja", "日本語 비어있음"],
+          ["zh_cn", "中文 비어있음"],
+          ["id", "Bahasa ID 비어있음"],
+        ] as const).map(([v_0eb677, v_ab334c]) => (
+          <button
+            key={v_0eb677}
+            onClick={() => v_e1b851(v_0eb677)}
+            style={{
+              ...v_d81136.filterBtn,
+              ...(v_3c7a82 === v_0eb677 ? v_d81136.filterBtnActive : {}),
+            }}
+          >
+            {v_ab334c}
+          </button>
+        ))}
+        <span style={v_d81136.filterCount}>
+          {v_550718.length} / {v_18b8bf.length}
+        </span>
+      </div>
+
       {v_683210 ? (
         <div style={v_d81136.loading}>불러오는 중...</div>
       ) : (
@@ -328,7 +428,7 @@ export function v_9febbb() {
               </tr>
             </thead>
             <tbody>
-              {v_18b8bf.map((v_81e2ef) => (
+              {v_550718.map((v_81e2ef) => (
                 <tr key={v_81e2ef.id} style={v_81e2ef.is_active ? undefined : v_d81136.rowInactive}>
                   <td style={v_d81136.td}>{v_81e2ef.id}</td>
                   <td style={v_d81136.td}><b>{v_81e2ef.name}</b></td>
@@ -350,10 +450,12 @@ export function v_9febbb() {
                   </td>
                 </tr>
               ))}
-              {v_18b8bf.length === 0 && (
+              {v_550718.length === 0 && (
                 <tr>
                   <td colSpan={11} style={{ ...v_d81136.td, textAlign: "center", color: "#94a3b8" }}>
-                    등록된 음색이 없습니다.
+                    {v_18b8bf.length === 0
+                      ? "등록된 음색이 없습니다."
+                      : "현재 필터에 맞는 음색이 없습니다."}
                   </td>
                 </tr>
               )}
@@ -503,4 +605,27 @@ const v_d81136 = {
   },
   muted: { color: "#cbd5e1" },
   rowInactive: { opacity: 0.5, backgroundColor: "#f8fafc" },
+  filterRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 12,
+    flexWrap: "wrap" as const,
+  },
+  filterLabel: { fontSize: 12, color: "#64748b", fontWeight: 600, marginRight: 4 },
+  filterBtn: {
+    padding: "4px 10px",
+    fontSize: 12,
+    backgroundColor: "#f8fafc",
+    color: "#334155",
+    border: "1px solid #cbd5e1",
+    borderRadius: 4,
+    cursor: "pointer",
+  },
+  filterBtnActive: {
+    backgroundColor: "#3b82f6",
+    color: "#ffffff",
+    borderColor: "#3b82f6",
+  },
+  filterCount: { marginLeft: "auto", fontSize: 12, color: "#64748b" },
 };
