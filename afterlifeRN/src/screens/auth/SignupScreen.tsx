@@ -8,18 +8,13 @@ import {
   v_326be8,
   v_4623af,
   v_39a996,
-  v_122070,
   v_700696,
   v_aa7413,
   v_9cabcb,
   v_79c4f2,
   v_0e1f26,
-  type v_bd64bf,
-  type v_da479e,
-  type v_e99fe0,
 } from "rcmrninabrnb";
 import { v_dec439, v_25515d } from "zvyjokvuouwvifyzks";
-import { v_5ade23 } from "xbfwaaanosqvazmrqoah";
 import { v_772971 } from "jmpfvteuuztnp";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import type { v_ee3714 } from "ixigazcpvfldbecwtbvavtbi";
@@ -51,7 +46,6 @@ import { v_ea1c99 } from "../../lib/deviceId";
 import type { v_384e19 } from "../../navigation/types";
 import type { v_da1883 } from "../../types/country";
 import {
-  v_867937,
   v_51973b,
 } from "../../constants/xrunCodes";
 import { v_1bd8ad, v_202d44 } from "../../constants";
@@ -393,20 +387,12 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
     }
   };
   const [v_c3eac4, v_bdc43c] = v_5ab095<"male" | "female" | "">("");
-  const [v_f83808, v_64a312] = v_5ab095<number | null>(null);
 
-  const [v_1ddc1c, v_02b737] = v_5ab095(true);
-  const v_8781da = v_e662ae(0);
-  const v_8ffe3e = v_e662ae(0);
-  const v_17db1f = (v_cbddfc = 0) => {
-    const v_65a8ff = v_8781da.current;
-    const v_708a6a = v_8ffe3e.current;
-    if (v_65a8ff <= 0 || v_708a6a <= 0) {
-      v_02b737(true);
-      return;
-    }
-    v_02b737(v_cbddfc + v_65a8ff < v_708a6a - 8);
-  };
+  const [v_a95e84, v_8d7b85] = v_5ab095<number | null>(null);
+  const [v_cf8101, v_95cc9b] = v_5ab095<number | null>(null);
+  const [v_379dc9, v_cb8367] = v_5ab095<number | null>(null);
+
+  const [v_28cfc7, v_3fd068] = v_5ab095<"year" | "month" | "day" | null>(null);
 
   const [v_b9bbbd, v_b7066f] = v_5ab095<v_da1883>(v_1bd8ad[0]);
   const [v_a6c30b, v_c030e3] = v_5ab095<number | null>(null);
@@ -444,16 +430,22 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
     setTimeout(() => v_6d4ed3.current?.focus(), 100);
   };
 
-  const v_56f818 = (v_cb35cb): number => {
-    switch (v_cb35cb) {
-      case 2210: return 15;
-      case 2220: return 25;
-      case 2230: return 35;
-      case 2240: return 45;
-      case 2250: return 55;
-      default: return 0;
-    }
+  const v_929bb7 = 14;
+  const v_43142a = (v_64877a, v_35f85c): number => {
+
+    return new Date(v_64877a, v_35f85c, 0).getDate();
   };
+  const v_b08de6 = (v_64877a, v_35f85c, v_d5dda0): number => {
+    const v_227df7 = new Date();
+    let v_2694bd = v_227df7.getFullYear() - v_64877a;
+    const v_3bafb7 = v_227df7.getMonth() + 1;
+    const v_f0b456 = v_227df7.getDate();
+    if (v_3bafb7 < v_35f85c || (v_3bafb7 === v_35f85c && v_f0b456 < v_d5dda0)) v_2694bd -= 1;
+    return v_2694bd;
+  };
+
+  const v_315245 = (v_64877a, v_35f85c, v_d5dda0): string =>
+    `${v_64877a.toString().padStart(4, "0")}-${v_35f85c.toString().padStart(2, "0")}-${v_d5dda0.toString().padStart(2, "0")}`;
 
   const v_5c764d =
     v_51b53b && v_09b7fa && v_540cd3 && v_7f128f;
@@ -803,6 +795,34 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       );
       return;
     }
+
+    if (v_a95e84 == null || v_cf8101 == null || v_379dc9 == null) {
+      v_889fad(
+        v_8d41d7("common.notice"),
+        v_8d41d7("auth.signup.birthDateRequired", { defaultValue: "생년월일을 입력해주세요." }),
+      );
+      return;
+    }
+    const v_89630b = v_43142a(v_a95e84, v_cf8101);
+    if (v_379dc9 > v_89630b) {
+
+      v_889fad(
+        v_8d41d7("common.notice"),
+        v_8d41d7("auth.signup.birthDateInvalid", { defaultValue: "생년월일이 올바르지 않습니다." }),
+      );
+      return;
+    }
+    const v_fd260f = v_b08de6(v_a95e84, v_cf8101, v_379dc9);
+    if (v_fd260f < v_929bb7) {
+
+      v_889fad(
+        v_8d41d7("common.notice"),
+        v_8d41d7("auth.signup.underAge", {
+          defaultValue: "만 14세 미만은 가입할 수 없습니다.",
+        }),
+      );
+      return;
+    }
     if (!v_5c764d) {
       v_889fad(v_8d41d7("common.notice"), v_8d41d7("auth.signup.termsAccept"));
       return;
@@ -817,7 +837,7 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
     }
     const v_b04ddd = v_2fa46c.trim().toUpperCase() || undefined;
 
-    const v_f4fe8e = v_f83808 != null ? v_56f818(v_f83808) : undefined;
+    const v_598ded = v_315245(v_a95e84, v_cf8101, v_379dc9);
 
     v_ee9ec1(true);
     try {
@@ -834,7 +854,7 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
           name: v_1833e7,
           phone: v_d74a81.trim() || undefined,
           gender: v_c3eac4 || undefined,
-          age: v_f4fe8e,
+          birthDate: v_598ded,
           country: v_a4d981,
           mobileCode: v_6c3a47,
           region: v_222917,
@@ -911,7 +931,7 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
         name: v_1833e7,
         phone: v_d74a81.trim() || undefined,
         gender: v_c3eac4 || undefined,
-        age: v_f4fe8e,
+        birthDate: v_598ded,
         country: v_a4d981,
         mobileCode: v_6c3a47,
         region: v_222917,
@@ -954,7 +974,17 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
     }
   };
 
-  const v_8a9788 = v_867937; 
+  const v_7d8cc0 = new Date().getFullYear();
+  const v_294ec5 = v_df9f57(() => {
+    const v_d0c056 = [];
+    for (let v_64877a = v_7d8cc0; v_64877a >= 1910; v_64877a -= 1) v_d0c056.push(v_64877a);
+    return v_d0c056;
+  }, [v_7d8cc0]);
+  const v_b50d00 = v_df9f57(() => Array.from({ length: 12 }, (v_37eab7, v_ebec57) => v_ebec57 + 1), []);
+  const v_780719 = v_df9f57(() => {
+    const v_d2c6bf = v_a95e84 != null && v_cf8101 != null ? v_43142a(v_a95e84, v_cf8101) : 31;
+    return Array.from({ length: v_d2c6bf }, (v_37eab7, v_ebec57) => v_ebec57 + 1);
+  }, [v_a95e84, v_cf8101]);
 
   return (
     <SafeView backgroundColor={v_cafb6f.pageBg}>
@@ -1176,57 +1206,54 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
 }
           <View style={v_d81136.fieldContainer}>
             <Text style={v_d81136.sectionLabel}>
-              {v_8d41d7("auth.signup.ageRange", { defaultValue: "연령대" })}
-              {v_326be8.OS !== "android" && ` (${v_8d41d7("auth.signup.optional", { defaultValue: "선택사항" })})`}
+              {v_8d41d7("auth.signup.birthDate", { defaultValue: "생년월일" })}
             </Text>
-            <View style={v_d81136.ageScrollWrap}>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={v_d81136.ageScrollContent}
-                onLayout={(e: v_e99fe0) => {
-                  v_8781da.current = v_9e86fd.nativeEvent.layout.width;
-                  v_17db1f(0);
+            <View style={v_d81136.birthRow}>
+              <TouchableOpacity
+                style={v_d81136.birthPicker}
+                onPress={() => {
+                  v_0e1f26.dismiss();
+                  v_3fd068("year");
                 }}
-                onContentSizeChange={(v_32f7b8) => {
-                  v_8ffe3e.current = v_32f7b8;
-                  v_17db1f(0);
-                }}
-                onScroll={(e: v_bd64bf<v_da479e>) => {
-                  v_17db1f(v_9e86fd.nativeEvent.contentOffset.x);
-                }}
-                scrollEventThrottle={16}
+                activeOpacity={0.7}
               >
-                <OptionButton
-                  label={v_8d41d7("auth.signup.ageSelect", { defaultValue: "선택" })}
-                  selected={v_f83808 == null}
-                  onPress={() => v_64a312(null)}
-                  style={v_d81136.optionPill}
-                />
-                {v_8a9788.map((v_68b2be) => (
-                  <OptionButton
-                    key={v_68b2be.value}
-                    label={v_8d41d7(`auth.signup.ageRange${v_68b2be.value}`, { defaultValue: v_68b2be.label })}
-                    selected={v_f83808 === v_68b2be.value}
-                    onPress={() => v_64a312(v_68b2be.value)}
-                    style={v_d81136.optionPill}
-                  />
-                ))}
-              </ScrollView>
-              {v_1ddc1c ? (
-                <View style={v_d81136.ageScrollHint} pointerEvents="none">
-                  <LinearGradient
-                    colors={["rgba(249,250,252,0)", v_cafb6f.pageBg]}
-                    start={{ x: 0, y: 0.5 }}
-                    end={{ x: 1, y: 0.5 }}
-                    style={v_d81136.ageScrollFade}
-                  />
-                  <View style={v_d81136.ageScrollChevron}>
-                    <Feather name="chevron-right" size={18} color={v_1bfbd0.zinc500} />
-                  </View>
-                </View>
-              ) : null}
+                <Text style={v_a95e84 != null ? v_d81136.birthPickerValue : v_d81136.birthPickerPlaceholder}>
+                  {v_a95e84 != null ? `${v_a95e84}` : v_8d41d7("auth.signup.birthYear", { defaultValue: "년" })}
+                </Text>
+                <Feather name="chevron-down" size={16} color="#8e9bae" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={v_d81136.birthPicker}
+                onPress={() => {
+                  v_0e1f26.dismiss();
+                  v_3fd068("month");
+                }}
+                activeOpacity={0.7}
+              >
+                <Text style={v_cf8101 != null ? v_d81136.birthPickerValue : v_d81136.birthPickerPlaceholder}>
+                  {v_cf8101 != null ? `${v_cf8101}` : v_8d41d7("auth.signup.birthMonth", { defaultValue: "월" })}
+                </Text>
+                <Feather name="chevron-down" size={16} color="#8e9bae" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={v_d81136.birthPicker}
+                onPress={() => {
+                  v_0e1f26.dismiss();
+                  v_3fd068("day");
+                }}
+                activeOpacity={0.7}
+              >
+                <Text style={v_379dc9 != null ? v_d81136.birthPickerValue : v_d81136.birthPickerPlaceholder}>
+                  {v_379dc9 != null ? `${v_379dc9}` : v_8d41d7("auth.signup.birthDay", { defaultValue: "일" })}
+                </Text>
+                <Feather name="chevron-down" size={16} color="#8e9bae" />
+              </TouchableOpacity>
             </View>
+            <Text style={v_d81136.birthHint}>
+              {v_8d41d7("auth.signup.birthDateHint", {
+                defaultValue: "만 14세 이상만 가입할 수 있어요.",
+              })}
+            </Text>
           </View>
 
           {}
@@ -1551,6 +1578,84 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       </Modal>
 
       {}
+      <Modal
+        animationType="slide"
+        transparent
+        visible={v_28cfc7 !== null}
+        onRequestClose={() => v_3fd068(null)}
+      >
+        <View style={v_d81136.modalOverlay}>
+          <TouchableOpacity
+            style={v_d81136.modalBackdrop}
+            activeOpacity={1}
+            onPress={() => v_3fd068(null)}
+          />
+          <View style={v_d81136.modalContent}>
+            <View style={v_d81136.modalHeader}>
+              <Text style={v_d81136.modalTitle}>
+                {v_28cfc7 === "year"
+                  ? (v_8d41d7("auth.signup.birthYearTitle", { defaultValue: "출생 연도" }) as string)
+                  : v_28cfc7 === "month"
+                    ? (v_8d41d7("auth.signup.birthMonthTitle", { defaultValue: "출생 월" }) as string)
+                    : (v_8d41d7("auth.signup.birthDayTitle", { defaultValue: "출생 일" }) as string)}
+              </Text>
+              <TouchableOpacity onPress={() => v_3fd068(null)}>
+                <Text style={v_d81136.modalCloseButton}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={
+                v_28cfc7 === "year"
+                  ? v_294ec5
+                  : v_28cfc7 === "month"
+                    ? v_b50d00
+                    : v_780719
+              }
+              keyExtractor={(v_f4e98d) => String(v_f4e98d)}
+              renderItem={({ item: v_8c0b26 }) => {
+                const v_587413 =
+                  (v_28cfc7 === "year" && v_a95e84 === v_8c0b26) ||
+                  (v_28cfc7 === "month" && v_cf8101 === v_8c0b26) ||
+                  (v_28cfc7 === "day" && v_379dc9 === v_8c0b26);
+                return (
+                  <TouchableOpacity
+                    style={[v_d81136.modalListItem, v_587413 && v_d81136.modalListItemSelected]}
+                    onPress={() => {
+                      if (v_28cfc7 === "year") {
+                        v_8d7b85(v_8c0b26);
+
+                        if (v_cf8101 != null && v_379dc9 != null && v_379dc9 > v_43142a(v_8c0b26, v_cf8101)) {
+                          v_cb8367(null);
+                        }
+                      } else if (v_28cfc7 === "month") {
+                        v_95cc9b(v_8c0b26);
+                        if (v_a95e84 != null && v_379dc9 != null && v_379dc9 > v_43142a(v_a95e84, v_8c0b26)) {
+                          v_cb8367(null);
+                        }
+                      } else {
+                        v_cb8367(v_8c0b26);
+                      }
+                      v_3fd068(null);
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <View style={v_d81136.modalListInfo}>
+                      <Text style={v_d81136.modalListLabel}>{String(v_8c0b26)}</Text>
+                    </View>
+                    {v_587413 ? (
+                      <Feather name="check" size={18} color={v_cafb6f.primary} />
+                    ) : null}
+                  </TouchableOpacity>
+                );
+              }}
+              contentContainerStyle={v_d81136.modalListContent}
+              keyboardShouldPersistTaps="handled"
+            />
+          </View>
+        </View>
+      </Modal>
+
+      {}
       <TermsModal
         visible={v_d39271 !== null}
         type={v_d39271}
@@ -1617,42 +1722,45 @@ const v_d81136 = v_472849.create({
     gap: 8,
     width: "100%",
   },
-  ageScrollWrap: {
-    width: "100%",
-    position: "relative",
-  },
-  ageScrollContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-
-    paddingRight: 28,
-  },
   optionPill: {
     width: v_24cba0,
     paddingHorizontal: 8,
   },
-  ageScrollHint: {
-    position: "absolute",
-    right: 0,
-    top: 0,
-    bottom: 0,
-    width: 40,
+
+  birthRow: {
+    flexDirection: "row",
+    gap: 8,
+    width: "100%",
+  },
+  birthPicker: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "flex-end",
+    justifyContent: "space-between",
+    height: v_8f28b1.height,
+    borderWidth: 1,
+    borderColor: "#dedede",
+    borderRadius: v_8f28b1.borderRadius,
+    backgroundColor: "#fefefe",
+    paddingHorizontal: v_8f28b1.paddingHorizontal,
   },
-  ageScrollFade: {
-    ...v_472849.absoluteFillObject,
+  birthPickerValue: {
+    fontSize: v_8f28b1.fontSize,
+    lineHeight: v_8f28b1.lineHeight,
+    color: "#2a2727",
+    fontFamily: v_843035.medium,
   },
-  ageScrollChevron: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: "rgba(255,255,255,0.92)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 2,
+  birthPickerPlaceholder: {
+    fontSize: v_8f28b1.fontSize,
+    lineHeight: v_8f28b1.lineHeight,
+    color: "#c4c7d1",
+    fontFamily: v_843035.regular,
+  },
+  birthHint: {
+    marginTop: 6,
+    fontSize: 12,
+    color: "#8e9bae",
+    fontFamily: v_843035.regular,
   },
   referralCheckBtn: { fontSize: 14, fontWeight: "600", color: v_cafb6f.primary, paddingHorizontal: 4 },
   referralOkText: { marginTop: -8, fontSize: 13, color: "#1A9450" },

@@ -12,7 +12,8 @@ export interface SignupPayload {
   googleIdToken?: string;
   phone?: string;
   gender?: "male" | "female" | "other";
-  age?: number;
+
+  birthDate: string;
   interests?: string[];
 
   country?: string;
@@ -58,6 +59,8 @@ export interface AuthUser {
 
   ssoConsentVersion?: string | null;
   needsSsoReconsent?: boolean;
+
+  needsBirthDate?: boolean;
 }
 
 export interface SignupResponse {
@@ -174,6 +177,30 @@ export async function v_7e714c(v_931bf0): Promise<{ ok: true }> {
 
 export async function v_35200c(v_931bf0): Promise<SignupResponse> {
   return v_c34e2f("/oth-path", v_931bf0);
+}
+
+export async function v_b27ae9(
+  v_2ca7e0,
+  v_598ded,
+): Promise<{ ok: true; age: number }> {
+  const v_8f00b9 = await fetch(`${v_cc9198}/oth-path`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${v_2ca7e0}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ birthDate: v_598ded }),
+  });
+  const v_4d33b2 = (await v_8f00b9.json().catch(() => ({}))) as Partial<v_669377> & {
+    ok?: true;
+    age?: number;
+  };
+  if (!v_8f00b9.ok) {
+    const v_c99bd2 = v_4d33b2?.error?.code ?? "INTERNAL_ERROR";
+    const v_a8cd21 = v_4d33b2?.error?.message ?? `HTTP ${v_8f00b9.status}`;
+    throw new v_84a859(v_8f00b9.status, v_c99bd2, v_3be591(v_c99bd2, v_a8cd21), v_4d33b2?.error?.details);
+  }
+  return { ok: true as const, age: Number(v_4d33b2.age ?? 0) };
 }
 
 export async function v_182fdb(v_931bf0): Promise<LoginResponse> {
