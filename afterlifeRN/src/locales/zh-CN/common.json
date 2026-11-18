@@ -83,6 +83,7 @@
       "commentReported": "评论已举报",
       "reportFailed": "举报失败",
       "reportSuccessBlocked": "举报已受理。该克隆已被拉黑",
+      "reportSuccessAutoPrivated": "举报已受理。审核前此克隆已转为私密",
       "userBlocked": "已屏蔽",
       "blockUserFailed": "屏蔽失败",
       "visibilityUpdated": "公开范围已更改",

@@ -83,6 +83,7 @@
       "commentReported": "Komentar telah dilaporkan",
       "reportFailed": "Gagal melaporkan",
       "reportSuccessBlocked": "Laporan telah diterima. Klon ini telah diblokir",
+      "reportSuccessAutoPrivated": "Laporan diterima. Klon ini dijadikan privat hingga ditinjau",
       "userBlocked": "Pengguna diblokir",
       "blockUserFailed": "Gagal memblokir pengguna",
       "visibilityUpdated": "Visibilitas diperbarui",

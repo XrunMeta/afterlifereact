@@ -953,8 +953,15 @@ function v_75c31a({ route: v_c7daf6, navigation: v_c65f5d, feed: v_2db2a5 }: Inn
           v_fdd7c1(null);
           if (!v_5f5d6d || !v_2ca7e0) return;
           try {
-            await v_9deb40(v_2ca7e0, v_5f5d6d.cloneId, v_58ca36 || undefined);
-            v_15c939(v_8d41d7("home.toasts.reportSuccessBlocked"));
+
+            const v_8f00b9 = await v_9deb40(v_2ca7e0, v_5f5d6d.cloneId, v_58ca36 || undefined);
+            v_15c939(
+              v_8f00b9.autoPrivated
+                ? v_8d41d7("home.toasts.reportSuccessAutoPrivated", {
+                    defaultValue: "신고가 접수됐어요. 운영 검토까지 이 클론은 비공개로 전환됐어요",
+                  })
+                : v_8d41d7("home.toasts.reportSuccessBlocked"),
+            );
             v_c65f5d.goBack();
           } catch (v_49263d) {
             console.warn("[CloneFeed] report failed:", v_49263d);

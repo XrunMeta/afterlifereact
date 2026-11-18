@@ -83,6 +83,7 @@
       "commentReported": "The comment was reported.",
       "reportFailed": "Report failed.",
       "reportSuccessBlocked": "Report received. This clone has been blocked.",
+      "reportSuccessAutoPrivated": "Report received. This clone is now private until review.",
       "userBlocked": "User blocked",
       "blockUserFailed": "Failed to block user",
       "visibilityUpdated": "Visibility updated",
