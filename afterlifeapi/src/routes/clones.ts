@@ -834,11 +834,6 @@ v_f891e6.get("/search", async (v_3f4e2e) => {
   });
 });
 
-v_f891e6.get("/face-consent-copy", v_6690d9, async (v_3f4e2e) => {
-  const { getFaceConsentCopy: v_eb463b } = await import("../lib/appConfig");
-  return v_3f4e2e.json(await v_eb463b(v_3f4e2e.env));
-});
-
 v_f891e6.get("/voices", v_6690d9, async (v_3f4e2e) => {
   const v_18b8bf = await v_3f4e2e.env.DB
     .prepare(
