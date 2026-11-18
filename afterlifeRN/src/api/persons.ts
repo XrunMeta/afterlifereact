@@ -149,9 +149,12 @@ export async function v_4585d1(
   v_f94e64,
   v_6e0fd3,
   v_bef6f8,
+
+  v_5ba503,
 ): Promise<{ enrolled: number }> {
   const v_4d33b2 = { vectors: v_f94e64, cloneId: v_6e0fd3 };
   if (v_bef6f8 !== undefined) v_4d33b2.landmarkRatios = v_bef6f8;
+  if (v_5ba503) v_4d33b2.termsVersion = v_5ba503;
   const v_8f00b9 = await v_04b58a<{ enrolled: number }>(`/oth-path${v_ca1ec5}/faces`, v_2ca7e0, {
     method: 'POST',
     body: JSON.stringify(v_4d33b2),
