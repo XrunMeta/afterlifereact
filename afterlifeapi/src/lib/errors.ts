@@ -51,6 +51,8 @@ export type ErrorCode =
   | "RATE_CHANGED"
   | "MAINTENANCE"
   | "DUPLICATE_REQUEST"
+
+  | "UNDER_AGE"
   | "INTERNAL_ERROR";
 
 const v_fcd82a = {
@@ -113,6 +115,8 @@ const v_fcd82a = {
   RATE_CHANGED: 409,
   MAINTENANCE: 503,
   DUPLICATE_REQUEST: 409,
+
+  UNDER_AGE: 422,
   INTERNAL_ERROR: 500,
 };
 

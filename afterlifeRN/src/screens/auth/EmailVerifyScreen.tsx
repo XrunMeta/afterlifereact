@@ -179,7 +179,7 @@ export default function v_e1aa8b({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
         verificationCode: v_c99bd2,
         phone: v_24baff.phone,
         gender: v_24baff.gender,
-        age: v_24baff.age,
+        birthDate: v_24baff.birthDate,
         interests: v_24baff.interests,
         country: v_24baff.country,
         mobileCode: v_24baff.mobileCode,

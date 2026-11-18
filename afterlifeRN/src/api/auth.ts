@@ -12,7 +12,8 @@ export interface SignupPayload {
   googleIdToken?: string;
   phone?: string;
   gender?: "male" | "female" | "other";
-  age?: number;
+
+  birthDate: string;
   interests?: string[];
 
   country?: string;
