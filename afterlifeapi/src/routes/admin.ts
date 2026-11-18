@@ -226,6 +226,32 @@ v_b7f2b4.patch("/config/vision", v_c0a297, async (v_3f4e2e) => {
   }
 });
 
+v_b7f2b4.get("/config/face-consent-copy", v_c0a297, async (v_3f4e2e) => {
+  const { getFaceConsentCopy: v_eb463b } = await import("../lib/appConfig");
+  return v_3f4e2e.json(await v_eb463b(v_3f4e2e.env));
+});
+v_b7f2b4.put("/config/face-consent-copy", v_b09138, async (v_3f4e2e) => {
+  const { setFaceConsentCopy: v_5b9869 } = await import("../lib/appConfig");
+  const v_4d33b2 = (await v_3f4e2e.req.json().catch(() => ({}))) as {
+    copy?: Partial<{ ko: unknown; en: unknown; ja: unknown; zh_cn: unknown; id: unknown }>;
+  };
+  const v_479f05 = v_4d33b2.copy ?? {};
+  const v_fba864 = (v_81e2ef, v_0debf4): string =>
+    typeof v_81e2ef === "string" && v_81e2ef.length <= 8000 ? v_81e2ef : v_0debf4;
+
+  const { getFaceConsentCopy: v_eb463b } = await import("../lib/appConfig");
+  const v_c3bc75 = (await v_eb463b(v_3f4e2e.env)).copy;
+  const v_a448ad = {
+    ko: v_fba864(v_479f05.ko, v_c3bc75.ko),
+    en: v_fba864(v_479f05.en, v_c3bc75.en),
+    ja: v_fba864(v_479f05.ja, v_c3bc75.ja),
+    zh_cn: v_fba864(v_479f05.zh_cn, v_c3bc75.zh_cn),
+    id: v_fba864(v_479f05.id, v_c3bc75.id),
+  };
+  const v_39de0e = await v_5b9869(v_3f4e2e.env, v_a448ad);
+  return v_3f4e2e.json({ ok: true, ...v_39de0e });
+});
+
 v_b7f2b4.get("/config/chat-model", v_c0a297, async (v_3f4e2e) => {
   return v_3f4e2e.json(await v_882bd5(v_3f4e2e.env));
 });
