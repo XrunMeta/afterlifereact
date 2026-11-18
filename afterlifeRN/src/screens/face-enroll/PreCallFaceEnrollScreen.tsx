@@ -48,6 +48,7 @@ import {
   v_ce5a56,
   v_137542,
 } from "../../api/persons";
+import { v_eb463b } from "../../api/faceConsent";
 import { v_889fad } from "../../stores/dialogStore";
 import { v_1bfbd0, v_8b0c90, v_8f28b1 } from "../../components/constants";
 import v_258c1c from "../../components/common/PageHeader";
@@ -156,7 +157,7 @@ export default function v_8640b9() {
   const v_3c9f12 = v_ada615<Nav>();
   const v_c7daf6 = v_2d8264<Rt>();
   const v_033e14 = v_e0068c();
-  const { t: v_8d41d7 } = v_772971();
+  const { t: v_8d41d7, i18n: v_9c213b } = v_772971();
 
   const v_79a64b = (v_c7daf6.params as { cloneId: unknown }).cloneId;
   const v_6e0fd3 = Number(v_79a64b);
@@ -218,6 +219,29 @@ export default function v_8640b9() {
   const [v_595acb, v_9ad9a9] = v_5ab095(() => v_6d7550(v_389872, v_625c74?.name));
   const [v_d7d38d, v_23c9e5] = v_5ab095("");
   const [v_056b4f, v_342bf2] = v_5ab095<string | null>(null);
+
+  const [v_c0cded, v_0415e7] = v_5ab095(false);
+
+  const [v_11b8d5, v_466c7e] = v_5ab095(false);
+  const [v_98634e, v_1096b3] = v_5ab095<string | null>(null);
+  const [v_eed347, v_9d7810] = v_5ab095<string>("agree.4.v0");
+  const [v_a6086d, v_603e38] = v_5ab095(true);
+
+  v_c4deb2(() => {
+    if (!v_2ca7e0) { v_603e38(false); return; }
+    void (async () => {
+      try {
+        const v_5254bf = v_9c213b?.language ?? "ko";
+        const v_cb35cb = await v_eb463b(v_2ca7e0, v_5254bf);
+        v_1096b3(v_cb35cb.copy);
+        v_9d7810(v_cb35cb.termsVersion);
+      } catch (v_9e86fd) {
+        console.warn("[PreCallFaceEnroll] face consent copy fetch 실패:", v_9e86fd);
+      } finally {
+        v_603e38(false);
+      }
+    })();
+  }, [v_2ca7e0, v_625c74]);
 
   const [v_e59ef2, v_81766e] = v_5ab095<{ id: number; displayName: string | null }[]>([]);
 
@@ -596,7 +620,7 @@ export default function v_8640b9() {
 
             const v_36b25b = v_f9508a.slice(v_ebec57, v_ebec57 + v_e646b6);
 
-            await v_4585d1(v_2ca7e0, v_ca1ec5, v_36e01f, v_6e0fd3, v_36b25b as (Record<string, number> | null)[]);
+            await v_4585d1(v_2ca7e0, v_ca1ec5, v_36e01f, v_6e0fd3, v_36b25b as (Record<string, number> | null)[], v_eed347);
           }
 
           if (v_4ac921 && v_a23354 === false) {
@@ -872,6 +896,55 @@ export default function v_8640b9() {
     </View>
   );
 
+  if (!v_11b8d5) {
+    return (
+      <View style={[v_fd5f43.container, { paddingBottom: v_130b3e }]}>
+        <PageHeader
+          showBackButton
+          onBackPress={v_6ca26b}
+          transparent
+          title={v_8d41d7("faceEnroll.consent.title", { defaultValue: "얼굴 인식 처리 동의" })}
+        />
+        <ScrollView style={{ flex: 1, padding: 20 }} contentContainerStyle={{ paddingBottom: 24 }}>
+          {v_a6086d ? (
+            <ActivityIndicator style={{ marginTop: 40 }} />
+          ) : (
+            <Text style={{ fontSize: 13, lineHeight: 22, color: v_1bfbd0.zinc800 }}>
+              {v_98634e && v_98634e.trim().length > 0
+                ? v_98634e
+                : v_8d41d7("faceEnroll.consent.fallback", {
+                    defaultValue:
+                      "얼굴 특징값(128차원 수치 벡터) 을 통화 중 화자 식별에 사용합니다. 원본 사진·영상은 서버로 전송하거나 저장하지 않습니다. 동의하지 않으면 등록이 종료되고 통화는 계속됩니다.",
+                  })}
+            </Text>
+          )}
+          <Text style={{ marginTop: 16, fontSize: 11, color: v_1bfbd0.zinc500 }}>
+            {v_8d41d7("faceEnroll.consent.version", { defaultValue: "약관 버전" })}: {v_eed347}
+          </Text>
+        </ScrollView>
+        <View style={{ flexDirection: "row", gap: 10, padding: 16, paddingBottom: Math.max(16, v_130b3e) }}>
+          <TouchableOpacity
+            onPress={v_6ca26b}
+            style={{ flex: 1, paddingVertical: 14, borderRadius: 10, backgroundColor: v_1bfbd0.zinc100, alignItems: "center" }}
+          >
+            <Text style={{ color: v_1bfbd0.zinc800, fontSize: 14, fontWeight: "600" }}>
+              {v_8d41d7("faceEnroll.consent.decline", { defaultValue: "동의하지 않음" })}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => v_466c7e(true)}
+            disabled={v_a6086d}
+            style={{ flex: 1, paddingVertical: 14, borderRadius: 10, backgroundColor: v_1bfbd0.zinc900, alignItems: "center", opacity: v_a6086d ? 0.5 : 1 }}
+          >
+            <Text style={{ color: v_1bfbd0.white, fontSize: 14, fontWeight: "700" }}>
+              {v_8d41d7("faceEnroll.consent.accept", { defaultValue: "동의하고 계속" })}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={[v_fd5f43.container, { paddingBottom: v_130b3e }]}>
       {}
@@ -948,6 +1021,28 @@ export default function v_8640b9() {
                 </Text>
               </View>
             )}
+            {
+}
+            {!v_c4db22 && (
+              <TouchableOpacity
+                style={v_fd5f43.selfCheckRow}
+                onPress={() => {
+                  const v_a448ad = !v_c0cded;
+                  v_0415e7(v_a448ad);
+                  if (v_a448ad && v_625c74?.name) v_9ad9a9(v_625c74.name);
+                }}
+                disabled={v_cb66b4}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: v_c0cded }}
+              >
+                <View style={[v_fd5f43.selfCheckBox, v_c0cded && v_fd5f43.selfCheckBoxOn]}>
+                  {v_c0cded ? <View style={v_fd5f43.selfCheckDot} /> : null}
+                </View>
+                <Text style={v_fd5f43.selfCheckText}>
+                  {v_8d41d7("faceEnroll.form.selfCheckLabel", { defaultValue: "본인이에요 (계정 이름 자동 채움)" })}
+                </Text>
+              </TouchableOpacity>
+            )}
             <Text style={v_fd5f43.formLabel}>
               {v_8d41d7("faceEnroll.form.nameLabel", { defaultValue: "이름" })}
             </Text>
@@ -957,7 +1052,7 @@ export default function v_8640b9() {
               onChangeText={v_9ad9a9}
               placeholder={v_8d41d7("faceEnroll.form.namePlaceholder", { defaultValue: "예: 스미스" })}
               placeholderTextColor={v_1bfbd0.zinc500}
-              autoFocus
+              autoFocus={!v_c0cded}
               returnKeyType="next"
               editable={!v_cb66b4}
             />

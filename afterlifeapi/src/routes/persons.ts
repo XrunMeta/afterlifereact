@@ -596,8 +596,19 @@ v_fded81.post("/:id/faces", v_6690d9, async (v_3f4e2e) => {
   await v_94652e(v_3f4e2e.env, v_43e90c, "/oth-path"); 
   const v_ca1ec5 = v_5c8583(v_3f4e2e);
   const v_4d33b2 = await v_3f4e2e.req
-    .json<{ vectors?: number[][]; cloneId?: number; landmarkRatios?: (Record<string, number> | null)[] }>()
-    .catch(() => ({}) as { vectors?: number[][]; cloneId?: number; landmarkRatios?: (Record<string, number> | null)[] });
+    .json<{
+      vectors?: number[][];
+      cloneId?: number;
+      landmarkRatios?: (Record<string, number> | null)[];
+
+      termsVersion?: string;
+    }>()
+    .catch(() => ({}) as {
+      vectors?: number[][];
+      cloneId?: number;
+      landmarkRatios?: (Record<string, number> | null)[];
+      termsVersion?: string;
+    });
   const v_f94e64 = v_4d33b2.vectors;
   if (
     !Array.isArray(v_f94e64) ||
@@ -649,6 +660,24 @@ v_fded81.post("/:id/faces", v_6690d9, async (v_3f4e2e) => {
       landmarkRatios: v_bef6f8,
       source: "call",
     });
+
+    const v_5ba503 = typeof v_4d33b2.termsVersion === "string" && v_4d33b2.termsVersion.length > 0 && v_4d33b2.termsVersion.length <= 80
+      ? v_4d33b2.termsVersion
+      : null;
+    if (v_5ba503) {
+      try {
+        await v_3f4e2e.env.DB
+          .prepare(
+            `INSERT INTO persons_consent_log (person_id, state, terms_version, channel, changed_at)
+             VALUES (?, 'granted', ?, 'face-enroll', ?)`,
+          )
+          .bind(v_ca1ec5, v_5ba503, Date.now())
+          .run();
+      } catch (v_4e67d8) {
+
+        console.warn("[persons/:id/faces] consent log INSERT failed:", v_4e67d8);
+      }
+    }
 
     const v_0a2cd1 = await v_a752e9(v_3f4e2e.env.DB, v_6e0fd3, v_43e90c, v_ca1ec5).catch(() => false);
     if (v_0a2cd1) {
