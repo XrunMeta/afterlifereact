@@ -1151,9 +1151,9 @@
       "memlowLabel": "추모",
       "memlowShortDesc": "함께한 시간을 대화로 이어갑니다",
       "defaultTitle": "일반 클론",
-      "defaultDesc": "친구·멘토·유명인 등 자유 클론",
+      "defaultDesc": "친구·멘토 등 자유 클론",
       "defaultLabel": "일반",
-      "defaultShortDesc": "친구·멘토·유명인 등 자유 클론"
+      "defaultShortDesc": "친구·멘토 등 자유 클론"
     },
     "relations": {
       "self": "본인",

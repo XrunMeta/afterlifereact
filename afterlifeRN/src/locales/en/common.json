@@ -1151,9 +1151,9 @@
       "memlowLabel": "Memorial",
       "memlowShortDesc": "Continue your time together through conversation",
       "defaultTitle": "General Clone",
-      "defaultDesc": "Friend, mentor, celebrity, or any clone",
+      "defaultDesc": "Friend, mentor, or any clone",
       "defaultLabel": "General",
-      "defaultShortDesc": "Friend, mentor, celebrity, or any clone"
+      "defaultShortDesc": "Friend, mentor, or any clone"
     },
     "relations": {
       "self": "Myself",

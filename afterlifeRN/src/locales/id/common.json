@@ -1151,9 +1151,9 @@
       "memlowLabel": "Kenangan",
       "memlowShortDesc": "Lanjutkan waktu bersama melalui percakapan",
       "defaultTitle": "Klon Umum",
-      "defaultDesc": "Klon bebas seperti teman·mentor·selebriti dan lainnya",
+      "defaultDesc": "Klon bebas seperti teman·mentor dan lainnya",
       "defaultLabel": "Umum",
-      "defaultShortDesc": "Klon bebas seperti teman·mentor·selebriti dan lainnya"
+      "defaultShortDesc": "Klon bebas seperti teman·mentor dan lainnya"
     },
     "relations": {
       "self": "Diri Sendiri",
