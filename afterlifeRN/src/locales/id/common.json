@@ -5,6 +5,8 @@
     "cancel": "Batal",
     "confirm": "Konfirmasi",
     "close": "Tutup",
+    "aiBadge": "AI",
+    "aiBadgeA11y": "Klon buatan AI",
     "agree": "Setuju",
     "delete": "Hapus",
     "edit": "Edit",
@@ -411,6 +413,11 @@
     "sendA11y": "Kirim"
   },
   "call": {
+    "aiNotice": {
+      "title": "Pemberitahuan panggilan AI",
+      "body": "Lawan bicara Anda bukan manusia sungguhan, melainkan klon buatan AI. Suara, wajah, dan percakapan sepenuhnya dihasilkan AI.",
+      "bodySub": "Layanan dirancang agar AI tidak berpura-pura menjadi manusia."
+    },
     "calling": "Menghubungkan...",
     "ended": "Panggilan berakhir",
     "ringing": "Berdering",

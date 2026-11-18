@@ -5,6 +5,8 @@
     "cancel": "取消",
     "confirm": "确认",
     "close": "关闭",
+    "aiBadge": "AI",
+    "aiBadgeA11y": "AI 生成克隆",
     "agree": "同意",
     "delete": "删除",
     "edit": "编辑",
@@ -411,6 +413,11 @@
     "sendA11y": "发送"
   },
   "call": {
+    "aiNotice": {
+      "title": "AI 通话提示",
+      "body": "您即将通话的对方不是真人，而是由 AI 生成的克隆。声音、面部、对话内容均由 AI 生成。",
+      "bodySub": "服务已设计为 AI 不会伪装成人类。"
+    },
     "calling": "连接中...",
     "ended": "通话结束",
     "ringing": "呼叫中",
