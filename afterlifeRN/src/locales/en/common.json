@@ -940,7 +940,7 @@
     },
     "signup": {
       "title": "Sign Up",
-      "subtitle": "During beta, one clone per type is free",
+      "subtitle": "One clone per type is free",
       "name": "Name",
       "namePlaceholder": "Enter your name",
       "email": "Email",
@@ -1839,8 +1839,8 @@
   },
   "safety": {
     "emergency": {
-      "title": "Emergency Contacts & Inheritance",
-      "helper": "If you're inactive for a set period, an inheritance transfer to your designated contacts will begin. Transfers are executed only after admin approval.",
+      "title": "Emergency Contacts & Clone Steward",
+      "helper": "If you're inactive for a set period, a clone-steward transfer to your designated contacts will begin. Transfers are executed only after admin approval.",
       "emailLabel": "Email",
       "roleLabel": "Role",
       "roleNotifyOnly": "(A) Notify only",
@@ -1856,8 +1856,8 @@
       "revoke": "Revoke"
     },
     "inheritance": {
-      "title": "Respond to Inheritance Invite",
-      "intro": "Another user has invited you as an emergency contact / inheritance designee. Please check the invite token, then choose to accept or decline. If you accept and the transfer conditions are met, certain permissions may be transferred to you upon admin approval.",
+      "title": "Respond to Clone Steward Invite",
+      "intro": "Another user has invited you as an emergency contact / clone steward designee. Please check the invite token, then choose to accept or decline. If you accept and the transfer conditions are met, certain permissions may be transferred to you upon admin approval.",
       "tokenLabel": "Invite token",
       "tokenPlaceholder": "Enter the token included in the email",
       "accept": "Accept",
@@ -1865,7 +1865,7 @@
       "invalidToken": "A valid invite token is required.",
       "acceptDoneTitle": "Accepted",
       "declineDoneTitle": "Declined",
-      "acceptDoneDesc": "Inheritance designation accepted. The actual transfer will be executed after admin verification.",
+      "acceptDoneDesc": "Clone steward designation accepted. The actual transfer will be executed after admin verification.",
       "declineDoneDesc": "You declined the invite."
     }
   },
@@ -1874,7 +1874,7 @@
     "empty": "No transactions yet",
     "cloneFallback": "Clone",
     "giftSentLabel": "Sent {{gift}} to {{clone}}",
-    "giftReceivedLabel": "Received {{gift}} gift revenue from {{clone}}"
+    "giftReceivedLabel": "Received {{gift}} gift from {{clone}}"
   },
   "reports": {
     "title": "Reports",

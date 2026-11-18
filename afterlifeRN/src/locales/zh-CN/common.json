@@ -940,7 +940,7 @@
     },
     "signup": {
       "title": "注册",
-      "subtitle": "内测期间，每种类型的克隆均免费 1 个",
+      "subtitle": "每种类型的克隆均免费 1 个",
       "name": "姓名",
       "namePlaceholder": "请输入姓名",
       "email": "邮箱",
@@ -1836,8 +1836,8 @@
   },
   "safety": {
     "emergency": {
-      "title": "紧急联系人与继承指定",
-      "helper": "在一段时间无活动后，将向指定联系人启动继承移交流程。经管理员审核后执行移交。",
+      "title": "紧急联系人与克隆管理人指定",
+      "helper": "在一段时间无活动后，将向指定联系人启动克隆管理人移交流程。经管理员审核后执行移交。",
       "emailLabel": "邮箱",
       "roleLabel": "身份",
       "roleNotifyOnly": "(甲) 仅通知",
@@ -1853,8 +1853,8 @@
       "revoke": "撤销"
     },
     "inheritance": {
-      "title": "继承邀请响应",
-      "intro": "您收到了其他用户发来的紧急联系人/继承指定邀请。请确认邀请令牌后选择接受或拒绝。接受后，若满足继承移交条件，将在管理员审核下移交部分权限。",
+      "title": "克隆管理人邀请响应",
+      "intro": "您收到了其他用户发来的紧急联系人/克隆管理人指定邀请。请确认邀请令牌后选择接受或拒绝。接受后，若满足管理人移交条件，将在管理员审核下移交部分权限。",
       "tokenLabel": "邀请令牌",
       "tokenPlaceholder": "请输入邮件中包含的令牌",
       "accept": "接受",
@@ -1862,7 +1862,7 @@
       "invalidToken": "请输入有效的邀请令牌。",
       "acceptDoneTitle": "接受完成",
       "declineDoneTitle": "拒绝完成",
-      "acceptDoneDesc": "已接受继承指定。实际移交将在管理员审核后执行。",
+      "acceptDoneDesc": "已接受克隆管理人指定。实际移交将在管理员审核后执行。",
       "declineDoneDesc": "已拒绝该邀请。"
     }
   },
@@ -1871,7 +1871,7 @@
     "empty": "还没有交易记录",
     "cloneFallback": "克隆",
     "giftSentLabel": "赠送 {{clone}} {{gift}} 礼物",
-    "giftReceivedLabel": "来自 {{clone}} 的 {{gift}} 礼物收益"
+    "giftReceivedLabel": "收到 {{clone}} 赠送的 {{gift}} 礼物"
   },
   "reports": {
     "title": "举报",
@@ -2580,7 +2580,7 @@
     "clubxSlide3": "舞蹈 · 道具",
     "open": "打开",
     "xrunEyebrow": "REWARD APP",
-    "xrunSlide1": "赚钱应用",
+    "xrunSlide1": "奖励应用",
     "xrunSlide2": "钱包",
     "xrunSlide3": "奖励",
     "xrunSlide4": "登录关联"

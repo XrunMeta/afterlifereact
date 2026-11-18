@@ -940,7 +940,7 @@
     },
     "signup": {
       "title": "회원가입",
-      "subtitle": "베타 기간, 타입별 클론 1개씩 무료",
+      "subtitle": "타입별 클론 1개씩 무료",
       "name": "이름",
       "namePlaceholder": "이름을 입력해 주십시오",
       "email": "이메일",
@@ -1836,8 +1836,8 @@
   },
   "safety": {
     "emergency": {
-      "title": "비상연락처 & 상속지정",
-      "helper": "일정 기간 미활동 시 지정된 연락처로 상속 이관 절차가 시작됩니다. 관리자 승인 후 이관이 집행됩니다.",
+      "title": "비상연락처 & 클론 관리인 지정",
+      "helper": "일정 기간 미활동 시 지정된 연락처로 클론 관리인 이관 절차가 시작됩니다. 관리자 승인 후 이관이 집행됩니다.",
       "emailLabel": "이메일",
       "roleLabel": "역할",
       "roleNotifyOnly": "(가) 알림만",
@@ -1853,8 +1853,8 @@
       "revoke": "철회"
     },
     "inheritance": {
-      "title": "상속 초대 응답",
-      "intro": "다른 사용자로부터 비상연락처/상속 지정 초대를 받으셨습니다. 초대 토큰을 확인한 후 수락 또는 거절을 선택해 주십시오. 수락 시 상속 이관 조건이 충족되면 관리자 승인 하에 일부 권한이 이관될 수 있습니다.",
+      "title": "클론 관리인 초대 응답",
+      "intro": "다른 사용자로부터 비상연락처/클론 관리인 지정 초대를 받으셨습니다. 초대 토큰을 확인한 후 수락 또는 거절을 선택해 주십시오. 수락 시 관리인 이관 조건이 충족되면 관리자 승인 하에 일부 권한이 이관될 수 있습니다.",
       "tokenLabel": "초대 토큰",
       "tokenPlaceholder": "이메일에 포함된 토큰을 입력하십시오",
       "accept": "수락",
@@ -1862,7 +1862,7 @@
       "invalidToken": "유효한 초대 토큰이 필요합니다.",
       "acceptDoneTitle": "수락 완료",
       "declineDoneTitle": "거절 완료",
-      "acceptDoneDesc": "상속 지정이 수락되었습니다. 실제 이관은 관리자 검증 후 집행됩니다.",
+      "acceptDoneDesc": "클론 관리인 지정이 수락되었습니다. 실제 이관은 관리자 검증 후 집행됩니다.",
       "declineDoneDesc": "초대를 거절했습니다."
     }
   },
@@ -1871,7 +1871,7 @@
     "empty": "아직 거래 내역이 없습니다",
     "cloneFallback": "클론",
     "giftSentLabel": "{{clone}}에게 {{gift}} 선물",
-    "giftReceivedLabel": "{{clone}}으로부터 {{gift}} 선물 수익"
+    "giftReceivedLabel": "{{clone}}으로부터 {{gift}} 선물 받음"
   },
   "reports": {
     "title": "신고",
@@ -2572,7 +2572,7 @@
     "open": "열기",
     "xrunTitle": "XRUN",
     "xrunEyebrow": "REWARD APP",
-    "xrunSlide1": "돈 버는 앱",
+    "xrunSlide1": "리워드 앱",
     "xrunSlide2": "지갑",
     "xrunSlide3": "보상",
     "xrunSlide4": "로그인 연동",
