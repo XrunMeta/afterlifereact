@@ -18,6 +18,7 @@ import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../constants";
 import type { v_19b433 } from "../../types/feed";
 import v_5778ce from "../common/HashtagText";
 import v_8fba67 from "./ExpertBadge";
+import v_53fcee from "./AiBadge";
 
 import { v_b938fd } from "../../lib/thumbUrl";
 
@@ -265,6 +266,7 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
               <View style={v_d81136.profileInfo}>
                 <View style={v_d81136.authorRow}>
                   <Text style={v_d81136.authorName}>{v_8c0b26.author}</Text>
+                  <AiBadge />
                   {v_8c0b26.cloneType === "expert" && <ExpertBadge size={22} />}
                   {}
                   {typeof v_8c0b26.myIntimacy === "number" ? (
