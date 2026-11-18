@@ -3,6 +3,7 @@
 import type { v_de0a25 } from "../lib/env";
 import { v_c7071c, v_5e4807, v_a02f1c, type v_d33606 } from "../lib/coldStorage";
 import { v_e56fb3 } from "../lib/auditChain";
+import { v_fafc3e, type v_c32b88 } from "../lib/gabiaCachePurge";
 
 export interface CleanupResult {
   orphansFound: number;
@@ -16,6 +17,7 @@ export interface CleanupResult {
   messagesHardDeleted: number;
   inactivityContactsTriggered: number;
   coownerRemindersScheduled: number;
+  gabiaPurge: v_c32b88;
 }
 
 export async function v_09b071(env: v_de0a25["Bindings"]): Promise<CleanupResult> {
@@ -208,6 +210,14 @@ export async function v_09b071(env: v_de0a25["Bindings"]): Promise<CleanupResult
     .run();
   const v_21c6eb = v_411f75.meta.changes ?? 0;
 
+  let gabiaPurge: v_c32b88;
+  try {
+    v_f3b492 = await v_fafc3e(v_c9c489);
+  } catch (v_9e86fd) {
+    console.error("[CLEANUP] gabia purge sweep failed:", v_9e86fd);
+    v_f3b492 = { quarantineTried: 0, quarantineOk: 0, coldTried: 0, coldOk: 0, purgedTried: 0, purgedOk: 0 };
+  }
+
   return {
     orphansFound: v_8d925d.length,
     orphansSoftDeleted: v_77311a,
@@ -220,5 +230,6 @@ export async function v_09b071(env: v_de0a25["Bindings"]): Promise<CleanupResult
     messagesHardDeleted: v_93422b,
     inactivityContactsTriggered: v_9146f3,
     coownerRemindersScheduled: v_21c6eb,
+    gabiaPurge: v_f3b492,
   };
 }
