@@ -96,12 +96,15 @@ export function v_9febbb() {
   const [v_84df1e, v_89fb86] = v_5ab095<string | null>(null); 
   const v_998823 = v_e662ae<HTMLInputElement | null>(null);
 
-  const [v_3c7a82, v_e1b851] = v_5ab095<"all" | "en" | "ja" | "zh_cn" | "id">("all");
-  const v_550718 = v_18b8bf.filter((v_81e2ef) => {
-    if (v_3c7a82 === "all") return true;
-    const v_c8b83f = `name_${v_3c7a82}` as keyof VoicePreset;
-    return !v_81e2ef[v_c8b83f];
-  });
+  type LangKey = "ko" | "en" | "ja" | "zh_cn" | "id";
+  const [v_5254bf, v_54acae] = v_5ab095<LangKey>("ko");
+  const v_78030b = (v_81e2ef, v_1614db): { shown: string; fallback: boolean } => {
+    if (v_1614db === "ko") return { shown: v_81e2ef.name, fallback: false };
+    const v_c8b83f = `name_${v_1614db}` as keyof VoicePreset;
+    const v_a057b5 = v_81e2ef[v_c8b83f] as string | null;
+    if (v_a057b5 && v_a057b5.trim().length > 0) return { shown: v_a057b5, fallback: false };
+    return { shown: v_81e2ef.name, fallback: true };
+  };
 
   v_c4deb2(() => () => { if (v_222f88) URL.revokeObjectURL(v_222f88); }, [v_222f88]);
 
@@ -381,30 +384,44 @@ export function v_9febbb() {
         </div>
       )}
 
-      {}
+      {
+}
       <div style={v_d81136.filterRow}>
-        <span style={v_d81136.filterLabel}>번역 필터:</span>
+        <span style={v_d81136.filterLabel}>표시 언어:</span>
         {([
-          ["all", "전체"],
-          ["en", "English 비어있음"],
-          ["ja", "日本語 비어있음"],
-          ["zh_cn", "中文 비어있음"],
-          ["id", "Bahasa ID 비어있음"],
-        ] as const).map(([v_0eb677, v_ab334c]) => (
-          <button
-            key={v_0eb677}
-            onClick={() => v_e1b851(v_0eb677)}
-            style={{
-              ...v_d81136.filterBtn,
-              ...(v_3c7a82 === v_0eb677 ? v_d81136.filterBtnActive : {}),
-            }}
-          >
-            {v_ab334c}
-          </button>
-        ))}
-        <span style={v_d81136.filterCount}>
-          {v_550718.length} / {v_18b8bf.length}
-        </span>
+          ["ko", "🇰🇷 한국어"],
+          ["en", "🇺🇸 English"],
+          ["ja", "🇯🇵 日本語"],
+          ["zh_cn", "🇨🇳 中文"],
+          ["id", "🇮🇩 Bahasa ID"],
+        ] as const).map(([v_0eb677, v_ab334c]) => {
+
+          const v_09f72c = v_0eb677 === "ko"
+            ? 0
+            : v_18b8bf.filter((v_81e2ef) => {
+                const v_c8b83f = `name_${v_0eb677}` as keyof VoicePreset;
+                const v_a057b5 = v_81e2ef[v_c8b83f] as string | null;
+                return !v_a057b5 || v_a057b5.trim().length === 0;
+              }).length;
+          return (
+            <button
+              key={v_0eb677}
+              onClick={() => v_54acae(v_0eb677)}
+              style={{
+                ...v_d81136.filterBtn,
+                ...(v_5254bf === v_0eb677 ? v_d81136.filterBtnActive : {}),
+              }}
+            >
+              {v_ab334c}
+              {v_09f72c > 0 && (
+                <span style={{ ...v_d81136.needChip, color: v_5254bf === v_0eb677 ? "#fff" : "#b45309" }}>
+                  · 폴백 {v_09f72c}
+                </span>
+              )}
+            </button>
+          );
+        })}
+        <span style={v_d81136.filterCount}>총 {v_18b8bf.length}개</span>
       </div>
 
       {v_683210 ? (
@@ -415,11 +432,8 @@ export function v_9febbb() {
             <thead>
               <tr>
                 <th style={v_d81136.th}>ID</th>
-                <th style={v_d81136.th}>한국어 (정본)</th>
-                <th style={v_d81136.th}>EN</th>
-                <th style={v_d81136.th}>JA</th>
-                <th style={v_d81136.th}>ZH-CN</th>
-                <th style={v_d81136.th}>ID</th>
+                <th style={v_d81136.th}>표시 이름 ({v_5254bf === "ko" ? "한국어" : v_5254bf === "en" ? "English" : v_5254bf === "ja" ? "日本語" : v_5254bf === "zh_cn" ? "中文" : "Bahasa ID"})</th>
+                {v_5254bf !== "ko" && <th style={v_d81136.th}>원본 (한국어)</th>}
                 <th style={v_d81136.th}>gender</th>
                 <th style={v_d81136.th}>age</th>
                 <th style={v_d81136.th}>sort</th>
@@ -428,34 +442,37 @@ export function v_9febbb() {
               </tr>
             </thead>
             <tbody>
-              {v_550718.map((v_81e2ef) => (
-                <tr key={v_81e2ef.id} style={v_81e2ef.is_active ? undefined : v_d81136.rowInactive}>
-                  <td style={v_d81136.td}>{v_81e2ef.id}</td>
-                  <td style={v_d81136.td}><b>{v_81e2ef.name}</b></td>
-                  <td style={v_d81136.td}>{v_81e2ef.name_en || <span style={v_d81136.muted}>—</span>}</td>
-                  <td style={v_d81136.td}>{v_81e2ef.name_ja || <span style={v_d81136.muted}>—</span>}</td>
-                  <td style={v_d81136.td}>{v_81e2ef.name_zh_cn || <span style={v_d81136.muted}>—</span>}</td>
-                  <td style={v_d81136.td}>{v_81e2ef.name_id || <span style={v_d81136.muted}>—</span>}</td>
-                  <td style={v_d81136.td}>{v_81e2ef.gender || <span style={v_d81136.muted}>—</span>}</td>
-                  <td style={v_d81136.td}>{v_81e2ef.age_range || <span style={v_d81136.muted}>—</span>}</td>
-                  <td style={v_d81136.td}>{v_81e2ef.sort_order}</td>
-                  <td style={v_d81136.td}>{v_81e2ef.is_active ? "✅" : "🚫"}</td>
-                  <td style={v_d81136.td}>
-                    <button onClick={() => v_37e050(v_81e2ef)} style={v_d81136.smallBtn}>수정</button>
-                    {v_81e2ef.is_active ? (
-                      <button onClick={() => v_b4f765(v_81e2ef)} style={v_d81136.smallDangerBtn}>비활성</button>
-                    ) : (
-                      <button onClick={() => v_8c23a9(v_81e2ef)} style={v_d81136.smallBtn}>활성화</button>
+              {v_18b8bf.map((v_81e2ef) => {
+                const v_cb35cb = v_78030b(v_81e2ef, v_5254bf);
+                return (
+                  <tr key={v_81e2ef.id} style={v_81e2ef.is_active ? undefined : v_d81136.rowInactive}>
+                    <td style={v_d81136.td}>{v_81e2ef.id}</td>
+                    <td style={v_d81136.td}>
+                      <b>{v_cb35cb.shown}</b>
+                      {v_cb35cb.fallback && <span style={v_d81136.fallbackChip}>폴백</span>}
+                    </td>
+                    {v_5254bf !== "ko" && (
+                      <td style={{ ...v_d81136.td, color: "#64748b" }}>{v_81e2ef.name}</td>
                     )}
-                  </td>
-                </tr>
-              ))}
-              {v_550718.length === 0 && (
+                    <td style={v_d81136.td}>{v_81e2ef.gender || <span style={v_d81136.muted}>—</span>}</td>
+                    <td style={v_d81136.td}>{v_81e2ef.age_range || <span style={v_d81136.muted}>—</span>}</td>
+                    <td style={v_d81136.td}>{v_81e2ef.sort_order}</td>
+                    <td style={v_d81136.td}>{v_81e2ef.is_active ? "✅" : "🚫"}</td>
+                    <td style={v_d81136.td}>
+                      <button onClick={() => v_37e050(v_81e2ef)} style={v_d81136.smallBtn}>수정</button>
+                      {v_81e2ef.is_active ? (
+                        <button onClick={() => v_b4f765(v_81e2ef)} style={v_d81136.smallDangerBtn}>비활성</button>
+                      ) : (
+                        <button onClick={() => v_8c23a9(v_81e2ef)} style={v_d81136.smallBtn}>활성화</button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+              {v_18b8bf.length === 0 && (
                 <tr>
-                  <td colSpan={11} style={{ ...v_d81136.td, textAlign: "center", color: "#94a3b8" }}>
-                    {v_18b8bf.length === 0
-                      ? "등록된 음색이 없습니다."
-                      : "현재 필터에 맞는 음색이 없습니다."}
+                  <td colSpan={v_5254bf === "ko" ? 7 : 8} style={{ ...v_d81136.td, textAlign: "center", color: "#94a3b8" }}>
+                    등록된 음색이 없습니다.
                   </td>
                 </tr>
               )}
@@ -628,4 +645,16 @@ const v_d81136 = {
     borderColor: "#3b82f6",
   },
   filterCount: { marginLeft: "auto", fontSize: 12, color: "#64748b" },
+  needChip: { marginLeft: 6, fontSize: 11, fontWeight: 600 },
+  fallbackChip: {
+    marginLeft: 8,
+    padding: "1px 6px",
+    fontSize: 10,
+    fontWeight: 700,
+    backgroundColor: "#fef3c7",
+    color: "#b45309",
+    border: "1px solid #fde68a",
+    borderRadius: 3,
+    verticalAlign: "middle",
+  },
 };
