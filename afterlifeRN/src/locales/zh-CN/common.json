@@ -819,20 +819,6 @@
       "giftInventoryDesc": "将收到的礼物兑换为 XRUN 积分",
       "logout": "退出登录",
       "flower": "鲜花礼物",
-      "pangleTest": "Pangle广告测试",
-      "pangleTestDesc": "立即展示奖励广告 (开发用)",
-      "animPersona": "创建动画角色",
-      "animPersonaDesc": "照片 → 眨眼·头部·身体动作idle · 生成约3分钟",
-      "experimentalPersona": "实验角色创建 (测试版)",
-      "experimentalPersonaDesc": "自然的脸部 · 响应延迟5~10秒",
-      "visemePersona": "分离播放角色创建 (实验)",
-      "visemePersonaDesc": "TTS + 预渲染viseme片段同步",
-      "threeDPersona": "3D角色创建 (测试版)",
-      "threeDPersonaDesc": "Avatar SDK 3D脸部 · 需要单独设置GLB URL",
-      "vitsTts": "VITS TTS · AFL-737 (dev)",
-      "vitsTtsDesc": "sherpa-onnx · 模型缓存 · 1秒目标测量",
-      "faceEnrollDev": "面部5角度登记 (dev)",
-      "faceEnrollDevDesc": "正面·左·右·上·下拍摄 → 克隆首次通话准备",
       "profileEdit": "个人资料 / 个人信息修改",
       "deactivate": "停用账号（暂停）",
       "deactivateDesc": "暂时停用你的账号",
@@ -856,19 +842,6 @@
       "title": "要退出登录吗?",
       "desc": "下次使用时需要重新登录。",
       "confirm": "退出登录"
-    },
-    "pangleTest": {
-      "title": "Pangle测试",
-      "okMessage": "广告正常结束。",
-      "failTitle": "Pangle测试失败"
-    },
-    "navError": {
-      "title": "错误",
-      "personaNavFail": "无法跳转到角色创建页面"
-    },
-    "faceEnrollDev": {
-      "noneTitle": "没有角色",
-      "noneDesc": "请先创建角色。"
     },
     "version": {
       "otaEmergency": "OTA 紧急运行(embedded fallback)",

@@ -819,20 +819,6 @@
       "giftInventoryDesc": "受け取ったギフトを XRUN クレジットに交換",
       "logout": "ログアウト",
       "flower": "お花ギフト",
-      "pangleTest": "Pangle広告テスト",
-      "pangleTestDesc": "即座にrewarded広告を表示 (開発用)",
-      "animPersona": "アニメーションペルソナ作成",
-      "animPersonaDesc": "写真 → まばたき·頭·体の動きidle · 生成3分前後",
-      "experimentalPersona": "実験ペルソナ作成 (ベータ)",
-      "experimentalPersonaDesc": "自然な顔 · 応答5~10秒遅延",
-      "visemePersona": "分離再生ペルソナ作成 (実験)",
-      "visemePersonaDesc": "TTS + 事前レンダーvisemeクリップsync",
-      "threeDPersona": "3Dペルソナ作成 (ベータ)",
-      "threeDPersonaDesc": "Avatar SDK 3D顔 · GLB URL別途設定が必要",
-      "vitsTts": "VITS TTS · AFL-737 (dev)",
-      "vitsTtsDesc": "sherpa-onnx · モデルキャッシュ · 1秒目標計測",
-      "faceEnrollDev": "顔5角度登録 (dev)",
-      "faceEnrollDevDesc": "正面·左·右·上·下撮影 → clones初回通話準備",
       "profileEdit": "プロフィール / 個人情報の編集",
       "deactivate": "アカウントの無効化（一時停止）",
       "deactivateDesc": "しばらくアカウントを停止します",
@@ -856,19 +842,6 @@
       "title": "ログアウトしますか?",
       "desc": "再度ご利用いただくにはログインが必要です。",
       "confirm": "ログアウト"
-    },
-    "pangleTest": {
-      "title": "Pangleテスト",
-      "okMessage": "広告が正常終了しました。",
-      "failTitle": "Pangleテスト失敗"
-    },
-    "navError": {
-      "title": "エラー",
-      "personaNavFail": "ペルソナ作成画面への遷移に失敗しました"
-    },
-    "faceEnrollDev": {
-      "noneTitle": "ペルソナがありません",
-      "noneDesc": "先にペルソナを作成してください。"
     },
     "version": {
       "otaEmergency": "OTA 緊急実行(embedded fallback)",

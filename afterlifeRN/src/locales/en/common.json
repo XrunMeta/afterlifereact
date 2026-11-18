@@ -819,20 +819,6 @@
       "giftInventoryDesc": "Swap received gifts to XRUN credits",
       "logout": "Logout",
       "flower": "Flower Gifts",
-      "pangleTest": "Pangle Ad Test",
-      "pangleTestDesc": "Show a rewarded ad immediately (dev)",
-      "animPersona": "Create animated persona",
-      "animPersonaDesc": "Photo → blink · head · body idle · ~3 min to generate",
-      "experimentalPersona": "Experimental persona (beta)",
-      "experimentalPersonaDesc": "More natural face · 5-10 s response delay",
-      "visemePersona": "Split-playback persona (experimental)",
-      "visemePersonaDesc": "TTS + pre-rendered viseme clip sync",
-      "threeDPersona": "3D persona (beta)",
-      "threeDPersonaDesc": "Avatar SDK 3D face · requires separate GLB URL setup",
-      "vitsTts": "VITS TTS · AFL-737 (dev)",
-      "vitsTtsDesc": "sherpa-onnx · model cache · 1-second target",
-      "faceEnrollDev": "Face 5-angle enroll (dev)",
-      "faceEnrollDevDesc": "Front · left · right · up · down shots → first clone call prep",
       "profileEdit": "Profile / personal info",
       "deactivate": "Deactivate account (pause)",
       "deactivateDesc": "Pause your account for a while",
@@ -856,19 +842,6 @@
       "title": "Log out?",
       "desc": "You'll need to sign in again to use the app.",
       "confirm": "Log out"
-    },
-    "pangleTest": {
-      "title": "Pangle test",
-      "okMessage": "Ad closed normally.",
-      "failTitle": "Pangle test failed"
-    },
-    "navError": {
-      "title": "Error",
-      "personaNavFail": "Could not navigate to persona creation."
-    },
-    "faceEnrollDev": {
-      "noneTitle": "No persona",
-      "noneDesc": "Please create a persona first."
     },
     "version": {
       "otaEmergency": "OTA emergency run (embedded fallback)",
