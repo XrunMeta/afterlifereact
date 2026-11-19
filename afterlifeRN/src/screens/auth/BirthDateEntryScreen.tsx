@@ -267,7 +267,7 @@ export default function v_cb9b4f({ onDone: v_7b5712 }: { onDone: () => void }) {
                   </TouchableOpacity>
                 );
               }}
-              contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 20 }}
+              contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 20 }}
               keyboardShouldPersistTaps="handled"
             />
           </View>
