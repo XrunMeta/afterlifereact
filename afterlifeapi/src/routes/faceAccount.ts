@@ -27,12 +27,8 @@ async function v_0bb1df(c: v_437670<v_de0a25>, v_8f00b9) {
   return v_d5bb0f(v_3f4e2e, v_c99bd2, v_d308b5);
 }
 
-function v_d5bb0f(c: v_437670<v_de0a25>, v_c99bd2, v_d308b5, v_5d2fe3) {
-  const v_036602 = v_5d2fe3 !== undefined && v_3f4e2e.env.ENVIRONMENT !== "production";
-  const v_4d33b2 = {
-    error: { code: v_c99bd2, message: v_c99bd2, ...(v_036602 ? { debug: v_5d2fe3 } : {}) },
-  };
-  return v_3f4e2e.json(v_4d33b2, v_d308b5 as 400);
+function v_d5bb0f(c: v_437670<v_de0a25>, v_c99bd2, v_d308b5) {
+  return v_3f4e2e.json({ error: { code: v_c99bd2, message: v_c99bd2 } }, v_d308b5 as 400);
 }
 
 function v_9765c6(c: v_437670<v_de0a25>, v_7ecfd1): Record<string, string> {
@@ -85,59 +81,30 @@ v_acf120.post("/challenge", v_6690d9, async (v_3f4e2e) => {
 v_acf120.post("/enroll", v_6690d9, async (v_3f4e2e) => {
   const v_660822 = await v_68d2b9(v_3f4e2e);
   if (v_660822 instanceof Response) return v_660822;
-
-  const v_ebd523 = await v_3f4e2e.req.formData().catch((v_9e86fd) => {
-    console.warn(`[faceAccount.enroll] formData() threw: ${(v_9e86fd as Error)?.message ?? String(v_9e86fd)}`);
-    return null;
-  });
-  if (!v_ebd523) {
-    console.warn(`[faceAccount.enroll] reject: form=null (multipart parse 실패) member=${v_660822}`);
-    return v_d5bb0f(v_3f4e2e, "FRAMES_INVALID", 400, { reason: "formData_null" });
+  const v_4d33b2 = (await v_3f4e2e.req.json().catch(() => null)) as
+    | { challengeId?: unknown; source?: unknown; vectors?: unknown }
+    | null;
+  if (!v_4d33b2 || typeof v_4d33b2 !== "object") return v_d5bb0f(v_3f4e2e, "FRAMES_INVALID", 400);
+  const v_d789aa = String(v_4d33b2.challengeId ?? "");
+  if (!v_d789aa) return v_d5bb0f(v_3f4e2e, "FRAMES_INVALID", 400);
+  const v_f94e64 = v_4d33b2.vectors;
+  if (!Array.isArray(v_f94e64) || v_f94e64.length < 2 || v_f94e64.length > v_d291e8) {
+    return v_d5bb0f(v_3f4e2e, "FRAMES_INVALID", 400);
   }
-  const v_479f05 = v_ebd523.getAll("frames");
-  const v_c7cb86 = v_479f05.map((v_8b5cd8) => {
-    if (typeof v_8b5cd8 === "string") return { kind: "string", len: v_8b5cd8.length };
-    const v_b6c474 = v_8b5cd8 as { constructor?: { name?: string }; size?: number; name?: string; type?: string };
-    return { kind: v_b6c474?.constructor?.name ?? "obj", size: v_b6c474?.size, name: v_b6c474?.name, type: v_b6c474?.type };
-  });
-  const v_580403 = Array.from(v_ebd523.keys());
-  console.log(`[faceAccount.enroll] member=${v_660822} formKeys=${JSON.stringify(v_580403)} rawFrames=${JSON.stringify(v_c7cb86)}`);
-  const v_3b40dd = (v_479f05 as unknown[]).filter((v_8b5cd8) => typeof v_8b5cd8 !== "string") as File[];
-  if (v_3b40dd.length < 2 || v_3b40dd.length > v_d291e8) {
-    console.warn(
-      `[faceAccount.enroll] reject: length=${v_3b40dd.length} (raw=${v_479f05.length}) member=${v_660822}`,
-    );
-    return v_d5bb0f(v_3f4e2e, "FRAMES_INVALID", 400, {
-      reason: "length",
-      rawCount: v_479f05.length,
-      framesCount: v_3b40dd.length,
-      formKeys: v_580403,
-      rawMeta: v_c7cb86,
-    });
-  }
-  if (v_3b40dd.some((v_8b5cd8) => v_8b5cd8.size <= 0 || v_8b5cd8.size > MAX_FRAME_BYTES)) {
-    const v_0af197 = v_3b40dd
-      .map((v_8b5cd8, v_ebec57) => ({ i: v_ebec57, size: v_8b5cd8.size, name: v_8b5cd8.name, type: v_8b5cd8.type }))
-      .filter((v_62c214) => v_62c214.size <= 0 || v_62c214.size > MAX_FRAME_BYTES);
-    console.warn(
-      `[faceAccount.enroll] reject: size out-of-range (0..${MAX_FRAME_BYTES}) bad=${JSON.stringify(v_0af197)} member=${v_660822}`,
-    );
-    return v_d5bb0f(v_3f4e2e, "FRAMES_INVALID", 400, { reason: "size", max: MAX_FRAME_BYTES, bad: v_0af197 });
-  }
-  for (const v_81e2ef of vectors) {
+  for (const v_81e2ef of v_f94e64) {
     if (!Array.isArray(v_81e2ef) || v_81e2ef.length !== v_c523cc) return v_d5bb0f(v_3f4e2e, "BAD_EMBEDDING", 400);
     for (const v_62c214 of v_81e2ef) if (typeof v_62c214 !== "number" || !Number.isFinite(v_62c214)) return v_d5bb0f(v_3f4e2e, "BAD_EMBEDDING", 400);
   }
-  const v_04e790 = String(body.source ?? "");
+  const v_04e790 = String(v_4d33b2.source ?? "");
   try {
     const v_8f00b9 = await fetch(`${v_3f4e2e.env.XRUN_API_URL}/oth-path`, {
       method: "POST",
       headers: v_9765c6(v_3f4e2e, true),
       body: JSON.stringify({
         member: v_660822,
-        challengeId,
+        challengeId: v_d789aa,
         source: v_21bb34.has(v_04e790) ? v_04e790 : "login",
-        vectors,
+        vectors: v_f94e64,
       }),
     });
     return v_0bb1df(v_3f4e2e, v_8f00b9);
