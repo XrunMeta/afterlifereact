@@ -1737,7 +1737,8 @@ const v_d81136 = v_472849.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    height: v_8f28b1.height,
+
+    height: 48,
     borderWidth: 1,
     borderColor: "#dedede",
     borderRadius: v_8f28b1.borderRadius,
