@@ -1866,6 +1866,24 @@ v_b7f2b4.get("/notify-test/target", v_c0a297, async (v_3f4e2e) => {
   });
 });
 
+v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
+  const v_88fe80 = Number(v_3f4e2e.req.param("xrunMember"));
+  if (!Number.isInteger(v_88fe80) || v_88fe80 <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "Invalid xrun member id.");
+  }
+  const v_3ac7e7 = await v_3f4e2e.env.DB
+    .prepare(
+      `SELECT birth_date AS birthDate
+         FROM users
+        WHERE xrun_member_id = ? AND deleted_at IS NULL
+        ORDER BY id DESC
+        LIMIT 1`,
+    )
+    .bind(v_88fe80)
+    .first<{ birthDate: string | null }>();
+  return v_3f4e2e.json({ xrunMember: v_88fe80, birthDate: v_3ac7e7?.birthDate ?? null });
+});
+
 const v_eef71e = {
   user_follow: { title: "✨ 새 팔로워 (테스트)", body: "테스트 사용자가 나를 팔로우했어요" },
   followee_new_clone: { title: "🌟 새 페르소나 (테스트)", body: "팔로우한 사용자가 새 페르소나를 만들었어요" },
