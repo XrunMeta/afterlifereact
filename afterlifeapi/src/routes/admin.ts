@@ -979,6 +979,25 @@ function v_5e92ec(v_e6b88d): void {
   }
 }
 
+const v_a09e73 = 8 * 1024 * 1024;
+
+async function v_e35eab(
+  env: v_de0a25["Bindings"],
+  v_0037e3,
+): Promise<{ bytes: ArrayBuffer; contentType: string }> {
+  const v_8839e3 = await v_c9c489.R2_ARCHIVE.get(v_0037e3);
+  if (!v_8839e3) throw new v_3ebe58("NOT_FOUND", `R2 object missing: ${v_0037e3}`);
+  if ((v_8839e3.size ?? 0) > v_a09e73) {
+    throw new v_3ebe58(
+      "VALIDATION_FAILED",
+      `R2 object too large: ${v_8839e3.size} bytes (max ${v_a09e73})`,
+    );
+  }
+  const v_fbb6da = await v_8839e3.arrayBuffer();
+  const v_c0c2d5 = v_8839e3.httpMetadata?.contentType ?? "audio/wav";
+  return { bytes: v_fbb6da, contentType: v_c0c2d5 };
+}
+
 async function v_f3f917(
   env: v_de0a25["Bindings"],
   v_2f693a,
@@ -1000,10 +1019,7 @@ v_b7f2b4.post("/voices", v_d3c85b, async (v_3f4e2e) => {
   const v_148ff6 = await v_4c95c2(v_3f4e2e, v_49b1e6);
   v_5e92ec(v_148ff6.r2_key);
 
-  const v_8839e3 = await v_3f4e2e.env.R2_ARCHIVE.get(v_148ff6.r2_key);
-  if (!v_8839e3) throw new v_3ebe58("NOT_FOUND", `R2 object missing: ${v_148ff6.r2_key}`);
-  const v_fbb6da = await v_8839e3.arrayBuffer();
-  const v_c0c2d5 = v_8839e3.httpMetadata?.contentType ?? "audio/wav";
+  const { bytes: v_fbb6da, contentType: v_c0c2d5 } = await v_e35eab(v_3f4e2e.env, v_148ff6.r2_key);
 
   const v_2f693a = v_ec7e95();
 
@@ -1135,10 +1151,7 @@ v_b7f2b4.put("/voices/:id", v_d3c85b, async (v_3f4e2e) => {
   let v_5c6994 = null;
   let v_68e307;
   if (v_148ff6.r2_key !== undefined && v_148ff6.r2_key !== v_3c8572.r2_key) {
-    const v_8839e3 = await v_3f4e2e.env.R2_ARCHIVE.get(v_148ff6.r2_key);
-    if (!v_8839e3) throw new v_3ebe58("NOT_FOUND", `R2 object missing: ${v_148ff6.r2_key}`);
-    const v_fbb6da = await v_8839e3.arrayBuffer();
-    const v_c0c2d5 = v_8839e3.httpMetadata?.contentType ?? "audio/wav";
+    const { bytes: v_fbb6da, contentType: v_c0c2d5 } = await v_e35eab(v_3f4e2e.env, v_148ff6.r2_key);
     const v_2f693a = v_3c8572.se_key ?? v_ec7e95();
     const v_57a13c = await v_f3f917(v_3f4e2e.env, v_2f693a, v_fbb6da, v_c0c2d5);
     v_5c6994 = v_57a13c.syncedToGabia;
@@ -1193,10 +1206,7 @@ v_b7f2b4.post("/voices/:id/sync", v_d3c85b, async (v_3f4e2e) => {
     .first<{ se_key: string | null; r2_key: string | null }>();
   if (!v_3ac7e7) throw new v_3ebe58("NOT_FOUND", "Voice not found.");
   if (!v_3ac7e7.r2_key) throw new v_3ebe58("NOT_FOUND", "Voice has no r2_key — nothing to upload.");
-  const v_8839e3 = await v_3f4e2e.env.R2_ARCHIVE.get(v_3ac7e7.r2_key);
-  if (!v_8839e3) throw new v_3ebe58("NOT_FOUND", `R2 object missing: ${v_3ac7e7.r2_key}`);
-  const v_fbb6da = await v_8839e3.arrayBuffer();
-  const v_c0c2d5 = v_8839e3.httpMetadata?.contentType ?? "audio/wav";
+  const { bytes: v_fbb6da, contentType: v_c0c2d5 } = await v_e35eab(v_3f4e2e.env, v_3ac7e7.r2_key);
 
   const v_2f693a = v_3ac7e7.se_key ?? v_ec7e95();
   const v_57a13c = await v_f3f917(v_3f4e2e.env, v_2f693a, v_fbb6da, v_c0c2d5);

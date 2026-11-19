@@ -245,12 +245,27 @@ async def preset_upload(req: web.Request) -> web.Response:
         return web.json_response({"error": "multipart/form-data required"}, status=400)
     se_key: str | None = None
     file_bytes: bytes | None = None
+    # se_key 멀티파트 파트의 안전 상한 — 정규식 통과 길이의 넉넉한 몇 배. 이걸 넘으면
+    #   굳이 regex 대 보지도 않고 400. OOM 방어 (파일 파트와 동일 설계, 리뷰 fix).
+    SE_KEY_MAX_BYTES = 512
     while True:
         part = await reader.next()
         if part is None:
             break
         if part.name == "se_key":
-            se_key = (await part.text()).strip()
+            # text() 는 내부적으로 전체를 읽어 디코드 — 스트림 카운트로 상한 적용.
+            buf = bytearray()
+            while True:
+                chunk = await part.read_chunk(size=256)
+                if not chunk:
+                    break
+                buf.extend(chunk)
+                if len(buf) > SE_KEY_MAX_BYTES:
+                    return web.json_response(
+                        {"error": f"se_key too long (max {SE_KEY_MAX_BYTES} bytes)"},
+                        status=400,
+                    )
+            se_key = buf.decode("utf-8", errors="replace").strip()
         elif part.name == "file":
             # 스트림을 통째로 읽되 상한 초과 즉시 거절 (OOM 방어).
             buf = bytearray()

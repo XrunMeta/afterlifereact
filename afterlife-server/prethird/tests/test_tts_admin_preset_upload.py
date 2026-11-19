@@ -80,6 +80,20 @@ async def test_se_key_traversal_rejected(client):
     assert r.status == 400
 
 
+async def test_se_key_too_long_rejected(client):
+    """리뷰 fix — se_key 파트가 비정상적으로 크면 regex 전에 400 (OOM 방어)."""
+    c, _ = client
+    huge = "a" * 1024  # 1KB >> SE_KEY_MAX_BYTES(512)
+    r = await c.post(
+        "/oth-path",
+        headers=ADMIN,
+        data={"se_key": huge, "file": MIN_WAV},
+    )
+    assert r.status == 400
+    body = await r.json()
+    assert "se_key" in body.get("error", "").lower()
+
+
 async def test_se_key_empty_rejected(client):
     c, _ = client
     r = await c.post(

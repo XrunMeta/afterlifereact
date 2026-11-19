@@ -89,6 +89,39 @@ v_469bf2("POST /oth-path — 가비아 동기화", () => {
     v_4d37e3(v_8f00b9.status).toBe(404);
   });
 
+  v_23805a("R2 객체가 8MB 초과면 422 (Worker 메모리 방어, 리뷰 fix)", async () => {
+
+    const v_1b5d4d = "voice/sample/oversize.bin";
+    const v_dc53ea = (v_c9c489 as unknown as { R2_ARCHIVE: R2Bucket }).R2_ARCHIVE;
+
+    await v_dc53ea.put(v_1b5d4d, new Uint8Array([1, 2, 3]), {
+      httpMetadata: { contentType: "audio/wav" },
+    });
+    v_3889c0.spyOn(v_dc53ea, "get").mockImplementationOnce(async () => {
+      return {
+        size: 9 * 1024 * 1024,
+        httpMetadata: { contentType: "audio/wav" },
+        arrayBuffer: async () => {
+          throw new Error("arrayBuffer must not be called after size check");
+        },
+      } as unknown as R2ObjectBody;
+    });
+    const v_06e671 = v_3889c0.spyOn(globalThis, "fetch");
+    const v_8f00b9 = await v_3c1e1d({ name: "oversize", r2_key: v_1b5d4d });
+    v_4d37e3(v_8f00b9.status).toBe(422);
+
+    const v_f6b036 = v_06e671.mock.calls.filter((v_3f4e2e) =>
+      String(v_3f4e2e[0]).includes("/oth-path"),
+    );
+    v_4d37e3(v_f6b036).toHaveLength(0);
+
+    const v_3ac7e7 = await v_a1651b()
+      .prepare("SELECT id FROM voice_presets WHERE name = ?")
+      .bind("oversize")
+      .first();
+    v_4d37e3(v_3ac7e7).toBeNull();
+  });
+
   v_23805a("가비아 200 성공 시 D1 insert + seKey 자동 발급 + syncedToGabia:true", async () => {
     const v_0037e3 = await v_e76697("voice/sample/ok1.wav");
     const v_980ff2 = v_f09518();
