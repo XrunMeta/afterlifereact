@@ -222,10 +222,10 @@ export default function v_cb9b4f({ onDone: v_7b5712 }: { onDone: () => void }) {
             <View style={v_d81136.modalHeader}>
               <Text style={v_d81136.modalTitle}>
                 {v_855c14 === "year"
-                  ? (v_8d41d7("auth.signup.birthYearTitle", { defaultValue: "출생 연도" }) as string)
+                  ? (v_8d41d7("auth.signup.birthYearTitle", { defaultValue: "년도" }) as string)
                   : v_855c14 === "month"
-                    ? (v_8d41d7("auth.signup.birthMonthTitle", { defaultValue: "출생 월" }) as string)
-                    : (v_8d41d7("auth.signup.birthDayTitle", { defaultValue: "출생 일" }) as string)}
+                    ? (v_8d41d7("auth.signup.birthMonthTitle", { defaultValue: "월" }) as string)
+                    : (v_8d41d7("auth.signup.birthDayTitle", { defaultValue: "일" }) as string)}
               </Text>
               <TouchableOpacity onPress={() => v_be8eb2(null)}>
                 <Text style={v_d81136.modalCloseButton}>✕</Text>
