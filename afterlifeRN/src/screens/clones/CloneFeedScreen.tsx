@@ -23,7 +23,6 @@ import { v_772971 } from "jmpfvteuuztnp";
 import type { v_432191 } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import { v_650cfa } from "ixigazcpvfldbecwtbvavtbi";
 import type { v_8ad91b } from "../../navigation/types";
-import { v_84d546 } from "../../lib/callGuard";
 import { v_38f9da } from "../../lib/callActivity";
 import { v_650589 } from "../../lib/penaltyNotice";
 import v_9706a6 from "../../components/ui/FeedCard";
@@ -233,10 +232,8 @@ function v_75c31a({ route: v_c7daf6, navigation: v_c65f5d, feed: v_2db2a5 }: Inn
     v_abdcca((v_ba2215) => Math.max(0, v_ba2215 + (v_a448ad ? 1 : -1)));
   };
 
-  const v_f8043e = async () => {
+  const v_f8043e = () => {
 
-    const v_3ed4c3 = await v_84d546(v_2ca7e0, () => {});
-    if (!v_3ed4c3) return;
     v_38f9da({ cloneId: v_8c0b26.cloneId, name: v_8c0b26.author, source: "clone-feed" });
     v_c65f5d.navigate("Call", {
       cloneId: v_8c0b26.cloneId,
@@ -956,8 +953,15 @@ function v_75c31a({ route: v_c7daf6, navigation: v_c65f5d, feed: v_2db2a5 }: Inn
           v_fdd7c1(null);
           if (!v_5f5d6d || !v_2ca7e0) return;
           try {
-            await v_9deb40(v_2ca7e0, v_5f5d6d.cloneId, v_58ca36 || undefined);
-            v_15c939(v_8d41d7("home.toasts.reportSuccessBlocked"));
+
+            const v_8f00b9 = await v_9deb40(v_2ca7e0, v_5f5d6d.cloneId, v_58ca36 || undefined);
+            v_15c939(
+              v_8f00b9.autoPrivated
+                ? v_8d41d7("home.toasts.reportSuccessAutoPrivated", {
+                    defaultValue: "신고가 접수됐어요. 운영 검토까지 이 클론은 비공개로 전환됐어요",
+                  })
+                : v_8d41d7("home.toasts.reportSuccessBlocked"),
+            );
             v_c65f5d.goBack();
           } catch (v_49263d) {
             console.warn("[CloneFeed] report failed:", v_49263d);

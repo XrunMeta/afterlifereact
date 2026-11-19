@@ -141,10 +141,6 @@ export default function v_18ad36() {
     }
 
     if (v_f4e98d.type === "clone_gift") {
-      v_c65f5d.navigate("Main", {
-        screen: "MyTab",
-        params: { screen: "Purchase" },
-      });
       return;
     }
     if (

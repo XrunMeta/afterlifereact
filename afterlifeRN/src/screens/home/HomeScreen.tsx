@@ -60,7 +60,6 @@ import {
   type v_52af9d,
 } from "../../api/clones";
 import { v_bfd883 } from "../../lib/relativeTime";
-import { v_84d546 } from "../../lib/callGuard";
 import { v_38f9da } from "../../lib/callActivity";
 import { v_650589 } from "../../lib/penaltyNotice";
 import { v_ab98d4 } from "../../hooks/useReportAcceptedGate";
@@ -502,13 +501,6 @@ export default function v_c316d8() {
             v_38f9da({ cloneId: v_8c0b26.cloneId, name: v_8c0b26.author, source: "home-feed", index: v_a56041, currentIndex: v_2bcb8f });
             v_f4c991.navigate("Call", { cloneId: v_8c0b26.cloneId, name: v_8c0b26.author, image: v_8c0b26.image });
 
-            void v_84d546(v_2ca7e0, () => {}).then((v_3ed4c3) => {
-              console.log(`[Call][flow] +${Date.now()} assertCanCall(bg) → ok=${v_3ed4c3} (Δ${Date.now() - v_b66f2c}ms)`);
-              if (!v_3ed4c3) {
-
-                if (v_f4c991.canGoBack()) v_f4c991.goBack();
-              }
-            });
           }}
           onCommentPress={() => { v_905ec3(false); v_b07dd3(v_8c0b26.id); }}
 
@@ -1298,11 +1290,15 @@ export default function v_c316d8() {
 
           try {
             const { reportClone: v_9deb40 } = await import("../../api/clones");
-            await v_9deb40(v_2ca7e0, v_5f5d6d.cloneId, v_58ca36 || undefined);
+            const v_8f00b9 = await v_9deb40(v_2ca7e0, v_5f5d6d.cloneId, v_58ca36 || undefined);
             v_15c939(
-              v_8d41d7("home.toasts.reportSuccessBlocked", {
-                defaultValue: "신고가 접수됐어요. 이 클론은 차단됐어요",
-              }),
+              v_8f00b9.autoPrivated
+                ? v_8d41d7("home.toasts.reportSuccessAutoPrivated", {
+                    defaultValue: "신고가 접수됐어요. 운영 검토까지 이 클론은 비공개로 전환됐어요",
+                  })
+                : v_8d41d7("home.toasts.reportSuccessBlocked", {
+                    defaultValue: "신고가 접수됐어요. 이 클론은 차단됐어요",
+                  }),
             );
             const v_c3bc75 = v_37977a.getState().apiFeeds;
             if (v_c3bc75) {

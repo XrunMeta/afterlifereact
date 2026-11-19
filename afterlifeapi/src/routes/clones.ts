@@ -2167,11 +2167,15 @@ v_f891e6.post("/:id/report", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
   const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_4a3250).catch(() => ({ reason: undefined }));
 
+  const v_125317 = await v_3f4e2e.env.DB.prepare(
+    `INSERT OR IGNORE INTO clone_reports (user_id, clone_id, reason)
+       VALUES (?, ?, ?)`,
+  )
+    .bind(v_43e90c, v_6e0fd3, v_4d33b2.reason ?? null)
+    .run();
+  const v_35f118 = (v_125317.meta?.changes ?? 0) > 0;
+
   await v_3f4e2e.env.DB.batch([
-    v_3f4e2e.env.DB.prepare(
-      `INSERT OR IGNORE INTO clone_reports (user_id, clone_id, reason)
-         VALUES (?, ?, ?)`,
-    ).bind(v_43e90c, v_6e0fd3, v_4d33b2.reason ?? null),
     v_3f4e2e.env.DB.prepare(
       `INSERT OR IGNORE INTO clone_blocks (user_id, clone_id) VALUES (?, ?)`,
     ).bind(v_43e90c, v_6e0fd3),
@@ -2179,12 +2183,27 @@ v_f891e6.post("/:id/report", v_6690d9, async (v_3f4e2e) => {
       `DELETE FROM clone_follows WHERE user_id = ? AND clone_id = ?`,
     ).bind(v_43e90c, v_6e0fd3),
   ]);
+
+  let v_813ed9 = false;
+  if (v_35f118) {
+    const v_da4982 = await v_3f4e2e.env.DB.prepare(
+      `UPDATE clones
+          SET visibility = 'private',
+              auto_privated_at = ?,
+              updated_at = CURRENT_TIMESTAMP
+        WHERE id = ? AND visibility = 'public'`,
+    )
+      .bind(Date.now(), v_6e0fd3)
+      .run();
+    v_813ed9 = (v_da4982.meta?.changes ?? 0) > 0;
+  }
+
   await v_74defc(v_3f4e2e, {
     userId: v_43e90c,
     action: "clone.report",
-    details: { cloneId: v_6e0fd3, reason: v_4d33b2.reason ?? null },
+    details: { cloneId: v_6e0fd3, reason: v_4d33b2.reason ?? null, autoPrivated: v_813ed9, isNewReport: v_35f118 },
   });
-  return v_3f4e2e.json({ ok: true, reported: true, blocked: true });
+  return v_3f4e2e.json({ ok: true, reported: true, blocked: true, autoPrivated: v_813ed9 });
 });
 
 const v_1e23ae = v_1f4ea7.object({

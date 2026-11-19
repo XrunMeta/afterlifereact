@@ -2566,65 +2566,7 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     afl971TryFireAd();
   }, [phase, afl971TryFireAd]);
 
-  const [remainingSec, setRemainingSec] = useState<number | null>(null);
-  const warnedRef = useRef(false);
-  const exhaustedRef = useRef(false);
-
-  useEffect(() => {
-    return; 
-  }, [accessToken]);
-  useEffect(() => {
-    return; 
-
-    if (liveState !== "live" || remainingSec === null) return;
-    const id = setInterval(() => {
-      setRemainingSec((prev) => {
-        if (prev === null) return prev;
-        const next = Math.max(0, prev - 1);
-        if (next === 30 && !warnedRef.current) {
-          warnedRef.current = true;
-          setToastMessage(
-            t("call.remainingWarnToast", {
-              defaultValue: "남은 통화 시간 30초입니다. 곧 종료됩니다.",
-            }),
-          );
-        }
-        if (next === 0 && !exhaustedRef.current) {
-          exhaustedRef.current = true;
-          showAlert(
-            t("call.exhaustedTitle", { defaultValue: "통화 시간 종료" }),
-            t("call.exhaustedBody", {
-              defaultValue: "충전하면 계속 통화할 수 있어요.",
-            }),
-            [
-              {
-                text: t("common.confirm", { defaultValue: "확인" }),
-                style: "cancel",
-                onPress: () => navigation.goBack(),
-              },
-              {
-                text: t("call.exhaustedCharge", { defaultValue: "충전하기" }),
-                style: "default",
-                onPress: () => {
-                  navigation.dispatch(
-                    CommonActions.navigate({
-                      name: "Main",
-                      params: {
-                        screen: "MyTab",
-                        params: { screen: "Purchase" },
-                      },
-                    }),
-                  );
-                },
-              },
-            ],
-          );
-        }
-        return next;
-      });
-    }, 1000);
-    return () => clearInterval(id);
-  }, [liveState, remainingSec !== null, navigation, t]);
+  const [remainingSec] = useState<number | null>(null);
 
   useEffect(() => {
     const displayName = paramName || t("call.fgTitle", { defaultValue: "통화 중" });

@@ -979,7 +979,7 @@ function v_5e92ec(v_e6b88d): void {
   }
 }
 
-v_b7f2b4.post("/voices", v_b09138, async (v_3f4e2e) => {
+v_b7f2b4.post("/voices", v_d3c85b, async (v_3f4e2e) => {
   const v_148ff6 = await v_4c95c2(v_3f4e2e, v_49b1e6);
   v_5e92ec(v_148ff6.r2_key);
   const v_43af15 = await v_3f4e2e.env.DB
@@ -1018,7 +1018,7 @@ const v_8cc706 = {
   "audio/x-m4a": ".m4a",
   "audio/aac": ".m4a",
 };
-v_b7f2b4.post("/voices/upload-sample", v_b09138, async (v_3f4e2e) => {
+v_b7f2b4.post("/voices/upload-sample", v_d3c85b, async (v_3f4e2e) => {
   let v_ebd523;
   try {
     v_ebd523 = await v_3f4e2e.req.formData();
@@ -1085,7 +1085,7 @@ v_b7f2b4.get("/voices/sample-preview", v_c0a297, async (v_3f4e2e) => {
   });
 });
 
-v_b7f2b4.put("/voices/:id", v_b09138, async (v_3f4e2e) => {
+v_b7f2b4.put("/voices/:id", v_d3c85b, async (v_3f4e2e) => {
   const v_389afb = Number(v_3f4e2e.req.param("id"));
   if (!Number.isFinite(v_389afb) || v_389afb <= 0) throw new v_3ebe58("VALIDATION_FAILED", "Invalid id.");
   const v_148ff6 = await v_4c95c2(v_3f4e2e, v_a12944);
@@ -1864,6 +1864,55 @@ v_b7f2b4.get("/notify-test/target", v_c0a297, async (v_3f4e2e) => {
     },
     sampleClone: v_eb25ce ?? null,
   });
+});
+
+v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
+  const v_88fe80 = Number(v_3f4e2e.req.param("xrunMember"));
+  if (!Number.isInteger(v_88fe80) || v_88fe80 <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "Invalid xrun member id.");
+  }
+  const v_3ac7e7 = await v_3f4e2e.env.DB
+    .prepare(
+      `SELECT id, birth_date_enc
+         FROM users
+        WHERE xrun_member_id = ? AND deleted_at IS NULL
+        ORDER BY id DESC
+        LIMIT 1`,
+    )
+    .bind(v_88fe80)
+    .first<{ id: number; birth_date_enc: string | null }>();
+
+  if (!v_3ac7e7?.birth_date_enc) {
+    return v_3f4e2e.json({ xrunMember: v_88fe80, birthDate: null });
+  }
+
+  let v_598ded = null;
+  try {
+    const v_d205b7 = v_a8614b(v_3f4e2e.env.ALE_KEK);
+    let v3Provider: Awaited<ReturnType<typeof v_e44d97>> | undefined;
+    try {
+      v_67b8fb = await v_e44d97(v_3f4e2e);
+    } catch {
+      v_67b8fb = undefined;
+    }
+    const v_eef514 = await v_137694(v_3ac7e7.birth_date_enc, {
+      db: v_3f4e2e.env.DB,
+      hkdfContext: "user.birth_date",
+      legacyProvider: v_d205b7,
+      v3Provider: v_67b8fb,
+      actor: { type: "admin", id: v_3f4e2e.get("adminUserId") ?? "unknown" },
+      auditSecret: v_3f4e2e.env.AUDIT_SECRET,
+      lazyMigrateEnabled: false,
+      hint: { key: "users.age_enc", resourceId: v_3ac7e7.id },
+    });
+
+    if (typeof v_eef514 === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v_eef514)) {
+      v_598ded = v_eef514;
+    }
+  } catch (v_49263d) {
+    console.warn(`[admin/birth-date] decrypt failed xrun=${v_88fe80}:`, (v_49263d as Error).message);
+  }
+  return v_3f4e2e.json({ xrunMember: v_88fe80, birthDate: v_598ded });
 });
 
 const v_eef71e = {
