@@ -1197,6 +1197,51 @@ v_b7f2b4.put("/voices/:id", v_d3c85b, async (v_3f4e2e) => {
   });
 });
 
+v_b7f2b4.post("/voices/:id/tts-preview", v_d3c85b, async (v_3f4e2e) => {
+  const v_389afb = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isFinite(v_389afb) || v_389afb <= 0) throw new v_3ebe58("VALIDATION_FAILED", "Invalid id.");
+  const v_4d33b2 = await v_3f4e2e.req.json<{ text?: string }>().catch(() => ({}) as { text?: string });
+  const v_9b6134 = (v_4d33b2.text ?? "").trim();
+  if (!v_9b6134) throw new v_3ebe58("VALIDATION_FAILED", "text required");
+  if (v_9b6134.length > 500) throw new v_3ebe58("VALIDATION_FAILED", "text too long (max 500)");
+
+  const v_3ac7e7 = await v_3f4e2e.env.DB
+    .prepare("SELECT se_key FROM voice_presets WHERE id = ? AND is_active = 1")
+    .bind(v_389afb)
+    .first<{ se_key: string | null }>();
+  if (!v_3ac7e7) throw new v_3ebe58("NOT_FOUND", "Voice not found or inactive.");
+  if (!v_3ac7e7.se_key) {
+    throw new v_3ebe58("NOT_FOUND", "Voice not yet synced to Gabia (se_key empty) — 재동기화 먼저.");
+  }
+
+  const v_43fd42 = v_3f4e2e.env.LEARN_SECRET ?? "";
+  if (!v_43fd42) throw new v_3ebe58("INTERNAL_ERROR", "LEARN_SECRET not configured");
+  const v_694b25 = (v_3f4e2e.env.CALL_PRETHIRD_BASE ?? "").replace(/\/$/, "");
+  if (!v_694b25) throw new v_3ebe58("INTERNAL_ERROR", "CALL_PRETHIRD_BASE not configured");
+
+  try {
+    const v_eb792a = await fetch(`${v_694b25}/oth-path`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Admin-Secret": v_43fd42 },
+      body: JSON.stringify({ text: v_9b6134, se_key: v_3ac7e7.se_key }),
+    });
+    if (!v_eb792a.ok) {
+      const v_9be017 = await v_eb792a.text().catch(() => "");
+      return v_3f4e2e.json(
+        { error: `prethird ${v_eb792a.status}: ${v_9be017.slice(0, 200)}` },
+        v_eb792a.status as 400 | 500,
+      );
+    }
+    const v_7ab8bd = await v_eb792a.arrayBuffer();
+    return new Response(v_7ab8bd, {
+      status: 200,
+      headers: { "Content-Type": "audio/wav", "Cache-Control": "no-store" },
+    });
+  } catch (v_9e86fd) {
+    return v_3f4e2e.json({ error: `upstream: ${String(v_9e86fd)}` }, 502);
+  }
+});
+
 v_b7f2b4.post("/voices/:id/sync", v_d3c85b, async (v_3f4e2e) => {
   const v_389afb = Number(v_3f4e2e.req.param("id"));
   if (!Number.isFinite(v_389afb) || v_389afb <= 0) throw new v_3ebe58("VALIDATION_FAILED", "Invalid id.");
