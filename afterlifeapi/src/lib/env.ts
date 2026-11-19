@@ -76,6 +76,8 @@ export interface Bindings {
 
   FACE_API_CONSENT_CHECK?: string;
 
+  VOICE_PRESET_SYNC_REQUIRED?: string;
+
   PREBUILD_SECRET?: string;        
   PRETHIRD_PUBLIC_BASE?: string;   
 
