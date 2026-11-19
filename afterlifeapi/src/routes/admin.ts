@@ -1873,15 +1873,46 @@ v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
   }
   const v_3ac7e7 = await v_3f4e2e.env.DB
     .prepare(
-      `SELECT birth_date AS birthDate
+      `SELECT id, birth_date_enc
          FROM users
         WHERE xrun_member_id = ? AND deleted_at IS NULL
         ORDER BY id DESC
         LIMIT 1`,
     )
     .bind(v_88fe80)
-    .first<{ birthDate: string | null }>();
-  return v_3f4e2e.json({ xrunMember: v_88fe80, birthDate: v_3ac7e7?.birthDate ?? null });
+    .first<{ id: number; birth_date_enc: string | null }>();
+
+  if (!v_3ac7e7?.birth_date_enc) {
+    return v_3f4e2e.json({ xrunMember: v_88fe80, birthDate: null });
+  }
+
+  let v_598ded = null;
+  try {
+    const v_d205b7 = v_a8614b(v_3f4e2e.env.ALE_KEK);
+    let v3Provider: Awaited<ReturnType<typeof v_e44d97>> | undefined;
+    try {
+      v_67b8fb = await v_e44d97(v_3f4e2e);
+    } catch {
+      v_67b8fb = undefined;
+    }
+    const v_eef514 = await v_137694(v_3ac7e7.birth_date_enc, {
+      db: v_3f4e2e.env.DB,
+      hkdfContext: "user.birth_date",
+      legacyProvider: v_d205b7,
+      v3Provider: v_67b8fb,
+      actor: { type: "admin", id: v_3f4e2e.get("adminUserId") ?? "unknown" },
+      auditSecret: v_3f4e2e.env.AUDIT_SECRET,
+      lazyMigrateEnabled: false,
+      hint: { key: "users.age_enc", resourceId: v_3ac7e7.id },
+    });
+
+    if (typeof v_eef514 === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v_eef514)) {
+      v_598ded = v_eef514;
+    }
+  } catch (v_49263d) {
+    console.warn(`[admin/birth-date] decrypt failed xrun=${v_88fe80}:`, (v_49263d as Error).message);
+  }
+  return v_3f4e2e.json({ xrunMember: v_88fe80, birthDate: v_598ded });
 });
 
 const v_eef71e = {
