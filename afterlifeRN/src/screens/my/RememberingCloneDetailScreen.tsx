@@ -57,17 +57,19 @@ export default function v_2b785f() {
     (person: v_5c12dc) => {
       if (!v_2ca7e0) return;
       const v_8a1355 = v_306a28.displayName ?? v_8d41d7("common.unknown", { defaultValue: "이름 없음" });
+
       v_889fad(
-        v_8d41d7("settings.rememberingCloneDetail.revokeTitle", { defaultValue: "동의를 철회할까요?" }),
-        v_8d41d7("settings.rememberingCloneDetail.revokeMessage", {
+        v_8d41d7("settings.rememberingCloneDetail.deleteTitle", {
           name: v_8a1355,
-          count: v_306a28.faceCount ?? 0,
-          defaultValue: "{{name}} 의 얼굴 데이터 {{count}}개가 모두 삭제돼요. 되돌릴 수 없어요.",
+          defaultValue: "{{name}}님의 얼굴 정보를 삭제할까요?",
+        }),
+        v_8d41d7("settings.rememberingCloneDetail.deleteMessage", {
+          defaultValue: "되돌릴 수 없어요.",
         }),
         [
           { text: v_8d41d7("common.cancel", { defaultValue: "취소" }), style: "cancel" },
           {
-            text: v_8d41d7("common.confirm", { defaultValue: "철회" }),
+            text: v_8d41d7("settings.rememberingCloneDetail.deleteConfirm", { defaultValue: "삭제" }),
             style: "destructive",
             onPress: async () => {
               v_efdde3(v_306a28.id);
@@ -106,7 +108,7 @@ export default function v_2b785f() {
       >
         <Text style={v_fd5f43.desc}>
           {v_8d41d7("settings.rememberingCloneDetail.desc", {
-            defaultValue: "이 페르소나가 얼굴을 인식해 저장한 사람들이에요. 동의를 철회하면 그 사람의 얼굴 데이터가 모두 삭제됩니다.",
+            defaultValue: "이 페르소나가 얼굴을 인식해 저장한 사람들이에요. 등록된 얼굴을 삭제하면 그 사람의 얼굴 데이터가 모두 지워져요.",
           })}
         </Text>
 
@@ -149,7 +151,7 @@ export default function v_2b785f() {
                         <ActivityIndicator size="small" color={v_1bfbd0.white} />
                       ) : (
                         <Text style={v_fd5f43.revokeBtnText}>
-                          {v_8d41d7("settings.rememberingCloneDetail.revoke", { defaultValue: "동의 철회" })}
+                          {v_8d41d7("settings.rememberingCloneDetail.deleteButton", { defaultValue: "등록된 얼굴 삭제" })}
                         </Text>
                       )}
                     </TouchableOpacity>
