@@ -137,3 +137,89 @@ v_469bf2("POST /oth-path — 가비아 동기화", () => {
     v_4d37e3(v_3ac7e7!.id).toBe(v_4d33b2.id);
   });
 });
+
+v_469bf2("PUT /oth-path — 재동기화", () => {
+
+  let v_bec94a = 0;
+  let v_574c7d = "";
+  let v_46dca9 = "";
+
+  v_ba7107(async () => {
+    v_574c7d = await v_e76697("voice/sample/put-orig.wav");
+    v_f09518();
+    const v_21cc31 = await v_dca3c3();
+    const v_8f00b9 = await v_1df298.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_21cc31}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "발랄한 (put-base)", r2_key: v_574c7d }),
+    });
+    if (v_8f00b9.status !== 201) throw new Error(`setup POST failed: ${v_8f00b9.status}`);
+    const v_148ff6 = await v_8f00b9.json<{ id: number; seKey: string }>();
+    v_bec94a = v_148ff6.id;
+    v_46dca9 = v_148ff6.seKey;
+  });
+
+  async function v_41f868(v_4d33b2): Promise<Response> {
+    const v_21cc31 = await v_dca3c3();
+    return v_1df298.fetch(`http://localhost/oth-path${v_bec94a}`, {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${v_21cc31}`, "Content-Type": "application/json" },
+      body: JSON.stringify(v_4d33b2),
+    });
+  }
+
+  v_23805a("없는 id → 404", async () => {
+    const v_21cc31 = await v_dca3c3();
+    const v_8f00b9 = await v_1df298.fetch("http://localhost/oth-path", {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${v_21cc31}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "x" }),
+    });
+    v_4d37e3(v_8f00b9.status).toBe(404);
+  });
+
+  v_23805a("r2_key 안 바꾸면 가비아 호출 없음, syncedToGabia:null 반환", async () => {
+    const v_06e671 = v_3889c0.spyOn(globalThis, "fetch");
+    const v_8f00b9 = await v_41f868({ name: "발랄한 (rename only)" });
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    const v_148ff6 = await v_8f00b9.json<{ syncedToGabia: boolean | null }>();
+    v_4d37e3(v_148ff6.syncedToGabia).toBeNull();
+    const v_f6b036 = v_06e671.mock.calls.filter((v_3f4e2e) =>
+      String(v_3f4e2e[0]).includes("/oth-path"),
+    );
+    v_4d37e3(v_f6b036).toHaveLength(0);
+  });
+
+  v_23805a("r2_key 바꾸면 가비아 재호출 + syncedToGabia:true", async () => {
+    const v_c09267 = await v_e76697("voice/sample/put-new.wav");
+    const v_06e671 = v_f09518();
+    const v_8f00b9 = await v_41f868({ r2_key: v_c09267 });
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    const v_148ff6 = await v_8f00b9.json<{ syncedToGabia: boolean }>();
+    v_4d37e3(v_148ff6.syncedToGabia).toBe(true);
+    const v_f6b036 = v_06e671.mock.calls.filter((v_3f4e2e) =>
+      String(v_3f4e2e[0]).includes("/oth-path"),
+    );
+    v_4d37e3(v_f6b036).toHaveLength(1);
+
+    const v_3ac7e7 = await v_a1651b()
+      .prepare("SELECT r2_key, se_key FROM voice_presets WHERE id = ?")
+      .bind(v_bec94a)
+      .first<{ r2_key: string; se_key: string }>();
+    v_4d37e3(v_3ac7e7!.r2_key).toBe(v_c09267);
+
+    v_4d37e3(v_3ac7e7!.se_key).toBe(v_46dca9);
+  });
+
+  v_23805a("body 로 se_key 변경 시도 → 무시 (DB se_key 그대로)", async () => {
+    v_f09518();
+    const v_8f00b9 = await v_41f868({ name: "발랄한 (ignore se_key)", se_key: "hacker-supplied-2" });
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    const v_3ac7e7 = await v_a1651b()
+      .prepare("SELECT se_key FROM voice_presets WHERE id = ?")
+      .bind(v_bec94a)
+      .first<{ se_key: string }>();
+    v_4d37e3(v_3ac7e7!.se_key).toBe(v_46dca9);
+    v_4d37e3(v_3ac7e7!.se_key).not.toBe("hacker-supplied-2");
+  });
+});

@@ -970,8 +970,7 @@ const v_a12944 = v_1f4ea7.object({
   description: v_1f4ea7.string().max(500).optional(),
   sort_order: v_1f4ea7.number().int().optional(),
   is_active: v_1f4ea7.union([v_1f4ea7.literal(0), v_1f4ea7.literal(1)]).optional(),
-  r2_key: v_1f4ea7.string().max(500).optional(),
-  se_key: v_1f4ea7.string().max(500).optional(),
+  r2_key: v_1f4ea7.string().min(1).max(500).optional(),
 });
 
 function v_5e92ec(v_e6b88d): void {
@@ -1126,6 +1125,30 @@ v_b7f2b4.put("/voices/:id", v_d3c85b, async (v_3f4e2e) => {
   if (!Number.isFinite(v_389afb) || v_389afb <= 0) throw new v_3ebe58("VALIDATION_FAILED", "Invalid id.");
   const v_148ff6 = await v_4c95c2(v_3f4e2e, v_a12944);
   v_5e92ec(v_148ff6.r2_key);
+
+  const v_3c8572 = await v_3f4e2e.env.DB
+    .prepare("SELECT se_key, r2_key FROM voice_presets WHERE id = ?")
+    .bind(v_389afb)
+    .first<{ se_key: string | null; r2_key: string | null }>();
+  if (!v_3c8572) throw new v_3ebe58("NOT_FOUND", "Voice not found.");
+
+  let v_5c6994 = null;
+  let v_68e307;
+  if (v_148ff6.r2_key !== undefined && v_148ff6.r2_key !== v_3c8572.r2_key) {
+    const v_8839e3 = await v_3f4e2e.env.R2_ARCHIVE.get(v_148ff6.r2_key);
+    if (!v_8839e3) throw new v_3ebe58("NOT_FOUND", `R2 object missing: ${v_148ff6.r2_key}`);
+    const v_fbb6da = await v_8839e3.arrayBuffer();
+    const v_c0c2d5 = v_8839e3.httpMetadata?.contentType ?? "audio/wav";
+    const v_2f693a = v_3c8572.se_key ?? v_ec7e95();
+    const v_57a13c = await v_f3f917(v_3f4e2e.env, v_2f693a, v_fbb6da, v_c0c2d5);
+    v_5c6994 = v_57a13c.syncedToGabia;
+    v_68e307 = v_57a13c.syncWarning;
+
+    if (v_3c8572.se_key == null) {
+      await v_3f4e2e.env.DB.prepare("UPDATE voice_presets SET se_key = ? WHERE id = ?").bind(v_2f693a, v_389afb).run();
+    }
+  }
+
   const v_712957 = [];
   const v_925171 = [];
   const mapping: Array<[keyof typeof v_148ff6, string]> = [
@@ -1140,7 +1163,6 @@ v_b7f2b4.put("/voices/:id", v_d3c85b, async (v_3f4e2e) => {
     ["sort_order", "sort_order"],
     ["is_active", "is_active"],
     ["r2_key", "r2_key"],
-    ["se_key", "se_key"],
   ];
   for (const [v_0eb677, v_c8b83f] of v_b3439a) {
     if (v_148ff6[v_0eb677] !== undefined) {
@@ -1148,14 +1170,18 @@ v_b7f2b4.put("/voices/:id", v_d3c85b, async (v_3f4e2e) => {
       v_925171.push(v_148ff6[v_0eb677]);
     }
   }
-  if (!v_712957.length) throw new v_3ebe58("VALIDATION_FAILED", "No fields to update.");
-  v_925171.push(v_389afb);
-  const v_cb35cb = await v_3f4e2e.env.DB
-    .prepare(`UPDATE voice_presets SET ${v_712957.join(", ")} WHERE id = ?`)
-    .bind(...v_925171)
-    .run();
-  if (!v_cb35cb.meta.changes) throw new v_3ebe58("NOT_FOUND", "Voice not found.");
-  return v_3f4e2e.json({ ok: true });
+  if (v_712957.length) {
+    v_925171.push(v_389afb);
+    await v_3f4e2e.env.DB
+      .prepare(`UPDATE voice_presets SET ${v_712957.join(", ")} WHERE id = ?`)
+      .bind(...v_925171)
+      .run();
+  }
+  return v_3f4e2e.json({
+    ok: true,
+    syncedToGabia: v_5c6994,
+    ...(v_68e307 ? { syncWarning: v_68e307 } : {}),
+  });
 });
 
 const v_0a4de4 = v_1f4ea7.object({
