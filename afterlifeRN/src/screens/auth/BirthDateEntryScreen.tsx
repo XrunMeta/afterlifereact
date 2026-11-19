@@ -6,7 +6,6 @@ import {
   v_19b633,
   v_472849,
   v_4623af,
-  v_39a996,
   v_aa7413,
   v_9cabcb,
   v_700696,
@@ -18,8 +17,8 @@ import { v_889fad } from "../../stores/dialogStore";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_b27ae9, v_84a859 } from "../../api/auth";
 import v_556baf from "../../components/ui/SafeView";
-import v_570c34 from "../../components/ui/SafeScrollView";
-import { v_1bfbd0, v_9b1a04, v_8f28b1, v_d43669, v_c10a43 } from "../../components/constants";
+import v_1a40c4 from "../../components/ui/Button";
+import { v_1bfbd0, v_9b1a04 } from "../../components/constants";
 
 const v_cafb6f = {
   mutedText: "#8e9bae",
@@ -64,11 +63,13 @@ export default function v_cb9b4f({ onDone: v_7b5712 }: { onDone: () => void }) {
   const [v_cb66b4, v_ee9ec1] = v_5ab095(false);
 
   const v_7d8cc0 = new Date().getFullYear();
+
+  const v_8ce3bd = v_7d8cc0 - v_929bb7;
   const v_294ec5 = v_df9f57(() => {
     const v_d0c056 = [];
-    for (let v_64877a = v_7d8cc0; v_64877a >= 1910; v_64877a -= 1) v_d0c056.push(v_64877a);
+    for (let v_64877a = v_8ce3bd; v_64877a >= 1910; v_64877a -= 1) v_d0c056.push(v_64877a);
     return v_d0c056;
-  }, [v_7d8cc0]);
+  }, [v_8ce3bd]);
   const v_b50d00 = v_df9f57(() => Array.from({ length: 12 }, (v_37eab7, v_ebec57) => v_ebec57 + 1), []);
   const v_780719 = v_df9f57(() => {
     const v_d2c6bf = v_0eaaff != null && v_033a94 != null ? v_43142a(v_0eaaff, v_033a94) : 31;
@@ -142,80 +143,69 @@ export default function v_cb9b4f({ onDone: v_7b5712 }: { onDone: () => void }) {
 
   return (
     <SafeView backgroundColor={v_cafb6f.pageBg}>
-      <SafeScrollView
-        contentContainerStyle={v_d81136.scroll}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        showBottomBackground={false}
-      >
+      {}
+      <View style={v_d81136.container}>
         <View style={v_d81136.inner}>
+          {}
           <Text style={v_d81136.title}>
-            {v_8d41d7("auth.birthDateGate.title", { defaultValue: "생년월일을 알려주세요" })}
+            {v_8d41d7("auth.birthDateGate.title", { defaultValue: "생년월일을 알려주세요." })}
           </Text>
           <Text style={v_d81136.desc}>
             {v_8d41d7("auth.birthDateGate.desc", {
               defaultValue:
-                "서비스 이용을 위해 생년월일 입력이 필요합니다. 만 14세 이상만 이용할 수 있어요.",
+                "서비스 이용을 위해 생년월일 입력이 필요합니다.\n만 14세 이상만 이용할 수 있어요.",
             })}
           </Text>
 
+          {}
           <View style={v_d81136.row}>
             <TouchableOpacity
-              style={v_d81136.picker}
+              style={[v_d81136.picker, { flex: 2 }]}
               onPress={() => v_be8eb2("year")}
               activeOpacity={0.7}
               disabled={v_cb66b4}
             >
               <Text style={v_0eaaff != null ? v_d81136.pickerValue : v_d81136.pickerPlaceholder}>
-                {v_0eaaff != null ? `${v_0eaaff}` : v_8d41d7("auth.signup.birthYear", { defaultValue: "년" })}
+                {v_0eaaff != null ? `${v_0eaaff}` : "YYYY"}
               </Text>
               <Feather name="chevron-down" size={16} color="#8e9bae" />
             </TouchableOpacity>
             <TouchableOpacity
-              style={v_d81136.picker}
+              style={[v_d81136.picker, { flex: 1 }]}
               onPress={() => v_be8eb2("month")}
               activeOpacity={0.7}
               disabled={v_cb66b4}
             >
               <Text style={v_033a94 != null ? v_d81136.pickerValue : v_d81136.pickerPlaceholder}>
-                {v_033a94 != null ? `${v_033a94}` : v_8d41d7("auth.signup.birthMonth", { defaultValue: "월" })}
+                {v_033a94 != null ? String(v_033a94).padStart(2, "0") : "MM"}
               </Text>
               <Feather name="chevron-down" size={16} color="#8e9bae" />
             </TouchableOpacity>
             <TouchableOpacity
-              style={v_d81136.picker}
+              style={[v_d81136.picker, { flex: 1 }]}
               onPress={() => v_be8eb2("day")}
               activeOpacity={0.7}
               disabled={v_cb66b4}
             >
               <Text style={v_087ffc != null ? v_d81136.pickerValue : v_d81136.pickerPlaceholder}>
-                {v_087ffc != null ? `${v_087ffc}` : v_8d41d7("auth.signup.birthDay", { defaultValue: "일" })}
+                {v_087ffc != null ? String(v_087ffc).padStart(2, "0") : "DD"}
               </Text>
               <Feather name="chevron-down" size={16} color="#8e9bae" />
             </TouchableOpacity>
           </View>
 
-          <Text style={v_d81136.hint}>
-            {v_8d41d7("auth.signup.birthDateHint", {
-              defaultValue: "만 14세 이상만 가입할 수 있어요.",
-            })}
-          </Text>
-
-          <TouchableOpacity
-            style={[v_d81136.submit, v_cb66b4 && v_d81136.submitDisabled]}
+          {}
+          <Button
+            title={v_8d41d7("auth.birthDateGate.submit", { defaultValue: "다음으로" })}
             onPress={v_585b02}
+            variant="primary"
+            size="lg"
             disabled={v_cb66b4}
-            activeOpacity={0.85}
-          >
-            <Text style={v_d81136.submitText}>
-              {v_cb66b4
-                ? v_8d41d7("auth.birthDateGate.submitting", { defaultValue: "저장 중..." })
-                : v_8d41d7("auth.birthDateGate.submit", { defaultValue: "확인" })}
-            </Text>
-          </TouchableOpacity>
-          {v_cb66b4 ? <ActivityIndicator size="small" color={v_cafb6f.primary} style={{ marginTop: 12 }} /> : null}
+            loading={v_cb66b4}
+            style={v_d81136.submit}
+          />
         </View>
-      </SafeScrollView>
+      </View>
 
       {}
       <Modal
@@ -234,10 +224,10 @@ export default function v_cb9b4f({ onDone: v_7b5712 }: { onDone: () => void }) {
             <View style={v_d81136.modalHeader}>
               <Text style={v_d81136.modalTitle}>
                 {v_855c14 === "year"
-                  ? (v_8d41d7("auth.signup.birthYearTitle", { defaultValue: "출생 연도" }) as string)
+                  ? (v_8d41d7("auth.signup.birthYearTitle", { defaultValue: "연도" }) as string)
                   : v_855c14 === "month"
-                    ? (v_8d41d7("auth.signup.birthMonthTitle", { defaultValue: "출생 월" }) as string)
-                    : (v_8d41d7("auth.signup.birthDayTitle", { defaultValue: "출생 일" }) as string)}
+                    ? (v_8d41d7("auth.signup.birthMonthTitle", { defaultValue: "월" }) as string)
+                    : (v_8d41d7("auth.signup.birthDayTitle", { defaultValue: "일" }) as string)}
               </Text>
               <TouchableOpacity onPress={() => v_be8eb2(null)}>
                 <Text style={v_d81136.modalCloseButton}>✕</Text>
@@ -279,7 +269,7 @@ export default function v_cb9b4f({ onDone: v_7b5712 }: { onDone: () => void }) {
                   </TouchableOpacity>
                 );
               }}
-              contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 20 }}
+              contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 20 }}
               keyboardShouldPersistTaps="handled"
             />
           </View>
@@ -290,16 +280,18 @@ export default function v_cb9b4f({ onDone: v_7b5712 }: { onDone: () => void }) {
 }
 
 const v_d81136 = v_472849.create({
-  scroll: {
-    flexGrow: 1,
+
+  container: {
+    flex: 1,
+    justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: v_9b1a04.large,
-    paddingTop: v_9b1a04.xlarge * 2,
-    paddingBottom: v_9b1a04.xlarge,
   },
+
   inner: {
-    width: "100%",
+    width: "90%",
     maxWidth: 780,
+    alignItems: "stretch",
     gap: 16,
   },
   title: {
@@ -307,61 +299,46 @@ const v_d81136 = v_472849.create({
     lineHeight: 30,
     color: v_cafb6f.headingText,
     fontFamily: v_843035.bold,
-    marginBottom: 4,
+    textAlign: "center",
   },
   desc: {
     fontSize: 14,
     lineHeight: 20,
     color: v_cafb6f.mutedText,
     fontFamily: v_843035.regular,
-    marginBottom: 12,
+    textAlign: "center",
+    marginBottom: 4,
   },
   row: {
     flexDirection: "row",
     gap: 8,
-    width: "100%",
   },
+
   picker: {
-    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    height: v_8f28b1.height,
+    height: 48,
     borderWidth: 1,
-    borderColor: "#dedede",
-    borderRadius: v_8f28b1.borderRadius,
-    backgroundColor: "#fefefe",
-    paddingHorizontal: v_8f28b1.paddingHorizontal,
+    borderColor: "#e0e0e0",
+    borderRadius: 10,
+    backgroundColor: "#ffffff",
+    paddingHorizontal: 14,
   },
   pickerValue: {
-    fontSize: v_8f28b1.fontSize,
-    lineHeight: v_8f28b1.lineHeight,
+    fontSize: 15,
+    lineHeight: 20,
     color: "#2a2727",
     fontFamily: v_843035.medium,
   },
   pickerPlaceholder: {
-    fontSize: v_8f28b1.fontSize,
-    lineHeight: v_8f28b1.lineHeight,
-    color: "#c4c7d1",
-    fontFamily: v_843035.regular,
-  },
-  hint: {
-    fontSize: 12,
-    color: v_cafb6f.mutedText,
+    fontSize: 15,
+    lineHeight: 20,
+    color: "#b0b4bf",
     fontFamily: v_843035.regular,
   },
   submit: {
-    ...v_d43669.lg,
-    backgroundColor: v_1bfbd0.primary,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 12,
-  },
-  submitDisabled: { opacity: 0.5 },
-  submitText: {
-    ...v_c10a43.lg,
-    color: "#ffffff",
-    fontFamily: v_843035.medium,
+    marginTop: 28,
   },
   modalOverlay: {
     flex: 1,
