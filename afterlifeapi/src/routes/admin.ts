@@ -979,7 +979,7 @@ function v_5e92ec(v_e6b88d): void {
   }
 }
 
-v_b7f2b4.post("/voices", v_b09138, async (v_3f4e2e) => {
+v_b7f2b4.post("/voices", v_d3c85b, async (v_3f4e2e) => {
   const v_148ff6 = await v_4c95c2(v_3f4e2e, v_49b1e6);
   v_5e92ec(v_148ff6.r2_key);
   const v_43af15 = await v_3f4e2e.env.DB
@@ -1018,7 +1018,7 @@ const v_8cc706 = {
   "audio/x-m4a": ".m4a",
   "audio/aac": ".m4a",
 };
-v_b7f2b4.post("/voices/upload-sample", v_b09138, async (v_3f4e2e) => {
+v_b7f2b4.post("/voices/upload-sample", v_d3c85b, async (v_3f4e2e) => {
   let v_ebd523;
   try {
     v_ebd523 = await v_3f4e2e.req.formData();
@@ -1085,7 +1085,7 @@ v_b7f2b4.get("/voices/sample-preview", v_c0a297, async (v_3f4e2e) => {
   });
 });
 
-v_b7f2b4.put("/voices/:id", v_b09138, async (v_3f4e2e) => {
+v_b7f2b4.put("/voices/:id", v_d3c85b, async (v_3f4e2e) => {
   const v_389afb = Number(v_3f4e2e.req.param("id"));
   if (!Number.isFinite(v_389afb) || v_389afb <= 0) throw new v_3ebe58("VALIDATION_FAILED", "Invalid id.");
   const v_148ff6 = await v_4c95c2(v_3f4e2e, v_a12944);
