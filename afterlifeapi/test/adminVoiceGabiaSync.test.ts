@@ -223,3 +223,75 @@ v_469bf2("PUT /oth-path — 재동기화", () => {
     v_4d37e3(v_3ac7e7!.se_key).not.toBe("hacker-supplied-2");
   });
 });
+
+v_469bf2("POST /oth-path — 백필", () => {
+
+  let v_a54abc = 0;
+  let v_2a56e6 = "";
+  let v_ac2d95 = "";
+  let v_a33e8b = 0;
+
+  v_ba7107(async () => {
+
+    v_2a56e6 = await v_e76697("voice/sample/sync-ok.wav");
+    v_f09518();
+    const v_ea333d = await v_dca3c3();
+    const v_cb35cb = await v_1df298.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_ea333d}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "sync target ok", r2_key: v_2a56e6 }),
+    });
+    if (v_cb35cb.status !== 201) throw new Error(`setup POST failed: ${v_cb35cb.status}`);
+    const v_148ff6 = await v_cb35cb.json<{ id: number; seKey: string }>();
+    v_a54abc = v_148ff6.id;
+    v_ac2d95 = v_148ff6.seKey;
+    v_3889c0.restoreAllMocks();
+
+    const v_43af15 = await v_a1651b()
+      .prepare(
+        `INSERT INTO voice_presets (name, is_active, sort_order, r2_key, se_key)
+         VALUES ('legacy-no-r2', 1, 100, NULL, 'preset-legacy-xyz')
+         RETURNING id`,
+      )
+      .first<{ id: number }>();
+    v_a33e8b = v_43af15!.id;
+  });
+
+  async function v_167abe(v_389afb): Promise<Response> {
+    const v_21cc31 = await v_dca3c3();
+    return v_1df298.fetch(`http://localhost/oth-path${v_389afb}/sync`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_21cc31}` },
+    });
+  }
+
+  v_23805a("없는 id → 404", async () => {
+    const v_8f00b9 = await v_167abe(999999);
+    v_4d37e3(v_8f00b9.status).toBe(404);
+  });
+
+  v_23805a("r2_key 가 null 인 row → 404 (뭘 올릴지 모름)", async () => {
+    const v_8f00b9 = await v_167abe(v_a33e8b);
+    v_4d37e3(v_8f00b9.status).toBe(404);
+  });
+
+  v_23805a("정상 재동기화 → 200 + 가비아 1회 호출 + syncedToGabia:true", async () => {
+    const v_980ff2 = v_f09518();
+    const v_8f00b9 = await v_167abe(v_a54abc);
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    const v_148ff6 = await v_8f00b9.json<{ seKey: string; syncedToGabia: boolean }>();
+    v_4d37e3(v_148ff6.seKey).toBe(v_ac2d95);
+    v_4d37e3(v_148ff6.syncedToGabia).toBe(true);
+    const v_f6b036 = v_980ff2.mock.calls.filter((v_3f4e2e) => String(v_3f4e2e[0]).includes("/oth-path"));
+    v_4d37e3(v_f6b036).toHaveLength(1);
+  });
+
+  v_23805a("SYNC_REQUIRED 미설정(기본 off) + 가비아 실패 → 200 + syncWarning", async () => {
+    v_7231e8(500, "ffmpeg failed: sync test");
+    const v_8f00b9 = await v_167abe(v_a54abc);
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    const v_148ff6 = await v_8f00b9.json<{ syncedToGabia: boolean; syncWarning?: string }>();
+    v_4d37e3(v_148ff6.syncedToGabia).toBe(false);
+    v_4d37e3(v_148ff6.syncWarning).toContain("ffmpeg");
+  });
+});
