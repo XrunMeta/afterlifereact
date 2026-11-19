@@ -1,5 +1,22 @@
 import { v_469bf2, v_23805a, v_4d37e3, v_3889c0, v_719203 } from "xualxe";
-import { v_ec7e95, v_7a8165 } from "../src/lib/gabiaVoiceSync";
+import { v_ec7e95, v_7a8165, v_291582 } from "../src/lib/gabiaVoiceSync";
+
+v_469bf2("isVoicePresetSyncRequired", () => {
+  v_23805a('"1" 이면 true', () => {
+    v_4d37e3(v_291582({ VOICE_PRESET_SYNC_REQUIRED: "1" })).toBe(true);
+  });
+  v_23805a('"0" 이면 false', () => {
+    v_4d37e3(v_291582({ VOICE_PRESET_SYNC_REQUIRED: "0" })).toBe(false);
+  });
+  v_23805a("undefined 이면 false (기본 off)", () => {
+    v_4d37e3(v_291582({})).toBe(false);
+  });
+  v_23805a("임의 문자열은 false — strict 비교", () => {
+    v_4d37e3(v_291582({ VOICE_PRESET_SYNC_REQUIRED: "yes" })).toBe(false);
+    v_4d37e3(v_291582({ VOICE_PRESET_SYNC_REQUIRED: "true" })).toBe(false);
+    v_4d37e3(v_291582({ VOICE_PRESET_SYNC_REQUIRED: " 1" })).toBe(false);
+  });
+});
 
 v_469bf2("generateSeKey", () => {
   v_23805a("preset- prefix + 영숫자만", () => {

@@ -1,5 +1,9 @@
 
 
+export function v_291582(v_c9c489): boolean {
+  return v_c9c489.VOICE_PRESET_SYNC_REQUIRED === "1";
+}
+
 export function v_ec7e95(): string {
 
   const v_8d41d7 = Date.now().toString(36);
