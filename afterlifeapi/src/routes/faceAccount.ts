@@ -46,9 +46,15 @@ async function v_68d2b9(c: v_437670<v_de0a25>): Promise<number | Response> {
 
 v_acf120.get("/status", v_6690d9, async (v_3f4e2e) => {
   const v_660822 = await v_68d2b9(v_3f4e2e);
-  if (v_660822 instanceof Response) {
 
-    return v_3f4e2e.json({ ok: true, data: { enabled: false } });
+  const v_43e90c = v_3f4e2e.get("userId") as number | undefined;
+  const v_939f49 = v_43e90c ? await v_3f4e2e.env.KV_SHARED.get(`face_held:${v_43e90c}`) : null;
+  const v_736ddb = v_939f49
+    ? { enabled: true, faceStatus: "held" as const, hold: { active: true, reasons: [v_939f49] } }
+    : null;
+
+  if (v_660822 instanceof Response) {
+    return v_3f4e2e.json({ ok: true, data: v_736ddb ?? { enabled: false } });
   }
   try {
     const v_8f00b9 = await fetch(`${v_3f4e2e.env.XRUN_API_URL}/oth-path`, {
@@ -56,10 +62,19 @@ v_acf120.get("/status", v_6690d9, async (v_3f4e2e) => {
       headers: v_9765c6(v_3f4e2e, true),
       body: JSON.stringify({ member: v_660822 }),
     });
-    if (!v_8f00b9.ok) return v_3f4e2e.json({ ok: true, data: { enabled: false } });
-    return v_0bb1df(v_3f4e2e, v_8f00b9);
+    if (!v_8f00b9.ok) return v_3f4e2e.json({ ok: true, data: v_736ddb ?? { enabled: false } });
+    const v_7ecfd1 = (await v_8f00b9.json().catch(() => null)) as XrunJson | null;
+    if (v_7ecfd1?.status === "success") {
+      const v_9390e8 = (v_7ecfd1.data ?? {}) as { enabled?: boolean; faceStatus?: string; hold?: unknown };
+
+      if (v_736ddb && (v_9390e8.faceStatus ?? "none") === "none") {
+        return v_3f4e2e.json({ ok: true, data: v_736ddb });
+      }
+      return v_3f4e2e.json({ ok: true, data: v_9390e8 });
+    }
+    return v_3f4e2e.json({ ok: true, data: v_736ddb ?? { enabled: false } });
   } catch {
-    return v_3f4e2e.json({ ok: true, data: { enabled: false } });
+    return v_3f4e2e.json({ ok: true, data: v_736ddb ?? { enabled: false } });
   }
 });
 
@@ -109,12 +124,20 @@ v_acf120.post("/enroll", v_6690d9, async (v_3f4e2e) => {
     });
     const v_7ecfd1 = (await v_8f00b9.json().catch(() => null)) as XrunJson | null;
     if (v_8f00b9.ok && v_7ecfd1?.status === "success") {
+
+      const v_43e90c = v_3f4e2e.get("userId") as number | undefined;
+      if (v_43e90c) await v_3f4e2e.env.KV_SHARED.delete(`face_held:${v_43e90c}`);
       return v_3f4e2e.json({ ok: true, data: v_7ecfd1.data ?? null });
     }
 
     const v_c99bd2 = typeof v_7ecfd1?.code === "string" ? v_7ecfd1.code : "XRUN_ERROR";
     if (v_c99bd2 === "NOT_SAME_PERSON") {
-      console.log(`[faceAccount.enroll] soft-reject ${v_c99bd2} → faceStatus=held member=${v_660822}`);
+      const v_43e90c = v_3f4e2e.get("userId") as number | undefined;
+      if (v_43e90c) {
+
+        await v_3f4e2e.env.KV_SHARED.put(`face_held:${v_43e90c}`, v_c99bd2, { expirationTtl: 180 * 24 * 60 * 60 });
+      }
+      console.log(`[faceAccount.enroll] soft-reject ${v_c99bd2} → faceStatus=held member=${v_660822} user=${v_43e90c}`);
       return v_3f4e2e.json({ ok: true, data: { ok: true, faceStatus: "held", held: true, reason: v_c99bd2 } });
     }
     const v_d308b5 = v_8f00b9.status === 401 || v_8f00b9.status === 403 || v_8f00b9.status < 400 ? 502 : v_8f00b9.status;
