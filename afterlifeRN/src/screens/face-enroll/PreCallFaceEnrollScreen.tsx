@@ -900,18 +900,18 @@ export default function v_8640b9() {
 
   if (!v_11b8d5) {
     return (
-      <View style={[v_fd5f43.container, { paddingBottom: v_130b3e }]}>
+
+      <View style={[v_fd5f43.container, { backgroundColor: v_1bfbd0.white, paddingBottom: v_130b3e }]}>
         <PageHeader
           showBackButton
           onBackPress={v_6ca26b}
-          transparent
           title={v_8d41d7("faceEnroll.consent.title", { defaultValue: "얼굴 인식 처리 동의" })}
         />
         <ScrollView style={{ flex: 1, padding: 20 }} contentContainerStyle={{ paddingBottom: 24 }}>
           {v_a6086d ? (
-            <ActivityIndicator style={{ marginTop: 40 }} />
+            <ActivityIndicator style={{ marginTop: 40 }} color={v_1bfbd0.zinc900} />
           ) : (
-            <Text style={{ fontSize: 13, lineHeight: 22, color: v_1bfbd0.zinc800 }}>
+            <Text style={{ fontSize: 13, lineHeight: 22, color: v_1bfbd0.zinc900 }}>
               {v_98634e && v_98634e.trim().length > 0
                 ? v_98634e
                 : v_8d41d7("faceEnroll.consent.fallback", {
@@ -920,7 +920,7 @@ export default function v_8640b9() {
                   })}
             </Text>
           )}
-          <Text style={{ marginTop: 16, fontSize: 11, color: v_1bfbd0.zinc500 }}>
+          <Text style={{ marginTop: 16, fontSize: 11, color: v_1bfbd0.zinc600 }}>
             {v_8d41d7("faceEnroll.consent.version", { defaultValue: "약관 버전" })}: {v_eed347}
           </Text>
         </ScrollView>
@@ -929,7 +929,7 @@ export default function v_8640b9() {
             onPress={v_6ca26b}
             style={{ flex: 1, paddingVertical: 14, borderRadius: 10, backgroundColor: v_1bfbd0.zinc100, alignItems: "center" }}
           >
-            <Text style={{ color: v_1bfbd0.zinc800, fontSize: 14, fontWeight: "600" }}>
+            <Text style={{ color: v_1bfbd0.zinc900, fontSize: 14, fontWeight: "600" }}>
               {v_8d41d7("faceEnroll.consent.decline", { defaultValue: "동의하지 않음" })}
             </Text>
           </TouchableOpacity>
