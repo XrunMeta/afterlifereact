@@ -63,11 +63,13 @@ export default function v_cb9b4f({ onDone: v_7b5712 }: { onDone: () => void }) {
   const [v_cb66b4, v_ee9ec1] = v_5ab095(false);
 
   const v_7d8cc0 = new Date().getFullYear();
+
+  const v_8ce3bd = v_7d8cc0 - v_929bb7;
   const v_294ec5 = v_df9f57(() => {
     const v_d0c056 = [];
-    for (let v_64877a = v_7d8cc0; v_64877a >= 1910; v_64877a -= 1) v_d0c056.push(v_64877a);
+    for (let v_64877a = v_8ce3bd; v_64877a >= 1910; v_64877a -= 1) v_d0c056.push(v_64877a);
     return v_d0c056;
-  }, [v_7d8cc0]);
+  }, [v_8ce3bd]);
   const v_b50d00 = v_df9f57(() => Array.from({ length: 12 }, (v_37eab7, v_ebec57) => v_ebec57 + 1), []);
   const v_780719 = v_df9f57(() => {
     const v_d2c6bf = v_0eaaff != null && v_033a94 != null ? v_43142a(v_0eaaff, v_033a94) : 31;
