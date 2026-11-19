@@ -81,10 +81,36 @@ v_acf120.post("/challenge", v_6690d9, async (v_3f4e2e) => {
 v_acf120.post("/enroll", v_6690d9, async (v_3f4e2e) => {
   const v_660822 = await v_68d2b9(v_3f4e2e);
   if (v_660822 instanceof Response) return v_660822;
-  const v_ebd523 = await v_3f4e2e.req.formData().catch(() => null);
-  if (!v_ebd523) return v_d5bb0f(v_3f4e2e, "FRAMES_INVALID", 400);
-  const v_3b40dd = (v_ebd523.getAll("frames") as unknown[]).filter((v_8b5cd8) => typeof v_8b5cd8 !== "string") as File[];
-  if (v_3b40dd.length < 2 || v_3b40dd.length > v_d291e8 || v_3b40dd.some((v_8b5cd8) => v_8b5cd8.size <= 0 || v_8b5cd8.size > v_b9cb1f)) {
+
+  const v_ebd523 = await v_3f4e2e.req.formData().catch((v_9e86fd) => {
+    console.warn(`[faceAccount.enroll] formData() threw: ${(v_9e86fd as Error)?.message ?? String(v_9e86fd)}`);
+    return null;
+  });
+  if (!v_ebd523) {
+    console.warn(`[faceAccount.enroll] reject: form=null (multipart parse 실패) member=${v_660822}`);
+    return v_d5bb0f(v_3f4e2e, "FRAMES_INVALID", 400);
+  }
+  const v_479f05 = v_ebd523.getAll("frames");
+  const v_c7cb86 = v_479f05.map((v_8b5cd8) => {
+    if (typeof v_8b5cd8 === "string") return { kind: "string", len: v_8b5cd8.length };
+    const v_b6c474 = v_8b5cd8 as { constructor?: { name?: string }; size?: number; name?: string; type?: string };
+    return { kind: v_b6c474?.constructor?.name ?? "obj", size: v_b6c474?.size, name: v_b6c474?.name, type: v_b6c474?.type };
+  });
+  console.log(`[faceAccount.enroll] member=${v_660822} rawFrames=${JSON.stringify(v_c7cb86)}`);
+  const v_3b40dd = (v_479f05 as unknown[]).filter((v_8b5cd8) => typeof v_8b5cd8 !== "string") as File[];
+  if (v_3b40dd.length < 2 || v_3b40dd.length > v_d291e8) {
+    console.warn(
+      `[faceAccount.enroll] reject: length=${v_3b40dd.length} (raw=${v_479f05.length}) member=${v_660822}`,
+    );
+    return v_d5bb0f(v_3f4e2e, "FRAMES_INVALID", 400);
+  }
+  if (v_3b40dd.some((v_8b5cd8) => v_8b5cd8.size <= 0 || v_8b5cd8.size > v_b9cb1f)) {
+    const v_0af197 = v_3b40dd
+      .map((v_8b5cd8, v_ebec57) => ({ i: v_ebec57, size: v_8b5cd8.size, name: v_8b5cd8.name, type: v_8b5cd8.type }))
+      .filter((v_62c214) => v_62c214.size <= 0 || v_62c214.size > v_b9cb1f);
+    console.warn(
+      `[faceAccount.enroll] reject: size out-of-range (0..${v_b9cb1f}) bad=${JSON.stringify(v_0af197)} member=${v_660822}`,
+    );
     return v_d5bb0f(v_3f4e2e, "FRAMES_INVALID", 400);
   }
   const v_04e790 = String(v_ebd523.get("source") ?? "");
