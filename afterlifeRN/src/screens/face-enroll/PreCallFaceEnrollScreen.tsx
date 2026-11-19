@@ -48,7 +48,7 @@ import {
   v_ce5a56,
   v_137542,
 } from "../../api/persons";
-import { v_eb463b } from "../../api/faceConsent";
+import { v_f7a9ad, v_eb463b } from "../../api/faceConsent";
 import { v_889fad } from "../../stores/dialogStore";
 import { v_1bfbd0, v_8b0c90, v_8f28b1 } from "../../components/constants";
 import v_258c1c from "../../components/common/PageHeader";
@@ -229,19 +229,34 @@ export default function v_8640b9() {
 
   v_c4deb2(() => {
     if (!v_2ca7e0) { v_603e38(false); return; }
+    const v_5254bf = v_9c213b?.language ?? "ko";
+    let v_2008a4 = false;
     void (async () => {
+
       try {
-        const v_5254bf = v_9c213b?.language ?? "ko";
+        const v_e2a6a6 = await v_f7a9ad(v_5254bf);
+        if (!v_2008a4 && v_e2a6a6) {
+          v_1096b3(v_e2a6a6.copy);
+          v_9d7810(v_e2a6a6.termsVersion);
+          v_603e38(false); 
+        }
+      } catch {
+
+      }
+
+      try {
         const v_cb35cb = await v_eb463b(v_2ca7e0, v_5254bf);
+        if (v_2008a4) return;
         v_1096b3(v_cb35cb.copy);
         v_9d7810(v_cb35cb.termsVersion);
       } catch (v_9e86fd) {
         console.warn("[PreCallFaceEnroll] face consent copy fetch 실패:", v_9e86fd);
       } finally {
-        v_603e38(false);
+        if (!v_2008a4) v_603e38(false);
       }
     })();
-  }, [v_2ca7e0, v_625c74]);
+    return () => { v_2008a4 = true; };
+  }, [v_2ca7e0, v_625c74, v_9c213b?.language]);
 
   const [v_e59ef2, v_81766e] = v_5ab095<{ id: number; displayName: string | null }[]>([]);
 
