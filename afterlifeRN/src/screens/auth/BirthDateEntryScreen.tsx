@@ -18,7 +18,6 @@ import { v_889fad } from "../../stores/dialogStore";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_b27ae9, v_84a859 } from "../../api/auth";
 import v_556baf from "../../components/ui/SafeView";
-import v_570c34 from "../../components/ui/SafeScrollView";
 import { v_1bfbd0, v_9b1a04, v_8f28b1, v_d43669, v_c10a43 } from "../../components/constants";
 
 const v_cafb6f = {
@@ -142,13 +141,10 @@ export default function v_cb9b4f({ onDone: v_7b5712 }: { onDone: () => void }) {
 
   return (
     <SafeView backgroundColor={v_cafb6f.pageBg}>
-      <SafeScrollView
-        contentContainerStyle={v_d81136.scroll}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        showBottomBackground={false}
-      >
-        <View style={v_d81136.inner}>
+      {}
+      <View style={v_d81136.container}>
+        {}
+        <View style={v_d81136.headerBlock}>
           <Text style={v_d81136.title}>
             {v_8d41d7("auth.birthDateGate.title", { defaultValue: "생년월일을 알려주세요" })}
           </Text>
@@ -158,7 +154,10 @@ export default function v_cb9b4f({ onDone: v_7b5712 }: { onDone: () => void }) {
                 "서비스 이용을 위해 생년월일 입력이 필요합니다. 만 14세 이상만 이용할 수 있어요.",
             })}
           </Text>
+        </View>
 
+        {}
+        <View style={v_d81136.formBlock}>
           <View style={v_d81136.row}>
             <TouchableOpacity
               style={v_d81136.picker}
@@ -194,28 +193,26 @@ export default function v_cb9b4f({ onDone: v_7b5712 }: { onDone: () => void }) {
               <Feather name="chevron-down" size={16} color="#8e9bae" />
             </TouchableOpacity>
           </View>
+        </View>
 
-          <Text style={v_d81136.hint}>
-            {v_8d41d7("auth.signup.birthDateHint", {
-              defaultValue: "만 14세 이상만 가입할 수 있어요.",
-            })}
-          </Text>
-
+        {}
+        <View style={v_d81136.footerBlock}>
           <TouchableOpacity
             style={[v_d81136.submit, v_cb66b4 && v_d81136.submitDisabled]}
             onPress={v_585b02}
             disabled={v_cb66b4}
             activeOpacity={0.85}
           >
-            <Text style={v_d81136.submitText}>
-              {v_cb66b4
-                ? v_8d41d7("auth.birthDateGate.submitting", { defaultValue: "저장 중..." })
-                : v_8d41d7("auth.birthDateGate.submit", { defaultValue: "확인" })}
-            </Text>
+            {v_cb66b4 ? (
+              <ActivityIndicator size="small" color={v_1bfbd0.white} />
+            ) : (
+              <Text style={v_d81136.submitText}>
+                {v_8d41d7("auth.birthDateGate.submit", { defaultValue: "확인" })}
+              </Text>
+            )}
           </TouchableOpacity>
-          {v_cb66b4 ? <ActivityIndicator size="small" color={v_cafb6f.primary} style={{ marginTop: 12 }} /> : null}
         </View>
-      </SafeScrollView>
+      </View>
 
       {}
       <Modal
@@ -290,36 +287,50 @@ export default function v_cb9b4f({ onDone: v_7b5712 }: { onDone: () => void }) {
 }
 
 const v_d81136 = v_472849.create({
-  scroll: {
-    flexGrow: 1,
-    alignItems: "center",
+
+  container: {
+    flex: 1,
     paddingHorizontal: v_9b1a04.large,
-    paddingTop: v_9b1a04.xlarge * 2,
-    paddingBottom: v_9b1a04.xlarge,
+    paddingTop: v_9b1a04.xlarge,
+    paddingBottom: v_9b1a04.large,
   },
-  inner: {
+
+  headerBlock: {
     width: "100%",
     maxWidth: 780,
-    gap: 16,
+    alignSelf: "center",
+    gap: 10,
+  },
+
+  formBlock: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    width: "100%",
+  },
+
+  footerBlock: {
+    width: "100%",
+    maxWidth: 780,
+    alignSelf: "center",
   },
   title: {
-    fontSize: 22,
-    lineHeight: 30,
+    fontSize: 24,
+    lineHeight: 32,
     color: v_cafb6f.headingText,
     fontFamily: v_843035.bold,
-    marginBottom: 4,
   },
   desc: {
     fontSize: 14,
     lineHeight: 20,
     color: v_cafb6f.mutedText,
     fontFamily: v_843035.regular,
-    marginBottom: 12,
   },
   row: {
     flexDirection: "row",
-    gap: 8,
+    gap: 10,
     width: "100%",
+    maxWidth: 780,
   },
   picker: {
     flex: 1,
@@ -339,15 +350,11 @@ const v_d81136 = v_472849.create({
     color: "#2a2727",
     fontFamily: v_843035.medium,
   },
+
   pickerPlaceholder: {
     fontSize: v_8f28b1.fontSize,
     lineHeight: v_8f28b1.lineHeight,
-    color: "#c4c7d1",
-    fontFamily: v_843035.regular,
-  },
-  hint: {
-    fontSize: 12,
-    color: v_cafb6f.mutedText,
+    color: "#8e9bae",
     fontFamily: v_843035.regular,
   },
   submit: {
@@ -355,7 +362,6 @@ const v_d81136 = v_472849.create({
     backgroundColor: v_1bfbd0.primary,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 12,
   },
   submitDisabled: { opacity: 0.5 },
   submitText: {
