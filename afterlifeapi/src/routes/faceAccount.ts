@@ -107,7 +107,18 @@ v_acf120.post("/enroll", v_6690d9, async (v_3f4e2e) => {
         vectors: v_f94e64,
       }),
     });
-    return v_0bb1df(v_3f4e2e, v_8f00b9);
+    const v_7ecfd1 = (await v_8f00b9.json().catch(() => null)) as XrunJson | null;
+    if (v_8f00b9.ok && v_7ecfd1?.status === "success") {
+      return v_3f4e2e.json({ ok: true, data: v_7ecfd1.data ?? null });
+    }
+
+    const v_c99bd2 = typeof v_7ecfd1?.code === "string" ? v_7ecfd1.code : "XRUN_ERROR";
+    if (v_c99bd2 === "NOT_SAME_PERSON") {
+      console.log(`[faceAccount.enroll] soft-reject ${v_c99bd2} → faceStatus=held member=${v_660822}`);
+      return v_3f4e2e.json({ ok: true, data: { ok: true, faceStatus: "held", held: true, reason: v_c99bd2 } });
+    }
+    const v_d308b5 = v_8f00b9.status === 401 || v_8f00b9.status === 403 || v_8f00b9.status < 400 ? 502 : v_8f00b9.status;
+    return v_d5bb0f(v_3f4e2e, v_c99bd2, v_d308b5);
   } catch {
     return v_d5bb0f(v_3f4e2e, "NETWORK", 502);
   }
