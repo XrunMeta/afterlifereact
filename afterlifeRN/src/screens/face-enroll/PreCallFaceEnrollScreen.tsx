@@ -222,7 +222,11 @@ export default function v_8640b9() {
 
   const [v_c0cded, v_0415e7] = v_5ab095(false);
 
+  const [v_2a7aee, v_7e7af5] = v_5ab095(false);
+
   const [v_11b8d5, v_466c7e] = v_5ab095(false);
+  const [v_9fe2d2, v_800d4c] = v_5ab095(false);
+  const [v_8b09ab, v_49f68e] = v_5ab095(false);
   const [v_98634e, v_1096b3] = v_5ab095<string | null>(null);
   const [v_eed347, v_9d7810] = v_5ab095<string>("agree.4.v0");
   const [v_a6086d, v_603e38] = v_5ab095(true);
@@ -658,12 +662,15 @@ export default function v_8640b9() {
           v_d794c4 = null;
 
           if (v_c414dc) v_ff0340({ cloneId: v_6e0fd3, personId: v_ca1ec5, displayName: v_affc3e });
-          const v_a8cd21 = v_c414dc
-            ? v_8d41d7("faceEnroll.complete.midCallResume", {
-                defaultValue: "얼굴 등록 완료! 통화로 돌아갑니다.",
+
+          const v_a3c903 = v_c0cded || !v_c414dc;
+          const v_a8cd21 = v_a3c903
+            ? v_8d41d7("faceEnroll.complete.self", {
+                defaultValue: "이제 클론이 당신을 알아볼 수 있어요.",
               })
-            : v_8d41d7("faceEnroll.complete.first", {
-                defaultValue: "얼굴 인식 준비가 끝났어요. 통화를 시작합니다.",
+            : v_8d41d7("faceEnroll.complete.other", {
+                name: v_affc3e,
+                defaultValue: "{{name}}님을 기억할게요. 클론 설정에서 언제든 지울 수 있어요.",
               });
           v_889fad(
             v_8d41d7("faceEnroll.complete.title", { defaultValue: "등록 완료" }),
@@ -694,7 +701,7 @@ export default function v_8640b9() {
         }
       })();
     },
-    [v_2ca7e0, v_625c74, v_74e259, v_f9508a, v_6e0fd3, v_c414dc, v_e9b971, v_8d41d7, v_4ac921, v_a23354],
+    [v_2ca7e0, v_625c74, v_74e259, v_f9508a, v_6e0fd3, v_c414dc, v_e9b971, v_8d41d7, v_4ac921, v_a23354, v_c0cded, v_eed347],
   );
 
   const v_9f903d = v_de06a3(
@@ -730,10 +737,11 @@ export default function v_8640b9() {
             }
           }
           v_ff0340({ cloneId: v_6e0fd3, personId: v_306a28.id, displayName: v_affc3e });
+
           v_889fad(
             v_8d41d7("faceEnroll.complete.title", { defaultValue: "등록 완료" }),
-            v_8d41d7("faceEnroll.complete.midCallResume", {
-              defaultValue: "얼굴 등록 완료! 통화로 돌아갑니다.",
+            v_8d41d7("faceEnroll.complete.self", {
+              defaultValue: "이제 클론이 당신을 알아볼 수 있어요.",
             }),
             [
               {
@@ -819,28 +827,41 @@ export default function v_8640b9() {
     })();
   }, [v_2ca7e0, v_28fa96, v_595acb, v_d7d38d, v_6e0fd3, v_e9b971, v_8d41d7]);
 
-  const v_3bfe4c = v_de06a3(() => {
+  const v_2364b2 = v_de06a3(() => {
     if (v_28fa96) {
       v_46195f();
       return;
     }
+    const v_affc3e = v_595acb.trim();
+    if (!v_affc3e) {
+      v_342bf2(v_8d41d7("faceEnroll.form.needName", { defaultValue: "이름을 입력해 주세요." }));
+      return;
+    }
+    v_342bf2(null);
     if (v_c4db22) {
       v_9f903d(v_595acb, v_d7d38d);
       return;
     }
-    v_cd685a(v_595acb, v_d7d38d);
-  }, [v_28fa96, v_46195f, v_c4db22, v_9f903d, v_cd685a, v_595acb, v_d7d38d]);
+    v_0e1f26.dismiss();
+    v_7e7af5(true);
+  }, [v_28fa96, v_46195f, v_c4db22, v_9f903d, v_595acb, v_d7d38d, v_8d41d7]);
 
   const v_4e7e60 = v_e662ae(false);
   const v_1e2ad6 = v_729796 >= v_77ce37.length;
   v_c4deb2(() => {
-    if (!v_1e2ad6 || v_c414dc || v_4e7e60.current || v_cb66b4) return;
+    if (!v_1e2ad6 || v_4e7e60.current || v_cb66b4) return;
+    if (v_c414dc) {
+      if (!v_2a7aee) return; 
+      v_4e7e60.current = true;
+      v_cd685a(v_595acb, v_d7d38d);
+      return;
+    }
     const v_d48d1e =
       (v_625c74?.name ?? "").trim() ||
       v_8d41d7("faceEnroll.defaultSelfName", { defaultValue: "나" });
     v_4e7e60.current = true;
     v_cd685a(v_d48d1e, "");
-  }, [v_1e2ad6, v_c414dc, v_cb66b4, v_625c74, v_cd685a, v_8d41d7]);
+  }, [v_1e2ad6, v_c414dc, v_2a7aee, v_cb66b4, v_625c74, v_cd685a, v_595acb, v_d7d38d, v_8d41d7]);
 
   if (!v_c4db22 && v_f9f059 === false) {
     return (
@@ -870,16 +891,17 @@ export default function v_8640b9() {
   const v_91943c = v_77ce37[Math.min(v_729796, v_77ce37.length - 1)];
   const v_2fb8cc = v_c4db22 || v_729796 >= v_77ce37.length;
 
-  const v_24af10 = v_2fb8cc && !!v_c414dc;
+  const v_24af10 = !!v_c414dc && (!v_2a7aee || v_c4db22);
 
   const v_130b3e =
     v_24af10 && v_7e4acc > 0 ? v_7e4acc : v_033e14.bottom;
 
   const v_04a97f = (
     <View style={v_fd5f43.bottomBlock}>
-      {v_2fb8cc ? (
+      {v_24af10 ? (
+
         <TouchableOpacity
-          onPress={v_3bfe4c}
+          onPress={v_2364b2}
           style={[v_fd5f43.captureBtn, v_cb66b4 && v_fd5f43.captureBtnDisabled]}
           disabled={v_cb66b4 || !v_595acb.trim()}
         >
@@ -889,7 +911,7 @@ export default function v_8640b9() {
             <Text style={v_fd5f43.captureBtnText}>
               {v_28fa96
                 ? v_8d41d7("faceEnroll.form.updateName", { defaultValue: "이름 업데이트" })
-                : v_8d41d7("faceEnroll.register", { defaultValue: "등록" })}
+                : v_8d41d7("faceEnroll.form.next", { defaultValue: "다음" })}
             </Text>
           )}
         </TouchableOpacity>
@@ -913,6 +935,21 @@ export default function v_8640b9() {
     </View>
   );
 
+  const v_e40c64 = v_9fe2d2 && v_8b09ab;
+  const v_0dd8eb = () => {
+    v_889fad(
+      v_8d41d7("faceEnroll.consent.declined", {
+        defaultValue: "알겠어요. 얼굴은 등록하지 않았어요.",
+      }),
+      undefined,
+      [
+        {
+          text: v_8d41d7("faceEnroll.cloneError.ok", { defaultValue: "확인" }),
+          onPress: () => v_6ca26b(),
+        },
+      ],
+    );
+  };
   if (!v_11b8d5) {
     return (
 
@@ -920,7 +957,7 @@ export default function v_8640b9() {
         <PageHeader
           showBackButton
           onBackPress={v_6ca26b}
-          title={v_8d41d7("faceEnroll.consent.title", { defaultValue: "얼굴 인식 처리 동의" })}
+          title={v_8d41d7("faceEnroll.consent.title", { defaultValue: "얼굴 인식(생체정보) 처리 동의" })}
         />
         <ScrollView style={{ flex: 1, padding: 20 }} contentContainerStyle={{ paddingBottom: 24 }}>
           {v_a6086d ? (
@@ -938,10 +975,42 @@ export default function v_8640b9() {
           <Text style={{ marginTop: 16, fontSize: 11, color: v_1bfbd0.zinc600 }}>
             {v_8d41d7("faceEnroll.consent.version", { defaultValue: "약관 버전" })}: {v_eed347}
           </Text>
+          {}
+          <TouchableOpacity
+            style={v_fd5f43.consentCheckRow}
+            onPress={() => v_800d4c((v_81e2ef) => !v_81e2ef)}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: v_9fe2d2 }}
+          >
+            <View style={[v_fd5f43.consentCheckBox, v_9fe2d2 && v_fd5f43.consentCheckBoxOn]}>
+              {v_9fe2d2 ? <View style={v_fd5f43.consentCheckDot} /> : null}
+            </View>
+            <Text style={v_fd5f43.consentCheckText}>
+              {v_8d41d7("faceEnroll.consent.required", {
+                defaultValue:
+                  "(필수) 위 내용을 직접 읽었으며, 얼굴 인식(생체정보) 처리에 동의합니다.",
+              })}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={v_fd5f43.consentCheckRow}
+            onPress={() => v_49f68e((v_81e2ef) => !v_81e2ef)}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: v_8b09ab }}
+          >
+            <View style={[v_fd5f43.consentCheckBox, v_8b09ab && v_fd5f43.consentCheckBoxOn]}>
+              {v_8b09ab ? <View style={v_fd5f43.consentCheckDot} /> : null}
+            </View>
+            <Text style={v_fd5f43.consentCheckText}>
+              {v_8d41d7("faceEnroll.consent.over14", {
+                defaultValue: "(필수) 나는 만 14세 이상입니다.",
+              })}
+            </Text>
+          </TouchableOpacity>
         </ScrollView>
         <View style={{ flexDirection: "row", gap: 10, padding: 16, paddingBottom: Math.max(16, v_130b3e) }}>
           <TouchableOpacity
-            onPress={v_6ca26b}
+            onPress={v_0dd8eb}
             style={{ flex: 1, paddingVertical: 14, borderRadius: 10, backgroundColor: v_1bfbd0.zinc100, alignItems: "center" }}
           >
             <Text style={{ color: v_1bfbd0.zinc900, fontSize: 14, fontWeight: "600" }}>
@@ -950,8 +1019,15 @@ export default function v_8640b9() {
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => v_466c7e(true)}
-            disabled={v_a6086d}
-            style={{ flex: 1, paddingVertical: 14, borderRadius: 10, backgroundColor: v_1bfbd0.zinc900, alignItems: "center", opacity: v_a6086d ? 0.5 : 1 }}
+            disabled={v_a6086d || !v_e40c64}
+            style={{
+              flex: 1,
+              paddingVertical: 14,
+              borderRadius: 10,
+              backgroundColor: v_1bfbd0.zinc900,
+              alignItems: "center",
+              opacity: v_a6086d || !v_e40c64 ? 0.5 : 1,
+            }}
           >
             <Text style={{ color: v_1bfbd0.white, fontSize: 14, fontWeight: "700" }}>
               {v_8d41d7("faceEnroll.consent.accept", { defaultValue: "동의하고 계속" })}
@@ -1056,7 +1132,7 @@ export default function v_8640b9() {
                   {v_c0cded ? <View style={v_fd5f43.selfCheckDot} /> : null}
                 </View>
                 <Text style={v_fd5f43.selfCheckText}>
-                  {v_8d41d7("faceEnroll.form.selfCheckLabel", { defaultValue: "본인이에요 (계정 이름 자동 채움)" })}
+                  {v_8d41d7("faceEnroll.form.selfCheckLabel", { defaultValue: "본인이에요" })}
                 </Text>
               </TouchableOpacity>
             )}
@@ -1067,26 +1143,26 @@ export default function v_8640b9() {
               style={v_fd5f43.formInput}
               value={v_595acb}
               onChangeText={v_9ad9a9}
-              placeholder={v_8d41d7("faceEnroll.form.namePlaceholder", { defaultValue: "예: 스미스" })}
+              placeholder={v_8d41d7("faceEnroll.form.namePlaceholder", { defaultValue: "이름 (예: 민지)" })}
               placeholderTextColor={v_1bfbd0.zinc500}
               autoFocus={!v_c0cded}
               returnKeyType="next"
               editable={!v_cb66b4}
             />
             <Text style={v_fd5f43.formLabel}>
-              {v_8d41d7("faceEnroll.form.relationLabel", { defaultValue: "관계 (선택)" })}
+              {v_8d41d7("faceEnroll.form.relationLabel", { defaultValue: "관계" })}
             </Text>
             <TextInput
               style={v_fd5f43.formInput}
               value={v_d7d38d}
               onChangeText={v_23c9e5}
               placeholder={v_8d41d7("faceEnroll.form.relationPlaceholder", {
-                defaultValue: "예: 손주, 오랜 친구",
+                defaultValue: "클론과의 관계 (예: 아들, 딸, 남자친구, 친구)",
               })}
               placeholderTextColor={v_1bfbd0.zinc500}
               returnKeyType="done"
               editable={!v_cb66b4}
-              onSubmitEditing={v_3bfe4c}
+              onSubmitEditing={v_2364b2}
             />
             {!v_c4db22 && v_a23354 === false ? (
               <TouchableOpacity
@@ -1117,7 +1193,7 @@ export default function v_8640b9() {
         </ScrollView>
       ) : (
         <>
-          {v_2fb8cc && !v_c414dc ? (
+          {v_2fb8cc ? (
 
             <View style={v_fd5f43.centerBlock}>
               <ActivityIndicator size="large" color={v_1bfbd0.white} />
@@ -1222,6 +1298,26 @@ const v_fd5f43 = v_472849.create({
   selfCheckBoxOn: { borderColor: "#22c55e" },
   selfCheckDot: { width: 12, height: 12, borderRadius: 3, backgroundColor: "#22c55e" },
   selfCheckText: { color: v_1bfbd0.white, fontSize: 15 },
+
+  consentCheckRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    marginTop: 16,
+  },
+  consentCheckBox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: v_1bfbd0.zinc500,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 2,
+  },
+  consentCheckBoxOn: { borderColor: "#22c55e" },
+  consentCheckDot: { width: 12, height: 12, borderRadius: 3, backgroundColor: "#22c55e" },
+  consentCheckText: { color: v_1bfbd0.zinc900, fontSize: 13, lineHeight: 20, flex: 1 },
   container: { flex: 1, backgroundColor: v_1bfbd0.zinc950, padding: 20 },
   center: { alignItems: "center", justifyContent: "center", gap: 12 },
   header: { alignItems: "center", gap: 6, marginBottom: 8 },

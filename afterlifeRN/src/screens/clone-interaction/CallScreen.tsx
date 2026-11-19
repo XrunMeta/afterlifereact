@@ -1760,11 +1760,14 @@ function CallScreenInner({ route, navigation, initialPipeline }: InnerProps) {
     const lastPerson = rmState.lastConfirmedPerson;
     const lastPersonName = lastPerson?.displayName?.trim() || null;
     showAlert(
-      t("call.newFaceTitle", { defaultValue: "새 얼굴이 보여요" }),
-      t("call.newFaceBody", { defaultValue: "얼굴을 등록할까요?" }),
+      t("call.newFaceTitle", { defaultValue: "얼굴을 등록할까요?" }),
+      t("call.newFaceBody", {
+        defaultValue:
+          "클론이 다음 통화에서 알아볼 수 있어요. 등록할 분이 다음 화면을 직접 읽고 동의해 주세요.",
+      }),
       [
         {
-          text: t("call.newFaceLater", { defaultValue: "나중에" }),
+          text: t("call.newFaceLater", { defaultValue: "다음에" }),
           style: "cancel",
           onPress: () => {
             accountSelfMatchRef.current = false;
