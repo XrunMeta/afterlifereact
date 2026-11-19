@@ -9,7 +9,7 @@ v3 (T-501): 텍스트 길이 정규화.
 - > 80자: 문장 단위 분할 → 각각 합성 → WAV 이어붙임
 """
 from __future__ import annotations
-import os, logging, aiohttp, re, io, wave
+import os, logging, aiohttp, re, io, wave, subprocess, tempfile
 import numpy as np
 from aiohttp import web
 
@@ -35,6 +35,7 @@ ENGLISH_MAP = {
     "ok": "오케이",
 }
 
+
 async def _download_se(url: str, dst_path: str) -> bool:
     os.makedirs(os.path.dirname(dst_path), exist_ok=True)
     try:
@@ -57,10 +58,12 @@ async def _download_se(url: str, dst_path: str) -> bool:
         log.warning("se_url download failed %s: %s", url, e)
         return False
 
+
 def _split_sentences(text: str) -> list[str]:
     """. ? ! 뒤 공백 기준 분할."""
     parts = re.split(r"(?<=[.!?])\s+", text.strip())
     return [p for p in parts if p.strip()]
+
 
 def _normalize_chunks(text: str) -> list[str]:
     """긴 텍스트는 문장 분할. 짧은 텍스트는 filler prepend (이미 처리)."""
@@ -69,6 +72,7 @@ def _normalize_chunks(text: str) -> list[str]:
         return [text]
     sents = _split_sentences(text)
     return sents or [text]
+
 
 def _trim_tail(wav_bytes: bytes, threshold_db: float = -35.0, tail_pad_s: float = 0.15) -> bytes:
     """MeloTTS 가 speech 끝나고 이상한 소리 남기는 tail 트림 + fade out.
@@ -87,7 +91,7 @@ def _trim_tail(wav_bytes: bytes, threshold_db: float = -35.0, tail_pad_s: float 
     win = int(sr * 0.05)  # 50ms window
     if win < 1 or len(arr) < win * 4:
         return wav_bytes
-    n_win = len(arr) 
+    n_win = len(arr) // win
     rms = np.array([
         np.sqrt(np.mean(arr[i * win:(i + 1) * win] ** 2) + 1e-9)
         for i in range(n_win)
@@ -110,6 +114,7 @@ def _trim_tail(wav_bytes: bytes, threshold_db: float = -35.0, tail_pad_s: float 
         ow.writeframes(out_int16)
     return out.getvalue()
 
+
 def _concat_wavs(wav_list: list[bytes]) -> bytes:
     """같은 format WAV bytes 여러 개를 하나로 concat."""
     if len(wav_list) == 1:
@@ -127,6 +132,7 @@ def _concat_wavs(wav_list: list[bytes]) -> bytes:
         for f in frames_list:
             ow.writeframes(f)
     return out.getvalue()
+
 
 async def admin_tts(req: web.Request) -> web.Response:
     secret = req.headers.get("X-Admin-Secret", "")
@@ -174,11 +180,13 @@ async def admin_tts(req: web.Request) -> web.Response:
         status=404,
     )
 
+
 def _substitute_english(text: str) -> str:
     """앱 특유 영단어 → 한국어 음역. 그 외 영단어는 그대로 (드물게 등장)."""
     for en, ko in ENGLISH_MAP.items():
         text = text.replace(en, ko)
     return text
+
 
 async def _run_tts(text: str, se_path: str, key: str) -> web.Response:
     original_len = len(text)
@@ -212,6 +220,113 @@ async def _run_tts(text: str, se_path: str, key: str) -> web.Response:
         headers={"Cache-Control": "no-store"},
     )
 
+
+# ─── 음색 프리셋 업로드 (2026-11-19, voice-preset-gabia-sync) ────────────────
+# Worker POST /oth-path → Worker 가 R2 샘플을 받아 이 엔드포인트로 multipart
+# 포워드. 성공 시 {REF_VOICES_ROOT}/<se_key>/voice.wav 로 저장 → signaling.py 가
+# 통화 시점에 그 디렉토리를 찾아 sess.se_path 설정 → TTS 정상 작동.
+
+# se_key 안전 — 디렉토리 traversal 방지. 영숫자·대시·언더스코어, 1~120자.
+_SE_KEY_RE = re.compile(r"^[A-Za-z0-9_-]{1,120}$")
+PRESET_UPLOAD_MAX = 8 * 1024 * 1024  # 8MB — admin.ts VOICE_SAMPLE_MAX 와 동일.
+
+
+async def preset_upload(req: web.Request) -> web.Response:
+    """음색 프리셋 샘플을 받아 {REF_VOICES_ROOT}/<se_key>/voice.wav 로 저장.
+    multipart/form-data: se_key (text), file (binary).
+    X-Admin-Secret 로 LEARN_SECRET 인증 (/oth-path 와 동일 규약).
+    """
+    secret = req.headers.get("X-Admin-Secret", "")
+    if not LEARN_SECRET or secret != LEARN_SECRET:
+        return web.json_response({"error": "unauthorized"}, status=401)
+    try:
+        reader = await req.multipart()
+    except Exception:
+        return web.json_response({"error": "multipart/form-data required"}, status=400)
+    se_key: str | None = None
+    file_bytes: bytes | None = None
+    while True:
+        part = await reader.next()
+        if part is None:
+            break
+        if part.name == "se_key":
+            se_key = (await part.text()).strip()
+        elif part.name == "file":
+            # 스트림을 통째로 읽되 상한 초과 즉시 거절 (OOM 방어).
+            buf = bytearray()
+            while True:
+                chunk = await part.read_chunk(size=64 * 1024)
+                if not chunk:
+                    break
+                buf.extend(chunk)
+                if len(buf) > PRESET_UPLOAD_MAX:
+                    return web.json_response(
+                        {"error": f"file too large (max {PRESET_UPLOAD_MAX} bytes)"},
+                        status=400,
+                    )
+            file_bytes = bytes(buf)
+    if not se_key or not _SE_KEY_RE.match(se_key):
+        return web.json_response(
+            {"error": "se_key required (alnum/dash/underscore, 1-120 chars)"},
+            status=400,
+        )
+    if file_bytes is None or len(file_bytes) == 0:
+        return web.json_response({"error": "file required"}, status=400)
+
+    target_dir = os.path.join(REF_VOICES_ROOT, se_key)
+    target = os.path.join(target_dir, "voice.wav")
+    try:
+        os.makedirs(target_dir, exist_ok=True)
+    except Exception as e:
+        log.warning("[preset_upload] mkdir failed %s: %s", target_dir, e)
+        return web.json_response({"error": f"write failed: {e}"}, status=500)
+
+    # 입력 bytes → tmp 파일 → ffmpeg(16kHz mono wav) → voice.wav.partial → rename.
+    #   원자 저장: 중간에 crash 해도 voice.wav 는 이전 상태 유지 (또는 부재).
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".in") as tmp_in:
+        tmp_in.write(file_bytes)
+        tmp_in_path = tmp_in.name
+    # ffmpeg 가 출력 포맷을 확장자로 결정하므로 명시 -f wav. .partial 경로는
+    #   atomic rename 소스이자 ffmpeg 가 덮어쓰기 쉽게 .wav 확장자는 생략.
+    tmp_out_path = target + ".partial"
+    try:
+        result = subprocess.run(
+            ["ffmpeg", "-y", "-i", tmp_in_path, "-f", "wav", "-ar", "16000", "-ac", "1", tmp_out_path],
+            capture_output=True,
+            timeout=30,
+        )
+        if result.returncode != 0:
+            stderr = (result.stderr or b"").decode("utf-8", errors="replace")[:500]
+            log.warning("[preset_upload] ffmpeg failed se_key=%s: %s", se_key, stderr)
+            return web.json_response(
+                {"error": f"ffmpeg failed: {stderr}"}, status=500,
+            )
+        if not os.path.isfile(tmp_out_path) or os.path.getsize(tmp_out_path) == 0:
+            return web.json_response(
+                {"error": "ffmpeg produced empty output"}, status=500,
+            )
+        os.replace(tmp_out_path, target)
+        bytes_written = os.path.getsize(target)
+        log.info("[preset_upload] saved se_key=%s path=%s bytes=%d", se_key, target, bytes_written)
+        return web.json_response({"ok": True, "path": target, "bytes": bytes_written})
+    except subprocess.TimeoutExpired:
+        return web.json_response({"error": "ffmpeg timeout"}, status=500)
+    except Exception as e:
+        log.warning("[preset_upload] unexpected error se_key=%s: %s", se_key, e)
+        return web.json_response({"error": f"write failed: {e}"}, status=500)
+    finally:
+        try:
+            os.unlink(tmp_in_path)
+        except Exception:
+            pass
+        try:
+            if os.path.isfile(tmp_out_path):
+                os.unlink(tmp_out_path)
+        except Exception:
+            pass
+
+
 def register_tts_admin_routes(app: web.Application) -> None:
     app.router.add_post("/oth-path", admin_tts)
-    log.info("tts_admin endpoint registered: POST /oth-path (v3, text normalized)")
+    app.router.add_post("/oth-path", preset_upload)
+    log.info("tts_admin endpoint registered: POST /oth-path, POST /oth-path")
