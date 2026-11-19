@@ -23,8 +23,22 @@ export function v_9c55e0(v_5ee049): Float32Array {
   const v_c83285 = v_60c684 * v_c25ba9; 
 
   const v_5b664f = v_c83285 * 8; 
-  const v_cab51f = v_4e6e9c(v_084137, v_dac30a, new TextEncoder().encode("face.fingerprint"),
-    new TextEncoder().encode("projection:v1"), v_5b664f);
+
+  const v_bce2fd = new TextEncoder().encode("face.fingerprint");
+  const v_8ddfcf = new TextEncoder().encode("projection:v1");
+  const v_9cfd2b = 255 * 32; 
+  const v_cab51f = new Uint8Array(v_5b664f);
+  let v_9e7a9d = 0;
+  let v_a562b5 = 0;
+  while (v_9e7a9d < v_5b664f) {
+    const v_04326c = Math.min(v_9cfd2b, v_5b664f - v_9e7a9d);
+    const v_546a46 = new Uint8Array(v_8ddfcf.length + 4);
+    v_546a46.set(v_8ddfcf, 0);
+    new DataView(v_546a46.buffer, v_546a46.byteOffset, v_546a46.byteLength).setUint32(v_8ddfcf.length, v_a562b5, false);
+    v_cab51f.set(v_4e6e9c(v_084137, v_dac30a, v_bce2fd, v_546a46, v_04326c), v_9e7a9d);
+    v_9e7a9d += v_04326c;
+    v_a562b5 += 1;
+  }
 
   const v_8d4337 = new Float32Array(v_c83285);
   const v_2836d4 = new DataView(v_cab51f.buffer, v_cab51f.byteOffset, v_cab51f.byteLength);
