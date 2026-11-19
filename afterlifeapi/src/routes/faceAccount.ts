@@ -27,8 +27,12 @@ async function v_0bb1df(c: v_437670<v_de0a25>, v_8f00b9) {
   return v_d5bb0f(v_3f4e2e, v_c99bd2, v_d308b5);
 }
 
-function v_d5bb0f(c: v_437670<v_de0a25>, v_c99bd2, v_d308b5) {
-  return v_3f4e2e.json({ error: { code: v_c99bd2, message: v_c99bd2 } }, v_d308b5 as 400);
+function v_d5bb0f(c: v_437670<v_de0a25>, v_c99bd2, v_d308b5, v_5d2fe3) {
+  const v_036602 = v_5d2fe3 !== undefined && v_3f4e2e.env.ENVIRONMENT !== "production";
+  const v_4d33b2 = {
+    error: { code: v_c99bd2, message: v_c99bd2, ...(v_036602 ? { debug: v_5d2fe3 } : {}) },
+  };
+  return v_3f4e2e.json(v_4d33b2, v_d308b5 as 400);
 }
 
 function v_9765c6(c: v_437670<v_de0a25>, v_7ecfd1): Record<string, string> {
@@ -88,7 +92,7 @@ v_acf120.post("/enroll", v_6690d9, async (v_3f4e2e) => {
   });
   if (!v_ebd523) {
     console.warn(`[faceAccount.enroll] reject: form=null (multipart parse 실패) member=${v_660822}`);
-    return v_d5bb0f(v_3f4e2e, "FRAMES_INVALID", 400);
+    return v_d5bb0f(v_3f4e2e, "FRAMES_INVALID", 400, { reason: "formData_null" });
   }
   const v_479f05 = v_ebd523.getAll("frames");
   const v_c7cb86 = v_479f05.map((v_8b5cd8) => {
@@ -96,13 +100,20 @@ v_acf120.post("/enroll", v_6690d9, async (v_3f4e2e) => {
     const v_b6c474 = v_8b5cd8 as { constructor?: { name?: string }; size?: number; name?: string; type?: string };
     return { kind: v_b6c474?.constructor?.name ?? "obj", size: v_b6c474?.size, name: v_b6c474?.name, type: v_b6c474?.type };
   });
-  console.log(`[faceAccount.enroll] member=${v_660822} rawFrames=${JSON.stringify(v_c7cb86)}`);
+  const v_580403 = Array.from(v_ebd523.keys());
+  console.log(`[faceAccount.enroll] member=${v_660822} formKeys=${JSON.stringify(v_580403)} rawFrames=${JSON.stringify(v_c7cb86)}`);
   const v_3b40dd = (v_479f05 as unknown[]).filter((v_8b5cd8) => typeof v_8b5cd8 !== "string") as File[];
   if (v_3b40dd.length < 2 || v_3b40dd.length > v_d291e8) {
     console.warn(
       `[faceAccount.enroll] reject: length=${v_3b40dd.length} (raw=${v_479f05.length}) member=${v_660822}`,
     );
-    return v_d5bb0f(v_3f4e2e, "FRAMES_INVALID", 400);
+    return v_d5bb0f(v_3f4e2e, "FRAMES_INVALID", 400, {
+      reason: "length",
+      rawCount: v_479f05.length,
+      framesCount: v_3b40dd.length,
+      formKeys: v_580403,
+      rawMeta: v_c7cb86,
+    });
   }
   if (v_3b40dd.some((v_8b5cd8) => v_8b5cd8.size <= 0 || v_8b5cd8.size > v_b9cb1f)) {
     const v_0af197 = v_3b40dd
@@ -111,7 +122,7 @@ v_acf120.post("/enroll", v_6690d9, async (v_3f4e2e) => {
     console.warn(
       `[faceAccount.enroll] reject: size out-of-range (0..${v_b9cb1f}) bad=${JSON.stringify(v_0af197)} member=${v_660822}`,
     );
-    return v_d5bb0f(v_3f4e2e, "FRAMES_INVALID", 400);
+    return v_d5bb0f(v_3f4e2e, "FRAMES_INVALID", 400, { reason: "size", max: v_b9cb1f, bad: v_0af197 });
   }
   const v_04e790 = String(v_ebd523.get("source") ?? "");
   const v_8d4337 = new FormData();
