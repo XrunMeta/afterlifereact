@@ -336,7 +336,7 @@ const v_d81136 = v_472849.create({
     fontFamily: v_843035.regular,
   },
   submit: {
-    marginTop: 12,
+    marginTop: 28,
   },
   modalOverlay: {
     flex: 1,
