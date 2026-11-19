@@ -330,7 +330,9 @@
     "aiNotice": {
       "title": "AI call notice",
       "body": "You are about to talk with an AI-generated clone, not a real person. Its voice, face, and replies are all AI-generated.",
-      "bodySub": "The service is designed so the AI won't pretend to be human."
+      "bodySub": "The service is designed so the AI won't pretend to be human.",
+      "back": "Back",
+      "ackOnce": "OK (don't show again)"
     },
     "calling": "Connecting...",
     "ended": "Call ended",

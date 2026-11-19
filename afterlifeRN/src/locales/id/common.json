@@ -330,7 +330,9 @@
     "aiNotice": {
       "title": "Pemberitahuan panggilan AI",
       "body": "Lawan bicara Anda bukan manusia sungguhan, melainkan klon buatan AI. Suara, wajah, dan percakapan sepenuhnya dihasilkan AI.",
-      "bodySub": "Layanan dirancang agar AI tidak berpura-pura menjadi manusia."
+      "bodySub": "Layanan dirancang agar AI tidak berpura-pura menjadi manusia.",
+      "back": "Kembali",
+      "ackOnce": "OK (jangan tampilkan lagi)"
     },
     "calling": "Menghubungkan...",
     "ended": "Panggilan berakhir",
