@@ -341,7 +341,159 @@ async def preset_upload(req: web.Request) -> web.Response:
             pass
 
 
+# ─── 등록 전 미리듣기 (2026-11-19 Option B) ────────────────────────────────
+# 어드민이 신규 샘플을 D1 에 등록하기 전에 바로 들어볼 수 있도록. 임시 디렉토리에
+# 업로드 → make_prompt_ref (lenient) → TTS → 응답 후 cleanup. D1 미접근.
+
+import uuid, shutil, asyncio
+MAKE_PROMPT_REF_PATH = os.environ.get(
+    "PRETHIRD_MAKE_PROMPT_REF",
+    "/home/afterlife/afterlife-server/cosyvoice/scripts/make_prompt_ref.py",
+)
+COSYVOICE_PYTHON = os.environ.get(
+    "COSYVOICE_PYTHON",
+    "/home/afterlife/miniconda3/envs/cosyvoice-poc/bin/python",
+)
+STT_URL = os.environ.get("PRETHIRD_STT_URL", "http://127.0.0.1:8202")
+PREBUILD_TIMEOUT_S = float(os.environ.get("PRETHIRD_PREVIEW_PREBUILD_TIMEOUT_S", "90"))
+
+
+async def _run_make_prompt_ref_lenient(se_key: str) -> bool:
+    """make_prompt_ref 를 쉼 감지 임계 완화 환경변수로 실행. 성공 시 True."""
+    env = dict(
+        os.environ,
+        COSYVOICE_REF_ROOT=REF_VOICES_ROOT,
+        PRETHIRD_STT_URL=STT_URL,
+        # 쉼 없는 샘플도 통과하도록 완화 (실측: preset-bright-9523 해결 조합).
+        COSYVOICE_PROMPT_SILENCE_MIN="0.08",
+        COSYVOICE_PROMPT_SILENCE_DB="-35dB",
+        COSYVOICE_PROMPT_CUT_AFTER_SEC="5.0",
+    )
+    proc = None
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            COSYVOICE_PYTHON if os.path.isfile(COSYVOICE_PYTHON) else "python3",
+            MAKE_PROMPT_REF_PATH,
+            se_key,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.STDOUT,
+            cwd=os.path.dirname(MAKE_PROMPT_REF_PATH),
+            env=env,
+        )
+        out, _ = await asyncio.wait_for(proc.communicate(), timeout=PREBUILD_TIMEOUT_S)
+        if proc.returncode != 0:
+            tail = (out or b"").decode("utf-8", "replace")[-300:]
+            log.warning("[preview] make_prompt_ref rc=%s: %s", proc.returncode, tail)
+            return False
+    except asyncio.TimeoutError:
+        log.warning("[preview] make_prompt_ref timeout clone=%s", se_key)
+        try:
+            proc.kill()
+        except Exception:
+            pass
+        return False
+    except Exception as e:
+        log.warning("[preview] make_prompt_ref 실행 실패: %s", e)
+        return False
+    d = os.path.join(REF_VOICES_ROOT, se_key)
+    return os.path.isfile(os.path.join(d, "voice_prompt.wav")) and os.path.isfile(
+        os.path.join(d, "ref_prompt.txt")
+    )
+
+
+async def preview_synthesize(req: web.Request) -> web.Response:
+    """등록 전 미리듣기 — multipart(text, file) → wav. 임시 dir 사용, 자동 cleanup."""
+    secret = req.headers.get("X-Admin-Secret", "")
+    if not LEARN_SECRET or secret != LEARN_SECRET:
+        return web.json_response({"error": "unauthorized"}, status=401)
+    try:
+        reader = await req.multipart()
+    except Exception:
+        return web.json_response({"error": "multipart/form-data required"}, status=400)
+    text: str | None = None
+    file_bytes: bytes | None = None
+    TEXT_MAX = 500
+    while True:
+        part = await reader.next()
+        if part is None:
+            break
+        if part.name == "text":
+            buf = bytearray()
+            while True:
+                chunk = await part.read_chunk(size=256)
+                if not chunk:
+                    break
+                buf.extend(chunk)
+                if len(buf) > TEXT_MAX * 4:  # UTF-8 4x margin
+                    return web.json_response({"error": "text too long"}, status=400)
+            text = buf.decode("utf-8", errors="replace").strip()
+        elif part.name == "file":
+            buf = bytearray()
+            while True:
+                chunk = await part.read_chunk(size=64 * 1024)
+                if not chunk:
+                    break
+                buf.extend(chunk)
+                if len(buf) > PRESET_UPLOAD_MAX:
+                    return web.json_response(
+                        {"error": f"file too large (max {PRESET_UPLOAD_MAX} bytes)"},
+                        status=400,
+                    )
+            file_bytes = bytes(buf)
+    if not text:
+        return web.json_response({"error": "text required"}, status=400)
+    if len(text) > TEXT_MAX:
+        return web.json_response({"error": f"text too long (max {TEXT_MAX} chars)"}, status=400)
+    if not file_bytes:
+        return web.json_response({"error": "file required"}, status=400)
+
+    # 임시 se_key — 충돌 방지 + 쉽게 패턴 매칭 가능한 접두어.
+    se_key = f"tmp-preview-{uuid.uuid4().hex}"
+    target_dir = os.path.join(REF_VOICES_ROOT, se_key)
+    try:
+        os.makedirs(target_dir, exist_ok=True)
+        # 1) ffmpeg → voice.wav (preset_upload 와 동일 패턴)
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".in") as tmp_in:
+            tmp_in.write(file_bytes)
+            tmp_in_path = tmp_in.name
+        voice_wav = os.path.join(target_dir, "voice.wav")
+        try:
+            result = subprocess.run(
+                ["ffmpeg", "-y", "-i", tmp_in_path, "-f", "wav", "-ar", "16000", "-ac", "1", voice_wav],
+                capture_output=True, timeout=30,
+            )
+            if result.returncode != 0:
+                stderr = (result.stderr or b"").decode("utf-8", "replace")[:300]
+                return web.json_response({"error": f"ffmpeg failed: {stderr}"}, status=500)
+        finally:
+            try:
+                os.unlink(tmp_in_path)
+            except Exception:
+                pass
+
+        # 2) prebuild (prompt pair + STT). 실패해도 TTS 는 polyfill 로 계속.
+        await _run_make_prompt_ref_lenient(se_key)
+        # 빈 se.pth stub — admin_tts se.pth 체크 통과용 (CosyVoice 는 같은 dir 의 voice.wav 사용).
+        se_pth = os.path.join(target_dir, "se.pth")
+        if not os.path.isfile(se_pth):
+            open(se_pth, "a").close()
+
+        # 3) TTS 실행 — /oth-path 와 동일 파이프라인(_run_tts) 재사용.
+        return await _run_tts(text, se_pth, se_key)
+    except Exception as e:
+        log.warning("[preview] unexpected error se_key=%s: %s", se_key, e)
+        return web.json_response({"error": f"preview failed: {e}"}, status=500)
+    finally:
+        # 자동 cleanup — 성공·실패 모두 임시 dir 제거.
+        try:
+            shutil.rmtree(target_dir, ignore_errors=True)
+            log.info("[preview] cleaned up %s", target_dir)
+        except Exception as e:
+            log.warning("[preview] cleanup failed %s: %s", target_dir, e)
+
+
 def register_tts_admin_routes(app: web.Application) -> None:
     app.router.add_post("/oth-path", admin_tts)
     app.router.add_post("/oth-path", preset_upload)
-    log.info("tts_admin endpoint registered: POST /oth-path, POST /oth-path")
+    app.router.add_post("/oth-path", preview_synthesize)
+    log.info("tts_admin endpoint registered: POST /oth-path, /oth-path, /oth-path")

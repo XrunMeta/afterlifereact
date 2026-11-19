@@ -257,6 +257,74 @@ v_469bf2("PUT /oth-path — 재동기화", () => {
   });
 });
 
+v_469bf2("POST /oth-path — 등록 전 미리듣기", () => {
+  async function v_a940e0(v_ebd523, v_21cc31): Promise<Response> {
+    return v_1df298.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_21cc31}` },
+      body: v_ebd523,
+    });
+  }
+
+  v_23805a("multipart 아니면 422", async () => {
+    const v_ea333d = await v_dca3c3();
+    const v_8f00b9 = await v_1df298.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_ea333d}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ text: "x" }),
+    });
+    v_4d37e3(v_8f00b9.status).toBe(422);
+  });
+
+  v_23805a("text 누락 → 422", async () => {
+    const v_ebd523 = new FormData();
+    v_ebd523.append("file", new Blob([new Uint8Array([1, 2, 3])], { type: "audio/mpeg" }), "s.mp3");
+    const v_8f00b9 = await v_a940e0(v_ebd523, await v_dca3c3());
+    v_4d37e3(v_8f00b9.status).toBe(422);
+  });
+
+  v_23805a("file 누락 → 422", async () => {
+    const v_ebd523 = new FormData();
+    v_ebd523.append("text", "안녕하세요");
+    const v_8f00b9 = await v_a940e0(v_ebd523, await v_dca3c3());
+    v_4d37e3(v_8f00b9.status).toBe(422);
+  });
+
+  v_23805a("가비아 /oth-path 로 포워드 + audio/wav 응답", async () => {
+    const v_786c54 = new Uint8Array([
+      0x52, 0x49, 0x46, 0x46, 0x08, 0x00, 0x00, 0x00, 0x57, 0x41, 0x56, 0x45,
+    ]).buffer;
+    const v_980ff2 = v_3889c0.spyOn(globalThis, "fetch").mockResolvedValue({
+      ok: true,
+      status: 200,
+      arrayBuffer: async () => v_786c54,
+    } as unknown as Response);
+    const v_ebd523 = new FormData();
+    v_ebd523.append("text", "안녕하세요 테스트중입니다");
+    v_ebd523.append("file", new Blob([new Uint8Array([1, 2, 3])], { type: "audio/mpeg" }), "s.mp3");
+    const v_8f00b9 = await v_a940e0(v_ebd523, await v_dca3c3());
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    v_4d37e3(v_8f00b9.headers.get("content-type")).toContain("audio/wav");
+    const v_20e160 = v_980ff2.mock.calls.filter((v_3f4e2e) => String(v_3f4e2e[0]).includes("/oth-path"));
+    v_4d37e3(v_20e160).toHaveLength(1);
+
+    v_4d37e3((v_20e160[0][1] as RequestInit).body).toBeInstanceOf(FormData);
+  });
+
+  v_23805a("가비아 실패 → status + error pass-through", async () => {
+    v_3889c0.spyOn(globalThis, "fetch").mockResolvedValue({
+      ok: false,
+      status: 500,
+      text: async () => "ffmpeg: boom",
+    } as unknown as Response);
+    const v_ebd523 = new FormData();
+    v_ebd523.append("text", "x");
+    v_ebd523.append("file", new Blob([new Uint8Array([1])], { type: "audio/mpeg" }), "s.mp3");
+    const v_8f00b9 = await v_a940e0(v_ebd523, await v_dca3c3());
+    v_4d37e3(v_8f00b9.status).toBe(500);
+  });
+});
+
 v_469bf2("POST /oth-path — 미리듣기", () => {
   let v_bec94a = 0;
   let v_d2735e = 0;

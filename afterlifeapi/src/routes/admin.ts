@@ -1197,6 +1197,52 @@ v_b7f2b4.put("/voices/:id", v_d3c85b, async (v_3f4e2e) => {
   });
 });
 
+v_b7f2b4.post("/voices/tts-preview-adhoc", v_d3c85b, async (v_3f4e2e) => {
+
+  const v_c0c2d5 = v_3f4e2e.req.header("Content-Type") ?? "";
+  if (!v_c0c2d5.startsWith("multipart/form-data")) {
+    throw new v_3ebe58("VALIDATION_FAILED", "multipart/form-data required");
+  }
+
+  const v_43fd42 = v_3f4e2e.env.LEARN_SECRET ?? "";
+  if (!v_43fd42) throw new v_3ebe58("INTERNAL_ERROR", "LEARN_SECRET not configured");
+  const v_694b25 = (v_3f4e2e.env.CALL_PRETHIRD_BASE ?? "").replace(/\/$/, "");
+  if (!v_694b25) throw new v_3ebe58("INTERNAL_ERROR", "CALL_PRETHIRD_BASE not configured");
+
+  const v_ebd523 = await v_3f4e2e.req.formData();
+  const v_9b6134 = String(v_ebd523.get("text") ?? "").trim();
+  const v_4de33e = v_ebd523.get("file");
+  if (!v_9b6134) throw new v_3ebe58("VALIDATION_FAILED", "text required");
+  if (v_9b6134.length > 500) throw new v_3ebe58("VALIDATION_FAILED", "text too long (max 500)");
+  if (!v_4de33e || typeof v_4de33e === "string") throw new v_3ebe58("VALIDATION_FAILED", "file required");
+
+  const v_6e5a09 = new FormData();
+  v_6e5a09.append("text", v_9b6134);
+  v_6e5a09.append("file", v_4de33e as Blob, (v_4de33e as File).name || "sample.mp3");
+
+  try {
+    const v_eb792a = await fetch(`${v_694b25}/oth-path`, {
+      method: "POST",
+      headers: { "X-Admin-Secret": v_43fd42 },
+      body: v_6e5a09,
+    });
+    if (!v_eb792a.ok) {
+      const v_9be017 = await v_eb792a.text().catch(() => "");
+      return v_3f4e2e.json(
+        { error: `prethird ${v_eb792a.status}: ${v_9be017.slice(0, 200)}` },
+        v_eb792a.status as 400 | 500,
+      );
+    }
+    const v_7ab8bd = await v_eb792a.arrayBuffer();
+    return new Response(v_7ab8bd, {
+      status: 200,
+      headers: { "Content-Type": "audio/wav", "Cache-Control": "no-store" },
+    });
+  } catch (v_9e86fd) {
+    return v_3f4e2e.json({ error: `upstream: ${String(v_9e86fd)}` }, 502);
+  }
+});
+
 v_b7f2b4.post("/voices/:id/tts-preview", v_d3c85b, async (v_3f4e2e) => {
   const v_389afb = Number(v_3f4e2e.req.param("id"));
   if (!Number.isFinite(v_389afb) || v_389afb <= 0) throw new v_3ebe58("VALIDATION_FAILED", "Invalid id.");
