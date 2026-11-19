@@ -68,10 +68,14 @@ export default function v_48f7a6({ visible: v_cf55be, onConfirm: v_e2be2d, onCan
           </Text>
           <View style={v_d81136.actions}>
             <TouchableOpacity style={v_d81136.cancelBtn} onPress={v_c7001c} activeOpacity={0.7}>
-              <Text style={v_d81136.cancelText}>{v_8d41d7("common.cancel", { defaultValue: "취소" })}</Text>
+              <Text style={v_d81136.cancelText}>
+                {v_8d41d7("call.aiNotice.back", { defaultValue: "뒤로" })}
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity style={v_d81136.confirmBtn} onPress={v_e2be2d} activeOpacity={0.7}>
-              <Text style={v_d81136.confirmText}>{v_8d41d7("common.confirm", { defaultValue: "확인" })}</Text>
+              <Text style={v_d81136.confirmText}>
+                {v_8d41d7("call.aiNotice.ackOnce", { defaultValue: "확인 (다시 보지 않기)" })}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
