@@ -12,7 +12,7 @@ import { v_c0a297, v_b09138, v_d3c85b } from "../middleware/auth";
 import { v_299864, v_a4a42b, v_11eba8 } from "../lib/xrunAdminIdentity";
 import { v_c60c30 } from "../lib/penaltyLog";
 import { v_4c95c2, v_1f4ea7 } from "../lib/validate";
-import { v_7a8165, v_ec7e95, v_291582 } from "../lib/gabiaVoiceSync";
+import { v_7a8165, v_d97b05, v_ec7e95, v_291582 } from "../lib/gabiaVoiceSync";
 import { v_a8614b, v_137694, v_dfbdd9, v_9eaae0, v_85de88, v_8ea38c } from "../lib/ale";
 import { v_e44d97 } from "../lib/kekProvider";
 import { v_e56fb3 } from "../lib/auditChain";
@@ -1311,6 +1311,55 @@ v_b7f2b4.post("/voices/:id/sync", v_d3c85b, async (v_3f4e2e) => {
     ...(v_57a13c.syncPath ? { path: v_57a13c.syncPath } : {}),
     ...(v_57a13c.syncBytes !== undefined ? { bytes: v_57a13c.syncBytes } : {}),
     ...(v_57a13c.syncWarning ? { syncWarning: v_57a13c.syncWarning } : {}),
+  });
+});
+
+v_b7f2b4.delete("/voices/:id", v_d3c85b, async (v_3f4e2e) => {
+  const v_389afb = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isFinite(v_389afb) || v_389afb <= 0) throw new v_3ebe58("VALIDATION_FAILED", "Invalid id.");
+  const v_3ac7e7 = await v_3f4e2e.env.DB
+    .prepare("SELECT se_key, r2_key FROM voice_presets WHERE id = ?")
+    .bind(v_389afb)
+    .first<{ se_key: string | null; r2_key: string | null }>();
+  if (!v_3ac7e7) throw new v_3ebe58("NOT_FOUND", "Voice not found.");
+
+  const v_b238f4 = await v_3f4e2e.env.DB
+    .prepare("SELECT COUNT(*) as n FROM clones WHERE voice_preset_id = ?")
+    .bind(v_389afb)
+    .first<{ n: number }>();
+  const v_aed5f2 = v_b238f4?.n ?? 0;
+
+  await v_3f4e2e.env.DB.prepare("DELETE FROM voice_presets WHERE id = ?").bind(v_389afb).run();
+
+  let v_9c203d = false;
+  if (v_3ac7e7.r2_key) {
+    try {
+      await v_3f4e2e.env.R2_ARCHIVE.delete(v_3ac7e7.r2_key);
+      v_9c203d = true;
+    } catch (v_9e86fd) {
+      console.warn(`[voice-delete] R2 delete failed key=${v_3ac7e7.r2_key}:`, v_9e86fd);
+    }
+  }
+
+  let v_92381d = false;
+  let v_2f77bc;
+  if (v_3ac7e7.se_key) {
+    const v_206b88 = await v_d97b05(v_3f4e2e.env, v_3ac7e7.se_key);
+    if (v_206b88.ok) {
+      v_92381d = true;
+    } else {
+      v_2f77bc = v_206b88.reason;
+      console.warn(`[voice-delete] gabia delete failed seKey=${v_3ac7e7.se_key} reason=${v_206b88.reason}`);
+    }
+  }
+
+  return v_3f4e2e.json({
+    ok: true,
+    id: v_389afb,
+    affectedClones: v_aed5f2,
+    r2Deleted: v_9c203d,
+    gabiaDeleted: v_92381d,
+    ...(v_2f77bc ? { gabiaWarning: v_2f77bc } : {}),
   });
 });
 

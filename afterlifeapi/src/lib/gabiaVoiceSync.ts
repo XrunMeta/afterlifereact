@@ -78,3 +78,48 @@ export async function v_7a8165(
     clearTimeout(v_8d41d7);
   }
 }
+
+export async function v_d97b05(
+  v_c9c489,
+  v_2f693a,
+): Promise<GabiaSyncOk | GabiaSyncFail> {
+  if (!v_c9c489.LEARN_SECRET) {
+    return { ok: false, reason: "learn-secret-missing", status: 0 };
+  }
+  if (!v_c9c489.CALL_PRETHIRD_BASE) {
+    return { ok: false, reason: "prethird-base-missing", status: 0 };
+  }
+  const v_f71b56 = `${v_c9c489.CALL_PRETHIRD_BASE.replace(/\/$/, "")}/oth-path`;
+  const v_4fc7c7 = new AbortController();
+  const v_8d41d7 = setTimeout(() => v_4fc7c7.abort(), v_635f22);
+  try {
+    const v_eb792a = await fetch(v_f71b56, {
+      method: "POST",
+      headers: {
+        "X-Admin-Secret": v_c9c489.LEARN_SECRET,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ se_key: v_2f693a }),
+      signal: v_4fc7c7.signal,
+    });
+    const v_9b6134 = await v_eb792a.text();
+    type GabiaBody = { ok?: boolean; path?: string; existed?: boolean; error?: string };
+    let v_4d33b2 = null;
+    try {
+      v_4d33b2 = v_9b6134 ? (JSON.parse(v_9b6134) as GabiaBody) : null;
+    } catch {
+      v_4d33b2 = null;
+    }
+    if (v_eb792a.ok && v_4d33b2?.ok) {
+      return { ok: true, path: v_4d33b2.path ?? "", bytes: 0 };
+    }
+    return { ok: false, reason: v_4d33b2?.error ?? `gabia ${v_eb792a.status}`, status: v_eb792a.status };
+  } catch (v_9e86fd) {
+    if ((v_9e86fd as Error).name === "AbortError") {
+      return { ok: false, reason: "timeout", status: 0 };
+    }
+    return { ok: false, reason: (v_9e86fd as Error).message || "fetch failed", status: 0 };
+  } finally {
+    clearTimeout(v_8d41d7);
+  }
+}

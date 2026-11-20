@@ -9,7 +9,7 @@ v3 (T-501): 텍스트 길이 정규화.
 - > 80자: 문장 단위 분할 → 각각 합성 → WAV 이어붙임
 """
 from __future__ import annotations
-import os, logging, aiohttp, re, io, wave, subprocess, tempfile
+import os, logging, aiohttp, re, io, wave, subprocess, tempfile, shutil
 import numpy as np
 from aiohttp import web
 
@@ -553,8 +553,42 @@ async def preview_synthesize(req: web.Request) -> web.Response:
             log.warning("[preview] cleanup failed %s: %s", target_dir, e)
 
 
+async def preset_delete(req: web.Request) -> web.Response:
+    """음색 프리셋 디렉토리 삭제 — {REF_VOICES_ROOT}/<se_key>/ shutil.rmtree.
+    JSON: {"se_key": "preset-xxx"}. X-Admin-Secret 로 LEARN_SECRET 인증.
+    없는 디렉토리는 성공으로 간주 (idempotent).
+    """
+    secret = req.headers.get("X-Admin-Secret", "")
+    if not LEARN_SECRET or secret != LEARN_SECRET:
+        return web.json_response({"error": "unauthorized"}, status=401)
+    try:
+        body = await req.json()
+    except Exception:
+        return web.json_response({"error": "invalid json"}, status=400)
+    se_key = (body.get("se_key") or "").strip()
+    if not se_key or not _SE_KEY_RE.match(se_key):
+        return web.json_response({"error": "invalid se_key"}, status=400)
+    target_dir = os.path.join(REF_VOICES_ROOT, se_key)
+    # Traversal 방어 — realpath 가 REF_VOICES_ROOT 아래여야.
+    root_real = os.path.realpath(REF_VOICES_ROOT)
+    target_real = os.path.realpath(target_dir)
+    if not target_real.startswith(root_real + os.sep):
+        return web.json_response({"error": "path outside root"}, status=400)
+    if not os.path.isdir(target_real):
+        log.info("[preset_delete] already absent se_key=%s", se_key)
+        return web.json_response({"ok": True, "existed": False, "path": target_real})
+    try:
+        shutil.rmtree(target_real)
+        log.info("[preset_delete] removed se_key=%s path=%s", se_key, target_real)
+        return web.json_response({"ok": True, "existed": True, "path": target_real})
+    except Exception as e:
+        log.warning("[preset_delete] rmtree failed se_key=%s: %s", se_key, e)
+        return web.json_response({"error": f"rmtree failed: {e}"}, status=500)
+
+
 def register_tts_admin_routes(app: web.Application) -> None:
     app.router.add_post("/oth-path", admin_tts)
     app.router.add_post("/oth-path", preset_upload)
+    app.router.add_post("/oth-path", preset_delete)
     app.router.add_post("/oth-path", preview_synthesize)
-    log.info("tts_admin endpoint registered: POST /oth-path, /oth-path, /oth-path")
+    log.info("tts_admin endpoint registered: POST /oth-path, /oth-path, /oth-path, /oth-path")
