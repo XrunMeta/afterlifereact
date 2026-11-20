@@ -326,6 +326,8 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9, onScrollToEnd: v_0c8c51
 
   const v_64652e = v_e662ae(0);
 
+  const v_7a5756 = v_e662ae<number | null>(null);
+
   const v_86394a = v_407393();
   const v_af221f = v_3488be(v_86394a);
 
@@ -458,16 +460,17 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9, onScrollToEnd: v_0c8c51
     try { v_86394a.pause(); } catch {  }
     v_a4d7cc(null);
     if (v_2ca7e0) {
+
+      v_7a5756.current = v_81e2ef.id;
       v_e7c430(v_81e2ef.id);
       console.log(`[DefaultVoice] TTS loading start id=${v_81e2ef.id}`);
       void (async () => {
         try {
           const v_cd1446 = await v_b73b1b(v_2ca7e0, v_81e2ef.id);
 
-          console.log(
-            `[DefaultVoice] TTS done id=${v_81e2ef.id} uri=${v_cd1446} currentSelected=${v_addcfe} currentLoading=${v_c8f57d}`,
-          );
-          if (v_c8f57d !== v_81e2ef.id && v_addcfe !== v_81e2ef.id) {
+          const v_1300ee = v_7a5756.current;
+          console.log(`[DefaultVoice] TTS done id=${v_81e2ef.id} uri=${v_cd1446} latestPick=${v_1300ee}`);
+          if (v_1300ee !== v_81e2ef.id) {
             console.log(`[DefaultVoice] TTS result discarded (selection changed) id=${v_81e2ef.id}`);
             return;
           }
