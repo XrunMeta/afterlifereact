@@ -57,9 +57,10 @@ export async function v_7a8165(
     });
     const v_9b6134 = await v_eb792a.text();
 
+    type GabiaBody = { ok?: boolean; path?: string; bytes?: number; error?: string };
     let v_4d33b2 = null;
     try {
-      v_4d33b2 = v_9b6134 ? (JSON.parse(v_9b6134) as typeof v_4d33b2) : null;
+      v_4d33b2 = v_9b6134 ? (JSON.parse(v_9b6134) as GabiaBody) : null;
     } catch {
       v_4d33b2 = null;
     }
