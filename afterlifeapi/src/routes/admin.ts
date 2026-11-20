@@ -1197,6 +1197,28 @@ v_b7f2b4.put("/voices/:id", v_d3c85b, async (v_3f4e2e) => {
   });
 });
 
+v_b7f2b4.post("/voices/r2-bootstrap-upload", async (v_3f4e2e) => {
+  const v_43fd42 = v_3f4e2e.req.header("X-Admin-Secret") ?? "";
+  if (!v_43fd42 || !v_3f4e2e.env.LEARN_SECRET || v_43fd42 !== v_3f4e2e.env.LEARN_SECRET) {
+    throw new v_3ebe58("UNAUTHENTICATED", "LEARN_SECRET required");
+  }
+  const v_ebd523 = await v_3f4e2e.req.formData();
+  const v_0037e3 = String(v_ebd523.get("r2_key") ?? "");
+  const v_4de33e = v_ebd523.get("file");
+  if (!v_0037e3.startsWith("voice/")) {
+    throw new v_3ebe58("VALIDATION_FAILED", "r2_key must start with 'voice/'");
+  }
+  if (!v_4de33e || typeof v_4de33e === "string") {
+    throw new v_3ebe58("VALIDATION_FAILED", "file required");
+  }
+  const v_fbb6da = await (v_4de33e as Blob).arrayBuffer();
+  await v_3f4e2e.env.R2_ARCHIVE.put(v_0037e3, v_fbb6da, {
+    httpMetadata: { contentType: (v_4de33e as File).type || "audio/mpeg" },
+    customMetadata: { purpose: "voice.sample", uploader: "bootstrap" },
+  });
+  return v_3f4e2e.json({ ok: true, r2_key: v_0037e3, bytes: v_fbb6da.byteLength });
+});
+
 v_b7f2b4.post("/voices/tts-preview-adhoc", v_d3c85b, async (v_3f4e2e) => {
 
   const v_c0c2d5 = v_3f4e2e.req.header("Content-Type") ?? "";
