@@ -452,25 +452,38 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9, onScrollToEnd: v_0c8c51
 
   const v_0f4413 = async (v: v_d80981) => {
 
+    console.log(
+      `[DefaultVoice] selectPresetVoice id=${v_81e2ef.id} name=${v_81e2ef.name} srcFileId=${v_81e2ef.srcFileId ?? "null"} hasToken=${!!v_2ca7e0}`,
+    );
     try { v_86394a.pause(); } catch {  }
     v_a4d7cc(null);
     if (v_2ca7e0) {
       v_e7c430(v_81e2ef.id);
+      console.log(`[DefaultVoice] TTS loading start id=${v_81e2ef.id}`);
       void (async () => {
         try {
           const v_cd1446 = await v_b73b1b(v_2ca7e0, v_81e2ef.id);
 
-          if (v_c8f57d !== v_81e2ef.id && v_addcfe !== v_81e2ef.id) return;
+          console.log(
+            `[DefaultVoice] TTS done id=${v_81e2ef.id} uri=${v_cd1446} currentSelected=${v_addcfe} currentLoading=${v_c8f57d}`,
+          );
+          if (v_c8f57d !== v_81e2ef.id && v_addcfe !== v_81e2ef.id) {
+            console.log(`[DefaultVoice] TTS result discarded (selection changed) id=${v_81e2ef.id}`);
+            return;
+          }
           try { v_86394a.pause(); } catch {  }
           v_86394a.replace({ uri: v_cd1446 });
           v_86394a.play();
           v_a4d7cc(v_81e2ef.id);
+          console.log(`[DefaultVoice] TTS playing id=${v_81e2ef.id}`);
         } catch (v_49263d) {
           console.warn("[DefaultVoice] preset auto-preview(tts) 실패:", v_49263d);
         } finally {
           v_e7c430((v_c3bc75) => (v_c3bc75 === v_81e2ef.id ? null : v_c3bc75));
         }
       })();
+    } else {
+      console.warn("[DefaultVoice] accessToken 없음 — TTS 미리듣기 skip");
     }
     if (v_81e2ef.srcFileId == null) {
 

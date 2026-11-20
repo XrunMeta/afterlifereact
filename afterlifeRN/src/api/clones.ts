@@ -325,20 +325,34 @@ export async function v_b73b1b(
   v_2ca7e0,
   v_34f7c8,
 ): Promise<string> {
-  const v_8f00b9 = await fetch(`${v_cc9198}/oth-path${v_34f7c8}/tts-preview`, {
+  const v_f71b56 = `${v_cc9198}/oth-path${v_34f7c8}/tts-preview`;
+  console.log(`[fetchVoiceTtsPreview] START voiceId=${v_34f7c8} url=${v_f71b56}`);
+  const v_b66f2c = Date.now();
+  const v_8f00b9 = await fetch(v_f71b56, {
     method: "POST",
     headers: { Authorization: `Bearer ${v_2ca7e0}` },
   });
+  console.log(
+    `[fetchVoiceTtsPreview] response voiceId=${v_34f7c8} status=${v_8f00b9.status} ok=${v_8f00b9.ok} ms=${Date.now() - v_b66f2c}`,
+  );
   if (!v_8f00b9.ok) {
     const v_9b6134 = await v_8f00b9.text().catch(() => "");
+    console.warn(`[fetchVoiceTtsPreview] FAIL voiceId=${v_34f7c8} status=${v_8f00b9.status} body=${v_9b6134.slice(0, 200)}`);
     throw new Error(`tts preview failed (${v_8f00b9.status}): ${v_9b6134.slice(0, 120)}`);
   }
   const v_83ee53 = await v_8f00b9.arrayBuffer();
+  console.log(`[fetchVoiceTtsPreview] bytes voiceId=${v_34f7c8} size=${v_83ee53.byteLength}`);
 
   const v_4de33e = new v_6d148f(v_4e6085.cache, `voice-tts-${v_34f7c8}.wav`);
-  if (v_4de33e.exists) v_4de33e.delete();
-  v_4de33e.create();
-  v_4de33e.write(new Uint8Array(v_83ee53));
+  try {
+    if (v_4de33e.exists) v_4de33e.delete();
+    v_4de33e.create();
+    v_4de33e.write(new Uint8Array(v_83ee53));
+    console.log(`[fetchVoiceTtsPreview] FILE WRITTEN voiceId=${v_34f7c8} uri=${v_4de33e.uri}`);
+  } catch (v_9e86fd) {
+    console.warn(`[fetchVoiceTtsPreview] file write failed voiceId=${v_34f7c8}:`, v_9e86fd);
+    throw v_9e86fd;
+  }
   return v_4de33e.uri;
 }
 
