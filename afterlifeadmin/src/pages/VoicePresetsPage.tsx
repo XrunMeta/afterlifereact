@@ -96,6 +96,8 @@ export function v_9febbb() {
   const [v_84df1e, v_89fb86] = v_5ab095<string | null>(null); 
   const v_998823 = v_e662ae<HTMLInputElement | null>(null);
 
+  const [v_c8f57d, v_e7c430] = v_5ab095<number | null>(null);
+
   type LangKey = "ko" | "en" | "ja" | "zh_cn" | "id";
   const [v_5254bf, v_54acae] = v_5ab095<LangKey>("ko");
   const v_78030b = (v_81e2ef, v_1614db): { shown: string; fallback: boolean } => {
@@ -194,6 +196,29 @@ export function v_9febbb() {
       v_3a7d09(v_49263d instanceof Error ? v_49263d.message : String(v_49263d));
     } finally {
       v_bbded0(false);
+    }
+  };
+
+  const v_e63709 =
+    "오늘 하루 어떻게 보냈어요? 별일 없이 잘 지냈죠? 저는 요즘 생각이 많아져서 그런지 하루가 금방 가는 것 같아요. 밥은 제때 챙겨 먹고 있죠? 바쁜 거 알지만, 가끔은 자기한테도 수고했다고 말해 주세요.";
+  const v_690f2c = async (v_81e2ef) => {
+    if (v_c8f57d !== null) return; 
+    if (!v_81e2ef.se_key) {
+      v_3a7d09(`"${v_81e2ef.name}" 은 se_key 가 비어있어 TTS 를 만들 수 없어요. 재동기화가 필요해요.`);
+      return;
+    }
+    v_e7c430(v_81e2ef.id);
+    v_3a7d09(null);
+    try {
+      const v_f71b56 = await v_05a921.voiceTtsPreviewAsObjectUrl(v_81e2ef.id, v_e63709);
+      const v_ff0300 = new Audio(v_f71b56);
+      v_ff0300.addEventListener("ended", () => URL.revokeObjectURL(v_f71b56));
+      v_ff0300.addEventListener("error", () => URL.revokeObjectURL(v_f71b56));
+      await v_ff0300.play();
+    } catch (v_9e86fd) {
+      v_3a7d09(`"${v_81e2ef.name}" 미리듣기 실패: ${v_9e86fd instanceof Error ? v_9e86fd.message : String(v_9e86fd)}`);
+    } finally {
+      v_e7c430(null);
     }
   };
 
@@ -465,6 +490,17 @@ export function v_9febbb() {
                       ) : (
                         <button onClick={() => v_8c23a9(v_81e2ef)} style={v_d81136.smallBtn}>활성화</button>
                       )}
+                      <button
+                        onClick={() => void v_690f2c(v_81e2ef)}
+                        disabled={v_c8f57d !== null}
+                        title="지정 문구로 이 음색을 합성해 들어봅니다 (가비아 TTS)"
+                        style={{
+                          ...v_d81136.smallBtn,
+                          ...(v_c8f57d === v_81e2ef.id ? { opacity: 0.6, cursor: "wait" } : {}),
+                        }}
+                      >
+                        {v_c8f57d === v_81e2ef.id ? "합성 중..." : "미리듣기"}
+                      </button>
                     </td>
                   </tr>
                 );

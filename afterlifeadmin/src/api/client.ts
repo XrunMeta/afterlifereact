@@ -449,6 +449,27 @@ export const v_05a921 = {
   voiceSamplePreviewPath: (v_0037e3) =>
     `/oth-path?r2Key=${encodeURIComponent(v_0037e3)}`,
 
+  voiceTtsPreviewAsObjectUrl: async (v_389afb, v_9b6134): Promise<string> => {
+    const v_21cc31 = v_8da5ba();
+    const v_3f4675 = { "Content-Type": "application/json" };
+    if (v_21cc31) v_3f4675["Authorization"] = `Bearer ${v_21cc31}`;
+    const v_8f00b9 = await fetch(`${v_b6d386()}/oth-path${v_389afb}/tts-preview`, {
+      method: "POST",
+      headers: v_3f4675,
+      body: JSON.stringify({ text: v_9b6134 }),
+    });
+    if (!v_8f00b9.ok) {
+      const v_49263d = await v_8f00b9.json().catch(() => ({ error: v_8f00b9.statusText }));
+      throw new Error((v_49263d as { error?: { message?: string } | string }).error
+        ? typeof (v_49263d as { error: unknown }).error === "string"
+          ? String((v_49263d as { error: string }).error)
+          : (v_49263d as { error: { message?: string } }).error.message ?? v_8f00b9.statusText
+        : v_8f00b9.statusText);
+    }
+    const v_3263c7 = await v_8f00b9.blob();
+    return URL.createObjectURL(v_3263c7);
+  },
+
   getReportPenaltyRules: () =>
     v_576f5a<{
       items: Array<{
