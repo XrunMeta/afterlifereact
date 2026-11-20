@@ -888,6 +888,63 @@ v_f891e6.get("/voices/:id/sample", async (v_3f4e2e) => {
   });
 });
 
+const v_fa7fb5 =
+  "오늘 하루 어떻게 보냈어요? 별일 없이 잘 지냈죠? 저는 요즘 생각이 많아져서 그런지 하루가 금방 가는 것 같아요. 밥은 제때 챙겨 먹고 있죠? 바쁜 거 알지만, 가끔은 자기한테도 수고했다고 말해 주세요.";
+
+v_f891e6.post("/voices/:id/tts-preview", v_6690d9, async (v_3f4e2e) => {
+  const v_389afb = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isFinite(v_389afb) || v_389afb <= 0) throw new v_3ebe58("VALIDATION_FAILED", "Invalid voice id.");
+  const v_3ac7e7 = await v_3f4e2e.env.DB
+    .prepare(`SELECT se_key FROM voice_presets WHERE id = ? AND is_active = 1`)
+    .bind(v_389afb)
+    .first<{ se_key: string | null }>();
+  if (!v_3ac7e7?.se_key) throw new v_3ebe58("NOT_FOUND", "Voice not available for TTS preview.");
+
+  const v_7ac310 = `voice/sample-tts/${v_3ac7e7.se_key}.wav`;
+  const v_e2a6a6 = await v_3f4e2e.env.R2_ARCHIVE.get(v_7ac310);
+  if (v_e2a6a6) {
+    return new Response(v_e2a6a6.body, {
+      headers: { "Content-Type": "audio/wav", "Cache-Control": "public, max-age=604800" }, 
+    });
+  }
+
+  const v_43fd42 = v_3f4e2e.env.LEARN_SECRET ?? "";
+  if (!v_43fd42) throw new v_3ebe58("INTERNAL_ERROR", "LEARN_SECRET not configured");
+  const v_694b25 = (v_3f4e2e.env.CALL_PRETHIRD_BASE ?? "").replace(/\/$/, "");
+  if (!v_694b25) throw new v_3ebe58("INTERNAL_ERROR", "CALL_PRETHIRD_BASE not configured");
+
+  try {
+    const v_eb792a = await fetch(`${v_694b25}/oth-path`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Admin-Secret": v_43fd42 },
+      body: JSON.stringify({ text: v_fa7fb5, se_key: v_3ac7e7.se_key }),
+    });
+    if (!v_eb792a.ok) {
+      const v_9be017 = await v_eb792a.text().catch(() => "");
+      return v_3f4e2e.json(
+        { error: `prethird ${v_eb792a.status}: ${v_9be017.slice(0, 200)}` },
+        v_eb792a.status as 400 | 500,
+      );
+    }
+    const v_7ab8bd = await v_eb792a.arrayBuffer();
+
+    try {
+      await v_3f4e2e.env.R2_ARCHIVE.put(v_7ac310, v_7ab8bd, {
+        httpMetadata: { contentType: "audio/wav" },
+        customMetadata: { purpose: "voice.tts-preview", se_key: v_3ac7e7.se_key },
+      });
+    } catch (v_9e86fd) {
+      console.warn(`[tts-preview] R2 cache write failed seKey=${v_3ac7e7.se_key}: ${String(v_9e86fd)}`);
+    }
+    return new Response(v_7ab8bd, {
+      status: 200,
+      headers: { "Content-Type": "audio/wav", "Cache-Control": "public, max-age=604800" },
+    });
+  } catch (v_9e86fd) {
+    return v_3f4e2e.json({ error: `upstream: ${String(v_9e86fd)}` }, 502);
+  }
+});
+
 v_f891e6.get("/system", v_6690d9, async (v_3f4e2e) => {
   const v_18b8bf = await v_3f4e2e.env.DB.prepare(
     `SELECT id, username, name, avatar_url, is_system FROM clones WHERE is_system = 1 AND ${v_74c502()}`,

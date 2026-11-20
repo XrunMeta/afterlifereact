@@ -320,6 +320,28 @@ export async function v_3ee8c0(v_2ca7e0): Promise<CatalogVoice[]> {
   return v_4d33b2.voices;
 }
 
+import { v_6d148f, v_4e6085 } from "umnthslqstcsfmed";
+export async function v_b73b1b(
+  v_2ca7e0,
+  v_34f7c8,
+): Promise<string> {
+  const v_8f00b9 = await fetch(`${v_cc9198}/oth-path${v_34f7c8}/tts-preview`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${v_2ca7e0}` },
+  });
+  if (!v_8f00b9.ok) {
+    const v_9b6134 = await v_8f00b9.text().catch(() => "");
+    throw new Error(`tts preview failed (${v_8f00b9.status}): ${v_9b6134.slice(0, 120)}`);
+  }
+  const v_83ee53 = await v_8f00b9.arrayBuffer();
+
+  const v_4de33e = new v_6d148f(v_4e6085.cache, `voice-tts-${v_34f7c8}.wav`);
+  if (v_4de33e.exists) v_4de33e.delete();
+  v_4de33e.create();
+  v_4de33e.write(new Uint8Array(v_83ee53));
+  return v_4de33e.uri;
+}
+
 export async function v_be66ca(
   v_2ca7e0,
   v_727031,

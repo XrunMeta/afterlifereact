@@ -19,7 +19,7 @@ import { v_772971 } from "jmpfvteuuztnp";
 import { v_cf763b } from "ixigazcpvfldbecwtbvavtbi";
 import type { v_c2a674 } from "../../../types/clone";
 import { v_1bfbd0, v_8b0c90, v_a9d3e9, v_e3d001 } from "../../../components/constants";
-import { v_3ee8c0, v_ab4719, v_8aa90d, type v_d80981 } from "../../../api/clones";
+import { v_3ee8c0, v_ab4719, v_8aa90d, v_b73b1b, type v_d80981 } from "../../../api/clones";
 import { v_17fa33, v_7218f6, v_d76390 } from "./analyzeReason";
 import { v_7d2692 } from "../../../api/files";
 import { v_1ed7d9 } from "../../../stores/authStore";
@@ -331,6 +331,8 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9, onScrollToEnd: v_0c8c51
 
   const [v_cf954d, v_a4d7cc] = v_5ab095<number | string | null>(null);
 
+  const [v_c8f57d, v_e7c430] = v_5ab095<number | null>(null);
+
   v_c4deb2(() => {
     if (
       v_cf954d != null &&
@@ -451,17 +453,24 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9, onScrollToEnd: v_0c8c51
   const v_0f4413 = async (v: v_d80981) => {
 
     try { v_86394a.pause(); } catch {  }
-    if (v_81e2ef.sampleUrl) {
-      try {
-        v_86394a.replace({ uri: v_81e2ef.sampleUrl });
-        v_86394a.play();
-        v_a4d7cc(v_81e2ef.id);
-      } catch (v_49263d) {
-        console.warn("[DefaultVoice] preset auto-preview 실패:", v_49263d);
-        v_a4d7cc(null);
-      }
-    } else {
-      v_a4d7cc(null);
+    v_a4d7cc(null);
+    if (v_2ca7e0) {
+      v_e7c430(v_81e2ef.id);
+      void (async () => {
+        try {
+          const v_cd1446 = await v_b73b1b(v_2ca7e0, v_81e2ef.id);
+
+          if (v_c8f57d !== v_81e2ef.id && v_addcfe !== v_81e2ef.id) return;
+          try { v_86394a.pause(); } catch {  }
+          v_86394a.replace({ uri: v_cd1446 });
+          v_86394a.play();
+          v_a4d7cc(v_81e2ef.id);
+        } catch (v_49263d) {
+          console.warn("[DefaultVoice] preset auto-preview(tts) 실패:", v_49263d);
+        } finally {
+          v_e7c430((v_c3bc75) => (v_c3bc75 === v_81e2ef.id ? null : v_c3bc75));
+        }
+      })();
     }
     if (v_81e2ef.srcFileId == null) {
 
@@ -497,19 +506,31 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9, onScrollToEnd: v_0c8c51
     }
   };
 
-  const v_1bf8db = (v: v_d80981) => {
+  const v_1bf8db = async (v: v_d80981) => {
     if (v_cf954d === v_81e2ef.id) {
       try { v_86394a.pause(); } catch {  }
       v_a4d7cc(null);
       return;
     }
+    if (v_c8f57d !== null) return; 
+    if (!v_2ca7e0) {
+      console.warn("[DefaultVoice] tts-preview skip — no accessToken");
+      return;
+    }
+    v_e7c430(v_81e2ef.id);
     try {
-      v_86394a.replace({ uri: v_81e2ef.sampleUrl });
+      const v_cd1446 = await v_b73b1b(v_2ca7e0, v_81e2ef.id);
+
+      if (v_c8f57d !== v_81e2ef.id) return;
+      try { v_86394a.pause(); } catch {  }
+      v_86394a.replace({ uri: v_cd1446 });
       v_86394a.play();
       v_a4d7cc(v_81e2ef.id);
     } catch (v_49263d) {
-      console.warn("[DefaultVoice] preview 재생 실패:", v_49263d);
+      console.warn("[DefaultVoice] tts-preview 실패:", v_49263d);
       v_a4d7cc(null);
+    } finally {
+      v_e7c430((v_c3bc75) => (v_c3bc75 === v_81e2ef.id ? null : v_c3bc75));
     }
   };
 
@@ -826,14 +847,19 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9, onScrollToEnd: v_0c8c51
                     </Text>
                     <TouchableOpacity
                       style={v_d81136.playBtn}
-                      onPress={(v_9e86fd) => { v_9e86fd.stopPropagation(); v_1bf8db(v_81e2ef); }}
+                      onPress={(v_9e86fd) => { v_9e86fd.stopPropagation(); void v_1bf8db(v_81e2ef); }}
                       hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      disabled={v_c8f57d !== null && v_c8f57d !== v_81e2ef.id}
                     >
-                      <Feather
-                        name={v_087c92 ? "pause" : "play"}
-                        size={14}
-                        color={v_f8b770 ? v_a9d3e9 : v_1bfbd0.zinc500}
-                      />
+                      {v_c8f57d === v_81e2ef.id ? (
+                        <ActivityIndicator size="small" color={v_f8b770 ? v_a9d3e9 : v_1bfbd0.zinc500} />
+                      ) : (
+                        <Feather
+                          name={v_087c92 ? "pause" : "play"}
+                          size={14}
+                          color={v_f8b770 ? v_a9d3e9 : v_1bfbd0.zinc500}
+                        />
+                      )}
                     </TouchableOpacity>
                   </View>
                   {!!v_81e2ef.description && (
