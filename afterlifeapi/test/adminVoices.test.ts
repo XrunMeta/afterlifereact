@@ -27,6 +27,18 @@ v_ba7107(async () => {
     )
     .bind(v_d72b33, "superadmin-voices@afterlife.test", "hashed-placeholder")
     .run();
+
+  const v_b96973 = (v_c9c489 as unknown as { R2_ARCHIVE: R2Bucket }).R2_ARCHIVE;
+  const v_7cb668 = new Uint8Array([0x52, 0x49, 0x46, 0x46, 0x00, 0x00, 0x00, 0x00]); 
+  const v_fa53ec = [
+    "voice/sample/test.mp3",
+    "voice/ok/test.mp3",
+    "voice/sample/i18n.mp3",
+    "voice/sample/partial.mp3",
+  ];
+  for (const v_0eb677 of v_fa53ec) {
+    await v_b96973.put(v_0eb677, v_7cb668, { httpMetadata: { contentType: "audio/wav" } });
+  }
 });
 
 v_469bf2("admin /oth-path", () => {
