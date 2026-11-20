@@ -323,7 +323,16 @@ async def preset_upload(req: web.Request) -> web.Response:
         os.replace(tmp_out_path, target)
         bytes_written = os.path.getsize(target)
         log.info("[preset_upload] saved se_key=%s path=%s bytes=%d", se_key, target, bytes_written)
-        return web.json_response({"ok": True, "path": target, "bytes": bytes_written})
+        # 2026-11-20: ICL prompt pair 자동 생성 — voice.wav 만 있으면 CosyVoice 가
+        #   icl=False(=긴 프롬프트) 로 떨어져 종종 garbled 출력. prebuild 를 연쇄로 돌려
+        #   voice_prompt.wav + ref_prompt.txt + se.pth(stub) 까지 완성해야 TTS 품질 보장.
+        prebuild_ok = await _run_preset_prebuild(se_key)
+        return web.json_response({
+            "ok": True,
+            "path": target,
+            "bytes": bytes_written,
+            "prebuild_ok": prebuild_ok,
+        })
     except subprocess.TimeoutExpired:
         return web.json_response({"error": "ffmpeg timeout"}, status=500)
     except Exception as e:
@@ -339,6 +348,58 @@ async def preset_upload(req: web.Request) -> web.Response:
                 os.unlink(tmp_out_path)
         except Exception:
             pass
+
+
+async def _run_preset_prebuild(se_key: str) -> bool:
+    """신규 프리셋 등록 직후 ICL prompt pair + se.pth(stub) 자동 생성.
+       make_prompt_ref 를 lenient 상수(쉼 0.08s, 발화 5s 이상, -35dB)로 실행 —
+       쉼 없는 샘플 많이 들어옴을 운영 중 확인 (preset-bright-9523, 2026-11-19).
+       실패해도 /oth-path 는 200 으로 성공 응답 → 어드민 재동기화로 복구 가능.
+    """
+    import asyncio as _asyncio
+    env = dict(
+        os.environ,
+        COSYVOICE_REF_ROOT=REF_VOICES_ROOT,
+        PRETHIRD_STT_URL=os.environ.get("PRETHIRD_STT_URL", "http://127.0.0.1:8202"),
+        COSYVOICE_PROMPT_SILENCE_MIN="0.08",
+        COSYVOICE_PROMPT_SILENCE_DB="-35dB",
+        COSYVOICE_PROMPT_CUT_AFTER_SEC="5.0",
+    )
+    py = os.environ.get("COSYVOICE_PYTHON",
+                        "/home/afterlife/miniconda3/envs/cosyvoice-poc/bin/python")
+    script = os.environ.get("PRETHIRD_MAKE_PROMPT_REF",
+                            "/home/afterlife/afterlife-server/cosyvoice/scripts/make_prompt_ref.py")
+    proc = None
+    try:
+        proc = await _asyncio.create_subprocess_exec(
+            py if os.path.isfile(py) else "python3",
+            script, se_key,
+            stdout=_asyncio.subprocess.PIPE,
+            stderr=_asyncio.subprocess.STDOUT,
+            cwd=os.path.dirname(script),
+            env=env,
+        )
+        out, _ = await _asyncio.wait_for(proc.communicate(), timeout=120)
+        if proc.returncode != 0:
+            log.warning("[preset_upload/prebuild] rc=%s out=%s",
+                        proc.returncode, (out or b"")[:300].decode("utf-8", "replace"))
+    except Exception as e:
+        log.warning("[preset_upload/prebuild] failed se_key=%s: %s", se_key, e)
+        try:
+            if proc: proc.kill()
+        except Exception:
+            pass
+        return False
+    # admin_tts 가 se.pth 존재 체크 — CosyVoice 는 같은 dir 의 voice.wav 사용, 내용은 무관.
+    d = os.path.join(REF_VOICES_ROOT, se_key)
+    se_pth = os.path.join(d, "se.pth")
+    if not os.path.isfile(se_pth):
+        try:
+            open(se_pth, "a").close()
+        except Exception:
+            pass
+    return (os.path.isfile(os.path.join(d, "voice_prompt.wav"))
+            and os.path.isfile(os.path.join(d, "ref_prompt.txt")))
 
 
 # ─── 등록 전 미리듣기 (2026-11-19 Option B) ────────────────────────────────
